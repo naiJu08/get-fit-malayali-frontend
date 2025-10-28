@@ -1,0 +1,135 @@
+[data-theme='dark'] {
+  .managedList-tabs {
+    background: #a2a2a2;
+    color: black;
+  }
+  .managedList-tabs button.MuiButtonBase-root.MuiTab-root.Mui-selected {
+    background: #394150;
+    color: white;
+  }
+  .managedList-tabs button.MuiButtonBase-root.MuiTab-root {
+    color: black;
+  }
+  .customAccordion {
+    background: #394150;
+    color: white;
+  }
+  .customAccordion .accordionHeader span.flex-1 {
+    color: white;
+  }
+
+  .iconBlack {
+    svg * {
+      stroke: #fff;
+    }
+  }
+
+  /// table
+  .qbs-table {
+    .qbs-table-toolbar-sub-container {
+      background: #242424 !important;
+      color: white !important;
+      .rows-count {
+        color: white !important;
+      }
+    }
+    .qbs-table-border-wrap {
+      background: #1c1f3f;
+      .rs-table {
+        background: #000;
+        .rs-table-row-header {
+          &.rs-table-row {
+            background: #000;
+          }
+        }
+        .rs-table-row {
+          background: #1c1f3f;
+        }
+        .rs-table-scrollbar {
+          background: #fff;
+        }
+        .rs-table-cell-content {
+          background: #1c1c1c;
+          color: white;
+        }
+        .rs-table-cell-group-shadow,
+        .rs-table-cell-group-right-shadow {
+          background: #1c1c1c;
+          color: white;
+        }
+        .rs-table-cell-header .rs-table-cell-content {
+          background: black;
+          color: white;
+          svg * {
+            stroke: #fff;
+          }
+        }
+        .rs-table-row:hover {
+          background: black;
+          color: white;
+          .rs-table-cell-content {
+            background: black;
+            color: white;
+          }
+        }
+      }
+    }
+    .qbs-table-custom-pagination {
+      background: #242424 !important;
+      color: white !important;
+      .rows-count {
+        color: white !important;
+      }
+      .qbs-table-pagination-right-block {
+        color: white !important;
+        svg * {
+          stroke: #fff;
+        }
+      }
+      .qbs-table-pagination-flexBox {
+        .qbs-table-pagination-text {
+          color: white !important;
+        }
+        .qbs-table-pagination-dropdown {
+          background: black;
+        }
+      }
+    }
+    .rs-table-hover
+      .rs-table-body-row-wrapper
+      .rs-table-row:hover
+      .rs-table-cell-group {
+      background: #151515;
+    }
+  }
+  ///
+  .css-1160xiw-MuiPaper-root-MuiDrawer-paper {
+    background-color: #171717 !important;
+  }
+  // .textfield,
+  // .textfield-big {
+  //   // background-color: transparent !important;
+  // }
+  .qbs-autocomplete-suggestions {
+    background-color: #171717;
+  }
+  .qbs-autocomplete-suggestions-item.is-selected,
+  .is-selected,
+  .qbs-autocomplete-suggestions-item:hover {
+    background-color: #272727;
+  }
+  .qbs-autocomplete-suggestions-item {
+    color: #ededed;
+  }
+
+  .iconWhite {
+    svg * {
+      stroke: var(--blackAlt);
+    }
+  }
+  .iconBlack {
+    svg * {
+      stroke: var(--white);
+    }
+  }
+}

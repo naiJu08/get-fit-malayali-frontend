@@ -1,0 +1,128 @@
+{
+  "name": "diversity-mark-reactjs-admin-portal",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@craco/craco": "^7.1.0",
+    "@emotion/react": "^11.10.5",
+    "@emotion/styled": "^11.10.5",
+    "@hookform/resolvers": "^2.9.11",
+    "@mui/icons-material": "^5.11.0",
+    "@mui/material": "^5.15.20",
+    "@mui/x-date-pickers": "^5.0.18",
+    "@svgr/plugin-svgo": "^8.1.0",
+    "@svgr/webpack": "^8.1.0",
+    "@tanstack/react-query": "^4.33.0",
+    "@testing-library/jest-dom": "^6.5.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.12",
+    "@types/react": "^18.3.1",
+    "@types/react-dom": "^18.3.0",
+    "@types/react-router-dom": "^5.3.3",
+    "axios": "^1.3.2",
+    "crypto-js": "^4.2.0",
+    "css-select": "^5.1.0",
+    "date-fns": "^2.30.0",
+    "dayjs": "^1.11.7",
+    "dompurify": "^3.1.5",
+    "dotenv": "^16.3.1",
+    "env-cmd": "^10.1.0",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "notistack": "^2.0.8",
+    "nth-check": "^2.1.1",
+    "or": "^0.2.0",
+    "qbs-core": "1.1.13",
+    "qbs-react-grid": "^1.2.1",
+    "react": "^18.2.0",
+    "react-core-ts": "^1.0.17",
+    "react-datepicker": "^4.19.0",
+    "react-dom": "^18.2.0",
+    "react-dropzone": "^14.2.3",
+    "react-hook-form": "^7.43.1",
+    "react-icons": "^5.3.0",
+    "react-quill": "^2.0.0",
+    "react-router-dom": "^6.21.1",
+    "rsuite": "^5.40.0",
+    "sass": "^1.77.6",
+    "styled-components": "^6.0.8",
+    "svgo": "^3.0.2",
+    "web-vitals": "^2.1.4",
+    "wmr": "^3.8.0",
+    "zod": "^3.20.6",
+    "zustand": "^4.3.2"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "start:local": "env-cmd -f .env.development.local react-scripts start",
+    "start:dev": "env-cmd -f .env.development react-scripts start",
+    "start:uat": "env-cmd -f .env.uat react-scripts start",
+    "build": "react-scripts build",
+    "build:dev": "env-cmd -f .env.development react-scripts build",
+    "build:uat": "env-cmd -f .env.uat react-scripts build",
+    "build:prod": "env-cmd -f .env.production react-scripts build",
+    "test": "react-scripts test",
+    "lint": "eslint \"./src/**/*.{js,jsx,ts,tsx}\"",
+    "lint:fix": "eslint --fix \"./src/**/*.{js,jsx,ts,tsx}\"",
+    "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,json,css,scss,md}'",
+    "eject": "react-scripts eject",
+    "postinstall": "husky install"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "prettier": {
+    "semi": false,
+    "trailingComma": "es5",
+    "singleQuote": true,
+    "printWidth": 80
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint"
+    }
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "git add"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@types/crypto-js": "^4.2.2",
+    "@types/dompurify": "^3.0.5",
+    "@types/lodash": "^4.14.197",
+    "@types/node-sass": "^4.11.3",
+    "@types/react-datepicker": "^4.15.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.51.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.1",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^9.0.11",
+    "postcss": "^8.4.44",
+    "prettier": "^3.0.3",
+    "react-scripts": "^5.0.1",
+    "tailwindcss": "^3.3.4",
+    "typescript": "^5.9.3"
+  }
+}

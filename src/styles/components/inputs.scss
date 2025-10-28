@@ -1,0 +1,40 @@
+@tailwind components;
+
+@layer components {
+  .input {
+    @apply h-input pl-input text-input rounded-input focus:ring-input focus:border-none disabled:cursor-text transition border font-medium flex items-center;
+  }
+  .input-area {
+    @apply pl-input py-input text-input rounded-input focus:ring-input focus:border-none disabled:cursor-text transition border font-medium flex items-center;
+  }
+
+  .textfield {
+    border: 1px solid #8a8686;
+    border-radius: 4px;
+    min-height: 36px;
+    @apply focus:outline-none text-grey-dark dark:text-white border-grey-light focus:border-none focus:ring-blue-navy dark:bg-primary bg-white disabled:text-input-disabled;
+  }
+
+  .textfield-error {
+    @apply focus:outline-none text-error-light placeholder-error-light border-error-light focus:border-none focus:ring-error-light bg-error-extra-light dark:bg-[#3f2828];
+  }
+
+  .labels {
+    @apply font-bold text-input-label;
+  }
+
+  .adorement {
+    @apply px-input text-input rounded-input disabled:cursor-text transition font-medium flex items-center;
+  }
+}
+.react-datepicker-wrapper {
+  border: 1px solid !important;
+  border-radius: 3px;
+  min-height: 30px;
+  width: 100%;
+}
+
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear {
+  display: none;
+}

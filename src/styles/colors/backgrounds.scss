@@ -1,0 +1,10 @@
+@tailwind components;
+@layer components {
+  /* backgrounds */
+  .primary-bg {
+    @apply bg-primary;
+  }
+  .secondary-bg {
+    @apply bg-secondary hover:bg-primary;
+  }
+}

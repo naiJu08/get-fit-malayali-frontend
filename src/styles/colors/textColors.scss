@@ -1,0 +1,19 @@
+@tailwind base;
+@layer base {
+  .primary-text {
+    @apply text-primary;
+  }
+  .secondary-text {
+    @apply text-secondary;
+  }
+  /* buttons */
+  btn.primary-button-color {
+    @apply text-white;
+  }
+  btn.secondary-button-color {
+    @apply text-white;
+  }
+  btn.outlined-button-color {
+    @apply text-shadow-light hover:text-white;
+  }
+}

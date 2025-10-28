@@ -1,0 +1,33 @@
+.tabular * {
+  /* outline: 1px solid; */
+}
+
+/* :root {
+  --border-color: #c6c6c6;
+  --primary-color: #5b58e6;
+} */
+
+/* .sidenav::-webkit-scrollbar {
+  width: 5px;
+  background-color: #ffffff;
+}
+.sidenav::-webkit-scrollbar-thumb {
+  background-color: #fff;
+} */
+/* .submenu,
+.submenu li {
+  position: relative;
+}
+.submenu li::before {
+  content: '';
+  height: 50px;
+  width: 8px;
+  border: 1px solid var(--border-color);
+  position: absolute;
+  left: -5%;
+  top: -30px;
+  z-index: 1;
+  border-right: none;
+  border-top: none;
+  border-radius: 2px;
+} */

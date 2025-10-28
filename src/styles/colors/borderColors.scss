@@ -1,0 +1,28 @@
+@tailwind base;
+@layer base {
+  .primary-border {
+    @apply border-primary;
+  }
+  .secondary-border {
+    @apply border-secondary;
+  }
+  .transparent-border {
+    @apply border-transparent;
+  }
+  .modal-primary-border {
+    @apply border-grey-border;
+  }
+  /* buttons */
+  .primary-button-border {
+    @apply border-primary hover:border-secondary;
+  }
+  .secondary-button-border {
+    @apply border-secondary  hover:border-primary;
+  }
+  .primary-outlined-button-border {
+    @apply border-primary;
+  }
+  .secondary-outlined-button-border {
+    @apply border-primary;
+  }
+}

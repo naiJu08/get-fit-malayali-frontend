@@ -1,0 +1,179 @@
+@tailwind base;
+
+:root {
+  --primary: #65328d;
+  --primaryThin: #f8f8ff;
+  --primaryExtraLight: #f0f8ff;
+  --primaryAlt: #5b58e614;
+  --secondary: #585858;
+  --acreditationBg: #2b185524;
+  --tabHeader: #f1f3ff;
+  --icontextColor: #ffffff;
+  --mainBgColor: #fafafa;
+  --successColor: #1acda5;
+  --dangerColor: #e76458;
+  --notificationClr: #e76458;
+  --bgWhite: #ffffff;
+  --bgGrey: #f2f2f2;
+  --bgTabHeader: #f3f3f3;
+  --purpleLight: #fcf7fd;
+  --primaryText: #606060;
+  --formBorder: #e6e8ea;
+  --divider: #d6d8dc;
+  --icon-gray: #959393;
+  --hoverColor: #fdf0ef;
+  --linkBlue: #336cfc;
+  --blueLight: #007bff14;
+  --cardWrapperBg: #f8f8f8;
+  --bgBadgeColor: #c90909;
+  --transparent: transparent;
+  --white: #ffffff;
+  --black: #000000;
+  --danger: #e25a5a;
+  --dangerLight: #fff8f8;
+  --dangerBorder: #e764581a;
+  --blackAlt: #222222;
+  --hue: 223;
+  --bg: hsl(var(--hue), 10%, 90%);
+  --fg: hsl(var(--hue), 10%, 10%);
+  --dropShadow: #ededed;
+
+  --input-disabled: #939191;
+  --desabled-text: #aab0ba;
+
+  --button-primary: var(--primary) !important;
+  --button-secondary: #6b6f82 !important;
+
+  --error-extra-light: #f9dada;
+  --error-light: #e55353;
+  --error-dark: #ff000f;
+  --error: #c63a3a;
+
+  --success-light: #e2f8e3;
+  --success: #299957;
+  --switch-color: #41b845;
+
+  --grey-dark: #85888e !important;
+  --grey-strong: #313131;
+  --grey-medium: #585858;
+  --grey-mediumAlt: #999696;
+  --grey-light: #d6d8dc99;
+  --grey-lightHover: #f8f8f8;
+  --grey-lightAlt: #f4f4f4;
+  --grey-border: #d6d8dc;
+  --grey-borderAlt: #c6c6c6;
+}
+
+.theme_1 {
+  --primary: #e2594f;
+  --primaryThin: #fffcf8;
+  --primaryAlt: #e685584d;
+  --secondary: #585858;
+  --acreditationBg: #45315f;
+  --acreditationBg: #45315f;
+  --tabHeader: #f1f3ff;
+  --icontextColor: #ffffff;
+  --mainBgColor: #fafafa;
+  --successColor: #1acda5;
+  --dangerColor: #e76458;
+  --notificationClr: #e76458;
+  --bgWhite: #ffffff;
+  --bgGrey: #f2f2f2;
+  --bgTabHeader: #f3f3f3;
+  --purpleLight: #fcf7fd;
+  --primaryText: #606060;
+  --formBorder: #e6e8ea;
+  --divider: #d6d8dc;
+  --hoverColor: #fdf0ef;
+  --linkBlue: #336cfc;
+  --cardWrapperBg: #f8f8f8;
+  --bgBadgeColor: #c90909;
+  --transparent: transparent;
+  --white: #ffffff;
+  --black: #000000;
+  --danger: #e25a5a;
+  --dangerLight: #fff8f8;
+  --dangerBorder: #e764581a;
+  --blackAlt: #222222;
+
+  --input-disabled: #d7d6d6;
+
+  --button-primary: var(--primary) !important;
+  --button-secondary: #6b6f82 !important;
+
+  --error-extra-light: #f9dada;
+  --error-light: #e55353;
+  --error-dark: #ff000f;
+  --error: #c63a3a;
+
+  --success-light: #e2f8e3;
+  --success: #299957;
+
+  --grey-dark: #85888e !important;
+  --grey-strong: #313131;
+  --grey-medium: #585858;
+  --grey-mediumAlt: #999696;
+  --grey-light: #d6d8dc99;
+  --grey-lightHover: #f8f8f8;
+  --grey-lightAlt: #f4f4f4;
+  --grey-border: #d6d8dc;
+  --grey-borderAlt: #c6c6c6;
+}
+[data-theme='dark'] {
+  --primary: #994cd5;
+  --primaryThin: #1a1a1a;
+  --primaryExtraLight: #222222;
+  --primaryAlt: #ececff14;
+  --secondary: #dbdbdb;
+  --acreditationBg: #a047e6;
+
+  --tabHeader: #333;
+  --icontextColor: #000;
+  --mainBgColor: #181818;
+  --successColor: #1acda5;
+  --dangerColor: #e76458;
+  --notificationClr: #e76458;
+  --bgWhite: #333;
+  --bgGrey: #242424;
+  --bgTabHeader: #666;
+  --purpleLight: #444;
+  --primaryText: #eee;
+  --formBorder: #404142;
+  --divider: #888;
+  --hoverColor: #999;
+  --linkBlue: #aab;
+  --cardWrapperBg: #1a1a1a;
+  --bgBadgeColor: #ccc;
+  --transparent: transparent;
+  --white: #121212;
+  --black: #ededed;
+  --danger: #e25a5a;
+  --dangerLight: #414141;
+  --dangerBorder: #e764581a;
+  --blackAlt: #e2e2e2;
+  --dropShadow: #191919a8;
+
+  --input-disabled: #999;
+
+  --button-primary: var(--primary) !important;
+  --button-secondary: #bbb !important;
+
+  --error-extra-light: #f00;
+  --error-light: #f11;
+  --error-dark: #f22;
+  --error: #f33;
+
+  --success-light: #312f2f;
+  --success: #0a0;
+
+  --grey-dark: #f6f6f6;
+  --grey-strong: #f4f4f4;
+  --grey-medium: #dfdfdf;
+  --grey-mediumAlt: #7e7e7e;
+  --grey-light: #222222;
+  --grey-lightHover: #202020;
+  --grey-lightAlt: #202020;
+  --grey-border: #bbb;
+  --grey-borderAlt: #ccc;
+  --fg: #f8f8f8;
+}

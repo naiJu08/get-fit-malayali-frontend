@@ -1,0 +1,31 @@
+import React from 'react'
+import { IconProps } from '../../../common/types'
+
+const ProfileIcon: React.FC<IconProps> = () => {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        d="M7.88671 7.24658C6.30004 7.19325 5.04004 5.89325 5.04004 4.29325C5.04004 2.65992 6.36004 1.33325 8.00004 1.33325C9.63337 1.33325 10.96 2.65992 10.96 4.29325C10.9534 5.89325 9.69337 7.19325 8.10671 7.24658C8.04004 7.23992 7.96004 7.23992 7.88671 7.24658Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4.77323 13.6201C6.60657 14.8467 9.61323 14.8467 11.4466 13.6201C13.0599 12.5401 13.0599 10.7801 11.4466 9.70675C9.6199 8.48675 6.61323 8.48675 4.77323 9.70675C3.1599 10.7867 3.1599 12.5467 4.77323 13.6201Z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export default ProfileIcon

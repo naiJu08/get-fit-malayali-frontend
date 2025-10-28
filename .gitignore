@@ -1,0 +1,4 @@
+/node_modules
+node_modules
+# Previously ignoring domainManageStore.ts caused build failures
+# /src/store/domainManageStore.ts
