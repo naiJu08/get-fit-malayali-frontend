@@ -95,7 +95,7 @@ const Button: React.FC<ButtonProps> = ({
                 : onClick
               : undefined
           }
-          className={`relative   ${
+          className={`relative flex items-center justify-center   ${
             dropdown ? 'rounded-l-[4px] rounded-r-[0]' : 'rounded-[4px]'
           }    ${generateClassName()}`}
         >

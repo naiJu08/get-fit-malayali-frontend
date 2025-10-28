@@ -21,9 +21,23 @@ const AdminUser = lazy(() => import('../pages/AdminUser'))
 // Dashboard
 
 const Dashboard = lazy(() => import('../pages/dashboard/dashboard'))
+const Settings = lazy(() => import('../pages/samples/Settings'))
+const Customer = lazy(() => import('../pages/samples/Customer'))
+const Subscription = lazy(() => import('../pages/samples/Subscription'))
+const Discount = lazy(() => import('../pages/samples/Discount'))
+const Payment = lazy(() => import('../pages/samples/Payment'))
+const ExportPage = lazy(() => import('../pages/samples/Export'))
+const Support = lazy(() => import('../pages/samples/Support'))
 
 const routes: any = [
   { slug: 'DASHBOARD', component: <Dashboard /> },
+  { slug: 'SETTINGS_SAMPLE', component: <Settings /> },
+  { slug: 'CUSTOMER_SAMPLE', component: <Customer /> },
+  { slug: 'SUBSCRIPTION_SAMPLE', component: <Subscription /> },
+  { slug: 'DISCOUNT_SAMPLE', component: <Discount /> },
+  { slug: 'PAYMENT_SAMPLE', component: <Payment /> },
+  { slug: 'EXPORT_SAMPLE', component: <ExportPage /> },
+  { slug: 'SUPPORT_SAMPLE', component: <Support /> },
 
   {
     isAuthRoute: true,
@@ -96,6 +110,36 @@ export default function MainRoutes() {
         }
         key="*"
         path="*"
+      />
+
+      {/* Explicit routes for sidebar sample pages */}
+      <Route
+        element={<UserRoute slug_key="SETTINGS_SAMPLE"><Settings /></UserRoute>}
+        path="/settings"
+      />
+      <Route
+        element={<UserRoute slug_key="CUSTOMER_SAMPLE"><Customer /></UserRoute>}
+        path="/customer"
+      />
+      <Route
+        element={<UserRoute slug_key="SUBSCRIPTION_SAMPLE"><Subscription /></UserRoute>}
+        path="/subscription"
+      />
+      <Route
+        element={<UserRoute slug_key="DISCOUNT_SAMPLE"><Discount /></UserRoute>}
+        path="/discount"
+      />
+      <Route
+        element={<UserRoute slug_key="PAYMENT_SAMPLE"><Payment /></UserRoute>}
+        path="/payment"
+      />
+      <Route
+        element={<UserRoute slug_key="EXPORT_SAMPLE"><ExportPage /></UserRoute>}
+        path="/export"
+      />
+      <Route
+        element={<UserRoute slug_key="SUPPORT_SAMPLE"><Support /></UserRoute>}
+        path="/support"
       />
     </Routes>
   )

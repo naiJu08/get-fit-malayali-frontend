@@ -17,6 +17,13 @@
   margin: 0;
 }
 
+html,
+body,
+#root {
+  overflow-x: hidden;
+  width: 100%;
+}
+
 //test
 :root {
   // --primary: hsl(var(--hue), 90%, 50%);

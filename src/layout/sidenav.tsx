@@ -37,10 +37,10 @@ export default function Sidenav() {
 
   return (
     <div
-      className={`sidenav -left-full border-t-0 sm:left-0 duration-300  h-full fixed z-20 border  ${!expand ? 'w-20' : 'w-[280px] '}`}
+      className={`sidenav -left-full border-t-0 sm:left-0 duration-300 h-full fixed z-20 border bg-primaryBlue ${!expand ? 'w-20' : 'w-[280px] '}`}
     >
       {/* HEADER  */}
-      <div
+      {/* <div
         className={`flex gap-2.5 fixed z-20 bg-white duration-300 px-5 py-3 border-r border-b ${!expand ? 'w-20' : 'w-[280px] '} `}
       >
         <div className="border w-10 h-10 rounded-md font-medium text-primaryText bg-[#5B58E61F] shrink-0 flex items-center justify-center text-base">
@@ -52,11 +52,11 @@ export default function Sidenav() {
           </p>
           <span className="text-xxs text-blackAlt">Branch Name</span>
         </div>
-      </div>
+      </div> */}
 
       {/* MENU LISTS  */}
       <div className="p-4 pt-0 flex flex-col h-full justify-between">
-        <ul className="mt-[80px]">
+        <ul className="mt-[40px]">
           {/* <li>
               <div className='flex gap-2.5 p-2 transition mb-3 group rounded-sm cursor-pointer bg-primary'>
                 <div className="w-5 h-5 stroke-white">
@@ -71,24 +71,24 @@ export default function Sidenav() {
           {sidebarList.map((item, index) => (
             <li key={item.id}>
               <Link
-                to={pathname}
+                to={item.path || pathname}
                 onClick={() => navSubmenu(index, item)}
-                className={`flex items-center gap-2.5 p-3 transition mb-3 group rounded-sm cursor-pointer hover:bg-primary ${item.path === pathname ? 'bg-primary text-white' : ''}  ${!expand ? 'justify-center ' : ' justify-start'} ${active && activeIndex === index ? 'text-primary' : ''}`}
+                className={`flex items-center gap-2.5 p-3 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 ${item.path === pathname ? 'bg-white/20 text-white' : 'text-white'}  ${!expand ? 'justify-center ' : ' justify-start'} ${active && activeIndex === index ? 'text-white' : ''}`}
               >
                 <div
-                  className={`w-5 h-5 group-hover:stroke-white  ${item.path === pathname ? 'stroke-white' : ''} ${active && activeIndex === index ? 'stroke-primary' : 'stroke-primaryText'}`}
+                  className={`w-5 h-5 stroke-white group-hover:stroke-white ${item.path === pathname ? 'stroke-white' : ''}`}
                 >
                   <Icons name={item.icon} />
                 </div>
 
                 <span
-                  className={`text-common group-hover:text-white  ${item.path === pathname ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'} ${active && activeIndex === index ? 'text-primary' : 'text-primaryText'}`}
+                  className={`text-common text-white group-hover:text-white ${item.path === pathname ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'}`}
                 >
                   {item.name}
                 </span>
                 {item.dropdown && (
                   <div
-                    className={`w-4 h-4 ms-auto group-hover:text-white  ${item.path === pathname ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'}`}
+                    className={`w-4 h-4 ms-auto text-white group-hover:text-white ${item.path === pathname ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'}`}
                   >
                     <Icons name="drop-arrow" />
                   </div>
@@ -130,15 +130,15 @@ export default function Sidenav() {
                               <div>
                                 <div
                                   onClick={() => selectedSub(index, childItem)}
-                                  className={`flex  items-center p-2 transition mb-3 group rounded-sm cursor-pointer hover:bg-primary justify-between   ${childItem.path === pathname ? 'bg-primary' : ''}  `}
+                                  className={`flex items-center p-2 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 justify-between ${childItem.path === pathname ? 'bg-white/20' : ''}`}
                                 >
                                   <span
-                                    className={` text-common group-hover:text-white  ${childItem.path === pathname ? 'text-white ' : 'text-primaryText'}`}
+                                    className={`text-common text-white group-hover:text-white ${childItem.path === pathname ? 'text-white ' : ''}`}
                                   >
                                     {childItem.name}
                                   </span>
                                   <span
-                                    className={`text-common group-hover:text-white  ${childItem.path === pathname ? 'text-white ' : 'text-primaryText'}`}
+                                    className={`text-common text-white group-hover:text-white ${childItem.path === pathname ? 'text-white ' : ''}`}
                                   >
                                     {childItem.value}
                                   </span>

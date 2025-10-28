@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-import Icons from '../components/common/icons'
+// import Icons from '../components/common/icons'
 import { useAuthStore } from '../store/authStore'
 import { useDomainManageStore } from '../store/domainManageStore'
 import { useAccreditationFilterStore } from '../store/filterSore/accreditationStore'
@@ -49,56 +49,28 @@ const HeaderTop = () => {
   }
   return (
     <div className="h-[64px] fixed w-full top-0 left-0 z-30 flex items-center justify-between bg-white border-formBorder border-b pe-5">
-      <div className="w-[175px] ps-5 flex justify-between">
-        <Link to={handleReturnPath()}>
-          <div className="flex items-center gap-2 w-[135px]">
-            <img className=" h-9" src="/images/logo-horizontal-new.png" />
-          </div>
-        </Link>
-
-        {layoutType === 'sideNav' ? (
+      <div className="w-[220px] ps-5 flex justify-between">
+            {layoutType === 'sideNav' ? (
           <div
             onClick={() => setExpand(!expand)}
             className="h-6 w-6 fill-grey-medium cursor-pointer"
           >
-            <Icons name="menu" />
+           
           </div>
         ) : (
           ''
         )}
+        <Link to={handleReturnPath()}>
+          <div className="flex items-center gap-2 w-auto">
+            <img className="h-10 w-auto object-contain" src="/logo-hori.png" alt="Get Fit Malayali" />
+          </div>
+        </Link>
+
+    
       </div>
       {layoutType === 'headerNav' && <HeaderTab />}
       <div className="flex gap-2 items-center">
-        {/* <form className="flex gap-2 relative header-search" action="#">
-          <Icons className="absolute left-2 top-2.5 h-6 w-6" name="search" />
-          <input
-            type="search"
-            className="border border-divider ps-7 py-1.5 text-common rounded-sm outline-0 w-[210px] placeholder:italic"
-            placeholder="Search"
-          />
-          <button className="w-8 h-8  flex items-center justify-center text-white cursor-pointer rounded-xs bg-primary">
-            <Icons name="plus" />
-          </button>
-        </form>
-        <button className="w-8 h-8  flex items-center justify-center border border-grey-mediumAlt stroke-grey-strong cursor-pointer rounded-xs">
-          <Icons
-            className="transition durtaion-600 iconSize-base  hover:rotate-180"
-            name="settings"
-          />
-        </button> */}
-        {/* <button className="w-8 h-8  flex items-center justify-center border border-grey-mediumAlt stroke-grey-strong cursor-pointer rounded-xs">
-          <Icons
-            onClick={() => navigate('/profile')}
-            className="transition durtaion-600 iconSize-base  hover:scale-110"
-            name="user"
-          />
-        </button> */}
-        {/* <button className="w-8 h-8  flex items-center justify-center border border-grey-mediumAlt stroke-grey-strong cursor-pointer rounded-xs">
-          <Icons name="notify-icon" className="iconSize-base" />
-          </button> */}
-        {/* <span className="absolute text-white text-xxs bg-notificationClr px-1 top-1 right-3 rounded-full">
-            15
-          </span> */}
+     
         <HeaderMenu userData={userData} handleLogout={handleLogout} />
       </div>
     </div>
