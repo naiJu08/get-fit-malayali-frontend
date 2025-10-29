@@ -114,31 +114,59 @@ export default function MainRoutes() {
 
       {/* Explicit routes for sidebar sample pages */}
       <Route
-        element={<UserRoute slug_key="SETTINGS_SAMPLE"><Settings /></UserRoute>}
+        element={
+          <UserRoute slug_key="SETTINGS_SAMPLE">
+            <Settings />
+          </UserRoute>
+        }
         path="/settings"
       />
       <Route
-        element={<UserRoute slug_key="CUSTOMER_SAMPLE"><Customer /></UserRoute>}
+        element={
+          <UserRoute slug_key="CUSTOMER_SAMPLE">
+            <Customer />
+          </UserRoute>
+        }
         path="/customer"
       />
       <Route
-        element={<UserRoute slug_key="SUBSCRIPTION_SAMPLE"><Subscription /></UserRoute>}
+        element={
+          <UserRoute slug_key="SUBSCRIPTION_SAMPLE">
+            <Subscription />
+          </UserRoute>
+        }
         path="/subscription"
       />
       <Route
-        element={<UserRoute slug_key="DISCOUNT_SAMPLE"><Discount /></UserRoute>}
+        element={
+          <UserRoute slug_key="DISCOUNT_SAMPLE">
+            <Discount />
+          </UserRoute>
+        }
         path="/discount"
       />
       <Route
-        element={<UserRoute slug_key="PAYMENT_SAMPLE"><Payment /></UserRoute>}
+        element={
+          <UserRoute slug_key="PAYMENT_SAMPLE">
+            <Payment />
+          </UserRoute>
+        }
         path="/payment"
       />
       <Route
-        element={<UserRoute slug_key="EXPORT_SAMPLE"><ExportPage /></UserRoute>}
+        element={
+          <UserRoute slug_key="EXPORT_SAMPLE">
+            <ExportPage />
+          </UserRoute>
+        }
         path="/export"
       />
       <Route
-        element={<UserRoute slug_key="SUPPORT_SAMPLE"><Support /></UserRoute>}
+        element={
+          <UserRoute slug_key="SUPPORT_SAMPLE">
+            <Support />
+          </UserRoute>
+        }
         path="/support"
       />
     </Routes>

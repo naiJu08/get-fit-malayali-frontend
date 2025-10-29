@@ -204,7 +204,9 @@ export default function NotificationList({
                 isLoading && 'gap-2'
               } `}
             >
-              {[...Array(5)]?.map((ind) => <NotificationLoader key={ind} />)}
+              {[...Array(5)]?.map((ind) => (
+                <NotificationLoader key={ind} />
+              ))}
             </div>
           ) : (
             <>

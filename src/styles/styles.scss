@@ -562,7 +562,8 @@ button.secondaryButton {
   content: ' ';
   width: 2500px;
   height: 600px;
-  background-image: linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 0),
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 0),
     linear-gradient(90deg, var(--black) 0, transparent 0),
     linear-gradient(
       90deg,
@@ -722,7 +723,8 @@ button.secondaryButton {
   }
 
   .table-loader:before {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 0),
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 0),
       linear-gradient(90deg, var(--black) 0, transparent 0),
       linear-gradient(
         90deg,

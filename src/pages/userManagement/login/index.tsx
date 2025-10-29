@@ -15,7 +15,6 @@ export default function Login() {
   const navigate = useNavigate()
   const { setAuthenticated, setToken, setUserData } = useAuthStore()
   const [showPassword, setShowPassword] = useState<boolean>(false)
-  const [isAnimating, setIsAnimating] = useState(false)
 
   const {
     formState: { errors },
@@ -36,8 +35,10 @@ export default function Login() {
 
   const { domainType } = useDomainManageStore()
   const [logText, setLogText] = useState('Login')
-  const [subText, setSubText] = useState('Welcome back! Please sign in to your account.')
-  
+  const [subText, setSubText] = useState(
+    'Welcome back! Please sign in to your account.'
+  )
+
   useEffect(() => {
     if (domainType === 'Employee') {
       setLogText('Administrator Login')
@@ -51,38 +52,50 @@ export default function Login() {
     }
   }, [domainType])
 
-  useEffect(() => {
-    setIsAnimating(true)
-    const timer = setTimeout(() => setIsAnimating(false), 1000)
-    return () => clearTimeout(timer)
-  }, [])
+  // Removed initial fade/scale animation on mount
 
   return (
     <div className="h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 via-red-50 to-green-50 relative overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-br from-primaryBlue via-primaryPink to-primaryGreen"></div>
-      
+
       {/* Fitness-themed Floating Shapes */}
       <div className="absolute top-10 left-10 w-20 h-20 bg-orange-200 rounded-full opacity-20 animate-float">
-        <div className="absolute inset-0 flex items-center justify-center">💪</div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          💪
+        </div>
       </div>
       <div className="absolute top-20 right-20 w-16 h-16 bg-red-200 rounded-full opacity-30 animate-float animation-delay-1000">
-        <div className="absolute inset-0 flex items-center justify-center">🔥</div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          🔥
+        </div>
       </div>
       <div className="absolute bottom-20 left-20 w-24 h-24 bg-green-200 rounded-full opacity-20 animate-float animation-delay-2000">
-        <div className="absolute inset-0 flex items-center justify-center">🏃</div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          🏃
+        </div>
       </div>
       <div className="absolute bottom-10 right-10 w-12 h-12 bg-orange-300 rounded-full opacity-25 animate-float animation-delay-3000">
-        <div className="absolute inset-0 flex items-center justify-center">⭐</div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          ⭐
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit(handleData)} noValidate autoComplete="off" className="w-full max-w-6xl mx-4">
-        <div className={`flex flex-col lg:flex-row items-center justify-center min-h-[60vh] bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20 transition-all duration-1000 ${isAnimating ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}`}>
-          
+      <form
+        onSubmit={handleSubmit(handleData)}
+        noValidate
+        autoComplete="off"
+        className="w-full max-w-6xl mx-4"
+      >
+        <div
+          className={
+            'flex flex-col lg:flex-row items-center justify-center min-h-[60vh] bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl overflow-hidden border border-white/20 scale-100 opacity-100'
+          }
+        >
           {/* Left Panel - Image with Text Overlay */}
           <div className="hidden lg:flex items-center justify-center min-h-[60vh] w-[45%] relative overflow-hidden">
-            <img 
-              src="/login-character.jpg" 
+            <img
+              src="/login-character.jpg"
               alt="Fitness Motivation"
               className="w-full h-full object-cover h-94"
             />
@@ -97,7 +110,9 @@ export default function Login() {
                 </h3>
               </div>
               <p className="text-sm leading-relaxed text-gray-200">
-                Join thousands of fitness enthusiasts who have transformed their lives through dedication and proper guidance. Your fitness journey starts here.
+                Join thousands of fitness enthusiasts who have transformed their
+                lives through dedication and proper guidance. Your fitness
+                journey starts here.
               </p>
               <div className="flex items-center mt-4 space-x-2 text-xs text-orange-200">
                 <span>⭐</span>
@@ -125,33 +140,48 @@ export default function Login() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Header */}
               <div className="text-center mb-10">
-                    <div className="flex items-center justify-center w-full">
-                       <img
-                      src="/gfm-logo.png"
-                      alt="Get Fit Malayali"
-                      className="w-28 h-28 object-contain mx-auto"
-                    />
-                    </div>
+                <div className="flex items-center justify-center w-full">
+                  <img
+                    src="/gfm-logo.png"
+                    alt="Get Fit Malayali"
+                    className="w-28 h-28 object-contain mx-auto"
+                  />
+                </div>
                 <h2 className="text-3xl font-bold bg-gradient-to-r from-red-700 to-orange-600 bg-clip-text text-transparent mb-3">
                   {logText}
                 </h2>
-                <p className="text-neutral-600 text-lg leading-relaxed">{subText}</p>
+                <p className="text-neutral-600 text-lg leading-relaxed">
+                  {subText}
+                </p>
               </div>
 
               {/* Login Form */}
               <div className="space-y-6">
                 {/* Username Field */}
                 <div className="group">
-                  <label className="block text-sm font-semibold text-neutral-700 mb-3 transition-all duration-200 group-focus-within:text-red-600" htmlFor="username">
+                  <label
+                    className="block text-sm font-semibold text-neutral-700 mb-3 transition-all duration-200 group-focus-within:text-red-600"
+                    htmlFor="username"
+                  >
                     Username
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-neutral-400 group-focus-within:text-red-500 transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      <svg
+                        className="h-5 w-5 text-neutral-400 group-focus-within:text-red-500 transition-colors duration-200"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
                       </svg>
                     </div>
                     <input
@@ -167,8 +197,16 @@ export default function Login() {
                   </div>
                   {errors.username && (
                     <div className="flex items-center mt-2 text-sm text-red-500 animate-pulse">
-                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      <svg
+                        className="w-4 h-4 mr-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       {errors.username.message as string}
                     </div>
@@ -177,13 +215,26 @@ export default function Login() {
 
                 {/* Password Field */}
                 <div className="group">
-                  <label className="block text-sm font-semibold text-neutral-700 mb-3 transition-all duration-200 group-focus-within:text-red-600" htmlFor="password">
+                  <label
+                    className="block text-sm font-semibold text-neutral-700 mb-3 transition-all duration-200 group-focus-within:text-red-600"
+                    htmlFor="password"
+                  >
                     Password
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg className="h-5 w-5 text-neutral-400 group-focus-within:text-red-500 transition-colors duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      <svg
+                        className="h-5 w-5 text-neutral-400 group-focus-within:text-red-500 transition-colors duration-200"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
                       </svg>
                     </div>
                     <input
@@ -210,8 +261,16 @@ export default function Login() {
                   </div>
                   {errors.password && (
                     <div className="flex items-center mt-2 text-sm text-red-500 animate-pulse">
-                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      <svg
+                        className="w-4 h-4 mr-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
                       </svg>
                       {errors.password.message as string}
                     </div>
@@ -222,19 +281,29 @@ export default function Login() {
                 <div className="space-y-4 pt-4">
                   <Button
                     label="Get Started"
-                    className="w-full py-4 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700 text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-red-200 focus:ring-offset-2 shadow-lg hover:shadow-xl active:scale-95"
+                    className="w-full py-4 bg-primaryBlue  text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-red-200 focus:ring-offset-2 shadow-lg hover:shadow-xl active:scale-95"
                     isLoading={isLoading}
                     type="submit"
                   />
 
                   {/* Forgot Password */}
                   <div className="text-center">
-                    <Link 
-                      to="/forget-password" 
+                    <Link
+                      to="/forget-password"
                       className="inline-flex items-center text-red-600 hover:text-red-800 text-sm font-semibold transition-all duration-200 hover:underline"
                     >
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                        />
                       </svg>
                       Forgot your password?
                     </Link>
@@ -247,11 +316,11 @@ export default function Login() {
                 <div className="bg-gradient-to-r from-transparent via-neutral-200 to-transparent h-px w-full mb-3"></div>
                 <p className="text-neutral-600 text-sm">
                   Don`t have an account?{' '}
-                  <Link 
-                    to="/register" 
+                  <Link
+                    to="/register"
                     className="font-semibold text-red-600 hover:text-red-800 transition-colors duration-200 hover:underline"
                   >
-                   Register
+                    Register
                   </Link>
                 </p>
               </div>
