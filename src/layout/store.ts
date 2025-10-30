@@ -182,18 +182,34 @@ const permissions: Permissions = {
   },
 }
 
-const domain = useDomainManageStore.getState().domainType as keyof Permissions
 export const checkPermissions = (
   page: keyof PagePermissions,
   action: Action
 ): boolean => {
-  const pagePermissions = permissions[domain][page]
-
-  return pagePermissions?.includes(action) ?? false
+  const current = useDomainManageStore.getState()
+    .domainType as keyof Permissions
+  const safeDomain: keyof Permissions = [
+    'Employee',
+    'Assessor',
+    'Organisation',
+  ].includes((current as unknown as string) || '')
+    ? current
+    : 'Employee'
+  const pagePermissions = permissions[safeDomain]?.[page] || []
+  return pagePermissions.includes(action)
 }
 
 export const checkPath = () => {
-  if (domain == 'Organisation') {
+  const current = useDomainManageStore.getState()
+    .domainType as keyof Permissions
+  const safeDomain: keyof Permissions = [
+    'Employee',
+    'Assessor',
+    'Organisation',
+  ].includes((current as unknown as string) || '')
+    ? current
+    : 'Employee'
+  if (safeDomain == 'Organisation') {
     return ''
   } else {
     return '/organisation'

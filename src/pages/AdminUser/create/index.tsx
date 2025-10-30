@@ -62,13 +62,15 @@ export default function CreateAdmin({
     ...(required ? { required: true } : {}),
     ...(disabled ? { disabled: true } : {}),
   })
-  const [roleData, setRoleData] = useState([])
+  const [roleData, setRoleData] = useState<any[]>([])
   const [deleteModal, setDeleteModal] = useState(false)
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
   useEffect(() => {
-    getRoleData()
-  }, [])
+    if (isDrawerOpen) {
+      getRoleData()
+    }
+  }, [isDrawerOpen])
 
   const statusData = [
     {
@@ -106,14 +108,19 @@ export default function CreateAdmin({
     //   })
   }
   const getRoleData = async () => {
-    const { items } = await getRoles()
-    const a = items?.map((item: any) => ({
-      ...item,
-      role: item.name,
-      name: item.name,
-      id: item.id,
-    }))
-    setRoleData(a)
+    try {
+      const res = await getRoles()
+      const items = res?.items ?? []
+      const a = items?.map((item: any) => ({
+        ...item,
+        role: item?.name,
+        name: item?.name,
+        id: item?.id,
+      }))
+      setRoleData(a ?? [])
+    } catch (e) {
+      setRoleData([])
+    }
   }
   const formBuilderProps = [
     {
