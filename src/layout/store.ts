@@ -40,8 +40,8 @@ export const sidebarList: SidebarItem[] = [
   {
     id: 3,
     icon: 'customer-icon',
-    name: 'Customer',
-    path: '/customer',
+    name: 'Users',
+    path: '/users',
   },
   {
     id: 4,

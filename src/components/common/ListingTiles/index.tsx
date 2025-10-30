@@ -39,7 +39,7 @@ const ListingHeader: React.FC<DetailTileProps> = ({
   checkPermission,
 }) => {
   return (
-    <div className="px-5 py-3 flex justify-between flex-wrap gap-3 items-center bg-primaryThin border-b border-formBorder">
+    <div className="px-5 py-3 flex justify-between flex-wrap gap-3 items-center bg-white border-b border-formBorder">
       <div className="flex gap-6">
         <div className="flex items-center flex-wrap gap-5 text-[#222] ">
           <div className="flex items-center gap-3">
@@ -95,7 +95,7 @@ const ListingHeader: React.FC<DetailTileProps> = ({
           {onActionClick && checkPermission && (
             <div>
               <Button
-                className="primaryButton"
+                className="bg-primaryGreen"
                 label={actionProps?.actionTitle ?? 'Add New'}
                 icon={actionProps?.actionTitle ? 'plus' : 'plus'}
                 onClick={onActionClick}

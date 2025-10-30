@@ -11,14 +11,14 @@ import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { checkPermissions } from '../../layout/store'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
-// import { calcWindowHeight } from '../../utilities/calcHeight'
+import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
-// import { handleReturnEmptyMsg } from '../../utilities/validation'
+import { handleReturnEmptyMsg } from '../../utilities/validation'
 import {
   deActivateAdmin,
   getAdminDetails,
   sendAdminInvitation,
-  // useAdminUser,
+  useAdminUser,
   DISABLE_NONLOGIN_APIS,
 } from './api'
 import { getColumns } from './columns'
@@ -47,16 +47,16 @@ export default function AdminUser() {
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
-  // const { page, page_size, search, ordering, filters } = pageParams
-  // const searchParams = {
-  //   page: page,
-  //   page_size: page_size,
-  //   search: search,
-  //   ordering: ordering,
-  //   ...filters,
-  // }
+  const { page, page_size, search, ordering, filters } = pageParams
+  const searchParams = {
+    page: page,
+    page_size: page_size,
+    search: search,
+    ordering: ordering,
+    ...filters,
+  }
 
-  // const { data, refetch, isFetching } = useAdminUser(searchParams)
+  const { data, refetch, isFetching } = useAdminUser(searchParams)
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,
@@ -113,7 +113,7 @@ export default function AdminUser() {
           }
         )
         setloader(false)
-        // refetch()
+        refetch()
         setOpenConfirm(false)
 
         setSelectedRows(
@@ -137,7 +137,7 @@ export default function AdminUser() {
           variant: 'success',
         })
         setloader(false)
-        // refetch()
+        refetch()
         setSelectedRows(
           selectedRows?.filter((sel: string | number) => sel !== deleteItem) ||
             []
@@ -179,10 +179,10 @@ export default function AdminUser() {
   }
 
   const handleRefresh = () => {
-    // refetch()
+    refetch()
   }
   const basicData = {
-    title: 'Users',
+    title: 'Administrators',
     icon: 'user',
   }
   const openDrawer = () => {
@@ -190,7 +190,7 @@ export default function AdminUser() {
     setRowData({})
   }
   const headerProps = {
-    actionTitle: 'Create User',
+    actionTitle: 'Create Admin',
   }
   const handleSort = (orderColumn: any, orderDirection: any) => {
     setPageParams({
@@ -226,21 +226,21 @@ export default function AdminUser() {
           {/* <PageTitle data={data?.total} isLoading={isFetching} /> */}
           <div className=" p-4">
             <QbsTable
-              data={[]}
+              data={data?.items ?? []}
               dataRowKey="id"
               toolbar={true}
               search={true}
-              // height={
-              //   data?.length === 0
-              //     ? calcWindowHeight(218)
-              //     : calcWindowHeight(300)
-              // }
-              // isLoading={isFetching}
+              height={
+                data?.length === 0
+                  ? calcWindowHeight(218)
+                  : calcWindowHeight(300)
+              }
+              isLoading={isFetching}
               sortType={pageParams.sortType}
               sortColumn={pageParams.sortColumn}
               handleColumnSort={handleSort}
               emptyTitle="No records to display"
-              // emptySubTitle={handleReturnEmptyMsg(search)}
+              emptySubTitle={handleReturnEmptyMsg(search)}
               columns={columns}
               pagination={true}
               renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
@@ -254,9 +254,9 @@ export default function AdminUser() {
               }}
               paginationProps={{
                 onPagination: onChangePage,
-                // total: data?.total,
+                total: data?.total,
                 currentPage: pageParams?.page,
-                // rowsPerPage: Number(pageParams?.page_size ?? data?.page_size),
+                rowsPerPage: Number(pageParams?.page_size ?? data?.page_size),
                 onRowsPerPage: onChangeRowsPerPage,
                 dropOptions: [10, 20, 30, 50, 100],
               }}

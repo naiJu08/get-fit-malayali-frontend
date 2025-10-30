@@ -7,6 +7,7 @@ import { FormProvider, useForm } from 'react-hook-form'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
+import CustomDrawer from '../../../components/common/drawer'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
 import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
@@ -444,9 +445,17 @@ export default function CreateAdmin({
           <InfoBox content={'Are you sure you want to delete this file ?'} />
         }
       />
-      <DialogModal
-        isOpen={isDrawerOpen}
-        onClose={() => handleClearAndClose()}
+      <CustomDrawer
+        viewMode={viewMode}
+        className="formDrawer"
+        open={isDrawerOpen}
+        actionLabel={viewMode ? 'Edit' : 'Save'}
+        handleClose={() => handleClearAndClose()}
+        // hideSubmit={viewMode ? true : false}
+        actionLoader={isCreating || isUpdating}
+        handleSubmit={
+          viewMode ? handleChangeMode : handleSubmit((data) => onSubmit(data))
+        }
         title={
           edit
             ? 'Edit Administrator Details'
@@ -454,34 +463,25 @@ export default function CreateAdmin({
               ? 'Administrator Details'
               : 'Create Admin User'
         }
-        actionLabel={viewMode ? 'Edit' : 'Save'}
-        actionLoader={isCreating || isUpdating}
-        onSubmit={
-          viewMode ? handleChangeMode : handleSubmit((data) => onSubmit(data))
-        }
-        secondaryAction={() => handleClearAndClose()}
-        secondaryActionLabel="Cancel"
-        small={false}
-        body={
-          <div className="flex flex-col gap-4">
-            {!viewMode ? (
-              <>
-                <FormProvider {...methods}>
-                  <FormBuilder data={formBuilderProps} edit={true} />
-                </FormProvider>
-                <InfoBox
-                  content={`Create a new Diversity Mark administrator user by completing the form and send them an invitation to set their password for accessing the Administrator Portal.`}
-                />
-              </>
-            ) : (
-              <CustomeSideViewer
-                headerData={viewHeaderData}
-                contentData={viewContentData}
+      >
+        <div className="flex flex-col gap-4">
+          {!viewMode ? (
+            <>
+              <FormProvider {...methods}>
+                <FormBuilder data={formBuilderProps} edit={true} />
+              </FormProvider>
+              <InfoBox
+                content={`Create a new Diversity Mark administrator user by completing the form and send them an invitation to set their password for accessing the Administrator Portal.`}
               />
-            )}
-          </div>
-        }
-      />
+            </>
+          ) : (
+            <CustomeSideViewer
+              headerData={viewHeaderData}
+              contentData={viewContentData}
+            />
+          )}
+        </div>
+      </CustomDrawer>
     </>
   )
 }

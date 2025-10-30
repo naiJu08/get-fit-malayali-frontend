@@ -341,11 +341,11 @@ const ORGANISATION_CHANGE_LOG: RouterMenuProps = {
 
 const ADMIN_USER: RouterMenuProps = {
   id: 2,
-  path: '/admin-user',
+  path: '/users',
   parent_id: null,
   label: 'Administrators',
   key: 'admin-user',
-  permission_slugs: [domainTypes['EMPLOYEE']],
+  permission_slugs: [],
   isSidebarMenu: true,
 }
 const ORGANISATION_FILE_REPOSTITORY: RouterMenuProps = {

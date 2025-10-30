@@ -8,7 +8,7 @@ import { useSnackbarManager } from '../../components/common/snackbar'
 import { getErrorMessage, parseQueryParams } from '../../utilities/parsers'
 
 // Disable non-login APIs (employees, groups) for this build
-export const DISABLE_NONLOGIN_APIS = false
+export const DISABLE_NONLOGIN_APIS = true
 
 const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
   return `${baseUrl}${parseQueryParams(params)}`

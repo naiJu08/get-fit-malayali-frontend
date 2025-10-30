@@ -162,7 +162,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
                     </span>
                   )}
                 </div>
-                <div className={`flex flex-col  ${small ? 'px-5' : 'p-0'}`}>
+                <div className={`flex flex-col  ${small ? 'px-5' : 'px-6'}`}>
                   {body}
                 </div>
                 {actionBody && (
