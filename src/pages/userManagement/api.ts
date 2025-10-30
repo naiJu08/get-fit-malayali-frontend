@@ -21,9 +21,8 @@ export const useLogin = (handleOnSuccess: any) => {
     async (params: LoginSchema) => {
       setIsLoading(true)
       const data = {
+        email: params.username.trim().toLowerCase(),
         password: params.password,
-        username: params.username,
-        // username: params.username.toLowerCase(),
       }
       const response = await postData(apiUrl.LOGIN_URL, data)
 
@@ -43,30 +42,28 @@ export const useLogin = (handleOnSuccess: any) => {
         )
       },
       onSuccess: (data: any) => {
-        const folderKey = domainType.toLocaleLowerCase()
-        const res = data[folderKey]
-        setResetToken(res.reset_password_token)
-        setToken(data.access_token)
+        const token = data?.token
+        const user = data?.user || {}
+        setResetToken?.(undefined as any)
+        setToken(token)
         setAuthenticated(true)
         setIsLoading(false)
         handleOnSuccess?.()
-        setDomainType(res.user.user_type)
+        const role = user?.role
+        // Map API role to domainType used across app
+        const mappedDomain =
+          role === 'admin' || role === 'superadmin'
+            ? 'Employee'
+            : domainType || 'Employee'
+        setDomainType?.(mappedDomain as any)
         setUserData({
-          id: res.user?.id,
-          is_admin: res.user?.is_superuser,
-          first_name: res.user?.first_name,
-          last_name: res.user?.last_name,
-          username: res.user?.username,
-        })
-
-        // navigate('/dashboard')
-        if (domainType === 'Organisation') {
-          navigate(`/myorganisation/profile`)
-        } else if (domainType === 'Employee') {
-          navigate(`/admin-user`)
-        } else {
-          navigate('/assessors')
-        }
+          id: user?.id,
+          name: user?.name,
+          email: user?.email,
+          username: user?.email,
+          is_admin: user?.role === 'superadmin' || user?.role === 'admin',
+        } as any)
+        navigate('/dashboard', { replace: true })
       },
 
       onSettled: () => {

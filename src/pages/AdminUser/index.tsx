@@ -19,6 +19,7 @@ import {
   getAdminDetails,
   sendAdminInvitation,
   useAdminUser,
+  DISABLE_NONLOGIN_APIS,
 } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
@@ -210,198 +211,212 @@ export default function AdminUser() {
   }
   return (
     <div>
-      <ListingHeader
-        data={basicData}
-        onActionClick={openDrawer}
-        actionProps={headerProps}
-        checkPermission={checkPermissions('Employee', 'create')}
-      />
-      {/* <PageTitle data={data?.total} isLoading={isFetching} /> */}
-      <div className=" p-4">
-        <QbsTable
-          data={data?.items ?? []}
-          dataRowKey="id"
-          toolbar={true}
-          search={true}
-          height={
-            data?.length === 0 ? calcWindowHeight(218) : calcWindowHeight(300)
-          }
-          isLoading={isFetching}
-          sortType={pageParams.sortType}
-          sortColumn={pageParams.sortColumn}
-          handleColumnSort={handleSort}
-          emptyTitle="No records to display"
-          emptySubTitle={handleReturnEmptyMsg(search)}
-          columns={columns}
-          pagination={true}
-          renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
-            return sortType === 'asc' ? (
-              <Icons name="ascending-icon" />
-            ) : sortType === 'desc' ? (
-              <Icons name="descending-icon" />
-            ) : (
-              <Icons name="qbs-sort-icon" />
-            )
-          }}
-          paginationProps={{
-            onPagination: onChangePage,
-            total: data?.total,
-            currentPage: pageParams?.page,
-            rowsPerPage: Number(pageParams?.page_size ?? data?.page_size),
-            onRowsPerPage: onChangeRowsPerPage,
-            dropOptions: [10, 20, 30, 50, 100],
-          }}
-          actionProps={[
-            // {
-            //   icon: <Icons name="eye" />,
-            //   action: (row) => onViewAction(row),
-            //   title: 'view',
-            //   toolTip: 'View',
-            // },
-            {
-              icon: <Icons name="edit" />,
-              action: (row) => handleEdit(row),
-              title: 'edit',
-              toolTip: 'Edit',
-            },
-            {
-              icon: <Icons name="verify" />,
-              action: (row) =>
-                handleResetPassword(row?.user?.id, row?.user?.username),
-              title: 'reset-password',
-              toolTip: 'Reset Password',
-            },
-            {
-              title: 'Deactivate',
-              action: (rowData) =>
-                handleDeleteModel(
-                  rowData?.user?.id,
-                  rowData?.user?.username,
-                  rowData?.user?.status
-                ),
-              icon: <Icons name="deactivate-icon" />,
-              toolTip: 'Deactivate',
-              hide: (rowData: any) =>
-                rowData?.user?.status == 'Active' ? false : true,
-            },
-            {
-              title: 'Activate',
-              action: (rowData) =>
-                handleDeleteModel(
-                  rowData?.user?.id,
-                  rowData?.user?.username,
-                  rowData?.user?.status
-                ),
-              icon: <Icons name="activate-icon" />,
-              toolTip: 'Activate',
-              hide: (rowData: any) =>
-                rowData?.user?.status == 'Inactive' ? false : true,
-            },
-            // {
-            //   title: 'Delete Admin',
-            //   action: (rowData) =>
-            //     handleDeleteModel(rowData?.user?.id, rowData?.user?.username),
-            //   icon: <Icons name="delete" />,
-            //   toolTip: 'Delete Admin',
-            // },
-            {
-              title: 'Send Invitation',
-              action: (rowData) => handleOpenInvitation(rowData?.user?.id),
-              icon: <Icons name="email" />,
-              toolTip: 'Send Invitation',
-              // hidden: !checkPermission('delete'),
-            },
-          ]}
-          searchValue={pageParams?.search}
-          onSearch={handleSeach}
-          asyncSearch
-          handleSearchValue={(key?: string) => handleSeach(key)}
-          columnToggle
-          // tableHeaderActions={
-          //   <div className="flex gap-2 ">
-          //     <Button
-          //       onClick={handleAction}
-          //       label={'Add New'}
-          //       icon="plus"
-          //       isPrimary={true}
-          //       className="bg-primary"
-          //     />
-          //   </div>
-          // }
-        />
-      </div>
+      {DISABLE_NONLOGIN_APIS ? (
+        <div className="p-6">
+          <InfoBox content={'This section is disabled for this build.'} />
+        </div>
+      ) : (
+        <>
+          <ListingHeader
+            data={basicData}
+            onActionClick={openDrawer}
+            actionProps={headerProps}
+            checkPermission={checkPermissions('Employee', 'create')}
+          />
+          {/* <PageTitle data={data?.total} isLoading={isFetching} /> */}
+          <div className=" p-4">
+            <QbsTable
+              data={data?.items ?? []}
+              dataRowKey="id"
+              toolbar={true}
+              search={true}
+              height={
+                data?.length === 0
+                  ? calcWindowHeight(218)
+                  : calcWindowHeight(300)
+              }
+              isLoading={isFetching}
+              sortType={pageParams.sortType}
+              sortColumn={pageParams.sortColumn}
+              handleColumnSort={handleSort}
+              emptyTitle="No records to display"
+              emptySubTitle={handleReturnEmptyMsg(search)}
+              columns={columns}
+              pagination={true}
+              renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
+                return sortType === 'asc' ? (
+                  <Icons name="ascending-icon" />
+                ) : sortType === 'desc' ? (
+                  <Icons name="descending-icon" />
+                ) : (
+                  <Icons name="qbs-sort-icon" />
+                )
+              }}
+              paginationProps={{
+                onPagination: onChangePage,
+                total: data?.total,
+                currentPage: pageParams?.page,
+                rowsPerPage: Number(pageParams?.page_size ?? data?.page_size),
+                onRowsPerPage: onChangeRowsPerPage,
+                dropOptions: [10, 20, 30, 50, 100],
+              }}
+              actionProps={[
+                // {
+                //   icon: <Icons name="eye" />,
+                //   action: (row) => onViewAction(row),
+                //   title: 'view',
+                //   toolTip: 'View',
+                // },
+                {
+                  icon: <Icons name="edit" />,
+                  action: (row) => handleEdit(row),
+                  title: 'edit',
+                  toolTip: 'Edit',
+                },
+                {
+                  icon: <Icons name="verify" />,
+                  action: (row) =>
+                    handleResetPassword(row?.user?.id, row?.user?.username),
+                  title: 'reset-password',
+                  toolTip: 'Reset Password',
+                },
+                {
+                  title: 'Deactivate',
+                  action: (rowData) =>
+                    handleDeleteModel(
+                      rowData?.user?.id,
+                      rowData?.user?.username,
+                      rowData?.user?.status
+                    ),
+                  icon: <Icons name="deactivate-icon" />,
+                  toolTip: 'Deactivate',
+                  hide: (rowData: any) =>
+                    rowData?.user?.status == 'Active' ? false : true,
+                },
+                {
+                  title: 'Activate',
+                  action: (rowData) =>
+                    handleDeleteModel(
+                      rowData?.user?.id,
+                      rowData?.user?.username,
+                      rowData?.user?.status
+                    ),
+                  icon: <Icons name="activate-icon" />,
+                  toolTip: 'Activate',
+                  hide: (rowData: any) =>
+                    rowData?.user?.status == 'Inactive' ? false : true,
+                },
+                // {
+                //   title: 'Delete Admin',
+                //   action: (rowData) =>
+                //     handleDeleteModel(rowData?.user?.id, rowData?.user?.username),
+                //   icon: <Icons name="delete" />,
+                //   toolTip: 'Delete Admin',
+                // },
+                {
+                  title: 'Send Invitation',
+                  action: (rowData) => handleOpenInvitation(rowData?.user?.id),
+                  icon: <Icons name="email" />,
+                  toolTip: 'Send Invitation',
+                  // hidden: !checkPermission('delete'),
+                },
+              ]}
+              searchValue={pageParams?.search}
+              onSearch={handleSeach}
+              asyncSearch
+              handleSearchValue={(key?: string) => handleSeach(key)}
+              columnToggle
+              // tableHeaderActions={
+              //   <div className="flex gap-2 ">
+              //     <Button
+              //       onClick={handleAction}
+              //       label={'Add New'}
+              //       icon="plus"
+              //       isPrimary={true}
+              //       className="bg-primary"
+              //     />
+              //   </div>
+              // }
+            />
+          </div>
 
-      <DialogModal
-        isOpen={deleteModal}
-        onClose={() => setDeleteModal(false)}
-        // title={'Delete Admin User'}
-        title={
-          status == 'Active' ? 'Deactivate Admin User' : 'Activate Admin User'
-        }
-        onSubmit={() => handleDeleteAdmin()}
-        secondaryAction={() => setDeleteModal(false)}
-        secondaryActionLabel="Cancel"
-        actionLabel={status == 'Active' ? 'Deactivate' : 'Activate'}
-        actionLoader={loader}
-        className="z-50"
-        body={
-          <>
-            {/* <InfoBox content={'Are you sure to delete this admin user ?'} /> */}
-            <p className="pb-4">
-              {status == 'Active'
-                ? 'Are you sure to deactivate this admin user ?'
-                : 'Are you sure to activate this admin user ?'}
-            </p>
-            <div className="flex flex-col gap-4">
-              <div className="w-full flex flex-col gap-2">
-                <TextField
-                  id="1"
-                  name="email"
-                  value={userName ?? ''}
-                  disabled={true}
-                  label={'Admin Email id'}
-                />
-              </div>
-            </div>
-          </>
-        }
-      />
-      <ResetPassword
-        changePassword={changePassword}
-        setChangePassword={setChangePassword}
-        userId={userId}
-        setUserId={setUserId}
-        from={'Admin'}
-        userName={userName}
-        setUserName={setUserName}
-      />
+          <DialogModal
+            isOpen={deleteModal}
+            onClose={() => setDeleteModal(false)}
+            // title={'Delete Admin User'}
+            title={
+              status == 'Active'
+                ? 'Deactivate Admin User'
+                : 'Activate Admin User'
+            }
+            onSubmit={() => handleDeleteAdmin()}
+            secondaryAction={() => setDeleteModal(false)}
+            secondaryActionLabel="Cancel"
+            actionLabel={status == 'Active' ? 'Deactivate' : 'Activate'}
+            actionLoader={loader}
+            className="z-50"
+            body={
+              <>
+                {/* <InfoBox content={'Are you sure to delete this admin user ?'} /> */}
+                <p className="pb-4">
+                  {status == 'Active'
+                    ? 'Are you sure to deactivate this admin user ?'
+                    : 'Are you sure to activate this admin user ?'}
+                </p>
+                <div className="flex flex-col gap-4">
+                  <div className="w-full flex flex-col gap-2">
+                    <TextField
+                      id="1"
+                      name="email"
+                      value={userName ?? ''}
+                      disabled={true}
+                      label={'Admin Email id'}
+                    />
+                  </div>
+                </div>
+              </>
+            }
+          />
+          <ResetPassword
+            changePassword={changePassword}
+            setChangePassword={setChangePassword}
+            userId={userId}
+            setUserId={setUserId}
+            from={'Admin'}
+            userName={userName}
+            setUserName={setUserName}
+          />
 
-      <CreateAdmin
-        isDrawerOpen={createOpen}
-        rowData={rowData}
-        edit={edit}
-        setViewMode={setViewMode}
-        setEdit={setEdit}
-        viewMode={viewMode}
-        paramsId={params?.id}
-        handleClose={handleClose}
-        handleRefresh={handleRefresh}
-        editViewIndicator={editViewIndicator}
-        setEditViewIndicator={setEditViewIndicator}
-      />
-      <DialogModal
-        isOpen={openConfirm}
-        onClose={() => setOpenConfirm(false)}
-        title={'Send Invitation'}
-        onSubmit={() => handleSendInvitation()}
-        secondaryAction={() => setOpenConfirm(false)}
-        secondaryActionLabel="Cancel"
-        actionLabel="Send"
-        actionLoader={loader}
-        body={
-          <InfoBox content={'Are you sure you want to send the invitation?'} />
-        }
-      />
+          <CreateAdmin
+            isDrawerOpen={createOpen}
+            rowData={rowData}
+            edit={edit}
+            setViewMode={setViewMode}
+            setEdit={setEdit}
+            viewMode={viewMode}
+            paramsId={params?.id}
+            handleClose={handleClose}
+            handleRefresh={handleRefresh}
+            editViewIndicator={editViewIndicator}
+            setEditViewIndicator={setEditViewIndicator}
+          />
+          <DialogModal
+            isOpen={openConfirm}
+            onClose={() => setOpenConfirm(false)}
+            title={'Send Invitation'}
+            onSubmit={() => handleSendInvitation()}
+            secondaryAction={() => setOpenConfirm(false)}
+            secondaryActionLabel="Cancel"
+            actionLabel="Send"
+            actionLoader={loader}
+            body={
+              <InfoBox
+                content={'Are you sure you want to send the invitation?'}
+              />
+            }
+          />
+        </>
+      )}
     </div>
   )
 }

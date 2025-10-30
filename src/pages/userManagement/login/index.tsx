@@ -2,19 +2,18 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/common'
 import { useAppStore } from '../../../store/appStore'
 import { useDomainManageStore } from '../../../store/domainManageStore'
-import { useAuthStore } from '../../../store/authStore'
 import { loginSchema, LoginSchema } from '../schema'
+import { useLogin } from '../api'
 
 export default function Login() {
   const { isLoading } = useAppStore()
-  const navigate = useNavigate()
-  const { setAuthenticated, setToken, setUserData } = useAuthStore()
   const [showPassword, setShowPassword] = useState<boolean>(false)
+  const login = useLogin(undefined)
 
   const {
     formState: { errors },
@@ -27,10 +26,7 @@ export default function Login() {
   })
 
   const handleData = (data: LoginSchema) => {
-    setAuthenticated(true)
-    setToken('mock-token')
-    setUserData({ username: data.username })
-    navigate('/dashboard', { replace: true })
+    login.mutate({ username: data.username, password: data.password })
   }
 
   const { domainType } = useDomainManageStore()

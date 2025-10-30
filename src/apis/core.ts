@@ -17,7 +17,7 @@ const domainSwitch = () => {
     case domainTypes.ORGANISATION:
       return process.env.REACT_APP_ORGANISATION_BASE_URL
     default:
-      return ''
+      return process.env.REACT_APP_BASE_URL
   }
 }
 const serverApi = axios.create({

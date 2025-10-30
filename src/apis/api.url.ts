@@ -1,4 +1,4 @@
-const LOGIN_URL = 'login'
+const LOGIN_URL = 'auth/login'
 
 const NOTIFICATION_LIST = 'notifications/web'
 const NOTIFICATION_CLEAR = 'notifications/web/clear_all'

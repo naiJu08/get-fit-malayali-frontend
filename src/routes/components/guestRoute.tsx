@@ -26,7 +26,7 @@ const GuestRoute = ({ children }: Props) => {
       ) : domainType === 'Assessor' ? (
         <Navigate to={'/assessors'} replace />
       ) : (
-        <Navigate to={'/admin-user'} replace />
+        <Navigate to={'/dashboard'} replace />
       )}
     </>
   )

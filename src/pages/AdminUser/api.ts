@@ -7,6 +7,9 @@ import { QueryParams } from '../../common/types'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { getErrorMessage, parseQueryParams } from '../../utilities/parsers'
 
+// Disable non-login APIs (employees, groups) for this build
+export const DISABLE_NONLOGIN_APIS = true
+
 const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
   return `${baseUrl}${parseQueryParams(params)}`
 }
@@ -20,7 +23,9 @@ const fetchData = async (input: QueryParams) => {
 }
 
 export const useAdminUser = (input: QueryParams) => {
-  return useQuery(['admin_user_list', input], () => fetchData(input), {})
+  return useQuery(['admin_user_list', input], () => fetchData(input), {
+    enabled: !DISABLE_NONLOGIN_APIS,
+  })
 }
 export const deActivateAdmin = (id?: string) => {
   return updateFromData(`${apiUrl.ADMIN_USER}/${id}/status`, {})
@@ -82,7 +87,7 @@ export const useUpdateAdmin = (handleSubmission: (data: any) => void) => {
   })
 }
 export const getRoles = () => {
-  return getData(`${apiUrl.GROUP_LIST}`)
+  return Promise.resolve({ items: [], total: 0 })
 }
 export const updatePassword = (employee: string, data: string) => {
   return updateFromData(
