@@ -10,7 +10,7 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-export const getColumns = ({ onViewAction }: AdminListResponse | any) => {
+export const getColumns = ({}: AdminListResponse | any) => {
   const createRenderCell =
     (key: string, isCustom?: string) => (row: AdminListResponse) => {
       if (isCustom === 'fullname') {
@@ -26,6 +26,36 @@ export const getColumns = ({ onViewAction }: AdminListResponse | any) => {
                 : ''}
             </>
           ),
+        }
+      } else if (isCustom === 'capitalize') {
+        const propertyValue = getNestedProperty(row, key)
+        const val = typeof propertyValue === 'string' ? propertyValue : ''
+        const cap = val
+          ? val.replace(
+              /\w\S*/g,
+              (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+            )
+          : ''
+        return {
+          cell: cap,
+          toolTip: cap,
+        }
+      } else if (isCustom === 'role-capitalize') {
+        const propertyValue = getNestedProperty(row, key)
+        const raw = typeof propertyValue === 'string' ? propertyValue : ''
+        const lower = raw.toLowerCase()
+        const display =
+          lower === 'superadmin'
+            ? 'Super Admin'
+            : raw
+              ? raw.replace(
+                  /\w\S*/g,
+                  (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+                )
+              : ''
+        return {
+          cell: display,
+          toolTip: display,
         }
       } else if (isCustom === 'fulldate') {
         const propertyValue = getNestedProperty(row, key)
@@ -43,17 +73,17 @@ export const getColumns = ({ onViewAction }: AdminListResponse | any) => {
     }
 
   const column = [
-    {
-      title: 'Name',
-      field: 'first_name',
-      ...defaultColumnProps,
-      fixed: true,
-      renderCell: createRenderCell('user.first_name', 'fullname'),
-      customCell: true,
-      sortKey: 'user__first_name',
-      link: true,
-      rowClick: (row: any) => onViewAction(row),
-    },
+    // {
+    //   title: 'Name',
+    //   field: 'name',
+    //   ...defaultColumnProps,
+    //   fixed: true,
+    //   renderCell: createRenderCell('user.first_name', 'fullname'),
+    //   customCell: true,
+    //   sortKey: 'user__first_name',
+    //   link: true,
+    //   rowClick: (row: any) => onViewAction(row),
+    // },
     // {
     //   title: 'Role',
     //   field: 'job_role',
@@ -62,31 +92,44 @@ export const getColumns = ({ onViewAction }: AdminListResponse | any) => {
     //   ...defaultColumnProps,
     // },
     {
-      title: 'Job Title',
-      field: 'job_title',
-      renderCell: createRenderCell('user.job_title'),
+      title: 'Name',
+      field: 'name',
+      renderCell: createRenderCell('name'),
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
+      title: 'Phone Number',
+      field: 'phone',
+      renderCell: createRenderCell('phone'),
       customCell: true,
       ...defaultColumnProps,
     },
     {
       title: 'Email',
-      renderCell: createRenderCell('user.username'),
-      field: 'username',
+      renderCell: createRenderCell('email'),
+      field: 'email',
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
+      title: 'Role',
+      field: 'role',
+      renderCell: createRenderCell('role', 'role-capitalize'),
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
+      title: 'BMI',
+      field: 'bmi',
+      renderCell: createRenderCell('bmi'),
       customCell: true,
       ...defaultColumnProps,
     },
     {
       title: 'Status',
       field: 'status',
-      renderCell: createRenderCell('user.status'),
-      ...defaultColumnProps,
-      customCell: true,
-    },
-    {
-      title: 'Last login',
-      field: 'last_login_days_ago',
-      // type: 'date',
-      renderCell: createRenderCell('user.last_login_days_ago'),
+      renderCell: createRenderCell('status', 'capitalize'),
       ...defaultColumnProps,
       customCell: true,
     },

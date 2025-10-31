@@ -11,8 +11,8 @@ import CustomeSideViewer from '../../../components/common/drawer/customeSideView
 import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
 // import FormFieldView from '../../../components/common/inputs/FormFieldView'
-import { getRoles, useCreateAdmin, useUpdateAdmin } from '../api'
-import { ACCEPTED_IMAGE_TYPES, AdminSchema, formSchema } from './schema'
+import { useCreateAdmin, useUpdateAdmin } from '../api'
+import { AdminSchema, formSchema } from './schema'
 
 type Props = {
   isDrawerOpen: boolean
@@ -61,26 +61,9 @@ export default function CreateAdmin({
     ...(required ? { required: true } : {}),
     ...(disabled ? { disabled: true } : {}),
   })
-  const [roleData, setRoleData] = useState<any[]>([])
   const [deleteModal, setDeleteModal] = useState(false)
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
-  useEffect(() => {
-    if (isDrawerOpen) {
-      getRoleData()
-    }
-  }, [isDrawerOpen])
-
-  const statusData = [
-    {
-      id: '1',
-      name: 'Active',
-    },
-    {
-      id: '2',
-      name: 'Inactive',
-    },
-  ]
   // useEffect(() => {
   //   const intervalId = setTimeout(() => {
   //     SetProfileLoading(false)
@@ -106,143 +89,101 @@ export default function CreateAdmin({
     //     )
     //   })
   }
-  const getRoleData = async () => {
-    try {
-      const res = await getRoles()
-      const items = res?.items ?? []
-      const a = items?.map((item: any) => ({
-        ...item,
-        role: item?.name,
-        name: item?.name,
-        id: item?.id,
-      }))
-      setRoleData(a ?? [])
-    } catch (e) {
-      setRoleData([])
-    }
-  }
+
   const formBuilderProps = [
+    { ...textField('name', 'Name', 'Enter full name', true) },
     {
-      ...textField('first_name', 'First Name', 'Enter First Name', true),
-      value: rowData?.user?.first_name,
-      hidden: false,
-    },
-    {
-      ...textField('last_name', 'Last Name', 'Enter Last Name', true),
-      value: rowData?.user?.last_name,
-      hidden: false,
-    },
-    {
-      ...textField('job_title', 'Job Title', 'Enter Job Title', false),
-      value: rowData?.user?.job_title,
-      hidden: false,
-    },
-    {
-      ...textField('email', 'Email', 'Enter Email', true),
+      ...textField('email', 'Email', 'Enter email', true),
       type: 'email',
-      value: rowData?.user?.username,
-      hidden: false,
-      disabled: edit,
       toLowercase: true,
+      // disabled: edit,
     },
     {
-      ...textField('password', 'Password', 'Enter Password', false),
+      ...textField('password', 'Password', 'Enter password', !edit),
       type: 'password',
-      hidden: viewMode || edit ? true : false,
+      hidden: edit || viewMode ? true : false,
     },
+    {
+      ...textField(
+        'password_confirmation',
+        'Confirm Password',
+        'Re-enter password',
+        !edit
+      ),
+      type: 'password',
+      hidden: edit || viewMode ? true : false,
+    },
+    { ...textField('phone', 'Phone Number', 'Enter phone number', true) },
+
     {
       name: 'role',
-      label: 'Job Role',
+      label: 'Role',
       required: true,
-      // getData: getRoleData,
-      id: 'role_id',
+      id: 'role',
       desc: 'name',
       descId: 'id',
-      data: roleData.length > 0 ? roleData[0] : null,
+      data: [
+        { id: '1', name: 'Admin' },
+        { id: '2', name: 'Nutritionist' },
+        { id: '3', name: 'User' },
+      ],
       type: 'custom_select',
-      placeholder: 'Role',
+      placeholder: 'Select role',
       async: false,
       initialLoad: true,
-      value: rowData?.user?.group?.name,
-      hidden: true,
     },
     {
-      name: 'profile_image',
-      required: false,
-      label: 'Upload Picture',
-      id: 'attachment',
-      selectedFiles: rowData?.user?.profile_image
-        ? {
-            name: rowData?.user?.file_name,
-            // name: getFileName(rowData?.user?.profile_image),
-            link: rowData?.profile_image,
-          }
-        : '',
-      descId: 'id',
-      supportedExtensions: ACCEPTED_IMAGE_TYPES,
-      supportedFiles: ACCEPTED_IMAGE_TYPES,
-      acceptedFiles: 'JPEG, JPG, PNG ',
-      type: 'file_upload',
-      value: (
-        <>
-          {rowData?.user?.profile_image ? (
-            <span style={{ display: 'flex', alignItems: 'center' }}>
-              {rowData?.user?.file_name}
-              {/* {getFileName(rowData?.user?.profile_image) ?? 'File'} */}
-            </span>
-          ) : (
-            <>--</>
-          )}
-        </>
-      ),
-      needConfirmation: true,
-      handleDeleteFile: handleDeleteFile,
-    },
-    {
-      name: 'status',
-      label: 'Status',
-      id: 'status_id',
+      name: 'gender',
+      label: 'Gender',
+      required: true,
+      id: 'gender',
       desc: 'name',
       descId: 'id',
-      data: statusData,
+      data: [
+        { id: '0', name: 'Male' },
+        { id: '1', name: 'Female' },
+        { id: '2', name: 'Other' },
+      ],
       type: 'custom_select',
-      placeholder: 'Select Status',
+      placeholder: 'Select gender',
       async: false,
       initialLoad: true,
-      value: rowData?.user?.status,
-      hidden: false,
+    },
+    {
+      name: 'date_of_birth',
+      label: 'Date of Birth',
+      type: 'date',
       required: true,
     },
     {
-      ...textField('last_login', 'Last Login', ''),
-      maxDate: new Date(),
-      type: 'date',
-      // value: rowData?.user?.last_login
-      //   ? moment(rowData?.user?.last_login).format('DD-MM-YYYY')
-      //   : '--',
-      value: rowData?.user?.last_login_days_ago ?? '- -',
-      hidden: viewMode ? false : true,
+      ...textField('height', 'Height (cm)', 'Enter height in cm', true),
+      type: 'text',
+      allowPositiveOnly: true,
     },
     {
-      ...textField('datetime_created', 'Created At', ''),
-      maxDate: new Date(),
-      type: 'date',
-      // value: rowData?.user?.datetime_created
-      //   ? moment(rowData?.user?.datetime_created).format('DD-MM-YYYY')
-      //   : '--',
-      value: rowData?.user?.datetime_created ?? '- -',
-      hidden: viewMode ? false : true,
+      ...textField('weight', 'Weight (kg)', 'Enter weight in kg', true),
+      type: 'text',
+      allowPositiveOnly: true,
     },
+    { ...textField('lifestyle', 'Lifestyle', 'e.g., Active') },
+    { ...textField('goal', 'Goal', 'e.g., Muscle Gain') },
     {
-      ...textField('datetime_updated', 'Updated At', ''),
-      maxDate: new Date(),
-      type: 'date',
-      // value: rowData?.user?.datetime_updated
-      //   ? moment(rowData?.user?.datetime_updated).format('DD-MM-YYYY')
-      //   : '--',
-      value: rowData?.user?.datetime_updated ?? '- -',
-      hidden: viewMode ? false : true,
+      name: 'food_preferences',
+      label: 'Food Preferences',
+      id: 'food_preferences',
+      desc: 'name',
+      descId: 'id',
+      data: [
+        { id: 'Vegetarian', name: 'Vegetarian' },
+        { id: 'Non-Vegetarian', name: 'Non-Vegetarian' },
+      ],
+      type: 'custom_select',
+      placeholder: 'Select Food Preference',
+      async: false,
+      initialLoad: true,
     },
+    { ...textField('medical_conditions', 'Medical Conditions', 'e.g., None') },
+    { ...textField('ethnicity', 'Ethnicity', 'e.g., Indian') },
   ]
 
   // const getAdminDetails = (name: any) => {
@@ -253,33 +194,43 @@ export default function CreateAdmin({
 
   const handleClearAndClose = () => {
     methods.reset({
-      first_name: '',
-      last_name: '',
+      name: '',
       email: '',
       password: '',
-      profile_image: null,
+      password_confirmation: '',
+      phone: '',
       role: '',
-      role_id: null,
-      status: '',
-      status_id: '',
-      job_title: '',
-    })
+      gender: '',
+      date_of_birth: '',
+      height: 0,
+      weight: 0,
+      lifestyle: '',
+      goal: '',
+      food_preferences: '',
+      medical_conditions: '',
+      ethnicity: '',
+    } as any)
     handleClose()
   }
 
   const handleSubmission = () => {
     methods.reset({
-      first_name: '',
-      last_name: '',
+      name: '',
       email: '',
       password: '',
+      password_confirmation: '',
+      phone: '',
       role: '',
-      role_id: null,
-      status: '',
-      status_id: '',
-      job_title: '',
-      profile_image: null,
-    })
+      gender: '',
+      date_of_birth: '',
+      height: 0,
+      weight: 0,
+      lifestyle: '',
+      goal: '',
+      food_preferences: '',
+      medical_conditions: '',
+      ethnicity: '',
+    } as any)
 
     handleRefresh?.()
     handleClearAndClose()
@@ -288,15 +239,23 @@ export default function CreateAdmin({
     if (isDrawerOpen) {
       if (!viewMode && edit) {
         methods.reset({
-          first_name: rowData?.user?.first_name ?? '',
-          last_name: rowData?.user?.last_name ?? '',
-          job_title: rowData?.user?.job_title ?? '',
-          email: rowData?.user?.username ?? '',
-          role_id: rowData?.user?.group?.id ?? null,
-          role: rowData?.user?.group?.name ?? '',
-          status: rowData?.user?.status ?? '',
-          profile_image: rowData?.profile_image,
-        })
+          name:
+            rowData?.user?.first_name && rowData?.user?.last_name
+              ? `${rowData?.user?.first_name} ${rowData?.user?.last_name}`
+              : (rowData?.user?.name ?? ''),
+          email: rowData?.user?.username ?? rowData?.user?.email ?? '',
+          phone: rowData?.user?.phone ?? '',
+          role: rowData?.user?.group?.id ?? rowData?.user?.role ?? '',
+          gender: rowData?.user?.gender ?? '',
+          date_of_birth: rowData?.user?.date_of_birth ?? '',
+          height: rowData?.user?.height ?? 0,
+          weight: rowData?.user?.weight ?? 0,
+          lifestyle: rowData?.user?.lifestyle ?? '',
+          goal: rowData?.user?.goal ?? '',
+          food_preferences: rowData?.user?.food_preferences ?? '',
+          medical_conditions: rowData?.user?.medical_conditions ?? '',
+          ethnicity: rowData?.user?.ethnicity ?? '',
+        } as any)
       }
     }
   }, [viewMode, edit])
@@ -314,69 +273,87 @@ export default function CreateAdmin({
   })
   const { handleSubmit } = methods
   const onSubmit = (details: any) => {
-    const formData = new FormData()
-    if (rowData?.user?.id) {
-      formData.append('first_name', details?.first_name ?? '')
-      formData.append('last_name', details?.last_name ?? '')
-      formData.append('job_title', details?.job_title ?? '')
-      formData.append('username', details?.email ?? '')
-      formData.append(
-        'role_id',
-        roleData.length > 0 ? (roleData[0]['id'] ?? '') : ''
-      )
-
-      formData.append('status', details?.status ?? '')
-
-      if (typeof details?.profile_image == 'object') {
-        formData.append('profile_image', details?.profile_image ?? '')
-      } else if (details?.profile_image?.length === 0) {
-        formData.append('profile_image', '')
+    const pickId = (v: any, fallback = 0) => {
+      if (v === null || v === undefined) return fallback
+      if (typeof v === 'object') {
+        const maybe = v?.id ?? v?.value
+        if (typeof maybe === 'number') return maybe
+        if (typeof maybe === 'string') {
+          return /^\d+$/.test(maybe) ? parseInt(maybe, 10) : fallback
+        }
+        return fallback
       }
-
-      updateMutation({ id: rowData?.user?.id, data: formData })
-    } else {
-      formData.append('first_name', details?.first_name ?? '')
-      formData.append('last_name', details?.last_name ?? '')
-      formData.append('job_title', details?.job_title ?? '')
-      formData.append('username', details?.email ?? '')
-      formData.append(
-        'role_id',
-        roleData.length > 0 ? (roleData[0]['id'] ?? '') : ''
-      )
-
-      formData.append('status', details?.status ?? '')
-      formData.append('password', details?.password ?? '')
-
-      if (typeof details?.profile_image == 'object') {
-        formData.append('profile_image', details?.profile_image ?? '')
-      } else if (details?.profile_image?.length === 0) {
-        formData.append('profile_image', '')
+      if (typeof v === 'number') return v
+      if (typeof v === 'string') {
+        return /^\d+$/.test(v) ? parseInt(v, 10) : fallback
       }
-
-      mutate(formData)
+      return fallback
     }
-    // if (rowData?.user?.id) {
-    //   const result_data = {
-    //     first_name: details?.first_name ?? '',
-    //     last_name: details?.last_name ?? '',
-    //     job_title: details?.job_title,
-    //     username: details?.email ?? '',
-    //     role_id: roleData.length > 0 ? roleData[0]['id'] ?? null : null,
-    //     status: details?.status ?? '',
-    //   }
-    //   updateMutation({ id: rowData?.user?.id, data: result_data })
-    // } else {
-    //   const result = {
-    //     first_name: details?.first_name ?? '',
-    //     last_name: details?.last_name ?? '',
-    //     job_title: details?.job_title,
-    //     username: details?.email ?? '',
-    //     password: details?.password ?? '',
-    //     role_id: roleData.length > 0 ? roleData[0]['id'] ?? null : null,
-    //     status: details?.status ?? '',
-    //   }
-    //   mutate(result)
-    // }
+    const rawRole = details?.role ?? details?.role_id
+    let roleId = pickId(rawRole, 0)
+    if (!roleId) {
+      const mapRoleName = (s: any) => {
+        const t = (typeof s === 'string' ? s : s?.name)?.toLowerCase?.() || ''
+        if (t === 'admin') return 1
+        if (t === 'nutritionist') return 2
+        if (t === 'user') return 3
+        return 0
+      }
+      roleId = mapRoleName(rawRole)
+    }
+    const mapGenderName = (s: string) => {
+      const t = s?.toLowerCase?.() || ''
+      if (t === 'male') return 0
+      if (t === 'female') return 1
+      if (t === 'other') return 2
+      return 0
+    }
+    const genderId = (() => {
+      const v = details?.gender ?? details?.gender_id
+      if (typeof v === 'string' && !/^\d+$/.test(v)) return mapGenderName(v)
+      if (
+        typeof v === 'object' &&
+        typeof v?.name === 'string' &&
+        !/^\d+$/.test(v?.id ?? '')
+      ) {
+        return mapGenderName(v.name)
+      }
+      return pickId(v, 0)
+    })()
+
+    const payload = {
+      user: {
+        name: details?.name ?? '',
+        email: details?.email ?? '',
+        password: details?.password ?? '',
+        password_confirmation: details?.password_confirmation ?? '',
+        phone: details?.phone ?? '',
+        role: roleId,
+        gender: genderId,
+        date_of_birth:
+          details?.date_of_birth instanceof Date
+            ? moment(details?.date_of_birth).format('YYYY-MM-DD')
+            : (details?.date_of_birth ?? ''),
+        height: details?.height ? Number(details?.height) : null,
+        weight: details?.weight ? Number(details?.weight) : null,
+        lifestyle: details?.lifestyle ?? '',
+        goal: details?.goal ?? '',
+        food_preferences:
+          typeof details?.food_preferences === 'object'
+            ? (details?.food_preferences?.name ??
+              details?.food_preferences?.id ??
+              '')
+            : (details?.food_preferences ?? ''),
+        medical_conditions: details?.medical_conditions ?? '',
+        ethnicity: details?.ethnicity ?? '',
+      },
+    }
+
+    if (rowData?.user?.id) {
+      updateMutation({ id: rowData?.user?.id, data: payload })
+    } else {
+      mutate(payload)
+    }
   }
 
   const viewHeaderData = {
@@ -467,11 +444,8 @@ export default function CreateAdmin({
             {!viewMode ? (
               <>
                 <FormProvider {...methods}>
-                  <FormBuilder data={formBuilderProps} edit={true} />
+                  <FormBuilder data={formBuilderProps} edit={true} spacing />
                 </FormProvider>
-                <InfoBox
-                  content={`Create a new Diversity Mark administrator user by completing the form and send them an invitation to set their password for accessing the Administrator Portal.`}
-                />
               </>
             ) : (
               <CustomeSideViewer
