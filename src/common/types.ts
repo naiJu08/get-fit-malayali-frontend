@@ -125,6 +125,7 @@ export interface TextFieldProps {
   disableAction?: boolean
   handleDisableAction?: (val: boolean) => void
   allowPositiveOnly?: boolean
+  digitsOnly?: boolean
   errorFlag?: boolean
   toLowercase?: boolean
 }
@@ -340,6 +341,7 @@ export interface DialogModalProps {
   className?: string
   stylelabel?: string
   headborder?: boolean
+  tall?: boolean
 }
 export interface TabItemProps {
   label: string
@@ -434,6 +436,8 @@ export interface FormBuilderProps {
   label?: string
   type: string
   inputType?: string
+  allowPositiveOnly?: boolean
+  digitsOnly?: boolean
   initialLoad?: boolean
   id: string
   uppercase?: boolean

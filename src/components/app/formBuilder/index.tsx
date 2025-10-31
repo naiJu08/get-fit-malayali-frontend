@@ -186,6 +186,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                   }
                   name={field.name}
                   type={field.type}
+                  allowPositiveOnly={field.allowPositiveOnly}
                   onBlur={() => {
                     handleBlurChange(field)
                   }}
@@ -821,22 +822,13 @@ const FormBuilder: React.FC<Props> = (props) => {
   return (
     <>
       {props.spacing ? (
-        <>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {data.map((field: FormBuilderProps) => (
             <>
-              {!field.hidden && (
-                <div
-                  className={`col-span-12 md:col-span-${
-                    field?.spacing ?? 1
-                  } md:col-span-${field?.formSpacing ?? 0}`}
-                  key={field.name}
-                >
-                  {renderForm(field)}
-                </div>
-              )}
+              {!field.hidden && <div key={field.name}>{renderForm(field)}</div>}
             </>
           ))}
-        </>
+        </div>
       ) : (
         <>
           {data.map((field: FormBuilderProps) => (

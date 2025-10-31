@@ -1,19 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMutation } from '@tanstack/react-query'
 
-import {
-  getData,
-  postData,
-  updateFromData,
-  deleteData,
-} from '../../apis/api.helpers'
+import { getData, postData, updateFromData } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import { QueryParams } from '../../common/types'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { getErrorMessage, parseQueryParams } from '../../utilities/parsers'
 
 // Disable non-login APIs (employees, groups) for this build
-export const DISABLE_NONLOGIN_APIS = false
+export const DISABLE_NONLOGIN_APIS = true
 
 const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
   return `${baseUrl}${parseQueryParams(params)}`
@@ -24,12 +19,7 @@ const fetchData = async (input: QueryParams) => {
     ...input,
   })
   const response = await getData(url)
-  return {
-    items: response?.users || [],
-    total: response?.meta?.total_count ?? 0,
-    total_pages: response?.meta?.total_pages ?? 1,
-    current_page: response?.meta?.current_page ?? 1,
-  }
+  return response
 }
 
 export const useAdminUser = (input: QueryParams) => {
@@ -40,22 +30,11 @@ export const useAdminUser = (input: QueryParams) => {
 export const deActivateAdmin = (id?: string) => {
   return updateFromData(`${apiUrl.ADMIN_USER}/${id}/status`, {})
 }
-export const deleteAdmin = (id?: string) => {
-  return deleteData(`${apiUrl.ADMIN_USER}/${id}`)
-}
+// export const deleteAdmin = (id?: string) => {
+//   return deleteData(`${apiUrl.ADMIN_USER}/${id}`)
+// }
 export const getAdminDetails = (id: string) => {
   return getData(`${apiUrl.ADMIN_USER}/${id}`)
-}
-
-export const freezeUser = (
-  id: string,
-  payload: { reason: string; start_date: string; end_date: string }
-) => {
-  return postData(`${apiUrl.ADMIN_USER}/${id}/freeze`, payload)
-}
-
-export const unfreezeUser = (id: string) => {
-  return postData(`${apiUrl.ADMIN_USER}/${id}/unfreeze`, {})
 }
 
 export const createAdmin = (input: any) => {

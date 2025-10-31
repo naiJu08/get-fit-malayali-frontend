@@ -10,8 +10,8 @@
   }
 
   .btn-primary {
-    background-color: var(--primary) !important;
-    @apply border-button-primary text-white opacity-100 hover:opacity-70 transition-all;
+    background-color: #0fc8cd !important;
+    @apply border-primaryGreen text-white opacity-100 hover:opacity-70 transition-all;
   }
 
   .btn-secondary {

@@ -118,6 +118,8 @@ const DialogModal: React.FC<DialogModalProps> = ({
               lg:h-auto
               md:h-auto
               shadow-popupShadow
+             max-h-[calc(100vh-80px)]
+              overflow-y-auto
                rounded-xl
               relative
               flex
@@ -125,6 +127,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
               w-full
                bg-white
               focus:outline-none
+              
             "
             >
               {isCloseIcon && (
@@ -162,11 +165,11 @@ const DialogModal: React.FC<DialogModalProps> = ({
                     </span>
                   )}
                 </div>
-                <div className={`flex flex-col  ${small ? 'px-5' : 'p-0'}`}>
+                <div className={`flex flex-col  ${small ? 'px-5' : 'px-6'}`}>
                   {body}
                 </div>
                 {actionBody && (
-                  <div className="flex flex-col p-5">{actionBody}</div>
+                  <div className="flex flex-col px-5 pb-5">{actionBody}</div>
                 )}
 
                 {(actionLabel || secondaryActionLabel) && !actionBody && (

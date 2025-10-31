@@ -95,6 +95,37 @@ const TextField: React.FC<TextFieldProps> = ({
       onChange?.(e)
     }
   }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!allowPositiveOnly) return
+    const allowedKeys = [
+      'Backspace',
+      'Delete',
+      'ArrowLeft',
+      'ArrowRight',
+      'Tab',
+      'Home',
+      'End',
+    ]
+    if (allowedKeys.includes(e.key)) return
+    const isNumber = /[0-9]/.test(e.key)
+    const isDot = e.key === '.'
+    const target = e.target as HTMLInputElement
+    if (!isNumber && !isDot) {
+      e.preventDefault()
+      return
+    }
+    if (isDot && target.value.includes('.')) {
+      e.preventDefault()
+      return
+    }
+  }
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    if (!allowPositiveOnly) return
+    const paste = e.clipboardData.getData('text')
+    if (!/^[0-9]*\.?[0-9]*$/.test(paste)) {
+      e.preventDefault()
+    }
+  }
   return (
     <div
       className={` ${fullwidth ? 'w-full' : 'w-auto'} ${
@@ -137,6 +168,8 @@ const TextField: React.FC<TextFieldProps> = ({
           {...register?.(name, { required })}
           value={value ?? ''}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           ref={ref}
           placeholder={placeholder || label}
           onBlur={onBlur}
