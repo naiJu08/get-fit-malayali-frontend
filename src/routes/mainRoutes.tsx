@@ -20,6 +20,12 @@ const ForgetPassword = lazy(
 const AdminUser = lazy(() => import('../pages/AdminUser'))
 const Plans = lazy(() => import('../pages/Plans'))
 const PlanDetails = lazy(() => import('../pages/Plans/Details/index'))
+const WorkoutPlanDetails = lazy(
+  () => import('../pages/Plans/Details/WorkoutPlan/details')
+)
+const DietPlanDetails = lazy(
+  () => import('../pages/Plans/Details/DietPlan/details')
+)
 const UserDetails = lazy(() => import('../pages/AdminUser/Details'))
 
 // Dashboard
@@ -39,6 +45,8 @@ const routes: any = [
   { slug: 'ADMIN_USER', component: <AdminUser /> },
   { slug: 'PLANS', component: <Plans /> },
   { slug: 'PLAN_DETAILS', component: <PlanDetails /> },
+  { slug: 'WORKOUT_DETAILS', component: <WorkoutPlanDetails /> },
+  { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
   { slug: 'SUBSCRIPTION_SAMPLE', component: <Subscription /> },
   { slug: 'DISCOUNT_SAMPLE', component: <Discount /> },
   { slug: 'PAYMENT_SAMPLE', component: <Payment /> },

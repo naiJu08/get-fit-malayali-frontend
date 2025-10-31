@@ -286,7 +286,7 @@ export default function CreatePlan({
       descId: 'id',
       id: 'active_id',
       placeholder: 'Select status',
-      // initialLoad: false,
+      initialLoad: true ? 'Active' : 'Inactive',
       data: [
         { id: 'active', name: 'Active', value: 'Active' },
         { id: 'inactive', name: 'Inactive', value: 'Inactive' },

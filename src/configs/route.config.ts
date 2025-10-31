@@ -368,6 +368,28 @@ const PLAN_DETAILS: RouterMenuProps = {
   permission_slugs: [],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
+const WORKOUT_DETAILS: RouterMenuProps = {
+  id: 26,
+  path: '/workout_details/:id',
+  parent_id: 21,
+  isDetails: true,
+  icon: 'user',
+  label: 'Workout Details',
+  key: 'workout-details',
+  permission_slugs: [],
+  // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
+}
+
+const DIET_DETAILS: RouterMenuProps = {
+  id: 27,
+  path: '/diet_details/:id',
+  parent_id: 21,
+  isDetails: true,
+  icon: 'user',
+  label: 'Diet Details',
+  key: 'diet-details',
+  permission_slugs: [],
+}
 
 const ORGANISATION_FILE_REPOSTITORY: RouterMenuProps = {
   id: 41,
@@ -394,6 +416,8 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   ADMIN_USER,
   PLANS,
   PLAN_DETAILS,
+  WORKOUT_DETAILS,
+  DIET_DETAILS,
   ASSESSOR,
   ORGANISATION,
   ORGANISATION_DETAILS,

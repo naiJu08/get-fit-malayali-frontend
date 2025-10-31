@@ -275,9 +275,9 @@ export default function Dashboard() {
                         <p className="text-sm text-gray-600 mt-1">
                           {notification.message}
                         </p>
-                        <p className="text-xs text-gray-500 mt-2 flex items-center">
-                          <Icons name="calendar" className="w-3 h-3 mr-1" />
-                          {notification.time}
+                        <p className="text-xs text-gray-500 mt-2 flex items-center gap-3">
+                          <Icons name="calendar" className="w-3 mr-1 " />
+                          <p>{notification.time}</p>
                         </p>
                       </div>
                     </div>
