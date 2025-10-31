@@ -146,6 +146,7 @@ import AsceningIcon from './Ascending'
 import ExportFileIcon from './ExportFile'
 import DocumentIcon from './DocumentIcon'
 import CubeIcon from './CubeIcon'
+import LeftArrowIcon from './LeftArrow'
 
 const Icons: React.FC<IconsProps> = ({
   name,
@@ -443,6 +444,8 @@ const Icons: React.FC<IconsProps> = ({
         return <Notification />
       case 'accounting-icon':
         return <AccountingIcon />
+      case 'left-arrow-icon':
+        return <LeftArrowIcon />
       default:
         return <></>
     }

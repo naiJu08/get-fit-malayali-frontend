@@ -18,6 +18,7 @@ const ForgetPassword = lazy(
 )
 
 const AdminUser = lazy(() => import('../pages/AdminUser'))
+const UserDetails = lazy(() => import('../pages/AdminUser/Details'))
 
 // Dashboard
 
@@ -129,6 +130,14 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/users"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/:id"
       />
       <Route
         element={

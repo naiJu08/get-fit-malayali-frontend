@@ -1,30 +1,36 @@
 import { QbsTable } from 'qbs-react-grid'
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
 import { DialogModal, TextField } from '../../components/common'
+import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
+import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { checkPermissions } from '../../layout/store'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
-// import { calcWindowHeight } from '../../utilities/calcHeight'
+import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
-// import { handleReturnEmptyMsg } from '../../utilities/validation'
+import { handleReturnEmptyMsg } from '../../utilities/validation'
 import {
   deActivateAdmin,
   getAdminDetails,
   sendAdminInvitation,
-  // useAdminUser,
+  useAdminUser,
   DISABLE_NONLOGIN_APIS,
+  deleteAdmin,
+  freezeUser,
+  unfreezeUser,
 } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
 
 export default function AdminUser() {
+  const navigate = useNavigate()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
   const [deleteItem, setDeleteItem] = useState('')
@@ -38,6 +44,20 @@ export default function AdminUser() {
   const [userName, setUserName] = useState('')
   const [userId, setUserId] = useState('')
   const [openConfirm, setOpenConfirm] = useState(false)
+  const [deleteUserModal, setDeleteUserModal] = useState(false)
+  const [deleteUserId, setDeleteUserId] = useState<string>('')
+  const [freezeModal, setFreezeModal] = useState(false)
+  const [freezeUserId, setFreezeUserId] = useState<string>('')
+  const [freezeForm, setFreezeForm] = useState<{
+    reason: string
+    start_date: string
+    end_date: string
+  }>({
+    reason: '',
+    start_date: '',
+    end_date: '',
+  })
+  const [unfreezeConfirm, setUnfreezeConfirm] = useState(false)
 
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
@@ -47,16 +67,88 @@ export default function AdminUser() {
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
-  // const { page, page_size, search, ordering, filters } = pageParams
-  // const searchParams = {
-  //   page: page,
-  //   page_size: page_size,
-  //   search: search,
-  //   ordering: ordering,
-  //   ...filters,
-  // }
+  const { page, page_size, search, ordering, filters } = pageParams
+  const searchParams = {
+    page: page,
+    per_page: page_size,
+    search: search,
+    ordering: ordering,
+    ...filters,
+  }
+  const isFrozen = (rowData: any) => {
+    const val = String(rowData?.status ?? '').toLowerCase()
+    return val === 'suspended'
+  }
+  const handleOpenFreeze = (row: any) => {
+    setFreezeUserId(row?.id)
+    setFreezeForm({ reason: '', start_date: '', end_date: '' })
+    setFreezeModal(true)
+  }
 
-  // const { data, refetch, isFetching } = useAdminUser(searchParams)
+  const handleFreezeChange = ({
+    name,
+    value,
+  }: {
+    name: string
+    value: any
+  }) => {
+    if (name === 'start_date' || name === 'end_date') {
+      const d = value ? new Date(value) : null
+      const iso = d
+        ? new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+            .toISOString()
+            .slice(0, 10)
+        : ''
+      setFreezeForm((prev) => ({ ...prev, [name]: iso }))
+    } else {
+      setFreezeForm((prev) => ({ ...prev, [name]: value }))
+    }
+  }
+
+  const handleSubmitFreeze = () => {
+    if (!freezeUserId) return
+    setloader(true)
+    freezeUser(freezeUserId, freezeForm)
+      .then(() => {
+        enqueueSnackbar('User frozen successfully', { variant: 'success' })
+        setloader(false)
+        setFreezeModal(false)
+        refetch()
+      })
+      .catch((err) => {
+        setloader(false)
+        enqueueSnackbar(
+          err?.response?.data?.error?.message || err?.response?.data?.message,
+          { variant: 'error' }
+        )
+      })
+  }
+
+  const handleOpenUnfreeze = (row: any) => {
+    setFreezeUserId(row?.id)
+    setUnfreezeConfirm(true)
+  }
+
+  const handleSubmitUnfreeze = () => {
+    if (!freezeUserId) return
+    setloader(true)
+    unfreezeUser(freezeUserId)
+      .then(() => {
+        enqueueSnackbar('User unfrozen successfully', { variant: 'success' })
+        setloader(false)
+        setUnfreezeConfirm(false)
+        refetch()
+      })
+      .catch((err) => {
+        setloader(false)
+        enqueueSnackbar(
+          err?.response?.data?.error?.message || err?.response?.data?.message,
+          { variant: 'error' }
+        )
+      })
+  }
+
+  const { data, refetch, isFetching } = useAdminUser(searchParams)
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,
@@ -72,8 +164,8 @@ export default function AdminUser() {
   }
   const onViewAction = async (row: any) => {
     setViewIndicator(true)
-    if (row?.user?.id) {
-      const data = await getAdminDetails(row?.user?.id)
+    if (row?.id) {
+      const data = await getAdminDetails(row?.id)
       setRowData(data)
       setViewMode(true)
       setCreateOpen(true)
@@ -113,7 +205,7 @@ export default function AdminUser() {
           }
         )
         setloader(false)
-        // refetch()
+        refetch()
         setOpenConfirm(false)
 
         setSelectedRows(
@@ -137,7 +229,7 @@ export default function AdminUser() {
           variant: 'success',
         })
         setloader(false)
-        // refetch()
+        refetch()
         setSelectedRows(
           selectedRows?.filter((sel: string | number) => sel !== deleteItem) ||
             []
@@ -153,8 +245,8 @@ export default function AdminUser() {
       })
   }
   const handleEdit = async (rowData: any) => {
-    if (rowData?.user?.id) {
-      const data = await getAdminDetails(rowData?.user?.id)
+    if (rowData?.id) {
+      const data = await getAdminDetails(rowData?.id)
       setRowData(data)
       setCreateOpen(true)
       setViewMode(false)
@@ -179,7 +271,7 @@ export default function AdminUser() {
   }
 
   const handleRefresh = () => {
-    // refetch()
+    refetch()
   }
   const basicData = {
     title: 'Users',
@@ -200,14 +292,27 @@ export default function AdminUser() {
       ordering: getSortedColumnName(orderColumn, orderDirection),
     })
   }
-  const handleResetPassword = (userId: string, username: string) => {
-    setChangePassword(true)
-    setUserId(userId)
-    setUserName(username)
+
+  const handleOpenDeleteUser = (id: string) => {
+    setDeleteUserId(id)
+    setDeleteUserModal(true)
   }
-  const handleOpenInvitation = (id: any) => {
-    setDeleteItem(id)
-    setOpenConfirm(true)
+  const handleDeleteUser = () => {
+    setloader(true)
+    deleteAdmin(deleteUserId)
+      .then(() => {
+        enqueueSnackbar('User deleted successfully', { variant: 'success' })
+        setloader(false)
+        setDeleteUserModal(false)
+        refetch()
+      })
+      .catch((err) => {
+        setloader(false)
+        enqueueSnackbar(
+          err?.response?.data?.error?.message || err?.response?.data?.message,
+          { variant: 'error' }
+        )
+      })
   }
   return (
     <div>
@@ -226,21 +331,21 @@ export default function AdminUser() {
           {/* <PageTitle data={data?.total} isLoading={isFetching} /> */}
           <div className=" p-4">
             <QbsTable
-              data={[]}
+              data={data?.items ?? []}
               dataRowKey="id"
               toolbar={true}
               search={true}
-              // height={
-              //   data?.length === 0
-              //     ? calcWindowHeight(218)
-              //     : calcWindowHeight(300)
-              // }
-              // isLoading={isFetching}
+              height={
+                data?.items?.length === 0
+                  ? calcWindowHeight(218)
+                  : calcWindowHeight(300)
+              }
+              isLoading={isFetching}
               sortType={pageParams.sortType}
               sortColumn={pageParams.sortColumn}
               handleColumnSort={handleSort}
               emptyTitle="No records to display"
-              // emptySubTitle={handleReturnEmptyMsg(search)}
+              emptySubTitle={handleReturnEmptyMsg(search)}
               columns={columns}
               pagination={true}
               renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
@@ -254,9 +359,9 @@ export default function AdminUser() {
               }}
               paginationProps={{
                 onPagination: onChangePage,
-                // total: data?.total,
-                currentPage: pageParams?.page,
-                // rowsPerPage: Number(pageParams?.page_size ?? data?.page_size),
+                total: data?.total ?? 0,
+                currentPage: data?.current_page ?? pageParams?.page ?? 1,
+                rowsPerPage: Number(pageParams?.page_size ?? 10),
                 onRowsPerPage: onChangeRowsPerPage,
                 dropOptions: [10, 20, 30, 50, 100],
               }}
@@ -274,51 +379,57 @@ export default function AdminUser() {
                   toolTip: 'Edit',
                 },
                 {
-                  icon: <Icons name="verify" />,
-                  action: (row) =>
-                    handleResetPassword(row?.user?.id, row?.user?.username),
-                  title: 'reset-password',
-                  toolTip: 'Reset Password',
+                  icon: <Icons name="eye" />,
+                  action: (row) => navigate(`/users/${row?.id}`),
+                  title: 'view',
+                  toolTip: 'View Details',
+                },
+                {
+                  title: 'Freeze',
+                  action: (row) => handleOpenFreeze(row),
+                  icon: <Icons name="lock-icon" />,
+                  toolTip: 'Freeze User',
+                  hide: (rowData: any) => isFrozen(rowData),
+                },
+                {
+                  title: 'Unfreeze',
+                  action: (row) => handleOpenUnfreeze(row),
+                  icon: <Icons name="activate-icon" />,
+                  toolTip: 'Unfreeze User',
+                  hide: (rowData: any) => !isFrozen(rowData),
                 },
                 {
                   title: 'Deactivate',
                   action: (rowData) =>
                     handleDeleteModel(
-                      rowData?.user?.id,
-                      rowData?.user?.username,
-                      rowData?.user?.status
+                      rowData?.id,
+                      rowData?.email,
+                      rowData?.status
                     ),
                   icon: <Icons name="deactivate-icon" />,
                   toolTip: 'Deactivate',
                   hide: (rowData: any) =>
-                    rowData?.user?.status == 'Active' ? false : true,
+                    rowData?.status == 'Active' ? false : true,
                 },
                 {
                   title: 'Activate',
                   action: (rowData) =>
                     handleDeleteModel(
-                      rowData?.user?.id,
-                      rowData?.user?.username,
-                      rowData?.user?.status
+                      rowData?.id,
+                      rowData?.email,
+                      rowData?.status
                     ),
                   icon: <Icons name="activate-icon" />,
                   toolTip: 'Activate',
                   hide: (rowData: any) =>
-                    rowData?.user?.status == 'Inactive' ? false : true,
+                    rowData?.status == 'Inactive' ? false : true,
                 },
-                // {
-                //   title: 'Delete Admin',
-                //   action: (rowData) =>
-                //     handleDeleteModel(rowData?.user?.id, rowData?.user?.username),
-                //   icon: <Icons name="delete" />,
-                //   toolTip: 'Delete Admin',
-                // },
+
                 {
-                  title: 'Send Invitation',
-                  action: (rowData) => handleOpenInvitation(rowData?.user?.id),
-                  icon: <Icons name="email" />,
-                  toolTip: 'Send Invitation',
-                  // hidden: !checkPermission('delete'),
+                  title: 'Delete User',
+                  action: (rowData) => handleOpenDeleteUser(rowData?.id),
+                  icon: <Icons name="delete" />,
+                  toolTip: 'Delete User',
                 },
               ]}
               searchValue={pageParams?.search}
@@ -326,17 +437,6 @@ export default function AdminUser() {
               asyncSearch
               handleSearchValue={(key?: string) => handleSeach(key)}
               columnToggle
-              // tableHeaderActions={
-              //   <div className="flex gap-2 ">
-              //     <Button
-              //       onClick={handleAction}
-              //       label={'Add New'}
-              //       icon="plus"
-              //       isPrimary={true}
-              //       className="bg-primary"
-              //     />
-              //   </div>
-              // }
             />
           </div>
 
@@ -377,6 +477,18 @@ export default function AdminUser() {
               </>
             }
           />
+          <ConfirmDeleteModal
+            isOpen={deleteUserModal}
+            onClose={() => setDeleteUserModal(false)}
+            onConfirm={() => handleDeleteUser()}
+            loading={loader}
+            title={'Are you sure?'}
+            subTitle={
+              'Do you really want to delete this user? This process cannot be undone.'
+            }
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+          />
           <ResetPassword
             changePassword={changePassword}
             setChangePassword={setChangePassword}
@@ -385,6 +497,26 @@ export default function AdminUser() {
             from={'Admin'}
             userName={userName}
             setUserName={setUserName}
+          />
+
+          <FreezeUserModal
+            isOpen={freezeModal}
+            onClose={() => setFreezeModal(false)}
+            onSubmit={handleSubmitFreeze}
+            loading={loader}
+            values={freezeForm}
+            onChange={handleFreezeChange}
+          />
+
+          <ConfirmDeleteModal
+            isOpen={unfreezeConfirm}
+            onClose={() => setUnfreezeConfirm(false)}
+            onConfirm={handleSubmitUnfreeze}
+            loading={loader}
+            title={'Are you sure?'}
+            subTitle={'Do you really want to unfreeze this user?'}
+            confirmLabel="Unfreeze"
+            cancelLabel="Cancel"
           />
 
           <CreateAdmin
