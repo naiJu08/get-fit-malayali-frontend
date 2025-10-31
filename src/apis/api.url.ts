@@ -4,6 +4,7 @@ const NOTIFICATION_LIST = 'notifications/web'
 const NOTIFICATION_CLEAR = 'notifications/web/clear_all'
 const ASSESSOR_LIST_URL = 'assessors'
 const ADMIN_USER = 'employees'
+const PLANS = 'plans'
 const GROUP_LIST = 'groups'
 const ORGANISATION_LIST_URL = 'organisations'
 const ORGANISATION_URL = 'organisation'
@@ -22,6 +23,7 @@ const apiUrl: { [key: string]: string } = {
   NOTIFICATION_CLEAR,
   ASSESSOR_LIST_URL,
   ADMIN_USER,
+  PLANS,
   GROUP_LIST,
   ORGANISATION_LIST_URL,
   MY_PROFILE,
