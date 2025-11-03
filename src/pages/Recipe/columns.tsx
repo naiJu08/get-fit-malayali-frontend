@@ -23,6 +23,24 @@ export const getRecipeColumns = (onNameClick?: (row: any) => void) => {
       const value = getNestedProperty(row, key)
       const label = value ? 'Yes' : 'No'
       return { cell: label, toolTip: label }
+    } else if (isCustom === 'link') {
+      const propertyValue = getNestedProperty(row, key)
+      const url = typeof propertyValue === 'string' ? propertyValue : ''
+      return {
+        cell: url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#2563eb' }}
+          >
+            {url}
+          </a>
+        ) : (
+          ''
+        ),
+        toolTip: url || '',
+      }
     }
     return {
       cell: getNestedProperty(row, key),
@@ -70,6 +88,14 @@ export const getRecipeColumns = (onNameClick?: (row: any) => void) => {
       customCell: true,
       ...defaultColumnProps,
     },
+    {
+      title: 'Image URL',
+      field: 'image_url',
+      renderCell: createRenderCell('image_url', 'link'),
+      customCell: true,
+      ...defaultColumnProps,
+    },
+
     {
       title: 'Created By',
       field: 'created_by',

@@ -101,15 +101,17 @@ function PlanDetailsContent() {
         </div>
       </div>
 
-      <TabContainer
-        data={tabs}
-        activeTab={activeTab}
-        onClick={(item) => setActiveTab(item.id as any)}
-      >
-        <DetailsSection plan={plan} />
-        <WorkoutTab planName={plan?.name} planId={id} />
-        <DietTab planName={plan?.name} planId={id} />
-      </TabContainer>
+      <div className="no-tab-bg">
+        <TabContainer
+          data={tabs}
+          activeTab={activeTab}
+          onClick={(item) => setActiveTab(item.id as any)}
+        >
+          <DetailsSection plan={plan} />
+          <WorkoutTab planName={plan?.name} planId={id} />
+          <DietTab planName={plan?.name} planId={id} />
+        </TabContainer>
+      </div>
 
       {isLoading && (
         <div className="p-6">
