@@ -348,6 +348,15 @@ const ADMIN_USER: RouterMenuProps = {
   permission_slugs: [],
   isSidebarMenu: true,
 }
+const SUBSCRIPTIONS: RouterMenuProps = {
+  id: 29,
+  path: '/subscriptions',
+  parent_id: null,
+  label: 'Subscriptions',
+  key: 'subscriptions',
+  permission_slugs: [],
+  isSidebarMenu: true,
+}
 const PLANS: RouterMenuProps = {
   id: 21,
   path: '/plans',
@@ -377,6 +386,16 @@ const WORKOUT_DETAILS: RouterMenuProps = {
   key: 'workout-details',
   permission_slugs: [],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
+}
+const SUBSCRIPTIONS_DETAILS: RouterMenuProps = {
+  id: 291,
+  path: '/subscriptions/:id',
+  parent_id: 29,
+  isDetails: true,
+  icon: 'user',
+  label: 'Subscription Details',
+  key: 'subscriptions-details',
+  permission_slugs: [],
 }
 
 const PLAN_DETAILS: RouterMenuProps = {
@@ -436,10 +455,12 @@ const ORGANISATION_USERLIST: RouterMenuProps = {
 export const router_config: { [key: string]: RouterMenuProps } = {
   DASHBOARD,
   ADMIN_USER,
+  SUBSCRIPTIONS,
   WORKOUT,
   PLANS,
   PLAN_DETAILS,
   WORKOUT_PLAN_DETAILS,
+  SUBSCRIPTIONS_DETAILS,
   DIET_DETAILS,
   ASSESSOR,
   ORGANISATION,
