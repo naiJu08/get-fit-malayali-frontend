@@ -357,6 +357,28 @@ const PLANS: RouterMenuProps = {
   permission_slugs: [],
   isSidebarMenu: true,
 }
+const WORKOUT: RouterMenuProps = {
+  id: 25,
+  path: '/workout',
+  parent_id: null,
+  label: 'Workout',
+  key: 'workout',
+  permission_slugs: [],
+  isSidebarMenu: true,
+}
+
+const WORKOUT_DETAILS: RouterMenuProps = {
+  id: 28,
+  path: '/workout/:id',
+  parent_id: 25,
+  isDetails: true,
+  icon: 'user',
+  label: 'Workout Details',
+  key: 'workout-details',
+  permission_slugs: [],
+  // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
+}
+
 const PLAN_DETAILS: RouterMenuProps = {
   id: 22,
   path: '/plans/:id',
@@ -378,7 +400,7 @@ const RECIPE: RouterMenuProps = {
   isSidebarMenu: true,
 }
 
-const WORKOUT_DETAILS: RouterMenuProps = {
+const WORKOUT_PLAN_DETAILS: RouterMenuProps = {
   id: 26,
   path: '/workout_details/:id',
   parent_id: 21,
@@ -424,9 +446,10 @@ const ORGANISATION_USERLIST: RouterMenuProps = {
 export const router_config: { [key: string]: RouterMenuProps } = {
   DASHBOARD,
   ADMIN_USER,
+  WORKOUT,
   PLANS,
   PLAN_DETAILS,
-  WORKOUT_DETAILS,
+  WORKOUT_PLAN_DETAILS,
   DIET_DETAILS,
   RECIPE,
   ASSESSOR,
@@ -454,4 +477,5 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   ACCREDITAITON_DETAILS_FORM,
   MY_ORGANISATION_DETAILS,
   HOME,
+  WORKOUT_DETAILS,
 }
