@@ -64,6 +64,7 @@ export default function AdminUser() {
   const [loader, setloader] = useState(false)
 
   const params = useParams()
+  const [activeRole, setActiveRole] = useState<'user' | 'nutritionist'>('user')
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
@@ -178,6 +179,17 @@ export default function AdminUser() {
       })
     )
   }, [])
+
+  // Ensure role filter follows active tab
+  useEffect(() => {
+    // initialize filters object if missing and set role
+    setPageParams({
+      ...pageParams,
+      filters: { ...(pageParams?.filters || {}), role: activeRole },
+      page: 1,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRole])
 
   const handleSeach = (key?: string) => {
     setPageParams({
@@ -328,6 +340,33 @@ export default function AdminUser() {
             actionProps={headerProps}
             checkPermission={checkPermissions('Employee', 'create')}
           />
+          {/* Role Tabs */}
+          <div className="px-4">
+            <div className="flex gap-4 border-b">
+              <button
+                type="button"
+                className={`px-3 py-2 -mb-px ${
+                  activeRole === 'user'
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-600'
+                }`}
+                onClick={() => setActiveRole('user')}
+              >
+                User
+              </button>
+              <button
+                type="button"
+                className={`px-3 py-2 -mb-px ${
+                  activeRole === 'nutritionist'
+                    ? 'border-b-2 border-blue-600 text-blue-600'
+                    : 'text-gray-600'
+                }`}
+                onClick={() => setActiveRole('nutritionist')}
+              >
+                Nutritionist
+              </button>
+            </div>
+          </div>
           {/* <PageTitle data={data?.total} isLoading={isFetching} /> */}
           <div className=" p-4">
             <QbsTable
