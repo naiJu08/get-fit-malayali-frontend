@@ -412,6 +412,7 @@ export type AdvanceFilter = {
 export interface StoreFilterParams {
   page: number
   page_size?: number | string
+  per_page?: number | string
   search: string
   ordering?: string
   filters: Record<string, unknown>
