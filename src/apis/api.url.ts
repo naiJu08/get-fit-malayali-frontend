@@ -18,6 +18,7 @@ const ORGANISATION_DATATABLES = 'datatable'
 
 const ACCREDITATION_LIST_URL = 'accreditations'
 const RENEW_APPLICATION = 'renew-accreditations'
+const WORKOUTS = 'workouts'
 
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
@@ -37,6 +38,7 @@ const apiUrl: { [key: string]: string } = {
   ORGANISATION_DATATABLES,
   ACCREDITATION_LIST_URL,
   RENEW_APPLICATION,
+  WORKOUTS,
 }
 
 export default apiUrl
