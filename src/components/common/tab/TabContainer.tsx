@@ -36,15 +36,17 @@ const TabContainer: React.FC<TabProps> = ({
     let generatedClassName = 'w-max text-sm leading-6  font-medium '
     if (tab.id === activeTab) {
       generatedClassName +=
-        ' text-primary border-primary  bg-white font-bold cursor-default'
+        ' text-primary border-primary font-bold cursor-default '
+      generatedClassName += tab.bgClass ? `${tab.bgClass}` : 'bg-white'
     } else {
       if (tab.disabled) {
         generatedClassName +=
-          ' text-grey-medium cursor-not-allowed border-transparent'
+          ' text-grey-medium cursor-not-allowed border-transparent '
       } else {
         generatedClassName +=
-          ' text-grey-medium cursor-pointer border-transparent'
+          ' text-grey-medium cursor-pointer border-transparent '
       }
+      if (tab.bgClass) generatedClassName += `${tab.bgClass}`
     }
     return generatedClassName
   }

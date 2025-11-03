@@ -348,6 +348,7 @@ export interface TabItemProps {
   id: string | number
   disabled?: boolean
   hide?: boolean
+  bgClass?: string
 }
 export interface TabProps {
   data: TabItemProps[]

@@ -49,6 +49,12 @@ export const sidebarList: SidebarItem[] = [
     name: 'Plans',
     path: '/plans',
   },
+  {
+    id: 10,
+    icon: 'subscription-icon',
+    name: 'Recipes',
+    path: '/recipe',
+  },
 
   {
     id: 4,

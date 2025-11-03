@@ -79,15 +79,15 @@ function PlanDetailsContent() {
   const { data, isLoading, isError, error } = usePlan(id as string)
 
   const plan = (data as any)?.plan ?? (data as any) ?? {}
-  const [activeTab, setActiveTab] = useState<'details' | 'workout details'>(
-    'details'
-  )
+  const [activeTab, setActiveTab] = useState<
+    'details' | 'workout details' | 'diet details'
+  >('details')
 
   // Only Details tab
   const tabs: TabItemProps[] = [
-    { id: 'details', label: 'Details' },
-    { id: 'workout details', label: 'Workout Plan' },
-    { id: 'diet details', label: 'Diet Plan' },
+    { id: 'details', label: 'Details', bgClass: 'bg-blue-100' },
+    { id: 'workout details', label: 'Workout Plan', bgClass: 'bg-green-100' },
+    { id: 'diet details', label: 'Diet Plan', bgClass: 'bg-amber-100' },
   ]
 
   return (

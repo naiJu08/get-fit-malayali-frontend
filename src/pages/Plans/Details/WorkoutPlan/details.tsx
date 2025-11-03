@@ -41,10 +41,7 @@ export default function WorkoutPlanDetails() {
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(`/plans/${wp?.plan_id}`)}
-            aria-label="Back"
-          >
+          <button onClick={() => navigate(-1)} aria-label="Back">
             <Icons name="left-arrow-icon" />
           </button>
           <h1 className="text-xl font-semibold">Workout Plan Details</h1>

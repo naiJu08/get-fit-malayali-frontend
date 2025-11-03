@@ -368,6 +368,16 @@ const PLAN_DETAILS: RouterMenuProps = {
   permission_slugs: [],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
+const RECIPE: RouterMenuProps = {
+  id: 24,
+  path: '/recipe',
+  parent_id: null,
+  label: 'Recipe',
+  key: 'recipe',
+  permission_slugs: [],
+  isSidebarMenu: true,
+}
+
 const WORKOUT_DETAILS: RouterMenuProps = {
   id: 26,
   path: '/workout_details/:id',
@@ -418,6 +428,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   PLAN_DETAILS,
   WORKOUT_DETAILS,
   DIET_DETAILS,
+  RECIPE,
   ASSESSOR,
   ORGANISATION,
   ORGANISATION_DETAILS,

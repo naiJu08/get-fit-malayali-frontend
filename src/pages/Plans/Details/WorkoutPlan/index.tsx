@@ -28,6 +28,8 @@ export default function WorkoutPlanIndex({
       customCell: true,
       renderCell: (row: any) => ({ cell: row?.title ?? '' }),
       sortKey: 'title',
+      link: true,
+      rowClick: (row: any) => navigate(`/workout_details/${row?.id}`),
     },
     {
       title: 'Day',
