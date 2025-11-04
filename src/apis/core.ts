@@ -70,9 +70,13 @@ serverApi.interceptors.response.use(
   (res: AxiosResponse) => res,
   async (err: AxiosError) => {
     if (axios.isAxiosError(err) && err.response) {
-      // Swallow 409 (Conflict) responses: pass through as a resolved response to avoid runtime overlays
+      // Swallow 409 (Conflict) responses: show red snackbar and pass through as resolved to avoid runtime overlays
       if (err.response.status === 409) {
-        // Optionally surface a snackbar elsewhere; here we just pass the response along
+        const errorObject: any = err.response.data
+        const message =
+          errorObject?.message || errorObject?.error?.message || 'Conflict'
+        showError(message)
+        // Pass the response along as resolved to prevent runtime overlay
         return Promise.resolve(err.response as any)
       }
       if (err.response.status && err.response.status === 404) {

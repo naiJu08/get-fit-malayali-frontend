@@ -120,7 +120,7 @@ const App = () => {
           'Request failed'
         enqueueSnackbar(msg, { variant: 'error' })
       } catch {
-        enqueueSnackbar('Request failed', { variant: 'error' })
+        // enqueueSnackbar('Request failed', { variant: 'error' })
       }
     }
     window.addEventListener('unhandledrejection', handleUnhandledRejection)
