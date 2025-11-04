@@ -28,18 +28,6 @@ export default function WorkoutPlanDetails() {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const { mutateAsync: addExerciseAsync } = useAddExercise()
 
-  const refreshDetails = async () => {
-    try {
-      setLoading(true)
-      const res = await getWorkoutPlanDetails(String(id))
-      setData(res)
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load workout plan')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
     let mounted = true
     const run = async () => {
@@ -133,7 +121,6 @@ export default function WorkoutPlanDetails() {
           })
         )
       )
-      await refreshDetails()
       setReviewOpen(false)
       setActiveTab('details')
     } finally {
@@ -154,7 +141,6 @@ export default function WorkoutPlanDetails() {
           },
         },
       })
-      await refreshDetails()
     } finally {
       setAssigning(false)
     }
