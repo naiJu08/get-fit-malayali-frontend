@@ -77,6 +77,7 @@ export default function WorkoutMain() {
     setColumns(
       getColumns({
         onViewAction: onViewAction,
+        onNameClick: (row: any) => navigate(`/workout/${row?.id}`),
       })
     )
   }, [])

@@ -117,6 +117,52 @@ export const updatePassword = (employee: string, data: string) => {
   )
 }
 
+// Subscriptions
+export const createSubscription = (payload: any) => {
+  return postData(`${apiUrl.SUBSCRIPTIONS}`, payload)
+}
+
 export const sendAdminInvitation = (id?: string) => {
   return postData(`${apiUrl.ADMIN_USER}/${id}/invite`, {})
+}
+
+// Assigned Clients (for Nutritionist)
+const fetchAssignedClients = async (
+  input: QueryParams & { admin_id?: string | number }
+) => {
+  const url = buildUrlWithParams(apiUrl.ASSIGNED_CLIENTS, {
+    ...input,
+  })
+  const response = await getData(url)
+  return {
+    items: response?.assigned_clients || [],
+    total: response?.meta?.total_count ?? 0,
+    total_pages: response?.meta?.total_pages ?? 1,
+    current_page: response?.meta?.current_page ?? 1,
+  }
+}
+
+export const useAssignedClients = (
+  input: QueryParams & { admin_id?: string | number }
+) => {
+  return useQuery(
+    ['assigned_clients', input],
+    () => fetchAssignedClients(input),
+    {
+      enabled: !!input?.admin_id,
+    }
+  )
+}
+
+export const createAssignedClient = (payload: {
+  admin_id: number | string
+  user_id: number | string
+}) => {
+  return postData(`${apiUrl.ASSIGNED_CLIENTS}`, {
+    assigned_client: payload,
+  } as any)
+}
+
+export const deleteAssignedClient = (id: string | number) => {
+  return deleteData(`${apiUrl.ASSIGNED_CLIENTS}/${id}`)
 }

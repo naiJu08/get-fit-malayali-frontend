@@ -12,7 +12,7 @@ import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
 // import FormFieldView from '../../../components/common/inputs/FormFieldView'
 import { useCreateAdmin, useUpdateAdmin } from '../api'
-import { AdminSchema, formSchema } from './schema'
+import { AdminSchema, formSchema, formSchemaNutritionist } from './schema'
 
 type Props = {
   isDrawerOpen: boolean
@@ -33,6 +33,7 @@ type Props = {
   subSection?: boolean
   setEditViewIndicator?: (value: boolean) => void
   editViewIndicator?: boolean
+  activeRole?: 'user' | 'nutritionist'
 }
 
 export default function CreateAdmin({
@@ -45,6 +46,7 @@ export default function CreateAdmin({
   setEdit,
   rowData,
   setEditViewIndicator,
+  activeRole,
 }: Props) {
   const textField = (
     name: string,
@@ -90,6 +92,7 @@ export default function CreateAdmin({
     //   })
   }
 
+  const isNutritionistTab = activeRole === 'nutritionist'
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter full name', true) },
     {
@@ -123,9 +126,8 @@ export default function CreateAdmin({
       desc: 'name',
       descId: 'id',
       data: [
-        { id: '1', name: 'Admin' },
-        { id: '2', name: 'Nutritionist' },
-        { id: '3', name: 'User' },
+        { id: '1', name: 'Nutritionist' },
+        { id: '2', name: 'User' },
       ],
       type: 'custom_select',
       placeholder: 'Select role',
@@ -155,35 +157,45 @@ export default function CreateAdmin({
       type: 'date',
       required: true,
     },
-    {
-      ...textField('height', 'Height (cm)', 'Enter height in cm', true),
-      type: 'text',
-      allowPositiveOnly: true,
-    },
-    {
-      ...textField('weight', 'Weight (kg)', 'Enter weight in kg', true),
-      type: 'text',
-      allowPositiveOnly: true,
-    },
-    { ...textField('lifestyle', 'Lifestyle', 'e.g., Active') },
-    { ...textField('goal', 'Goal', 'e.g., Muscle Gain') },
-    {
-      name: 'food_preferences',
-      label: 'Food Preferences',
-      id: 'food_preferences',
-      desc: 'name',
-      descId: 'id',
-      data: [
-        { id: 'Vegetarian', name: 'Vegetarian' },
-        { id: 'Non-Vegetarian', name: 'Non-Vegetarian' },
-      ],
-      type: 'custom_select',
-      placeholder: 'Select Food Preference',
-      async: false,
-      initialLoad: true,
-    },
-    { ...textField('medical_conditions', 'Medical Conditions', 'e.g., None') },
-    { ...textField('ethnicity', 'Ethnicity', 'e.g., Indian') },
+    ...(!isNutritionistTab
+      ? [
+          {
+            ...textField('height', 'Height (cm)', 'Enter height in cm', true),
+            type: 'text',
+            allowPositiveOnly: true,
+          },
+          {
+            ...textField('weight', 'Weight (kg)', 'Enter weight in kg', true),
+            type: 'text',
+            allowPositiveOnly: true,
+          },
+          { ...textField('lifestyle', 'Lifestyle', 'e.g., Active') },
+          { ...textField('goal', 'Goal', 'e.g., Muscle Gain') },
+          {
+            name: 'food_preferences',
+            label: 'Food Preferences',
+            id: 'food_preferences',
+            desc: 'name',
+            descId: 'id',
+            data: [
+              { id: 'Vegetarian', name: 'Vegetarian' },
+              { id: 'Non-Vegetarian', name: 'Non-Vegetarian' },
+            ],
+            type: 'custom_select',
+            placeholder: 'Select Food Preference',
+            async: false,
+            initialLoad: true,
+          },
+          {
+            ...textField(
+              'medical_conditions',
+              'Medical Conditions',
+              'e.g., None'
+            ),
+          },
+          { ...textField('ethnicity', 'Ethnicity', 'e.g., Indian') },
+        ]
+      : []),
   ]
 
   // const getAdminDetails = (name: any) => {
@@ -267,11 +279,23 @@ export default function CreateAdmin({
     useUpdateAdmin(onSuccess)
 
   const methods = useForm<AdminSchema>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(
+      isNutritionistTab && !edit ? formSchemaNutritionist : formSchema
+    ),
     mode: 'onChange',
     reValidateMode: 'onChange',
   })
   const { handleSubmit } = methods
+  // Prefill role based on active tab when creating (not edit/view)
+  useEffect(() => {
+    if (isDrawerOpen && !edit && !viewMode) {
+      const defaultRoleId = activeRole === 'nutritionist' ? '1' : '2'
+      methods.setValue('role' as any, defaultRoleId as any, {
+        shouldValidate: true,
+        shouldDirty: true,
+      })
+    }
+  }, [isDrawerOpen, activeRole, edit, viewMode])
   const onSubmit = (details: any) => {
     const pickId = (v: any, fallback = 0) => {
       if (v === null || v === undefined) return fallback
@@ -424,13 +448,13 @@ export default function CreateAdmin({
       <DialogModal
         isOpen={isDrawerOpen}
         onClose={() => handleClearAndClose()}
-        title={
-          edit
-            ? 'Edit Administrator Details'
-            : viewMode
-              ? 'Administrator Details'
-              : 'Create Admin User'
-        }
+        title={(() => {
+          const label =
+            activeRole === 'nutritionist' ? 'Nutritionist' : 'Client'
+          if (edit) return `Edit ${label} Details`
+          if (viewMode) return `${label} Details`
+          return `Create ${label}`
+        })()}
         actionLabel={viewMode ? 'Edit' : 'Save'}
         actionLoader={isCreating || isUpdating}
         onSubmit={
