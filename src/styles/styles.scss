@@ -1454,8 +1454,8 @@ button.btn.relative.btn-secondary {
 }
 .menuopened {
   position: absolute;
-  left: 0;
-  top: 100%;
+  left: -8px;
+  top: 25px;
   margin-top: 4px;
   border-radius: 8px;
   background: var(--white);

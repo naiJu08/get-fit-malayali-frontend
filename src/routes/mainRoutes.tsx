@@ -18,6 +18,8 @@ const ForgetPassword = lazy(
 )
 
 const AdminUser = lazy(() => import('../pages/AdminUser'))
+const Subscriptions = lazy(() => import('../pages/Subscriptions'))
+// const SubscriptionDetails = lazy(() => import('../pages/Subscriptions/Details'))
 const Workout = lazy(() => import('../pages/Workout'))
 const Plans = lazy(() => import('../pages/Plans'))
 const PlanDetails = lazy(() => import('../pages/Plans/Details/index'))
@@ -36,7 +38,6 @@ const WorkoutDetails = lazy(() => import('../pages/Workout/Details'))
 const Dashboard = lazy(() => import('../pages/dashboard/dashboard'))
 const Settings = lazy(() => import('../pages/samples/Settings'))
 // const Users = lazy(() => import('../pages/samples/Users'))
-const Subscription = lazy(() => import('../pages/samples/Subscription'))
 const Discount = lazy(() => import('../pages/samples/Discount'))
 const Payment = lazy(() => import('../pages/samples/Payment'))
 const ExportPage = lazy(() => import('../pages/samples/Export'))
@@ -52,7 +53,8 @@ const routes: any = [
   { slug: 'WORKOUT_PLAN_DETAILS', component: <WorkoutPlanDetails /> },
   { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
   { slug: 'RECIPE', component: <Recipe /> },
-  { slug: 'SUBSCRIPTION_SAMPLE', component: <Subscription /> },
+  { slug: 'SUBSCRIPTIONS', component: <Subscriptions /> },
+  // { slug: 'SUBSCRIPTIONS_DETAILS', component: <SubscriptionDetails /> },
   { slug: 'DISCOUNT_SAMPLE', component: <Discount /> },
   { slug: 'PAYMENT_SAMPLE', component: <Payment /> },
   { slug: 'EXPORT_SAMPLE', component: <ExportPage /> },
@@ -158,14 +160,23 @@ export default function MainRoutes() {
         }
         path="/users/:id"
       />
+
       <Route
         element={
-          <UserRoute slug_key="SUBSCRIPTION_SAMPLE">
-            <Subscription />
+          <UserRoute slug_key="SUBSCRIPTIONS">
+            <Subscriptions />
           </UserRoute>
         }
-        path="/subscription"
+        path="/subscriptions"
       />
+      {/* <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetails />
+          </UserRoute>
+        }
+        path="/subscriptions/:id"
+      /> */}
       <Route
         element={
           <UserRoute slug_key="DISCOUNT_SAMPLE">
