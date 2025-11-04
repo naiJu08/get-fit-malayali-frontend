@@ -66,3 +66,19 @@ export const useWorkoutPlanDetail = (id?: string | number) => {
     }
   )
 }
+
+export const addExercise = (id: string | number, payload: any) => {
+  return postData(`${apiUrl.WORKOUT_PLAN}/${id}/add_exercise`, payload)
+}
+export const useAddExercise = () => {
+  const qc = useQueryClient()
+  return useMutation(
+    ({ id, payload }: { id: string | number; payload: any }) =>
+      addExercise(id, payload),
+    {
+      onSuccess: (_res: any, vars: { id: string | number; payload: any }) => {
+        qc.invalidateQueries(['workout_plan_detail', String(vars?.id)])
+      },
+    }
+  )
+}

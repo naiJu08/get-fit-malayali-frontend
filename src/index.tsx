@@ -16,6 +16,12 @@ const queryClient = new QueryClient({
       staleTime: 0,
       refetchOnWindowFocus: false,
     },
+    mutations: {
+      retry: false,
+      useErrorBoundary: false,
+      // Prevent throwing to React error overlay
+      throwOnError: false,
+    },
   },
 })
 root.render(

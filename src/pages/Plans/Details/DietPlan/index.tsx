@@ -78,19 +78,19 @@ export default function DietPlanIndex({
       renderCell: (row: any) => ({ cell: row?.calories ?? '' }),
       sortKey: 'calories',
     },
-    {
-      title: 'Created At',
-      field: 'created_at',
-      resizable: true,
-      isVisible: true,
-      customCell: true,
-      renderCell: (row: any) => ({
-        cell: row?.created_at
-          ? new Date(row?.created_at).toLocaleDateString()
-          : '',
-      }),
-      sortKey: 'created_at',
-    },
+    // {
+    //   title: 'Created At',
+    //   field: 'created_at',
+    //   resizable: true,
+    //   isVisible: true,
+    //   customCell: true,
+    //   renderCell: (row: any) => ({
+    //     cell: row?.created_at
+    //       ? new Date(row?.created_at).toLocaleDateString()
+    //       : '',
+    //   }),
+    //   sortKey: 'created_at',
+    // },
   ])
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
@@ -167,7 +167,7 @@ export default function DietPlanIndex({
         data={data?.diet_plans ?? []}
         dataRowKey="id"
         toolbar={true}
-        search={true}
+        // search={true}
         searchValue={pageParams?.search}
         onSearch={(key?: string) =>
           setPageParams({ ...pageParams, search: key as string, page: 1 })

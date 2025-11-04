@@ -68,3 +68,11 @@
     line-height: 40px;
   }
 }
+
+/* Local override to hide white background for tab container in Plans Details page */
+.no-tab-bg .tab-scroll {
+  background-color: transparent !important;
+}
+.no-tab-bg .tab-scroll .bg-white {
+  background-color: transparent !important;
+}

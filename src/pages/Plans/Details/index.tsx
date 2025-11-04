@@ -1,4 +1,4 @@
-import moment from 'moment'
+// import moment from 'moment'
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { usePlan } from '../api'
@@ -32,7 +32,7 @@ function DetailsSection(props: { plan: any; activeTab?: string | number }) {
       />
       <DetailItem label="Active" value={mapActive(plan?.active)} />
       <DetailItem label="Created By" value={plan?.created_by} />
-      <DetailItem label="Created At" value={formatDate(plan?.created_at)} />
+      {/* <DetailItem label="Created At" value={formatDate(plan?.created_at)} /> */}
       <DetailItem
         label="Workout Plans"
         value={safeStr(plan?.workout_plans_count)}
@@ -79,9 +79,9 @@ function PlanDetailsContent() {
   const { data, isLoading, isError, error } = usePlan(id as string)
 
   const plan = (data as any)?.plan ?? (data as any) ?? {}
-  const [activeTab, setActiveTab] = useState<'details' | 'workout details'>(
-    'details'
-  )
+  const [activeTab, setActiveTab] = useState<
+    'details' | 'workout details' | 'diet details'
+  >('details')
 
   // Only Details tab
   const tabs: TabItemProps[] = [
@@ -101,15 +101,17 @@ function PlanDetailsContent() {
         </div>
       </div>
 
-      <TabContainer
-        data={tabs}
-        activeTab={activeTab}
-        onClick={(item) => setActiveTab(item.id as any)}
-      >
-        <DetailsSection plan={plan} />
-        <WorkoutTab planName={plan?.name} planId={id} />
-        <DietTab planName={plan?.name} planId={id} />
-      </TabContainer>
+      <div className="no-tab-bg">
+        <TabContainer
+          data={tabs}
+          activeTab={activeTab}
+          onClick={(item) => setActiveTab(item.id as any)}
+        >
+          <DetailsSection plan={plan} />
+          <WorkoutTab planName={plan?.name} planId={id} />
+          <DietTab planName={plan?.name} planId={id} />
+        </TabContainer>
+      </div>
 
       {isLoading && (
         <div className="p-6">
@@ -137,11 +139,11 @@ function mapActive(v: any) {
     return 'Inactive'
   return safeStr(v)
 }
-function formatDate(d: any) {
-  if (!d) return '--'
-  const m = moment(d)
-  return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
-}
+// function formatDate(d: any) {
+//   if (!d) return '--'
+//   const m = moment(d)
+//   return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
+// }
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)

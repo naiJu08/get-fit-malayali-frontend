@@ -103,7 +103,7 @@ export default function WorkoutPlanForm({
       small={false}
       body={
         <FormProvider {...methods}>
-          <FormBuilder data={formFields} edit={true} />
+          <FormBuilder data={formFields} edit={true} spacing />
         </FormProvider>
       }
     />

@@ -6,6 +6,7 @@ const ASSESSOR_LIST_URL = 'assessors'
 const ADMIN_USER = '/users'
 const SUBSCRIPTIONS = '/subscriptions'
 const PLANS = 'plans'
+const RECIPES = 'recipes'
 const WORKOUT_PLAN = 'workout_plans'
 const DIET_PLAN = 'diet_plans'
 const GROUP_LIST = 'groups'
@@ -20,6 +21,8 @@ const ORGANISATION_DATATABLES = 'datatable'
 const ACCREDITATION_LIST_URL = 'accreditations'
 const RENEW_APPLICATION = 'renew-accreditations'
 const WORKOUTS = 'workouts'
+const SUBSCRIPTIONS = 'subscriptions'
+const ASSIGNED_CLIENTS = 'assigned_clients'
 
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
@@ -29,6 +32,7 @@ const apiUrl: { [key: string]: string } = {
   ADMIN_USER,
   SUBSCRIPTIONS,
   PLANS,
+  RECIPES,
   WORKOUT_PLAN,
   DIET_PLAN,
   GROUP_LIST,
@@ -41,6 +45,8 @@ const apiUrl: { [key: string]: string } = {
   ACCREDITATION_LIST_URL,
   RENEW_APPLICATION,
   WORKOUTS,
+  SUBSCRIPTIONS,
+  ASSIGNED_CLIENTS,
 }
 
 export default apiUrl

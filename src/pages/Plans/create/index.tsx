@@ -235,7 +235,8 @@ export default function CreatePlan({
         category: rowData?.plan?.category ?? '',
         description: rowData?.plan?.description ?? '',
         duration_days: rowData?.plan?.duration_days ?? 0,
-        active: rowData?.plan?.active,
+        // Keep boolean in form state
+        active: !!rowData?.plan?.active,
       })
     } else if (isDrawerOpen && !edit) {
       reset({
@@ -243,50 +244,56 @@ export default function CreatePlan({
         category: '',
         description: '',
         duration_days: 0,
-        active: false,
+        // Default active to true so UI shows Active
+        active: true,
       })
     }
   }, [isDrawerOpen, edit, rowData, reset])
 
-  const formFields = [
+  const textField = (
+    name: string,
+    label: string,
+    placeholder: string,
+    required = false,
+    type: 'text' | 'textarea' = 'text'
+  ) => ({
+    name,
+    label,
+    type,
+    placeholder,
+    ...(required ? { required: true } : {}),
+  })
+
+  const formBuilderProps = [
+    { ...textField('name', 'Plan Name', 'Enter plan name', true) },
+    { ...textField('category', 'Category', 'Enter category', true) },
     {
-      name: 'name',
-      label: 'Plan Name',
-      type: 'text',
-      placeholder: 'Enter plan name',
-      required: true,
+      ...textField(
+        'description',
+        'Description',
+        'Enter plan description',
+        true,
+        'textarea'
+      ),
     },
     {
-      name: 'category',
-      label: 'Category',
-      type: 'text',
-      placeholder: 'Enter category',
-      required: true,
-    },
-    {
-      name: 'description',
-      label: 'Description',
-      type: 'textarea',
-      placeholder: 'Enter plan description',
-      required: true,
-    },
-    {
-      name: 'duration_days',
-      label: 'Duration (Days)',
-      type: 'text',
-      placeholder: 'Enter duration in days',
-      required: true,
+      ...textField(
+        'duration_days',
+        'Duration (Days)',
+        'Enter duration in days',
+        true
+      ),
     },
     {
       name: 'active',
       label: 'Status',
       type: 'custom_select',
-      // map selection to boolean using desc: 'value'
+      // map selection using desc: 'value' to pass the label to the control while keeping boolean in state
       desc: 'value',
       descId: 'id',
       id: 'active_id',
       placeholder: 'Select status',
-      initialLoad: true ? 'Active' : 'Inactive',
+      initialLoad: 'Active',
       data: [
         { id: 'active', name: 'Active', value: 'Active' },
         { id: 'inactive', name: 'Inactive', value: 'Inactive' },
@@ -350,7 +357,7 @@ export default function CreatePlan({
           {!viewMode ? (
             <>
               <FormProvider {...methods}>
-                <FormBuilder data={formFields} edit={true} />
+                <FormBuilder data={formBuilderProps} edit={true} spacing />
               </FormProvider>
             </>
           ) : (

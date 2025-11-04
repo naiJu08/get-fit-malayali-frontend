@@ -9,7 +9,7 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-export const getColumns = () => {
+export const getColumns = (onNameClick?: (row: any) => void) => {
   const createRenderCell = (key: string, isCustom?: string) => (row: any) => {
     if (isCustom === 'date') {
       return {
@@ -56,7 +56,8 @@ export const getColumns = () => {
       renderCell: createRenderCell('name'),
       customCell: true,
       sortKey: 'name',
-      link: false,
+      link: true,
+      rowClick: onNameClick,
     },
     {
       title: 'Category',
@@ -83,13 +84,6 @@ export const getColumns = () => {
       title: 'Created By',
       field: 'created_by',
       renderCell: createRenderCell('created_by'),
-      ...defaultColumnProps,
-      customCell: true,
-    },
-    {
-      title: 'Created At',
-      field: 'created_at',
-      renderCell: createRenderCell('created_at', 'date'),
       ...defaultColumnProps,
       customCell: true,
     },
