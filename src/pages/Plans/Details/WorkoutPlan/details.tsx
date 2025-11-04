@@ -1,4 +1,4 @@
-import moment from 'moment'
+// import moment from 'moment'
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
@@ -99,11 +99,7 @@ export default function WorkoutPlanDetails() {
 
   // Open/close drawer based on Assign tab
   useEffect(() => {
-    if (activeTab === 'assign') {
-      setAssignOpen(true)
-      // reset paging when opening
-      setWpPage(1)
-    } else {
+    if (activeTab !== 'assign') {
       setAssignOpen(false)
       setSelectedWorkouts([])
       setReviewOpen(false)
@@ -184,11 +180,23 @@ export default function WorkoutPlanDetails() {
           </button>
           <h1 className="text-xl font-semibold">Workout Plan Details</h1>
         </div>
+        <div>
+          <button
+            className="px-3 py-1.5 text-sm border rounded btn-primary"
+            onClick={() => {
+              setActiveTab('assign')
+              setAssignOpen(true)
+              setWpPage(1)
+            }}
+          >
+            Assign
+          </button>
+        </div>
       </div>
       {(() => {
         const tabs: TabItemProps[] = [
           { id: 'details', label: 'Details' },
-          { id: 'assign', label: 'Assign' },
+          { id: 'assign', label: 'Exercises' },
         ]
         return (
           <div className="no-tab-bg mb-4">
@@ -228,60 +236,66 @@ export default function WorkoutPlanDetails() {
               value={safeStr(wp?.total_duration)}
             />
             <DetailItem label="Description" value={safeStr(wp?.description)} />
-            <DetailItem label="Created At" value={formatDate(wp?.created_at)} />
+            {/* <DetailItem label="Created At" value={formatDate(wp?.created_at)} /> */}
           </div>
-          {Array.isArray(wp?.exercises) && wp.exercises.length > 0 && (
-            <div className="mt-6">
-              <div className="text-md font-semibold mb-4">Exercises</div>
-              <div className="grid grid-cols-4 gap-3 place-items-start">
-                {wp.exercises
-                  .slice()
-                  .sort(
-                    (a: any, b: any) =>
-                      (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
-                  )
-                  .map((ex: any) => {
-                    const rawUrl =
-                      ex?.video_url ||
-                      ex?.workout_video_url ||
-                      ex?.workout?.video_url ||
-                      ''
-                    const url = String(rawUrl || '')
-                    const embed = getEmbedUrl(url)
-                    return (
-                      <div
-                        key={ex?.id}
-                        className="border rounded bg-white overflow-hidden w-56"
-                      >
-                        {embed ? (
-                          <div className="w-full h-36 bg-black/5">
-                            <iframe
-                              src={embed}
-                              title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
-                              className="w-full h-full"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                            />
-                          </div>
-                        ) : url ? (
-                          <video
-                            className=" h-36 object-cover"
-                            src={url}
-                            controls
+        </>
+      )}
+      {!loading && !error && activeTab === 'assign' && (
+        <>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-md font-semibold">Exercises</div>
+          </div>
+          {Array.isArray(wp?.exercises) && wp.exercises.length > 0 ? (
+            <div className="grid grid-cols-4 gap-3 place-items-start">
+              {wp.exercises
+                .slice()
+                .sort(
+                  (a: any, b: any) =>
+                    (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
+                )
+                .map((ex: any) => {
+                  const rawUrl =
+                    ex?.video_url ||
+                    ex?.workout_video_url ||
+                    ex?.workout?.video_url ||
+                    ''
+                  const url = String(rawUrl || '')
+                  const embed = getEmbedUrl(url)
+                  return (
+                    <div
+                      key={ex?.id}
+                      className="border rounded bg-white overflow-hidden w-56"
+                    >
+                      {embed ? (
+                        <div className="w-full h-36 bg-black/5">
+                          <iframe
+                            src={embed}
+                            title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
                           />
-                        ) : (
-                          <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                            No video
-                          </div>
-                        )}
-                        <div className="px-2 py-1 text-xs font-medium line-clamp-1">
-                          {ex?.workout_name || 'Untitled'}
                         </div>
+                      ) : url ? (
+                        <video
+                          className=" h-36 object-cover"
+                          src={url}
+                          controls
+                        />
+                      ) : (
+                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                          No video
+                        </div>
+                      )}
+                      <div className="px-2 py-1 text-xs font-medium line-clamp-1">
+                        {ex?.workout_name || 'Untitled'}
                       </div>
-                    )
-                  })}
-              </div>
+                    </div>
+                  )
+                })}
             </div>
+          ) : (
+            <div className="text-sm text-gray-600">No exercises assigned.</div>
           )}
           {selectedWorkouts.length > 0 && (
             <div className="mt-6">
@@ -572,11 +586,11 @@ function DetailItem({ label, value }: { label: string; value: any }) {
   )
 }
 
-function formatDate(d: any) {
-  if (!d) return '--'
-  const m = moment(d)
-  return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
-}
+// function formatDate(d: any) {
+//   if (!d) return '--'
+//   const m = moment(d)
+//   return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
+// }
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)

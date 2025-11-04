@@ -73,6 +73,14 @@ export default function DietPlanForm({
     }
   }
 
+  const mealTimeOptions = [
+    { id: 'Breakfast', name: 'Breakfast', value: 'Breakfast' },
+    { id: 'Snack', name: 'Snack', value: 'Snack' },
+    { id: 'Lunch', name: 'Lunch', value: 'Lunch' },
+    { id: 'Evening Snack', name: 'Evening Snack', value: 'Evening Snack' },
+    { id: 'Dinner', name: 'Dinner', value: 'Dinner' },
+  ]
+
   const formFields = [
     {
       name: 'day_number',
@@ -88,13 +96,27 @@ export default function DietPlanForm({
       placeholder: 'Enter sequence number',
       required: true,
     },
-    {
-      name: 'meal_time',
-      label: 'Meal Time',
-      type: 'text',
-      placeholder: 'Enter meal time',
-      required: true,
-    },
+    edit
+      ? {
+          name: 'meal_time',
+          label: 'Meal Time',
+          type: 'custom_search_select',
+          // Display option names and map by id
+          desc: 'name',
+          descId: 'id',
+          id: 'meal_time_id',
+          placeholder: 'Select meal time',
+          initialLoad: rowData?.meal_time ?? '',
+          data: mealTimeOptions,
+          required: true,
+        }
+      : {
+          name: 'meal_time',
+          label: 'Meal Time',
+          type: 'text',
+          placeholder: 'Enter meal time',
+          required: true,
+        },
     {
       name: 'meal_name',
       label: 'Meal Name',
@@ -122,7 +144,7 @@ export default function DietPlanForm({
       small={false}
       body={
         <FormProvider {...methods}>
-          <FormBuilder data={formFields} edit={true} />
+          <FormBuilder data={formFields} edit={true} spacing />
         </FormProvider>
       }
     />

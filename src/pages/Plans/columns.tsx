@@ -87,13 +87,6 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
       ...defaultColumnProps,
       customCell: true,
     },
-    {
-      title: 'Created At',
-      field: 'created_at',
-      renderCell: createRenderCell('created_at', 'date'),
-      ...defaultColumnProps,
-      customCell: true,
-    },
   ]
 
   return column
