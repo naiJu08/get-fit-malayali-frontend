@@ -126,7 +126,11 @@ export default function Plans() {
     }
   }
   useEffect(() => {
-    setColumns(getColumns())
+    setColumns(
+      getColumns((row: any) => {
+        navigate(`/plans/${row?.id}`)
+      })
+    )
   }, [])
 
   const handleSeach = (key?: string) => {

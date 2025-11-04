@@ -79,9 +79,9 @@ function PlanDetailsContent() {
   const { data, isLoading, isError, error } = usePlan(id as string)
 
   const plan = (data as any)?.plan ?? (data as any) ?? {}
-  const [activeTab, setActiveTab] = useState<'details' | 'workout details'>(
-    'details'
-  )
+  const [activeTab, setActiveTab] = useState<
+    'details' | 'workout details' | 'diet details'
+  >('details')
 
   // Only Details tab
   const tabs: TabItemProps[] = [
@@ -101,15 +101,17 @@ function PlanDetailsContent() {
         </div>
       </div>
 
-      <TabContainer
-        data={tabs}
-        activeTab={activeTab}
-        onClick={(item) => setActiveTab(item.id as any)}
-      >
-        <DetailsSection plan={plan} />
-        <WorkoutTab planName={plan?.name} planId={id} />
-        <DietTab planName={plan?.name} planId={id} />
-      </TabContainer>
+      <div className="no-tab-bg">
+        <TabContainer
+          data={tabs}
+          activeTab={activeTab}
+          onClick={(item) => setActiveTab(item.id as any)}
+        >
+          <DetailsSection plan={plan} />
+          <WorkoutTab planName={plan?.name} planId={id} />
+          <DietTab planName={plan?.name} planId={id} />
+        </TabContainer>
+      </div>
 
       {isLoading && (
         <div className="p-6">

@@ -1,6 +1,4 @@
 import moment from 'moment'
-
-import { convertUTCtoBrowserTimeZone } from '../../utilities/format'
 import { getNestedProperty } from '../../utilities/parsers'
 
 const defaultColumnProps = {
@@ -9,7 +7,7 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-export const getColumns = (onNameClick?: (row: any) => void) => {
+export const getRecipeColumns = (onNameClick?: (row: any) => void) => {
   const createRenderCell = (key: string, isCustom?: string) => (row: any) => {
     if (isCustom === 'date') {
       return {
@@ -21,33 +19,36 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
           </>
         ),
       }
-    } else if (isCustom === 'fulldate') {
-      const propertyValue = getNestedProperty(row, key)
-
-      return {
-        cell: convertUTCtoBrowserTimeZone(propertyValue),
-        toolTip: getNestedProperty(row, key) ?? '',
-      }
     } else if (isCustom === 'boolean') {
       const value = getNestedProperty(row, key)
-      const isActive =
-        (typeof value === 'boolean' && value === true) ||
-        (typeof value === 'number' && value === 1) ||
-        (typeof value === 'string' &&
-          (value === '1' || value.toLowerCase() === 'true'))
+      const label = value ? 'Yes' : 'No'
+      return { cell: label, toolTip: label }
+    } else if (isCustom === 'link') {
+      const propertyValue = getNestedProperty(row, key)
+      const url = typeof propertyValue === 'string' ? propertyValue : ''
       return {
-        cell: isActive ? 'Active' : 'Inactive',
-        toolTip: isActive ? 'Active' : 'Inactive',
+        cell: url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#2563eb' }}
+          >
+            {url}
+          </a>
+        ) : (
+          ''
+        ),
+        toolTip: url || '',
       }
-    } else {
-      return {
-        cell: getNestedProperty(row, key),
-        toolTip: getNestedProperty(row, key) ?? '',
-      }
+    }
+    return {
+      cell: getNestedProperty(row, key),
+      toolTip: getNestedProperty(row, key) ?? '',
     }
   }
 
-  const column = [
+  return [
     {
       title: 'Name',
       field: 'name',
@@ -67,34 +68,47 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
       ...defaultColumnProps,
     },
     {
-      title: 'Duration (days)',
-      renderCell: createRenderCell('duration_days'),
-      field: 'duration_days',
+      title: 'Calories',
+      field: 'calories',
+      renderCell: createRenderCell('calories'),
       customCell: true,
       ...defaultColumnProps,
     },
     {
-      title: 'Active',
-      field: 'active',
-      renderCell: createRenderCell('active', 'boolean'),
-      ...defaultColumnProps,
+      title: 'Portion Size',
+      field: 'portion_size',
+      renderCell: createRenderCell('portion_size'),
       customCell: true,
+      ...defaultColumnProps,
     },
+    {
+      title: 'Low Calorie',
+      field: 'low_calorie',
+      renderCell: createRenderCell('low_calorie', 'boolean'),
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
+      title: 'Image URL',
+      field: 'image_url',
+      renderCell: createRenderCell('image_url', 'link'),
+      customCell: true,
+      ...defaultColumnProps,
+    },
+
     {
       title: 'Created By',
       field: 'created_by',
       renderCell: createRenderCell('created_by'),
-      ...defaultColumnProps,
       customCell: true,
+      ...defaultColumnProps,
     },
     {
       title: 'Created At',
       field: 'created_at',
       renderCell: createRenderCell('created_at', 'date'),
-      ...defaultColumnProps,
       customCell: true,
+      ...defaultColumnProps,
     },
   ]
-
-  return column
 }
