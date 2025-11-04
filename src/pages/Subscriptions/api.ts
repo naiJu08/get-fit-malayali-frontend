@@ -44,8 +44,8 @@ export const deleteSubscription = (id?: string) =>
 
 export const freezeSubscription = (
   id: string,
-  payload: { reason: string; start_date: string; end_date: string }
-) => postData(`${apiUrl.SUBSCRIPTIONS}/${id}/freeze`, payload)
+  payload?: { reason?: string; start_date?: string; end_date?: string }
+) => postData(`${apiUrl.SUBSCRIPTIONS}/${id}/freeze`, payload ?? {})
 
 export const unfreezeSubscription = (id: string) =>
   postData(`${apiUrl.SUBSCRIPTIONS}/${id}/unfreeze`, {})
@@ -58,7 +58,7 @@ export const deActivateAdmin = (id?: string) =>
 export const deleteAdmin = (id?: string) => deleteSubscription(id)
 export const freezeUser = (
   id: string,
-  payload: { reason: string; start_date: string; end_date: string }
+  payload?: { reason?: string; start_date?: string; end_date?: string }
 ) => freezeSubscription(id, payload)
 export const unfreezeUser = (id: string) => unfreezeSubscription(id)
 

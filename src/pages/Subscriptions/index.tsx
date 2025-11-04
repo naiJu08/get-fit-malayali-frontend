@@ -1,21 +1,25 @@
 import { QbsTable } from 'qbs-react-grid'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
-import { DialogModal, TextField } from '../../components/common'
+import DialogModal from '../../components/common/modal/DialogModal'
+import TextField from '../../components/common/inputs/TextField'
+import SearchInput from '../../components/common/inputs/SearchInput'
+import DynamicDropdown from '../../components/common/DynamicDropdown'
 import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
-import { checkPermissions } from '../../layout/store'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
 import { handleReturnEmptyMsg } from '../../utilities/validation'
+import { getData } from '../../apis/api.helpers'
+import apiUrl from '../../apis/api.url'
 import {
   deActivateAdmin,
   getAdminDetails,
@@ -47,7 +51,7 @@ export default function Subscriptions() {
   const [deleteUserModal, setDeleteUserModal] = useState(false)
   const [deleteUserId, setDeleteUserId] = useState<string>('')
   const [freezeModal, setFreezeModal] = useState(false)
-  const [freezeUserId, setFreezeUserId] = useState<string>('')
+  const [freezeUserId] = useState<string>('')
   const [freezeForm, setFreezeForm] = useState<{
     reason: string
     start_date: string
@@ -58,6 +62,10 @@ export default function Subscriptions() {
     end_date: '',
   })
   const [unfreezeConfirm, setUnfreezeConfirm] = useState(false)
+  const [planIdFilter, setPlanIdFilter] = useState<string>('')
+  const [planLabel, setPlanLabel] = useState<string>('All Plans')
+  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [plansCache, setPlansCache] = useState<Record<string, string>>({})
 
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
@@ -75,14 +83,58 @@ export default function Subscriptions() {
     ordering: ordering,
     ...filters,
   }
+
+  // Reset all filters once on initial mount (after a full refresh)
+  const didInitRef = useRef(false)
+  useEffect(() => {
+    if (!didInitRef.current) {
+      didInitRef.current = true
+      setPlanIdFilter('')
+      setStatusFilter('')
+      setPlanLabel('All Plans')
+      setPageParams({ ...pageParams, search: '', filters: {}, page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Sync UI state with persisted filters so selections remain after refresh/navigation
+  useEffect(() => {
+    const planFromStore = (filters as any)?.plan_id
+    setPlanIdFilter(planFromStore ? String(planFromStore) : '')
+    const statusFromStore = (filters as any)?.status
+    setStatusFilter(statusFromStore ? String(statusFromStore) : '')
+    // Prefer cached label; otherwise resolve plan name so it shows after refresh
+    if (planFromStore) {
+      const cached = plansCache[String(planFromStore)]
+      if (cached) {
+        setPlanLabel(cached)
+      } else {
+        resolvePlanLabel(planFromStore)
+      }
+    } else {
+      setPlanLabel('All Plans')
+    }
+  }, [filters])
+
+  const resolvePlanLabel = async (id?: number | string) => {
+    if (!id) {
+      setPlanLabel('All Plans')
+      return
+    }
+    // Keep previous label until we fetch the actual name; do not override with placeholders
+    try {
+      const res: any = await getData(`${apiUrl.PLANS}/${id}`)
+      const name =
+        res?.name ?? res?.plan_name ?? res?.data?.name ?? res?.data?.plan_name
+      if (name) setPlanLabel(String(name))
+    } catch {
+      // ignore, keep current label
+    }
+  }
+
   const isFrozen = (rowData: any) => {
     const val = String(rowData?.status ?? '').toLowerCase()
     return val === 'suspended' || val === 'paused'
-  }
-  const handleOpenFreeze = (row: any) => {
-    setFreezeUserId(row?.id)
-    setFreezeForm({ reason: '', start_date: '', end_date: '' })
-    setFreezeModal(true)
   }
 
   const handleFreezeChange = ({
@@ -126,9 +178,47 @@ export default function Subscriptions() {
       })
   }
 
-  const handleOpenUnfreeze = (row: any) => {
-    setFreezeUserId(row?.id)
-    setUnfreezeConfirm(true)
+  const [toggleFreezeOpen, setToggleFreezeOpen] = useState(false)
+  const [toggleFreezeRow, setToggleFreezeRow] = useState<any>(null)
+
+  const handleConfirmToggleFreeze = async () => {
+    if (!toggleFreezeRow) return
+    try {
+      setloader(true)
+      if (isFrozen(toggleFreezeRow)) {
+        await unfreezeUser(String(toggleFreezeRow.id))
+        enqueueSnackbar('Subscription unfrozen successfully', {
+          variant: 'success',
+        })
+      } else {
+        const { reason, start_date, end_date } = freezeForm
+        if (!reason || !start_date || !end_date) {
+          enqueueSnackbar('Please fill reason, start date and end date', {
+            variant: 'warning',
+          })
+          setloader(false)
+          return
+        }
+        await freezeUser(String(toggleFreezeRow.id), {
+          reason,
+          start_date,
+          end_date,
+        })
+        enqueueSnackbar('Subscription frozen successfully', {
+          variant: 'success',
+        })
+      }
+      refetch()
+      setToggleFreezeOpen(false)
+      setToggleFreezeRow(null)
+    } catch (err: any) {
+      enqueueSnackbar(
+        err?.response?.data?.error?.message || err?.response?.data?.message,
+        { variant: 'error' }
+      )
+    } finally {
+      setloader(false)
+    }
   }
 
   const handleSubmitUnfreeze = () => {
@@ -185,6 +275,56 @@ export default function Subscriptions() {
       search: key as string,
       page: 1,
     })
+  }
+
+  const applyPlanFilter = (val?: string) => {
+    const value = typeof val === 'string' ? val : planIdFilter
+    const nextFilters: any = { ...(pageParams?.filters || {}) }
+    if (value?.trim()) {
+      nextFilters.plan_id = Number(value)
+    } else {
+      delete nextFilters.plan_id
+    }
+    setPageParams({
+      ...pageParams,
+      filters: nextFilters,
+      page: 1,
+    })
+  }
+
+  const applyStatusFilter = (value: string) => {
+    setStatusFilter(value)
+    const nextFilters: any = { ...(pageParams?.filters || {}) }
+    if (value?.trim()) {
+      nextFilters.status = value
+    } else {
+      delete nextFilters.status
+    }
+    setPageParams({ ...pageParams, filters: nextFilters, page: 1 })
+  }
+
+  const getPlansDropdown = async (search: string, pageNum: number) => {
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    params.set('per_page', '1000')
+    if (pageNum) params.set('page', String(pageNum))
+    const url = `${apiUrl.PLANS}?${params.toString()}`
+    const res = await getData(url)
+    const items: any[] = Array.isArray(res)
+      ? (res as any[])
+      : (res?.items ?? res?.plans ?? [])
+    const mapped = items.map((p: any) => ({
+      id: p?.id,
+      value: p?.name ?? p?.plan_name ?? 'Plan',
+    }))
+    // update local cache for instant label setting on selection
+    const nextCache: Record<string, string> = { ...plansCache }
+    for (const it of mapped) {
+      if (it?.id != null) nextCache[String(it.id)] = it.value
+    }
+    setPlansCache(nextCache)
+    // Prepend an 'All Plans' option so users can clear via the dropdown
+    return [{ id: null, value: 'All Plans' }, ...mapped]
   }
 
   const handleDeleteModel = (id: string, username: string, status: string) => {
@@ -244,15 +384,7 @@ export default function Subscriptions() {
         )
       })
   }
-  const handleEdit = async (rowData: any) => {
-    if (rowData?.id) {
-      const data = await getAdminDetails(rowData?.id)
-      setRowData(data)
-      setCreateOpen(true)
-      setViewMode(false)
-      setEdit(true)
-    }
-  }
+
   const handleClose = () => {
     setCreateOpen(false)
     setViewMode(false)
@@ -271,13 +403,7 @@ export default function Subscriptions() {
     title: 'Subscriptions',
     icon: 'subscription-icon',
   }
-  const headerProps = {
-    actionTitle: 'Create Subscription',
-  }
-  const openDrawer = () => {
-    setCreateOpen(true)
-    setRowData({})
-  }
+
   const handleSort = (orderColumn: any, orderDirection: any) => {
     setPageParams({
       ...pageParams,
@@ -318,18 +444,140 @@ export default function Subscriptions() {
         </div>
       ) : (
         <>
-          <ListingHeader
-            data={basicData}
-            onActionClick={openDrawer}
-            actionProps={headerProps}
-            checkPermission={checkPermissions('Employee', 'create')}
+          <ListingHeader data={basicData} checkPermission={false} />
+          <DialogModal
+            isOpen={toggleFreezeOpen}
+            onClose={() => setToggleFreezeOpen(false)}
+            title={
+              isFrozen(toggleFreezeRow)
+                ? 'Unfreeze Subscription'
+                : 'Freeze Subscription'
+            }
+            onSubmit={handleConfirmToggleFreeze}
+            secondaryAction={() => {
+              setToggleFreezeOpen(false)
+              setToggleFreezeRow(null)
+            }}
+            secondaryActionLabel="Cancel"
+            actionLabel={isFrozen(toggleFreezeRow) ? 'Unfreeze' : 'Freeze'}
+            actionLoader={loader}
+            body={
+              isFrozen(toggleFreezeRow) ? (
+                <InfoBox
+                  content={'Do you want to unfreeze this subscription?'}
+                />
+              ) : (
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm text-gray-600">Reason</label>
+                    <input
+                      className="textfield"
+                      name="reason"
+                      value={freezeForm.reason}
+                      onChange={(e) =>
+                        handleFreezeChange({
+                          name: e.target.name,
+                          value: e.target.value,
+                        })
+                      }
+                      placeholder="Enter reason"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm text-gray-600">
+                        Start date
+                      </label>
+                      <input
+                        type="date"
+                        className="textfield"
+                        name="start_date"
+                        value={freezeForm.start_date}
+                        onChange={(e) =>
+                          handleFreezeChange({
+                            name: e.target.name,
+                            value: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm text-gray-600">End date</label>
+                      <input
+                        type="date"
+                        className="textfield"
+                        name="end_date"
+                        value={freezeForm.end_date}
+                        onChange={(e) =>
+                          handleFreezeChange({
+                            name: e.target.name,
+                            value: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              )
+            }
           />
           <div className=" p-4">
+            <div className="flex items-end gap-3 mb-3 flex-wrap">
+              <div className="w-80 flex flex-col gap-1">
+                <label className="text-sm text-gray-600">Search</label>
+                <SearchInput
+                  placeholder=""
+                  searchValue={pageParams?.search ?? ''}
+                  handleChange={(val?: string) =>
+                    setPageParams({ ...pageParams, search: val ?? '', page: 1 })
+                  }
+                  handleSearch={(val?: string) => handleSeach(val ?? '')}
+                />
+              </div>
+              <div>
+                <label className="text-sm text-gray-600">Plan</label>
+                <div className="w-56 flex flex-col gap-1 border p-[9px] border-1 rounded-xs bg-white">
+                  <DynamicDropdown
+                    key={`plan-dd-${planIdFilter || 'all'}-${planLabel}`}
+                    tileItem={{ label: 'Plan', value: planLabel }}
+                    value={planIdFilter}
+                    getData={getPlansDropdown}
+                    setUpdateCREId={(id: any) => {
+                      const v = id ? String(id) : ''
+                      setPlanIdFilter(v)
+                      // set label immediately from cache if available
+                      if (v) {
+                        const cached = plansCache?.[v]
+                        if (cached) setPlanLabel(cached)
+                        else setPlanLabel(planLabel) // keep current until resolved
+                      } else {
+                        setPlanLabel('All Plans')
+                      }
+                      applyPlanFilter(v)
+                      if (v && !plansCache?.[v]) resolvePlanLabel(v)
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="w-56 flex flex-col gap-1">
+                <label className="text-sm text-gray-600">Status</label>
+                <select
+                  className="textfield"
+                  value={statusFilter}
+                  onChange={(e) => applyStatusFilter(e.target.value)}
+                >
+                  <option value="">All</option>
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="expired">Expired</option>
+                </select>
+              </div>
+            </div>
             <QbsTable
               data={data?.items ?? []}
               dataRowKey="id"
               toolbar={true}
-              search={true}
+              search={false}
               height={
                 data?.items?.length === 0
                   ? calcWindowHeight(218)
@@ -362,30 +610,19 @@ export default function Subscriptions() {
               }}
               actionProps={[
                 {
-                  icon: <Icons name="edit" />,
-                  action: (row) => handleEdit(row),
-                  title: 'edit',
-                  toolTip: 'Edit',
-                },
-                {
                   icon: <Icons name="eye" />,
                   action: (row) => navigate(`/subscriptions/${row?.id}`),
                   title: 'view',
                   toolTip: 'View Details',
                 },
                 {
-                  title: 'Freeze',
-                  action: (row) => handleOpenFreeze(row),
+                  title: 'Freeze/Unfreeze',
+                  action: (row) => {
+                    setToggleFreezeRow(row)
+                    setToggleFreezeOpen(true)
+                  },
                   icon: <Icons name="lock-icon" />,
-                  toolTip: 'Freeze',
-                  hide: (rowData: any) => isFrozen(rowData),
-                },
-                {
-                  title: 'Unfreeze',
-                  action: (row) => handleOpenUnfreeze(row),
-                  icon: <Icons name="activate-icon" />,
-                  toolTip: 'Unfreeze',
-                  hide: (rowData: any) => !isFrozen(rowData),
+                  toolTip: 'Toggle Freeze',
                 },
                 {
                   title: 'Deactivate',
@@ -514,14 +751,10 @@ export default function Subscriptions() {
             isDrawerOpen={createOpen}
             rowData={rowData}
             edit={edit}
-            setViewMode={setViewMode}
-            setEdit={setEdit}
             viewMode={viewMode}
             paramsId={params?.id}
             handleClose={handleClose}
             handleRefresh={handleRefresh}
-            editViewIndicator={editViewIndicator}
-            setEditViewIndicator={setEditViewIndicator}
           />
           <DialogModal
             isOpen={openConfirm}

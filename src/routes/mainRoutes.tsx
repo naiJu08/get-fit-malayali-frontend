@@ -19,7 +19,7 @@ const ForgetPassword = lazy(
 
 const AdminUser = lazy(() => import('../pages/AdminUser'))
 const Subscriptions = lazy(() => import('../pages/Subscriptions'))
-const SubscriptionDetails = lazy(() => import('../pages/Subscriptions/Details'))
+// const SubscriptionDetails = lazy(() => import('../pages/Subscriptions/Details'))
 const Workout = lazy(() => import('../pages/Workout'))
 const Plans = lazy(() => import('../pages/Plans'))
 const PlanDetails = lazy(() => import('../pages/Plans/Details/index'))
@@ -52,7 +52,7 @@ const routes: any = [
   { slug: 'WORKOUT_PLAN_DETAILS', component: <WorkoutPlanDetails /> },
   { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
   { slug: 'SUBSCRIPTIONS', component: <Subscriptions /> },
-  { slug: 'SUBSCRIPTIONS_DETAILS', component: <SubscriptionDetails /> },
+  // { slug: 'SUBSCRIPTIONS_DETAILS', component: <SubscriptionDetails /> },
   { slug: 'DISCOUNT_SAMPLE', component: <Discount /> },
   { slug: 'PAYMENT_SAMPLE', component: <Payment /> },
   { slug: 'EXPORT_SAMPLE', component: <ExportPage /> },
@@ -167,14 +167,14 @@ export default function MainRoutes() {
         }
         path="/subscriptions"
       />
-      <Route
+      {/* <Route
         element={
           <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
             <SubscriptionDetails />
           </UserRoute>
         }
         path="/subscriptions/:id"
-      />
+      /> */}
       <Route
         element={
           <UserRoute slug_key="DISCOUNT_SAMPLE">

@@ -81,16 +81,16 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
     [fetchAddonData]
   )
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative w-full" ref={dropdownRef}>
       <div
-        className={`flex items-center gap-1 rounded-3xl ${!disabled && 'cursor-pointer'}  min-w-[150px]`}
+        className={`flex items-center justify-between gap-1 rounded-3xl ${!disabled && 'cursor-pointer'} w-full`}
         onClick={() => {
           if (!disabled) {
             setIsOpen((prev) => !prev)
           }
         }}
       >
-        <p className="text-primary text-common font-medium leading-none">
+        <p className="text-primary text-common font-medium leading-none truncate">
           {menuValue}
         </p>
         {!disabled && (
