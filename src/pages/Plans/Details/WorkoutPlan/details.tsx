@@ -6,6 +6,8 @@ import Icons from '../../../../components/common/icons'
 import InfoBox from '../../../../components/app/alertBox/infoBox'
 import { getWorkoutPlanDetails } from './api'
 import CustomDrawer from '../../../../components/common/drawer'
+import TabContainer from '../../../../components/common/tab/TabContainer'
+import { TabItemProps } from '../../../../common/types'
 import { useWorkoutList } from '../../../Workout/api'
 import { useAddExercise } from './api'
 
@@ -25,6 +27,18 @@ export default function WorkoutPlanDetails() {
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const { mutateAsync: addExerciseAsync } = useAddExercise()
+
+  const refreshDetails = async () => {
+    try {
+      setLoading(true)
+      const res = await getWorkoutPlanDetails(String(id))
+      setData(res)
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'Failed to load workout plan')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     let mounted = true
@@ -119,6 +133,7 @@ export default function WorkoutPlanDetails() {
           })
         )
       )
+      await refreshDetails()
       setReviewOpen(false)
       setActiveTab('details')
     } finally {
@@ -139,6 +154,7 @@ export default function WorkoutPlanDetails() {
           },
         },
       })
+      await refreshDetails()
     } finally {
       setAssigning(false)
     }
@@ -169,20 +185,23 @@ export default function WorkoutPlanDetails() {
           <h1 className="text-xl font-semibold">Workout Plan Details</h1>
         </div>
       </div>
-      <div className="mb-4 flex gap-2">
-        <button
-          className={`px-3 py-1 rounded border ${activeTab === 'details' ? 'bg-primary text-gray' : 'bg-gray'}`}
-          onClick={() => setActiveTab('details')}
-        >
-          Details
-        </button>
-        <button
-          className={`px-3 py-1 rounded border ${activeTab === 'assign' ? 'bg-primary text-gray' : 'bg-white'}`}
-          onClick={() => setActiveTab('assign')}
-        >
-          Assign
-        </button>
-      </div>
+      {(() => {
+        const tabs: TabItemProps[] = [
+          { id: 'details', label: 'Details' },
+          { id: 'assign', label: 'Assign' },
+        ]
+        return (
+          <div className="no-tab-bg mb-4">
+            <TabContainer
+              data={tabs}
+              activeTab={activeTab}
+              onClick={(item) => setActiveTab(item.id as any)}
+            >
+              <div style={{ display: 'none' }} />
+            </TabContainer>
+          </div>
+        )
+      })()}
 
       {loading && (
         <div className="p-6">
@@ -213,37 +232,54 @@ export default function WorkoutPlanDetails() {
           </div>
           {Array.isArray(wp?.exercises) && wp.exercises.length > 0 && (
             <div className="mt-6">
-              <div className="text-sm font-semibold mb-3">Exercises</div>
-              <div className="border rounded overflow-hidden">
-                <div className="grid grid-cols-12 bg-gray-50 text-xs font-medium px-3 py-2">
-                  <div className="col-span-2">Seq</div>
-                  <div className="col-span-6">Workout</div>
-                  <div className="col-span-4 text-right">Workout ID</div>
-                </div>
-                <div className="divide-y">
-                  {wp.exercises
-                    .slice()
-                    .sort(
-                      (a: any, b: any) =>
-                        (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
-                    )
-                    .map((ex: any) => (
+              <div className="text-md font-semibold mb-4">Exercises</div>
+              <div className="grid grid-cols-4 gap-3 place-items-start">
+                {wp.exercises
+                  .slice()
+                  .sort(
+                    (a: any, b: any) =>
+                      (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
+                  )
+                  .map((ex: any) => {
+                    const rawUrl =
+                      ex?.video_url ||
+                      ex?.workout_video_url ||
+                      ex?.workout?.video_url ||
+                      ''
+                    const url = String(rawUrl || '')
+                    const embed = getEmbedUrl(url)
+                    return (
                       <div
                         key={ex?.id}
-                        className="grid grid-cols-12 px-3 py-2 text-sm"
+                        className="border rounded bg-white overflow-hidden w-56"
                       >
-                        <div className="col-span-2">
-                          {safeStr(ex?.sequence_number)}
-                        </div>
-                        <div className="col-span-6">
-                          {ex?.workout_name || '--'}
-                        </div>
-                        <div className="col-span-4 text-right">
-                          {safeStr(ex?.workout_id)}
+                        {embed ? (
+                          <div className="w-full h-36 bg-black/5">
+                            <iframe
+                              src={embed}
+                              title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
+                              className="w-full h-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                            />
+                          </div>
+                        ) : url ? (
+                          <video
+                            className=" h-36 object-cover"
+                            src={url}
+                            controls
+                          />
+                        ) : (
+                          <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                            No video
+                          </div>
+                        )}
+                        <div className="px-2 py-1 text-xs font-medium line-clamp-1">
+                          {ex?.workout_name || 'Untitled'}
                         </div>
                       </div>
-                    ))}
-                </div>
+                    )
+                  })}
               </div>
             </div>
           )}
