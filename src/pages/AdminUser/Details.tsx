@@ -12,6 +12,7 @@ export default function UserDetails() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
+  const [activeTab, setActiveTab] = useState<'details' | 'plans'>('details')
 
   useEffect(() => {
     let mounted = true
@@ -36,6 +37,19 @@ export default function UserDetails() {
   }, [id])
 
   const user = data?.user || data || {}
+  const plans = user?.interested_plans || data?.interested_plans || []
+  const isNutritionist = (() => {
+    const r = user?.role
+    if (r === 2 || r === '2') return true
+    const s = String(r || '').toLowerCase()
+    return s === 'nutritionist'
+  })()
+
+  useEffect(() => {
+    if (isNutritionist && activeTab !== 'details') {
+      setActiveTab('details')
+    }
+  }, [isNutritionist, activeTab])
 
   return (
     <div className="p-4">
@@ -48,39 +62,108 @@ export default function UserDetails() {
         </div>
       </div>
 
-      {loading && (
-        <div className="p-6">
-          <InfoBox content="Loading user details..." />
+      {!isNutritionist && (
+        <div className="mb-4 border-b border-gray-200">
+          <nav className="flex gap-2" aria-label="Tabs">
+            <button
+              className={`px-3 py-2 text-sm font-medium rounded-t border-b-2 ${
+                activeTab === 'details'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              onClick={() => setActiveTab('details')}
+            >
+              Details
+            </button>
+            <button
+              className={`px-3 py-2 text-sm font-medium rounded-t border-b-2 ${
+                activeTab === 'plans'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+              onClick={() => setActiveTab('plans')}
+            >
+              Interested plans
+            </button>
+          </nav>
         </div>
       )}
-      {error && !loading && (
-        <div className="p-6">
-          <InfoBox content={error} />
-        </div>
+
+      {(isNutritionist || activeTab === 'details') && (
+        <>
+          {loading && (
+            <div className="p-6">
+              <InfoBox content="Loading user details..." />
+            </div>
+          )}
+          {error && !loading && (
+            <div className="p-6">
+              <InfoBox content={error} />
+            </div>
+          )}
+          {!loading && !error && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DetailItem label="Name" value={user?.name} />
+              <DetailItem label="Email" value={user?.email || user?.username} />
+              <DetailItem label="Phone" value={user?.phone} />
+              <DetailItem label="Role" value={mapRole(user?.role)} />
+              <DetailItem label="Gender" value={mapGender(user?.gender)} />
+              <DetailItem
+                label="Date of Birth"
+                value={formatDate(user?.date_of_birth)}
+              />
+              <DetailItem label="Height (cm)" value={safeStr(user?.height)} />
+              <DetailItem label="Weight (kg)" value={safeStr(user?.weight)} />
+              <DetailItem label="Lifestyle" value={user?.lifestyle} />
+              <DetailItem label="Goal" value={user?.goal} />
+              <DetailItem
+                label="Food Preferences"
+                value={user?.food_preferences}
+              />
+              <DetailItem
+                label="Medical Conditions"
+                value={user?.medical_conditions}
+              />
+              <DetailItem label="Ethnicity" value={user?.ethnicity} />
+              <DetailItem label="Status" value={mapStatus(user?.status)} />
+            </div>
+          )}
+        </>
       )}
-      {!loading && !error && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DetailItem label="Name" value={user?.name} />
-          <DetailItem label="Email" value={user?.email || user?.username} />
-          <DetailItem label="Phone" value={user?.phone} />
-          <DetailItem label="Role" value={mapRole(user?.role)} />
-          <DetailItem label="Gender" value={mapGender(user?.gender)} />
-          <DetailItem
-            label="Date of Birth"
-            value={formatDate(user?.date_of_birth)}
-          />
-          <DetailItem label="Height (cm)" value={safeStr(user?.height)} />
-          <DetailItem label="Weight (kg)" value={safeStr(user?.weight)} />
-          <DetailItem label="Lifestyle" value={user?.lifestyle} />
-          <DetailItem label="Goal" value={user?.goal} />
-          <DetailItem label="Food Preferences" value={user?.food_preferences} />
-          <DetailItem
-            label="Medical Conditions"
-            value={user?.medical_conditions}
-          />
-          <DetailItem label="Ethnicity" value={user?.ethnicity} />
-          <DetailItem label="Status" value={mapStatus(user?.status)} />
-        </div>
+
+      {!isNutritionist && activeTab === 'plans' && (
+        <>
+          {loading && (
+            <div className="p-6">
+              <InfoBox content="Loading interested plans..." />
+            </div>
+          )}
+          {error && !loading && (
+            <div className="p-6">
+              <InfoBox content={error} />
+            </div>
+          )}
+          {!loading && !error && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Array.isArray(plans) && plans.length > 0 ? (
+                plans.map((p: any) => (
+                  <div key={p?.id} className="border rounded-lg p-3 bg-white">
+                    <div className="text-sm font-medium mb-1">
+                      {safeStr(p?.name)}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Category: {safeStr(p?.category)}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-6 col-span-full">
+                  <InfoBox content="No interested plans" />
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
     </div>
   )

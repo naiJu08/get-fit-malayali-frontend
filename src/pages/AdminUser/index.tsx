@@ -176,6 +176,7 @@ export default function AdminUser() {
     setColumns(
       getColumns({
         onViewAction: onViewAction,
+        onNameClick: (row: any) => navigate(`/users/${row?.id}`),
       })
     )
   }, [])

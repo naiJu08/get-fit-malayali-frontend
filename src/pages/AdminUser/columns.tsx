@@ -10,7 +10,9 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-export const getColumns = ({}: AdminListResponse | any) => {
+export const getColumns = ({
+  onNameClick,
+}: { onNameClick?: (row: any) => void } | AdminListResponse | any) => {
   const createRenderCell =
     (key: string, isCustom?: string) => (row: AdminListResponse) => {
       if (isCustom === 'fullname') {
@@ -96,6 +98,8 @@ export const getColumns = ({}: AdminListResponse | any) => {
       field: 'name',
       renderCell: createRenderCell('name'),
       customCell: true,
+      link: true,
+      rowClick: (row: any) => onNameClick && onNameClick(row),
       ...defaultColumnProps,
     },
     {
