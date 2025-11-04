@@ -100,6 +100,76 @@ export const formSchema = z
     }
   )
 
+// Nutritionist tab: only Name, Email, Password, Confirm Password, Phone, Role, Gender, and Date of birth are required
+export const formSchemaNutritionist = z
+  .object({
+    name: z
+      .string({ invalid_type_error: 'Required.' })
+      .min(1, { message: 'Required.' })
+      .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
+    email: z
+      .string()
+      .min(5, { message: 'Required' })
+      .superRefine((value, ctx) => {
+        if (value !== '') {
+          if (!/^[\w-.+]+@([\w-]+\.)+[\w-]{2,4}$/.test(value)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Invalid email format.',
+            })
+          }
+        }
+      })
+      .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
+    password: z
+      .string({ required_error: passerror })
+      .refine((val) => /^[^\s]*$/.test(val as string), {
+        message: 'Space not allowed',
+      })
+      .refine((val) => /.*[A-Z].*/.test(val), { message: passerror })
+      .refine((val) => /.*[a-z].*/.test(val), { message: passerror })
+      .refine((val) => /.*\d.*/.test(val), { message: passerror })
+      .refine(
+        (val) => /.*[`~<>?,./!@#$%^&*()\-_=+"'\|{}\[\];:\\].*/.test(val),
+        { message: passerror }
+      )
+      .refine((val) => val.length >= 8, { message: passerror }),
+    password_confirmation: z
+      .string({ required_error: 'Required.' })
+      .min(1, { message: 'Required.' }),
+    phone: z
+      .string()
+      .min(10, { message: 'Phone number must be at least 10 digits.' })
+      .max(15, { message: 'Phone number must be at most 15 digits.' })
+      .regex(/^[0-9]+$/, { message: 'Only digits are allowed.' }),
+    role: z.any(),
+    gender: z.any(),
+    date_of_birth: z.union([
+      z.string().min(1, { message: 'Required.' }),
+      z.date({ invalid_type_error: 'Required.' }),
+    ]),
+    // Optional fields for Nutritionist
+    height: z.union([z.number(), z.undefined()]).optional(),
+    weight: z.union([z.number(), z.undefined()]).optional(),
+    lifestyle: z.string().optional(),
+    goal: z.string().optional(),
+    food_preferences: z.string().optional(),
+    medical_conditions: z.string().optional(),
+    ethnicity: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.password || data.password_confirmation) {
+        return data.password === data.password_confirmation
+      }
+      return true
+    },
+    {
+      message: 'Passwords do not match',
+      path: ['password_confirmation'],
+    }
+  )
+
 export const changePasswordSchema = z.object({
   new_password: z
     .string({ required_error: passerror })

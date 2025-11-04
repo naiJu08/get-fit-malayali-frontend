@@ -12,7 +12,14 @@ const defaultColumnProps = {
 
 export const getColumns = ({
   onNameClick,
-}: { onNameClick?: (row: any) => void } | AdminListResponse | any) => {
+  activeRole,
+}:
+  | {
+      onNameClick?: (row: any) => void
+      activeRole?: 'user' | 'nutritionist'
+    }
+  | AdminListResponse
+  | any) => {
   const createRenderCell =
     (key: string, isCustom?: string) => (row: AdminListResponse) => {
       if (isCustom === 'fullname') {
@@ -74,7 +81,9 @@ export const getColumns = ({
       }
     }
 
-  const column = [
+  const isNutritionist = activeRole === 'nutritionist'
+
+  const column: any[] = [
     // {
     //   title: 'Name',
     //   field: 'name',
@@ -123,21 +132,26 @@ export const getColumns = ({
       customCell: true,
       ...defaultColumnProps,
     },
-    {
+    // BMI column will be conditionally added below
+  ]
+
+  if (!isNutritionist) {
+    column.push({
       title: 'BMI',
       field: 'bmi',
       renderCell: createRenderCell('bmi'),
       customCell: true,
       ...defaultColumnProps,
-    },
-    {
-      title: 'Status',
-      field: 'status',
-      renderCell: createRenderCell('status', 'capitalize'),
-      ...defaultColumnProps,
-      customCell: true,
-    },
-  ]
+    })
+  }
+
+  column.push({
+    title: 'Status',
+    field: 'status',
+    renderCell: createRenderCell('status', 'capitalize'),
+    ...defaultColumnProps,
+    customCell: true,
+  })
 
   return column
 }

@@ -6,6 +6,7 @@ import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
 import { DialogModal, TextField } from '../../components/common'
+import Button from '../../components/common/buttons/Button'
 import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 import Icons from '../../components/common/icons'
@@ -177,9 +178,11 @@ export default function AdminUser() {
       getColumns({
         onViewAction: onViewAction,
         onNameClick: (row: any) => navigate(`/users/${row?.id}`),
+        activeRole,
       })
     )
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeRole])
 
   // Ensure role filter follows active tab
   useEffect(() => {
@@ -295,7 +298,8 @@ export default function AdminUser() {
     setRowData({})
   }
   const headerProps = {
-    actionTitle: 'Create User',
+    actionTitle:
+      activeRole === 'nutritionist' ? 'Create Nutritionist' : 'Create Client',
   }
   const handleSort = (orderColumn: any, orderDirection: any) => {
     setPageParams({
@@ -337,7 +341,6 @@ export default function AdminUser() {
         <>
           <ListingHeader
             data={basicData}
-            onActionClick={openDrawer}
             actionProps={headerProps}
             checkPermission={checkPermissions('Employee', 'create')}
           />
@@ -370,114 +373,124 @@ export default function AdminUser() {
           </div>
           {/* <PageTitle data={data?.total} isLoading={isFetching} /> */}
           <div className=" p-4">
-            <QbsTable
-              data={data?.items ?? []}
-              dataRowKey="id"
-              toolbar={true}
-              search={true}
-              height={
-                data?.items?.length === 0
-                  ? calcWindowHeight(218)
-                  : calcWindowHeight(300)
-              }
-              isLoading={isFetching}
-              sortType={pageParams.sortType}
-              sortColumn={pageParams.sortColumn}
-              handleColumnSort={handleSort}
-              emptyTitle="No records to display"
-              emptySubTitle={handleReturnEmptyMsg(search)}
-              columns={columns}
-              pagination={true}
-              renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
-                return sortType === 'asc' ? (
-                  <Icons name="ascending-icon" />
-                ) : sortType === 'desc' ? (
-                  <Icons name="descending-icon" />
-                ) : (
-                  <Icons name="qbs-sort-icon" />
-                )
-              }}
-              paginationProps={{
-                onPagination: onChangePage,
-                total: data?.total ?? 0,
-                currentPage: data?.current_page ?? pageParams?.page ?? 1,
-                rowsPerPage: Number(pageParams?.page_size ?? 10),
-                onRowsPerPage: onChangeRowsPerPage,
-                dropOptions: [10, 20, 30, 50, 100],
-              }}
-              actionProps={[
-                // {
-                //   icon: <Icons name="eye" />,
-                //   action: (row) => onViewAction(row),
-                //   title: 'view',
-                //   toolTip: 'View',
-                // },
-                {
-                  icon: <Icons name="edit" />,
-                  action: (row) => handleEdit(row),
-                  title: 'edit',
-                  toolTip: 'Edit',
-                },
-                {
-                  icon: <Icons name="eye" />,
-                  action: (row) => navigate(`/users/${row?.id}`),
-                  title: 'view',
-                  toolTip: 'View Details',
-                },
-                {
-                  title: 'Freeze',
-                  action: (row) => handleOpenFreeze(row),
-                  icon: <Icons name="lock-icon" />,
-                  toolTip: 'Freeze User',
-                  hide: (rowData: any) => isFrozen(rowData),
-                },
-                {
-                  title: 'Unfreeze',
-                  action: (row) => handleOpenUnfreeze(row),
-                  icon: <Icons name="activate-icon" />,
-                  toolTip: 'Unfreeze User',
-                  hide: (rowData: any) => !isFrozen(rowData),
-                },
-                {
-                  title: 'Deactivate',
-                  action: (rowData) =>
-                    handleDeleteModel(
-                      rowData?.id,
-                      rowData?.email,
-                      rowData?.status
-                    ),
-                  icon: <Icons name="deactivate-icon" />,
-                  toolTip: 'Deactivate',
-                  hide: (rowData: any) =>
-                    rowData?.status == 'Active' ? false : true,
-                },
-                {
-                  title: 'Activate',
-                  action: (rowData) =>
-                    handleDeleteModel(
-                      rowData?.id,
-                      rowData?.email,
-                      rowData?.status
-                    ),
-                  icon: <Icons name="activate-icon" />,
-                  toolTip: 'Activate',
-                  hide: (rowData: any) =>
-                    rowData?.status == 'Inactive' ? false : true,
-                },
-
-                {
-                  title: 'Delete User',
-                  action: (rowData) => handleOpenDeleteUser(rowData?.id),
-                  icon: <Icons name="delete" />,
-                  toolTip: 'Delete User',
-                },
-              ]}
-              searchValue={pageParams?.search}
-              onSearch={handleSeach}
-              asyncSearch
-              handleSearchValue={(key?: string) => handleSeach(key)}
-              columnToggle
-            />
+            <div className="relative">
+              {/* Right-aligned create button placed in the same row as the search */}
+              {checkPermissions('Employee', 'create') && (
+                <div className="absolute right-0 top-2 z-10">
+                  <Button
+                    className="bg-primaryGreen"
+                    label={
+                      activeRole === 'nutritionist'
+                        ? 'Create Nutritionist'
+                        : 'Create Client'
+                    }
+                    icon={'plus'}
+                    onClick={openDrawer}
+                  />
+                </div>
+              )}
+              <QbsTable
+                data={data?.items ?? []}
+                dataRowKey="id"
+                toolbar={true}
+                search={true}
+                height={
+                  data?.items?.length === 0
+                    ? calcWindowHeight(218)
+                    : calcWindowHeight(300)
+                }
+                isLoading={isFetching}
+                sortType={pageParams.sortType}
+                sortColumn={pageParams.sortColumn}
+                handleColumnSort={handleSort}
+                emptyTitle="No records to display"
+                emptySubTitle={handleReturnEmptyMsg(search)}
+                columns={columns}
+                pagination={true}
+                renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
+                  return sortType === 'asc' ? (
+                    <Icons name="ascending-icon" />
+                  ) : sortType === 'desc' ? (
+                    <Icons name="descending-icon" />
+                  ) : (
+                    <Icons name="qbs-sort-icon" />
+                  )
+                }}
+                paginationProps={{
+                  onPagination: onChangePage,
+                  total: data?.total ?? 0,
+                  currentPage: data?.current_page ?? pageParams?.page ?? 1,
+                  rowsPerPage: Number(pageParams?.page_size ?? 10),
+                  onRowsPerPage: onChangeRowsPerPage,
+                  dropOptions: [10, 20, 30, 50, 100],
+                }}
+                actionProps={[
+                  {
+                    icon: <Icons name="edit" />,
+                    action: (row) => handleEdit(row),
+                    title: 'edit',
+                    toolTip: 'Edit',
+                  },
+                  {
+                    icon: <Icons name="eye" />,
+                    action: (row) => navigate(`/users/${row?.id}`),
+                    title: 'view',
+                    toolTip: 'View Details',
+                  },
+                  {
+                    title: 'Freeze',
+                    action: (row) => handleOpenFreeze(row),
+                    icon: <Icons name="lock-icon" />,
+                    toolTip: 'Freeze User',
+                    hide: (rowData: any) => isFrozen(rowData),
+                  },
+                  {
+                    title: 'Unfreeze',
+                    action: (row) => handleOpenUnfreeze(row),
+                    icon: <Icons name="activate-icon" />,
+                    toolTip: 'Unfreeze User',
+                    hide: (rowData: any) => !isFrozen(rowData),
+                  },
+                  {
+                    title: 'Deactivate',
+                    action: (rowData) =>
+                      handleDeleteModel(
+                        rowData?.id,
+                        rowData?.email,
+                        rowData?.status
+                      ),
+                    icon: <Icons name="deactivate-icon" />,
+                    toolTip: 'Deactivate',
+                    hide: (rowData: any) =>
+                      rowData?.status == 'Active' ? false : true,
+                  },
+                  {
+                    title: 'Activate',
+                    action: (rowData) =>
+                      handleDeleteModel(
+                        rowData?.id,
+                        rowData?.email,
+                        rowData?.status
+                      ),
+                    icon: <Icons name="activate-icon" />,
+                    toolTip: 'Activate',
+                    hide: (rowData: any) =>
+                      rowData?.status == 'Inactive' ? false : true,
+                  },
+                  {
+                    title: 'Delete User',
+                    action: (rowData) => handleOpenDeleteUser(rowData?.id),
+                    icon: <Icons name="delete" />,
+                    toolTip: 'Delete User',
+                  },
+                ]}
+                searchValue={pageParams?.search}
+                onSearch={handleSeach}
+                asyncSearch
+                handleSearchValue={(key?: string) => handleSeach(key)}
+                columnToggle
+              />
+            </div>
           </div>
 
           <DialogModal
@@ -571,6 +584,7 @@ export default function AdminUser() {
             handleRefresh={handleRefresh}
             editViewIndicator={editViewIndicator}
             setEditViewIndicator={setEditViewIndicator}
+            activeRole={activeRole}
           />
           <DialogModal
             isOpen={openConfirm}
