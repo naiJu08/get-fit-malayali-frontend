@@ -70,6 +70,11 @@ serverApi.interceptors.response.use(
   (res: AxiosResponse) => res,
   async (err: AxiosError) => {
     if (axios.isAxiosError(err) && err.response) {
+      // Swallow 409 (Conflict) responses: pass through as a resolved response to avoid runtime overlays
+      if (err.response.status === 409) {
+        // Optionally surface a snackbar elsewhere; here we just pass the response along
+        return Promise.resolve(err.response as any)
+      }
       if (err.response.status && err.response.status === 404) {
         const errorObject: any = err.response.data
         showError(errorObject?.error?.message ?? 'Page not found')

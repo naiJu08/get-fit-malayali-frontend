@@ -1,0 +1,158 @@
+import { QbsTable } from 'qbs-react-grid'
+import { useEffect, useState } from 'react'
+import { TableColumns } from '../../common/types'
+import Icons from '../../components/common/icons'
+import ListingHeader from '../../components/common/ListingTiles'
+import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
+import { getSortedColumnName } from '../../utilities/parsers'
+import { useRecipes } from './api'
+import { getRecipeColumns } from './columns'
+import { useNavigate } from 'react-router-dom'
+import CreateRecipe from './create'
+import { checkPermissions } from '../../layout/store'
+
+export default function Recipe() {
+  const [columns, setColumns] = useState<TableColumns[]>([])
+  const [createOpen, setCreateOpen] = useState(false)
+  const [edit, setEdit] = useState(false)
+  const [rowData, setRowData] = useState<any>()
+  const { pageParams, setPageParams } = useAdminUserFilterStore()
+  const navigate = useNavigate()
+
+  const { page, per_page, search, ordering } = pageParams
+  const searchParams = {
+    page,
+    per_page: Number(per_page ?? 10),
+    search,
+    ordering,
+  }
+
+  const headerProps = { actionTitle: 'Create Recipe' }
+  const openDrawer = () => setCreateOpen(true)
+  const handleRefresh = () => {
+    setPageParams({ ...pageParams, page: 1 })
+  }
+
+  const openEdit = (row: any) => {
+    setRowData(row)
+    setEdit(true)
+    setCreateOpen(true)
+  }
+
+  const { data, isFetching } = useRecipes(searchParams)
+
+  useEffect(() => {
+    setColumns(
+      getRecipeColumns((row: any) => {
+        navigate(`/recipe/${row?.id}`)
+      })
+    )
+  }, [])
+
+  // Clamp page to valid range when meta changes
+  useEffect(() => {
+    const totalPages = data?.meta?.total_pages
+    if (typeof totalPages === 'number' && totalPages > 0) {
+      if ((pageParams?.page ?? 1) > totalPages) {
+        setPageParams({ ...pageParams, page: totalPages })
+      } else if ((pageParams?.page ?? 1) < 1) {
+        setPageParams({ ...pageParams, page: 1 })
+      }
+    } else if ((pageParams?.page ?? 1) < 1) {
+      setPageParams({ ...pageParams, page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.meta?.total_pages])
+
+  const onChangePage = (pageNumber: number) => {
+    setPageParams({ ...pageParams, page: pageNumber })
+  }
+  const onChangeRowsPerPage = (count: number | string) => {
+    setPageParams({ ...pageParams, per_page: Number(count), page: 1 })
+  }
+
+  const handleSort = (orderColumn: any, orderDirection: any) => {
+    setPageParams({
+      ...pageParams,
+      sortColumn: orderColumn,
+      sortType: orderDirection,
+      ordering: getSortedColumnName(orderColumn, orderDirection),
+    })
+  }
+
+  return (
+    <div>
+      <ListingHeader
+        data={{ title: 'Recipes', icon: 'user' }}
+        onActionClick={openDrawer}
+        actionProps={headerProps}
+        checkPermission={checkPermissions('Employee', 'create')}
+      />
+      <div className="p-4">
+        <QbsTable
+          data={data?.recipes ?? []}
+          dataRowKey="id"
+          toolbar
+          search
+          isLoading={isFetching}
+          sortType={pageParams.sortType}
+          sortColumn={pageParams.sortColumn}
+          handleColumnSort={handleSort}
+          emptyTitle="No records to display"
+          columns={columns}
+          pagination
+          actionProps={[
+            {
+              icon: <Icons name="edit" />,
+              action: (row: any) => openEdit(row),
+              title: 'edit',
+              toolTip: 'Edit',
+            },
+          ]}
+          renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
+            return sortType === 'asc' ? (
+              <Icons name="ascending-icon" />
+            ) : sortType === 'desc' ? (
+              <Icons name="descending-icon" />
+            ) : (
+              <Icons name="qbs-sort-icon" />
+            )
+          }}
+          paginationProps={{
+            onPagination: onChangePage,
+            total: data?.meta?.total_count ?? 0,
+            currentPage:
+              typeof data?.meta?.current_page === 'number'
+                ? (data?.meta?.current_page as number)
+                : (pageParams?.page ?? 1),
+            rowsPerPage: Number(
+              pageParams?.per_page ?? data?.meta?.per_page ?? 10
+            ),
+            onRowsPerPage: onChangeRowsPerPage,
+            dropOptions: [10, 20, 30, 50, 100],
+          }}
+          searchValue={pageParams?.search}
+          onSearch={(key?: string) =>
+            setPageParams({ ...pageParams, search: key as string, page: 1 })
+          }
+          asyncSearch
+          handleSearchValue={(key?: string) =>
+            setPageParams({ ...pageParams, search: key as string, page: 1 })
+          }
+          columnToggle
+        />
+      </div>
+      <CreateRecipe
+        isDrawerOpen={createOpen}
+        handleClose={() => {
+          setCreateOpen(false)
+          setEdit(false)
+          setRowData(undefined)
+        }}
+        handleRefresh={handleRefresh}
+        edit={edit}
+        rowData={rowData}
+      />
+    </div>
+  )
+}
