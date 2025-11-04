@@ -1,4 +1,4 @@
-import moment from 'moment'
+// import moment from 'moment'
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
@@ -73,7 +73,7 @@ export default function DietPlanDetails() {
           <DetailItem label="Meal Time" value={safeStr(dp?.meal_time)} />
           <DetailItem label="Meal Name" value={safeStr(dp?.meal_name)} />
           <DetailItem label="Calories" value={safeStr(dp?.calories)} />
-          <DetailItem label="Created At" value={formatDate(dp?.created_at)} />
+          {/* <DetailItem label="Created At" value={formatDate(dp?.created_at)} /> */}
         </div>
       )}
     </div>
@@ -89,11 +89,11 @@ function DetailItem({ label, value }: { label: string; value: any }) {
   )
 }
 
-function formatDate(d: any) {
-  if (!d) return '--'
-  const m = moment(d)
-  return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
-}
+// function formatDate(d: any) {
+//   if (!d) return '--'
+//   const m = moment(d)
+//   return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
+// }
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)

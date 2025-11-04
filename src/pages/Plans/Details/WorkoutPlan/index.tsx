@@ -57,17 +57,17 @@ export default function WorkoutPlanIndex({
       customCell: true,
       renderCell: (row: any) => ({ cell: row?.total_duration ?? 0 }),
     },
-    {
-      title: 'Created At',
-      field: 'created_at',
-      resizable: true,
-      isVisible: true,
-      customCell: true,
-      renderCell: (row: any) => ({
-        cell: new Date(row?.created_at).toLocaleDateString(),
-      }),
-      sortKey: 'created_at',
-    },
+    // {
+    //   title: 'Created At',
+    //   field: 'created_at',
+    //   resizable: true,
+    //   isVisible: true,
+    //   customCell: true,
+    //   renderCell: (row: any) => ({
+    //     cell: new Date(row?.created_at).toLocaleDateString(),
+    //   }),
+    //   sortKey: 'created_at',
+    // },
     {
       title: 'Description',
       field: 'description',
@@ -150,7 +150,7 @@ export default function WorkoutPlanIndex({
         data={data?.workout_plans ?? []}
         dataRowKey="id"
         toolbar={true}
-        search={true}
+        // search={true}
         searchValue={pageParams?.search}
         onSearch={(key?: string) =>
           setPageParams({ ...pageParams, search: key as string, page: 1 })

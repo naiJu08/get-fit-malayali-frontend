@@ -1,4 +1,4 @@
-import moment from 'moment'
+// import moment from 'moment'
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { usePlan } from '../api'
@@ -32,7 +32,7 @@ function DetailsSection(props: { plan: any; activeTab?: string | number }) {
       />
       <DetailItem label="Active" value={mapActive(plan?.active)} />
       <DetailItem label="Created By" value={plan?.created_by} />
-      <DetailItem label="Created At" value={formatDate(plan?.created_at)} />
+      {/* <DetailItem label="Created At" value={formatDate(plan?.created_at)} /> */}
       <DetailItem
         label="Workout Plans"
         value={safeStr(plan?.workout_plans_count)}
@@ -139,11 +139,11 @@ function mapActive(v: any) {
     return 'Inactive'
   return safeStr(v)
 }
-function formatDate(d: any) {
-  if (!d) return '--'
-  const m = moment(d)
-  return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
-}
+// function formatDate(d: any) {
+//   if (!d) return '--'
+//   const m = moment(d)
+//   return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
+// }
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
