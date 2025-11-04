@@ -85,9 +85,9 @@ function PlanDetailsContent() {
 
   // Only Details tab
   const tabs: TabItemProps[] = [
-    { id: 'details', label: 'Details', bgClass: 'bg-blue-100' },
-    { id: 'workout details', label: 'Workout Plan', bgClass: 'bg-green-100' },
-    { id: 'diet details', label: 'Diet Plan', bgClass: 'bg-amber-100' },
+    { id: 'details', label: 'Details' },
+    { id: 'workout details', label: 'Workout Plan' },
+    { id: 'diet details', label: 'Diet Plan' },
   ]
 
   return (

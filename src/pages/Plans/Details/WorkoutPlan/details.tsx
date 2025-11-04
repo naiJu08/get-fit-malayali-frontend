@@ -17,22 +17,13 @@ export default function WorkoutPlanDetails() {
   const [error, setError] = useState<string>('')
   const [activeTab, setActiveTab] = useState<'details' | 'assign'>('details')
   const [assignOpen, setAssignOpen] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
   const [wpPage, setWpPage] = useState<number>(1)
   const [wpPerPage, setWpPerPage] = useState<number>(20)
   const [wpSearch, setWpSearch] = useState<string>('')
   const [assigning, setAssigning] = useState<boolean>(false)
-  const [formValues, setFormValues] = useState<
-    Record<
-      string,
-      {
-        reps?: number | ''
-        sets?: number | ''
-        duration_minutes?: number | ''
-        notes?: string
-      }
-    >
-  >({})
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
   const { mutateAsync: addExerciseAsync } = useAddExercise()
 
   useEffect(() => {
@@ -90,18 +81,6 @@ export default function WorkoutPlanDetails() {
         ? prev.filter((x) => x?.id !== w?.id)
         : [...prev, w]
     )
-    setFormValues((prev) => {
-      const copy = { ...prev }
-      if (!prev[String(w?.id)]) {
-        copy[String(w?.id)] = {
-          reps: '' as any,
-          sets: '' as any,
-          duration_minutes: '' as any,
-          notes: '',
-        }
-      }
-      return copy
-    })
   }
 
   // Open/close drawer based on Assign tab
@@ -112,28 +91,19 @@ export default function WorkoutPlanDetails() {
       setWpPage(1)
     } else {
       setAssignOpen(false)
-      setFormValues({})
+      setSelectedWorkouts([])
+      setReviewOpen(false)
     }
   }, [activeTab])
 
-  const updateField = (
-    id: number | string,
-    key: keyof (typeof formValues)[string],
-    value: any
-  ) => {
-    setFormValues((prev) => ({
-      ...prev,
-      [String(id)]: {
-        ...(prev[String(id)] || {}),
-        [key]: value,
-      },
-    }))
+  const handleNext = () => {
+    if (selectedWorkouts.length === 0) return
+    setReviewOpen(true)
+    setAssignOpen(false)
   }
 
-  const assignDisabled = assigning || selectedWorkouts.length === 0
-
-  const handleAssign = async () => {
-    if (!wp?.id) return
+  const handleBulkAssign = async () => {
+    if (!wp?.id || selectedWorkouts.length === 0) return
     setAssigning(true)
     try {
       await Promise.all(
@@ -143,23 +113,50 @@ export default function WorkoutPlanDetails() {
             payload: {
               exercise: {
                 workout_id: w?.id,
-                reps: Number(formValues[String(w?.id)]?.reps) || undefined,
-                sets: Number(formValues[String(w?.id)]?.sets) || undefined,
-                duration_minutes:
-                  Number(formValues[String(w?.id)]?.duration_minutes) ||
-                  undefined,
-                notes: formValues[String(w?.id)]?.notes || '' || undefined,
                 sequence_number: idx + 1,
               },
             },
           })
         )
       )
-      // Close and reset
+      setReviewOpen(false)
       setActiveTab('details')
     } finally {
       setAssigning(false)
     }
+  }
+
+  const handleAssignOne = async (workout: any, index: number) => {
+    if (!wp?.id || !workout?.id) return
+    setAssigning(true)
+    try {
+      await addExerciseAsync({
+        id: wp.id,
+        payload: {
+          exercise: {
+            workout_id: workout.id,
+            sequence_number: index + 1,
+          },
+        },
+      })
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  const onDragStart = (index: number) => setDragIndex(index)
+  const onDragOver = (e: any) => {
+    e.preventDefault()
+  }
+  const onDrop = (index: number) => {
+    if (dragIndex === null || dragIndex === index) return
+    setSelectedWorkouts((prev) => {
+      const next = prev.slice()
+      const [item] = next.splice(dragIndex, 1)
+      next.splice(index, 0, item)
+      return next
+    })
+    setDragIndex(null)
   }
 
   return (
@@ -174,7 +171,7 @@ export default function WorkoutPlanDetails() {
       </div>
       <div className="mb-4 flex gap-2">
         <button
-          className={`px-3 py-1 rounded border ${activeTab === 'details' ? 'bg-primary text-gra' : 'bg-gray'}`}
+          className={`px-3 py-1 rounded border ${activeTab === 'details' ? 'bg-primary text-gray' : 'bg-gray'}`}
           onClick={() => setActiveTab('details')}
         >
           Details
@@ -214,6 +211,42 @@ export default function WorkoutPlanDetails() {
             <DetailItem label="Description" value={safeStr(wp?.description)} />
             <DetailItem label="Created At" value={formatDate(wp?.created_at)} />
           </div>
+          {Array.isArray(wp?.exercises) && wp.exercises.length > 0 && (
+            <div className="mt-6">
+              <div className="text-sm font-semibold mb-3">Exercises</div>
+              <div className="border rounded overflow-hidden">
+                <div className="grid grid-cols-12 bg-gray-50 text-xs font-medium px-3 py-2">
+                  <div className="col-span-2">Seq</div>
+                  <div className="col-span-6">Workout</div>
+                  <div className="col-span-4 text-right">Workout ID</div>
+                </div>
+                <div className="divide-y">
+                  {wp.exercises
+                    .slice()
+                    .sort(
+                      (a: any, b: any) =>
+                        (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
+                    )
+                    .map((ex: any) => (
+                      <div
+                        key={ex?.id}
+                        className="grid grid-cols-12 px-3 py-2 text-sm"
+                      >
+                        <div className="col-span-2">
+                          {safeStr(ex?.sequence_number)}
+                        </div>
+                        <div className="col-span-6">
+                          {ex?.workout_name || '--'}
+                        </div>
+                        <div className="col-span-4 text-right">
+                          {safeStr(ex?.workout_id)}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
           {selectedWorkouts.length > 0 && (
             <div className="mt-6">
               <div className="text-sm font-semibold mb-3">
@@ -260,10 +293,10 @@ export default function WorkoutPlanDetails() {
         open={assignOpen}
         handleClose={() => setActiveTab('details')}
         title={'Assign Workout'}
-        handleSubmit={handleAssign}
-        disableSubmit={assignDisabled}
-        actionLoader={assigning}
-        actionLabel={'Assign Selected'}
+        handleSubmit={handleNext}
+        disableSubmit={selectedWorkouts.length === 0}
+        actionLoader={false}
+        actionLabel={'Next'}
       >
         <div className="w-[900px] max-w-[95vw]">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -368,52 +401,20 @@ export default function WorkoutPlanDetails() {
                 </div>
               )}
               {selectedWorkouts.length > 0 && (
-                <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {selectedWorkouts.map((w, i) => {
                     const url = w?.video_url || ''
                     const embed = getEmbedUrl(url)
                     return (
-                      <div key={w?.id} className="border rounded">
-                        <div className="px-2 pt-2 text-sm font-medium flex items-center justify-between">
-                          <span>
-                            {i + 1}. {w?.name || 'Untitled'}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <button
-                              className="text-xs px-2 py-1 border rounded disabled:opacity-50"
-                              disabled={i === 0}
-                              onClick={() => {
-                                setSelectedWorkouts((prev) => {
-                                  const next = prev.slice()
-                                  const [item] = next.splice(i, 1)
-                                  next.splice(i - 1, 0, item)
-                                  return next
-                                })
-                              }}
-                            >
-                              Up
-                            </button>
-                            <button
-                              className="text-xs px-2 py-1 border rounded disabled:opacity-50"
-                              disabled={i === selectedWorkouts.length - 1}
-                              onClick={() => {
-                                setSelectedWorkouts((prev) => {
-                                  const next = prev.slice()
-                                  const [item] = next.splice(i, 1)
-                                  next.splice(i + 1, 0, item)
-                                  return next
-                                })
-                              }}
-                            >
-                              Down
-                            </button>
-                          </div>
+                      <div key={w?.id} className="border rounded p-2">
+                        <div className="px-1 pt-1 text-xs font-medium line-clamp-1">
+                          {i + 1}. {w?.name || 'Untitled'}
                         </div>
-                        <div className="px-2 pb-2 text-xxs text-gray-500 break-all">
+                        <div className="px-1 pb-1 text-xxs text-gray-500 break-all line-clamp-1">
                           {url || '--'}
                         </div>
                         {embed ? (
-                          <div className="aspect-video w-full">
+                          <div className="w-full h-32 rounded overflow-hidden bg-black/5">
                             <iframe
                               src={embed}
                               title={`Workout Video ${w?.id}`}
@@ -424,100 +425,101 @@ export default function WorkoutPlanDetails() {
                           </div>
                         ) : url ? (
                           <video
-                            className="w-full"
+                            className="w-full h-32 object-cover rounded"
                             src={String(url)}
                             controls
                           />
                         ) : (
-                          <div className="text-sm text-gray-600 px-2 pb-2">
+                          <div className="text-xs text-gray-600 px-1 pb-1">
                             No video URL available.
                           </div>
                         )}
-                        <div className="grid grid-cols-2 gap-2 p-2">
-                          <div>
-                            <label className="block text-xxs text-gray-500 mb-1">
-                              Reps
-                            </label>
-                            <input
-                              type="number"
-                              className="border rounded px-2 py-1 w-full text-sm"
-                              value={formValues[String(w?.id)]?.reps ?? ''}
-                              onChange={(e) =>
-                                updateField(
-                                  w?.id,
-                                  'reps',
-                                  e.target.value === ''
-                                    ? ''
-                                    : Number(e.target.value)
-                                )
-                              }
-                              placeholder="e.g. 15"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xxs text-gray-500 mb-1">
-                              Sets
-                            </label>
-                            <input
-                              type="number"
-                              className="border rounded px-2 py-1 w-full text-sm"
-                              value={formValues[String(w?.id)]?.sets ?? ''}
-                              onChange={(e) =>
-                                updateField(
-                                  w?.id,
-                                  'sets',
-                                  e.target.value === ''
-                                    ? ''
-                                    : Number(e.target.value)
-                                )
-                              }
-                              placeholder="e.g. 3"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xxs text-gray-500 mb-1">
-                              Duration (mins)
-                            </label>
-                            <input
-                              type="number"
-                              className="border rounded px-2 py-1 w-full text-sm"
-                              value={
-                                formValues[String(w?.id)]?.duration_minutes ??
-                                ''
-                              }
-                              onChange={(e) =>
-                                updateField(
-                                  w?.id,
-                                  'duration_minutes',
-                                  e.target.value === ''
-                                    ? ''
-                                    : Number(e.target.value)
-                                )
-                              }
-                              placeholder="e.g. 10"
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <label className="block text-xxs text-gray-500 mb-1">
-                              Notes
-                            </label>
-                            <textarea
-                              className="border rounded px-2 py-1 w-full text-sm"
-                              rows={2}
-                              value={formValues[String(w?.id)]?.notes ?? ''}
-                              onChange={(e) =>
-                                updateField(w?.id, 'notes', e.target.value)
-                              }
-                              placeholder="Optional notes"
-                            />
-                          </div>
-                        </div>
                       </div>
                     )
                   })}
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      </CustomDrawer>
+
+      {/* Review Drawer */}
+      <CustomDrawer
+        open={reviewOpen}
+        handleClose={() => setReviewOpen(false)}
+        title={'Review & Order'}
+        handleSubmit={handleBulkAssign}
+        disableSubmit={assigning || selectedWorkouts.length === 0}
+        actionLoader={assigning}
+        actionLabel={'Assign Selected'}
+      >
+        <div className="w-[900px] max-w-[95vw]">
+          <div className="border rounded p-3">
+            <div className="text-sm font-medium mb-2">
+              Selected Videos (Drag to Reorder)
+            </div>
+            {selectedWorkouts.length === 0 && (
+              <div className="text-xs text-gray-500">No workouts selected.</div>
+            )}
+            {selectedWorkouts.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {selectedWorkouts.map((w, i) => {
+                  const url = w?.video_url || ''
+                  const embed = getEmbedUrl(url)
+                  return (
+                    <div
+                      key={w?.id}
+                      className="border rounded p-2 cursor-move"
+                      draggable
+                      onDragStart={() => onDragStart(i)}
+                      onDragOver={onDragOver}
+                      onDrop={() => onDrop(i)}
+                    >
+                      <div className="px-1 pt-1 text-xs font-medium line-clamp-1 flex items-center justify-between gap-2">
+                        <span>
+                          {i + 1}. {w?.name || 'Untitled'}
+                        </span>
+                        <button
+                          className="text-[10px] px-2 py-1 border rounded disabled:opacity-50"
+                          disabled={assigning}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAssignOne(w, i)
+                          }}
+                        >
+                          Assign
+                        </button>
+                      </div>
+                      <div className="px-1 pb-1 text-xxs text-gray-500 break-all line-clamp-1">
+                        {url || '--'}
+                      </div>
+                      {embed ? (
+                        <div className="w-full h-24 rounded overflow-hidden bg-black/5">
+                          <iframe
+                            src={embed}
+                            title={`Workout Video ${w?.id}`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : url ? (
+                        <video
+                          className="w-full h-24 object-cover rounded"
+                          src={String(url)}
+                          controls
+                        />
+                      ) : (
+                        <div className="text-xs text-gray-600 px-1 pb-1">
+                          No video URL available.
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       </CustomDrawer>
