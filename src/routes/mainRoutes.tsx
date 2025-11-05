@@ -60,6 +60,8 @@ const routes: any = [
   { slug: 'EXPORT_SAMPLE', component: <ExportPage /> },
   { slug: 'SUPPORT_SAMPLE', component: <Support /> },
   { slug: 'WORKOUT_DETAILS', component: <WorkoutDetails /> },
+  { slug: 'PLAN_DETAILS_WORKOUT', component: <PlanDetails /> },
+  { slug: 'PLAN_DETAILS_DIET', component: <PlanDetails /> },
 
   {
     isAuthRoute: true,

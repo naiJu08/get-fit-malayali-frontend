@@ -132,38 +132,6 @@ export const planFormSchema = z.object({
       invalid_type_error: 'Duration must be a number',
     })
     .positive('Duration must be greater than 0'),
-  active: z.preprocess(
-    (v: any) => {
-      // Unwrap object from custom_select
-      const val =
-        v && typeof v === 'object' && ('value' in v || 'id' in v)
-          ? ((v as any).value ?? (v as any).id)
-          : v
-      if (typeof val === 'boolean') return val
-      if (typeof val === 'number') return val === 1
-      if (typeof val === 'string') {
-        const s = val.trim().toLowerCase()
-        if (
-          s === 'true' ||
-          s === '1' ||
-          s === 'yes' ||
-          s === 'on' ||
-          s === 'active'
-        )
-          return true
-        if (
-          s === 'false' ||
-          s === '0' ||
-          s === 'no' ||
-          s === 'off' ||
-          s === 'inactive'
-        )
-          return false
-      }
-      return v
-    },
-    z.boolean({ required_error: 'Status is required' })
-  ),
 })
 
 export type PlanSchema = z.infer<typeof planFormSchema>

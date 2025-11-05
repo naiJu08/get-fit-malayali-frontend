@@ -5,23 +5,22 @@ import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
 import { DialogModal, TextField } from '../../components/common'
+import SearchInput from '../../components/common/inputs/SearchInput'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { checkPermissions } from '../../layout/store'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
-// import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
 import { useQueryClient } from '@tanstack/react-query'
-// import { handleReturnEmptyMsg } from '../../utilities/validation'
 import {
   deActivateAdmin,
   getAdminDetails,
   sendAdminInvitation,
-  // useAdminUser,
   DISABLE_NONLOGIN_APIS,
   usePlans,
   deletePlan,
+  useUpdatePlan,
 } from './api'
 import { getColumns } from './columns'
 import CreatePlan from './create'
@@ -41,6 +40,11 @@ export default function Plans() {
   const [userName, setUserName] = useState('')
   const [userId, setUserId] = useState('')
   const [openConfirm, setOpenConfirm] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<string>('')
+  const [searchInput, setSearchInput] = useState<string>(
+    (useAdminUserFilterStore.getState().pageParams?.search as string) || ''
+  )
+  const { mutate: updatePlanMutate } = useUpdatePlan()
 
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
@@ -49,26 +53,16 @@ export default function Plans() {
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
-  // const { page, per_page, search, ordering, filters } = pageParams
-  // const searchParams = {
-  //   page: page,
-  //   per_page: per_page,
-  //   search: search,
-  //   ordering: ordering,
-  //   ...filters,
-  // }
-
   const { page, per_page, search, ordering } = pageParams
   const searchParams = {
     page,
     per_page: Number(per_page ?? 10),
     search,
     ordering,
-    // limit: Number(per_page ?? 10),
+    ...(statusFilter !== '' ? { active: statusFilter } : {}),
   }
 
   const handleEditPlan = (row: any) => {
-    // Open drawer in edit mode with row data
     setRowData({ plan: row })
     setEdit(true)
     setViewMode(false)
@@ -85,6 +79,26 @@ export default function Plans() {
         variant: 'error',
       })
     }
+  }
+  const getPlanId = (row: any) =>
+    row?.id ?? row?.plan_id ?? row?._id ?? row?.uuid ?? row?.plan?.id
+  const handleToggleStatus = async (row: any) => {
+    console.log(row)
+    const v = row?.active
+    const isActive =
+      (typeof v === 'boolean' && v === true) ||
+      (typeof v === 'number' && v === 1) ||
+      (typeof v === 'string' &&
+        (v === '1' ||
+          v.toLowerCase() === 'true' ||
+          v.toLowerCase() === 'active'))
+    const nextActiveFlag = !isActive
+    const resolvedId = getPlanId(row)
+    if (resolvedId == null) return
+    updatePlanMutate({
+      id: resolvedId,
+      payload: { plan: { active: nextActiveFlag } },
+    })
   }
   const { data, isFetching } = usePlans(searchParams)
   const queryClient = useQueryClient()
@@ -141,12 +155,22 @@ export default function Plans() {
     })
   }
 
-  // const handleDeleteModel = (id: string, username: string, status: string) => {
-  //   setDeleteItem(id)
-  //   setDeleteModal(true)
-  //   setUserName(username)
-  //   setStatus(status)
-  // }
+  // Debounce the search input updates
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (searchInput !== (pageParams?.search || '')) {
+        handleSeach(searchInput)
+      }
+    }, 300)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput])
+
+  // Keep local input in sync if store search changes elsewhere
+  useEffect(() => {
+    setSearchInput(pageParams?.search || '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageParams?.search])
 
   const handleSendInvitation = () => {
     setloader(true)
@@ -198,21 +222,6 @@ export default function Plans() {
         )
       })
   }
-  // const handleEdit = async (rowData: any) => {
-  //   if (rowData?.user?.id) {
-  //     const data = await getAdminDetails(rowData?.user?.id)
-  //     setRowData(data)
-  //     setCreateOpen(true)
-  //     setViewMode(false)
-  //     setEdit(true)
-  //   }
-  // }
-  // const handleAction = () => {
-  //   setCreateOpen(true)
-  //   setRowData({})
-  //   setEdit(false)
-  //   setViewMode(false)
-  // }
   const handleClose = () => {
     setCreateOpen(false)
     setViewMode(false)
@@ -246,15 +255,6 @@ export default function Plans() {
       ordering: getSortedColumnName(orderColumn, orderDirection),
     })
   }
-  // const handleResetPassword = (userId: string, username: string) => {
-  //   setChangePassword(true)
-  //   setUserId(userId)
-  //   setUserName(username)
-  // }
-  // const handleOpenInvitation = (id: any) => {
-  //   setDeleteItem(id)
-  //   setOpenConfirm(true)
-  // }
   return (
     <div>
       {DISABLE_NONLOGIN_APIS ? (
@@ -269,13 +269,51 @@ export default function Plans() {
             actionProps={headerProps}
             checkPermission={checkPermissions('Employee', 'create')}
           />
-          {/* <PageTitle data={data?.total} isLoading={isFetching} /> */}
           <div className=" p-4">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="flex-1 max-w-sm">
+                <label className="text-xs text-gray-600 mb-3">Search</label>
+                <SearchInput
+                  placeholder="Search plans"
+                  searchValue={searchInput}
+                  handleChange={(val?: string) => setSearchInput(val ?? '')}
+                  handleSearch={(val?: string) => handleSeach(val ?? '')}
+                />
+              </div>
+
+              <div className="w-56 flex flex-col ">
+                <label className="text-xs text-gray-600">Status</label>
+                <select
+                  className="textfield mt-1"
+                  value={statusFilter}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    setStatusFilter(v)
+                    setPageParams({ ...pageParams, page: 1 })
+                  }}
+                >
+                  <option value="">All</option>
+                  <option value="true">Active</option>
+                  <option value="false">Inactive</option>
+                </select>
+              </div>
+            </div>
             <QbsTable
-              data={data?.plans ?? []}
+              data={(data?.plans ?? []).filter((row: any) => {
+                if (statusFilter === '') return true
+                const v = row?.active
+                const isActive =
+                  (typeof v === 'boolean' && v === true) ||
+                  (typeof v === 'number' && v === 1) ||
+                  (typeof v === 'string' &&
+                    (v === '1' ||
+                      v.toLowerCase() === 'true' ||
+                      v.toLowerCase() === 'active'))
+                return statusFilter === 'true' ? isActive : !isActive
+              })}
               dataRowKey="id"
               toolbar={true}
-              search={true}
+              search={false}
               isLoading={isFetching}
               sortType={pageParams.sortType}
               sortColumn={pageParams.sortColumn}
@@ -321,6 +359,36 @@ export default function Plans() {
                   toolTip: 'Edit',
                 },
                 {
+                  title: 'Deactivate',
+                  action: (row: any) => handleToggleStatus(row),
+                  icon: <Icons name="deactivate-icon" />,
+                  toolTip: 'Deactivate',
+                  hide: (row: any) => {
+                    const v = row?.active
+                    const isActive =
+                      (typeof v === 'boolean' && v === true) ||
+                      (typeof v === 'number' && v === 1) ||
+                      (typeof v === 'string' &&
+                        (v === '1' || v.toLowerCase() === 'true'))
+                    return !isActive
+                  },
+                },
+                {
+                  title: 'Activate',
+                  action: (row: any) => handleToggleStatus(row),
+                  icon: <Icons name="activate-icon" />,
+                  toolTip: 'Activate',
+                  hide: (row: any) => {
+                    const v = row?.active
+                    const isActive =
+                      (typeof v === 'boolean' && v === true) ||
+                      (typeof v === 'number' && v === 1) ||
+                      (typeof v === 'string' &&
+                        (v === '1' || v.toLowerCase() === 'true'))
+                    return isActive
+                  },
+                },
+                {
                   icon: <Icons name="delete" />,
                   action: (row: any) => handleDeletePlan(row),
                   title: 'delete',
@@ -332,10 +400,6 @@ export default function Plans() {
               asyncSearch
               handleSearchValue={(key?: string) => handleSeach(key)}
               columnToggle
-              //       className="bg-primary"
-              //     />
-              //   </div>
-              // }
             />
           </div>
 

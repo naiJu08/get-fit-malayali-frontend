@@ -7,6 +7,7 @@ import {
   updateFromData,
   deleteData,
   updateData,
+  patchData,
 } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import { QueryParams } from '../../common/types'
@@ -48,8 +49,36 @@ export const createPlan = (payload: any) => {
 export const updatePlan = (id: string | number, payload: any) => {
   return updateData(`${apiUrl.PLANS}/${id}`, payload)
 }
+export const patchPlan = (id: string | number, payload: any) => {
+  return patchData(`${apiUrl.PLANS}/${id}`, payload)
+}
 export const deletePlan = (id: string | number) => {
   return deleteData(`${apiUrl.PLANS}/${id}`)
+}
+
+// Tries multiple endpoints to update only the status to avoid 404s across environments
+export const updatePlanStatus = async (
+  id: string | number,
+  activeValue: boolean
+) => {
+  // 1) Preferred: PUT /plans/:id with nested payload (boolean)
+  try {
+    return await updateData(`${apiUrl.PLANS}/${id}`, {
+      plan: { active: activeValue },
+    })
+  } catch (err: any) {
+    // 2) Fallback: PUT /plans/:id/status with flat boolean payload
+    try {
+      return await updateData(`${apiUrl.PLANS}/${id}/status`, {
+        active: activeValue,
+      })
+    } catch (err2: any) {
+      // 3) Fallback: PUT /plans/:id/active with flat boolean payload
+      return await updateData(`${apiUrl.PLANS}/${id}/active`, {
+        active: activeValue,
+      })
+    }
+  }
 }
 export const useCreatePlan = () => {
   const { enqueueSnackbar } = useSnackbarManager()
