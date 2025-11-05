@@ -35,6 +35,16 @@ export const useSubscriptions = (input: QueryParams) => {
 
 export const getSubscriptionDetails = (id: string) =>
   getData(`${apiUrl.SUBSCRIPTIONS}/${id}`)
+
+export const useSubscriptionDetails = (id?: string, enabled = true) => {
+  return useQuery(
+    ['subscription_details', id],
+    () => getSubscriptionDetails(id as string),
+    {
+      enabled: !!id && enabled && !DISABLE_NONLOGIN_APIS,
+    }
+  )
+}
 export const createSubscription = (input: any) =>
   postData(`${apiUrl.SUBSCRIPTIONS}`, input)
 export const updateSubscription = ({ id, data }: any) =>

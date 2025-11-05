@@ -21,7 +21,6 @@ const ORGANISATION_DATATABLES = 'datatable'
 const ACCREDITATION_LIST_URL = 'accreditations'
 const RENEW_APPLICATION = 'renew-accreditations'
 const WORKOUTS = 'workouts'
-const SUBSCRIPTIONS = 'subscriptions'
 const ASSIGNED_CLIENTS = 'assigned_clients'
 
 const apiUrl: { [key: string]: string } = {
@@ -45,7 +44,6 @@ const apiUrl: { [key: string]: string } = {
   ACCREDITATION_LIST_URL,
   RENEW_APPLICATION,
   WORKOUTS,
-  SUBSCRIPTIONS,
   ASSIGNED_CLIENTS,
 }
 

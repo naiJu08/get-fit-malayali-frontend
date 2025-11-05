@@ -10,6 +10,7 @@ import ChildRoute from './components/childRoute'
 // import ChildRoute from './components/childRoute'
 import GuestRoute from './components/guestRoute'
 import UserRoute from './components/userRoute'
+import SubscriptionDetailsMain from '../pages/Subscriptions/Details'
 // Users sample page is no longer used for the Users route; using AdminUser instead
 
 const Login = lazy(() => import('../pages/userManagement/login'))
@@ -19,7 +20,6 @@ const ForgetPassword = lazy(
 
 const AdminUser = lazy(() => import('../pages/AdminUser'))
 const Subscriptions = lazy(() => import('../pages/Subscriptions'))
-// const SubscriptionDetails = lazy(() => import('../pages/Subscriptions/Details'))
 const Workout = lazy(() => import('../pages/Workout'))
 const Plans = lazy(() => import('../pages/Plans'))
 const PlanDetails = lazy(() => import('../pages/Plans/Details/index'))
@@ -54,7 +54,7 @@ const routes: any = [
   { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
   { slug: 'RECIPE', component: <Recipe /> },
   { slug: 'SUBSCRIPTIONS', component: <Subscriptions /> },
-  // { slug: 'SUBSCRIPTIONS_DETAILS', component: <SubscriptionDetails /> },
+  { slug: 'SUBSCRIPTIONS_DETAILS', component: <SubscriptionDetailsMain /> },
   { slug: 'DISCOUNT_SAMPLE', component: <Discount /> },
   { slug: 'PAYMENT_SAMPLE', component: <Payment /> },
   { slug: 'EXPORT_SAMPLE', component: <ExportPage /> },
@@ -169,14 +169,14 @@ export default function MainRoutes() {
         }
         path="/subscriptions"
       />
-      {/* <Route
+      <Route
         element={
           <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
-            <SubscriptionDetails />
+            <SubscriptionDetailsMain />
           </UserRoute>
         }
         path="/subscriptions/:id"
-      /> */}
+      />
       <Route
         element={
           <UserRoute slug_key="DISCOUNT_SAMPLE">
