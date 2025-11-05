@@ -7,7 +7,7 @@ import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserS
 import { getSortedColumnName } from '../../../../utilities/parsers'
 import ListingHeader from '../../../../components/common/ListingTiles'
 import WorkoutPlanForm from './create'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 export default function WorkoutPlanIndex({
   planName,
@@ -17,6 +17,8 @@ export default function WorkoutPlanIndex({
   planId?: string | number
 }) {
   const navigate = useNavigate()
+  const { id: routePlanId } = useParams()
+  const effectivePlanId = planId ?? routePlanId
 
   const [columns] = useState<TableColumns[]>([
     {
@@ -87,7 +89,7 @@ export default function WorkoutPlanIndex({
     per_page: Number(per_page ?? 10),
     search,
     ordering,
-    plan_id: planId,
+    plan_id: effectivePlanId,
   }
 
   const { data, isFetching } = useWorkoutPlans(searchParams)
@@ -97,7 +99,7 @@ export default function WorkoutPlanIndex({
   const openEdit = (row: any) => {
     setFormValues({
       id: row?.id,
-      plan_id: row?.plan_id ?? planId,
+      plan_id: row?.plan_id ?? effectivePlanId,
       day_number: row?.day_number ?? '',
       title: row?.title ?? '',
       description: row?.description ?? '',

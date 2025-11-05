@@ -6,7 +6,7 @@ import { useDietPlans } from './api'
 import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../../../utilities/parsers'
 import ListingHeader from '../../../../components/common/ListingTiles'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import DietPlanForm from './create'
 
 export default function DietPlanIndex({
@@ -17,6 +17,8 @@ export default function DietPlanIndex({
   planId?: string | number
 }) {
   const navigate = useNavigate()
+  const { id: routePlanId } = useParams()
+  const effectivePlanId = planId ?? routePlanId
   const [columns] = useState<TableColumns[]>([
     // {
     //   title: 'Plan',
@@ -101,7 +103,7 @@ export default function DietPlanIndex({
     per_page: Number(per_page ?? 10),
     search,
     ordering,
-    plan_id: planId,
+    plan_id: effectivePlanId,
   }
 
   const { data, isFetching } = useDietPlans(searchParams)
@@ -111,7 +113,7 @@ export default function DietPlanIndex({
   const openEdit = (row: any) => {
     setFormValues({
       id: row?.id,
-      plan_id: row?.plan_id ?? planId,
+      plan_id: row?.plan_id ?? effectivePlanId,
       day_number: row?.day_number ?? '',
       sequence_number: row?.sequence_number ?? '',
       meal_time: row?.meal_time ?? '',
