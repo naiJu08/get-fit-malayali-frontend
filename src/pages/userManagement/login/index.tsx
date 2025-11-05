@@ -45,6 +45,9 @@ export default function Login() {
     } else if (domainType === 'Organisation') {
       setLogText('Signatory Login')
       setSubText('Sign and manage organizational documents securely.')
+    } else if (domainType === 'Nutritionist') {
+      setLogText('Nutritionist Login')
+      setSubText('Access nutrition plans and client management tools.')
     }
   }, [domainType])
 
