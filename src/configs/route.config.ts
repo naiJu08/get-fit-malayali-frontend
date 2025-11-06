@@ -407,6 +407,7 @@ const SUBSCRIPTIONS_DETAILS: RouterMenuProps = {
   permission_slugs: [],
 }
 
+// Plan Details base route
 const PLAN_DETAILS: RouterMenuProps = {
   id: 22,
   path: '/plans/:id',
@@ -416,7 +417,40 @@ const PLAN_DETAILS: RouterMenuProps = {
   label: 'Plan Details',
   key: 'Plan-details',
   permission_slugs: [],
-  // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
+}
+
+// Explicit alias (kept for consistency with existing slugs usage)
+const PLAN_DETAILS_DETAILS: RouterMenuProps = {
+  id: 221,
+  path: '/plans/:id',
+  parent_id: 21,
+  isDetails: true,
+  icon: 'user',
+  label: 'Plan Details',
+  key: 'plan-details-details',
+  permission_slugs: [],
+}
+
+const PLAN_DETAILS_WORKOUT: RouterMenuProps = {
+  id: 222,
+  path: '/plans/:id/workout-plan',
+  parent_id: 21,
+  isDetails: true,
+  icon: 'user',
+  label: 'Plan Details - Workout',
+  key: 'plan-details-workout',
+  permission_slugs: [],
+}
+
+const PLAN_DETAILS_DIET: RouterMenuProps = {
+  id: 223,
+  path: '/plans/:id/dietplan',
+  parent_id: 21,
+  isDetails: true,
+  icon: 'user',
+  label: 'Plan Details - Diet',
+  key: 'plan-details-diet',
+  permission_slugs: [],
 }
 const RECIPE: RouterMenuProps = {
   id: 24,
@@ -479,6 +513,9 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   WORKOUT,
   PLANS,
   PLAN_DETAILS,
+  PLAN_DETAILS_DETAILS,
+  PLAN_DETAILS_WORKOUT,
+  PLAN_DETAILS_DIET,
   WORKOUT_PLAN_DETAILS,
   SUBSCRIPTIONS_DETAILS,
   DIET_DETAILS,

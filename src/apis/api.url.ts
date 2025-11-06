@@ -1,7 +1,6 @@
 const LOGIN_URL = 'auth/login'
 const ASSESSOR_LIST_URL = 'assessors'
 const ADMIN_USER = '/users'
-const SUBSCRIPTIONS = '/subscriptions'
 const NOTIFICATIONS = '/notifications'
 const NOTIFICATIONS_SENT = '/notifications?scope=sent&aggregate=true'
 const PLANS = 'plans'

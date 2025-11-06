@@ -1,13 +1,14 @@
 // import moment from 'moment'
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { usePlan } from '../api'
 import Icons from '../../../components/common/icons'
 import InfoBox from '../../../components/app/alertBox/infoBox'
-import TabContainer from '../../../components/common/tab/TabContainer'
+// import TabContainer from '../../../components/common'
+import Tab from '../../../components/common/tab/Tab'
 import { TabItemProps } from '../../../common/types'
 import WorkoutPlanIndex from './WorkoutPlan'
 import DietPlanIndex from './DietPlan'
+import { TabContainer } from '../../../components/common'
 
 function DetailItem({ label, value }: { label: string; value: any }) {
   return (
@@ -18,9 +19,8 @@ function DetailItem({ label, value }: { label: string; value: any }) {
   )
 }
 
-function DetailsSection(props: { plan: any; activeTab?: string | number }) {
-  const { plan, activeTab } = props
-  if (activeTab !== 'details') return null
+function DetailsSection(props: { plan: any }) {
+  const { plan } = props
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <DetailItem label="Name" value={plan?.name} />
@@ -45,23 +45,13 @@ function DetailsSection(props: { plan: any; activeTab?: string | number }) {
     </div>
   )
 }
-function WorkoutTab(props: {
-  activeTab?: string | number
-  planName?: string
-  planId?: string | number
-}) {
-  const { activeTab, planName, planId } = props
-  if (activeTab !== 'workout details') return null
+function WorkoutTab(props: { planName?: string; planId?: string | number }) {
+  const { planName, planId } = props
   return <WorkoutPlanIndex planName={planName} planId={planId} />
 }
 
-function DietTab(props: {
-  activeTab?: string | number
-  planName?: string
-  planId?: string | number
-}) {
-  const { activeTab, planName, planId } = props
-  if (activeTab !== 'diet details') return null
+function DietTab(props: { planName?: string; planId?: string | number }) {
+  const { planName, planId } = props
   return <DietPlanIndex planName={planName} planId={planId} />
 }
 
@@ -76,12 +66,10 @@ export default function PlanDetails() {
 function PlanDetailsContent() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { data, isLoading, isError, error } = usePlan(id as string)
 
   const plan = (data as any)?.plan ?? (data as any) ?? {}
-  const [activeTab, setActiveTab] = useState<
-    'details' | 'workout details' | 'diet details'
-  >('details')
 
   // Only Details tab
   const tabs: TabItemProps[] = [
@@ -89,6 +77,19 @@ function PlanDetailsContent() {
     { id: 'workout details', label: 'Workout Plan' },
     { id: 'diet details', label: 'Diet Plan' },
   ]
+
+  // Derive tab from URL (robust to trailing slashes)
+  const path = location.pathname || ''
+  const trimmed = path.replace(/\/+$/, '')
+  const parts = trimmed.split('/')
+  const lastSegment = parts[parts.length - 1]
+  const derivedTab =
+    lastSegment === 'workout-plan'
+      ? 'workout details'
+      : lastSegment === 'dietplan'
+        ? 'diet details'
+        : 'details'
+  const activeTab = derivedTab as 'details' | 'workout details' | 'diet details'
 
   return (
     <div>
@@ -105,11 +106,23 @@ function PlanDetailsContent() {
         <TabContainer
           data={tabs}
           activeTab={activeTab}
-          onClick={(item) => setActiveTab(item.id as any)}
+          onClick={(item) => {
+            const base = `/plans/${id}`
+            if (item.id === 'details') navigate(base)
+            else if (item.id === 'workout details')
+              navigate(`${base}/workout-plan`)
+            else if (item.id === 'diet details') navigate(`${base}/dietplan`)
+          }}
         >
-          <DetailsSection plan={plan} />
-          <WorkoutTab planName={plan?.name} planId={id} />
-          <DietTab planName={plan?.name} planId={id} />
+          <Tab id="details">
+            <DetailsSection plan={plan} />
+          </Tab>
+          <Tab id="workout details">
+            <WorkoutTab planName={plan?.name} planId={id} />
+          </Tab>
+          <Tab id="diet details">
+            <DietTab planName={plan?.name} planId={id} />
+          </Tab>
         </TabContainer>
       </div>
 

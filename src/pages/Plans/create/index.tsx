@@ -200,19 +200,9 @@ export default function CreatePlan({
   const { mutate: updatePlanMutate } = useUpdatePlan()
   const queryClient = useQueryClient()
   const onSubmit = (values: PlanSchema | any) => {
-    // Normalize checkbox to strict boolean
-    const toBool = (v: any) => {
-      if (typeof v === 'boolean') return v
-      if (typeof v === 'number') return v === 1
-      if (typeof v === 'string') {
-        const s = v.trim().toLowerCase()
-        if (s === 'true' || s === '1' || s === 'on' || s === 'yes') return true
-        if (s === 'false' || s === '0' || s === 'off' || s === 'no' || s === '')
-          return false
-      }
-      return !!v
-    }
-    const payload = { plan: { ...values, active: toBool(values?.active) } }
+    // Do not send status from the form; backend will use its default or preserve existing
+    // const { active: _omitActive, ...rest } = values || {}
+    const payload = { plan: { ...values } }
     if (edit && rowData?.plan?.id) {
       updatePlanMutate(
         { id: rowData.plan.id, payload },
@@ -235,8 +225,6 @@ export default function CreatePlan({
         category: rowData?.plan?.category ?? '',
         description: rowData?.plan?.description ?? '',
         duration_days: rowData?.plan?.duration_days ?? 0,
-        // Keep boolean in form state
-        active: !!rowData?.plan?.active,
       })
     } else if (isDrawerOpen && !edit) {
       reset({
@@ -244,8 +232,6 @@ export default function CreatePlan({
         category: '',
         description: '',
         duration_days: 0,
-        // Default active to true so UI shows Active
-        active: true,
       })
     }
   }, [isDrawerOpen, edit, rowData, reset])
@@ -284,22 +270,7 @@ export default function CreatePlan({
         true
       ),
     },
-    {
-      name: 'active',
-      label: 'Status',
-      type: 'custom_select',
-      // map selection using desc: 'value' to pass the label to the control while keeping boolean in state
-      desc: 'value',
-      descId: 'id',
-      id: 'active_id',
-      placeholder: 'Select status',
-      initialLoad: 'Active',
-      data: [
-        { id: 'active', name: 'Active', value: 'Active' },
-        { id: 'inactive', name: 'Inactive', value: 'Inactive' },
-      ],
-      required: true,
-    },
+    // Status removed from creation form; status changes are handled via listing action
   ]
 
   // const onSubmit = (data: PlanSchema) => {
