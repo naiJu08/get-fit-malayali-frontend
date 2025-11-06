@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Icons from '../components/common/icons'
 import { useLayoutStore } from '../store/layoutStore'
 import { sidebarList } from './store'
+import { useAuthStore } from '../store/authStore'
 
 import './layout.css'
 
@@ -28,6 +29,13 @@ export default function Sidenav() {
   }
 
   const { pathname } = useLocation()
+  const roleName = (useAuthStore.getState().roleData?.name || '').toLowerCase()
+  const visibleItems = sidebarList.filter((item) => {
+    if (item.path === '/clients') {
+      return roleName === 'nutritionist'
+    }
+    return true
+  })
 
   const verifyChildLink = (childItem: any) => {
     return childItem.find((a: any) => a.path === pathname) ? true : false
@@ -68,7 +76,7 @@ export default function Sidenav() {
               </div>
             </li> */}
 
-          {sidebarList.map((item, index) => (
+          {visibleItems.map((item, index) => (
             <li key={item.id}>
               <Link
                 to={item.path || pathname}

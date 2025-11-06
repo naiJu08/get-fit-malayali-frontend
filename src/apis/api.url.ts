@@ -13,7 +13,7 @@ const ORGANISATION_LIST_URL = 'organisations'
 const ORGANISATION_URL = 'organisation'
 const MY_PROFILE = 'profile'
 const MY_PROFILE_IMAGE = 'profile-image'
-
+const SUBSCRIPTIONS = 'subscriptions'
 const COUNTRIES = 'countries'
 const ORGANISATION_DATATABLES = 'datatable'
 
@@ -21,6 +21,7 @@ const ACCREDITATION_LIST_URL = 'accreditations'
 const RENEW_APPLICATION = 'renew-accreditations'
 const WORKOUTS = 'workouts'
 const ASSIGNED_CLIENTS = 'assigned_clients'
+const CLIENTS = '/users/my_clients'
 
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
@@ -44,6 +45,7 @@ const apiUrl: { [key: string]: string } = {
   RENEW_APPLICATION,
   WORKOUTS,
   ASSIGNED_CLIENTS,
+  CLIENTS,
 }
 
 export default apiUrl

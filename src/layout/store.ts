@@ -82,20 +82,27 @@ export const sidebarList: SidebarItem[] = [
     value: 12,
     path: '/payment',
   },
-  {
-    id: 8,
-    icon: 'export-icon',
-    name: 'Exports',
-    value: 32,
-    divider: true,
-    path: '/export',
-  },
+  // {
+  //   id: 8,
+  //   icon: 'export-icon',
+  //   name: 'Exports',
+  //   value: 32,
+  //   divider: true,
+  //   path: '/export',
+  // },
   {
     id: 9,
     icon: 'support-icon',
     name: 'Support & Requests',
     value: 12,
     path: '/support',
+  },
+  {
+    id: 11,
+    icon: 'customer-icon',
+    name: 'Clients',
+    value: 19,
+    path: '/clients',
   },
 ]
 

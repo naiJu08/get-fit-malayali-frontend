@@ -453,6 +453,16 @@ const RECIPE: RouterMenuProps = {
   isSidebarMenu: true,
 }
 
+const CLIENTS: RouterMenuProps = {
+  id: 30,
+  path: '/clients',
+  parent_id: null,
+  label: 'Clients',
+  key: 'clients',
+  permission_slugs: [],
+  isSidebarMenu: true,
+}
+
 const WORKOUT_PLAN_DETAILS: RouterMenuProps = {
   id: 26,
   path: '/workout_details/:id',
@@ -510,6 +520,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   SUBSCRIPTIONS_DETAILS,
   DIET_DETAILS,
   RECIPE,
+  CLIENTS,
   ASSESSOR,
   ORGANISATION,
   ORGANISATION_DETAILS,
