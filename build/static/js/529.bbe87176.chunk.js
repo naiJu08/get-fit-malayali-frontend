@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkdiversity_mark_reactjs_admin_portal=self.webpackChunkdiversity_mark_reactjs_admin_portal||[]).push([[529],{2529:(e,s,a)=>{a.r(s),a.d(s,{default:()=>r});var t=a(7929);function r(){return(0,t.jsxs)("div",{className:"p-6",children:[(0,t.jsx)("h1",{className:"text-2xl font-bold mb-2 text-primaryText",children:"Exports"}),(0,t.jsx)("p",{className:"text-neutral-600",children:"This is a sample Exports page."})]})}}}]);
+//# sourceMappingURL=529.bbe87176.chunk.js.map
