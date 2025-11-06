@@ -1,117 +1,152 @@
-import { getData, postData } from '../../apis/api.helpers'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import {
+  getData,
+  postData,
+  updateFromData,
+  deleteData,
+} from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
-import { useEffect, useMemo, useState } from 'react'
+import { QueryParams } from '../../common/types'
+import { parseQueryParams } from '../../utilities/parsers'
+import { useSnackbarManager } from '../../components/common/snackbar'
+import { getErrorMessage } from '../../utilities/parsers'
 
-export type CreateNotificationPayload = {
-  notification: {
-    user_ids: number[]
-    title: string
-    message: string
-    notification_type: string
-    scheduled_at?: string
-  }
-}
+export const DISABLE_NONLOGIN_APIS = false
 
-export const createNotification = (payload: CreateNotificationPayload) =>
-  postData(apiUrl.NOTIFICATIONS, payload)
-
-export const searchUsers = async (search: string, page = 1, per_page = 20) => {
-  const params = new URLSearchParams()
-  if (search) params.set('search', search)
-  params.set('page', String(page))
-  params.set('per_page', String(per_page))
-  const url = `${apiUrl.ADMIN_USER}?${params.toString()}`
-  const res = await getData(url)
-  const items: any[] = Array.isArray(res) ? res : res?.items || res?.users || []
-  const total = res?.meta?.total_count ?? items.length
-  return { items, total }
-}
-
-export type NotificationItem = {
-  id: number | string
-  title: string
-  message: string
-  notification_type: string
-  is_read?: boolean
-  sent_by?: string
-  scheduled_at?: string | null
-  delivered_at?: string | null
-  created_at?: string
-}
-
-export type UseNotificationsParams = {
-  page?: number
-  per_page?: number
-  search?: string
-  ordering?: string
-}
-
-export function useNotifications({
-  page = 1,
-  per_page = 10,
-  search = '',
-  ordering = '',
-}: UseNotificationsParams) {
-  const [items, setItems] = useState<NotificationItem[]>([])
-  const [total, setTotal] = useState<number>(0)
-  const [currentPage, setCurrentPage] = useState<number>(page)
-  const [isFetching, setIsFetching] = useState<boolean>(false)
-  const [error, setError] = useState<any>(null)
-
-  const params = useMemo(() => {
-    const usp = new URLSearchParams()
-    usp.set('page', String(page))
-    usp.set('per_page', String(per_page))
-    if (search) usp.set('search', search)
-    if (ordering) usp.set('ordering', ordering)
-    return usp
-  }, [page, per_page, search, ordering])
-
-  const fetchData = async () => {
-    setIsFetching(true)
-    setError(null)
-    try {
-      const url = `${apiUrl.NOTIFICATIONS_LIST}?${params.toString()}`
-      const res: any = await getData(url)
-      const dataArr: any[] = Array.isArray(res)
-        ? res
-        : res?.notifications || res?.items || res?.data || []
-      const mapped: NotificationItem[] = dataArr.map((n: any) => ({
-        id: n?.id,
-        title: n?.title,
-        message: n?.message,
-        notification_type: n?.notification_type,
-        is_read: n?.is_read,
-        sent_by: n?.sent_by,
-        scheduled_at: n?.scheduled_at,
-        delivered_at: n?.delivered_at,
-        created_at: n?.created_at,
-      }))
-      setItems(mapped)
-      setTotal(
-        res?.count ?? res?.total ?? res?.meta?.total_count ?? mapped.length
-      )
-      setCurrentPage(res?.current_page ?? page)
-    } catch (err) {
-      setError(err)
-      setItems([])
-      setTotal(0)
-    } finally {
-      setIsFetching(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.toString()])
-
+const fetchData = async (input: QueryParams) => {
+  const base =
+    apiUrl.NOTIFICATIONS_SENT || '/notifications?scope=sent&aggregate=true'
+  const join = base.includes('?') ? '&' : '?'
+  const url = `${base}${join}${parseQueryParams(input).replace(/^\?/, '')}`
+  const response = await getData(url)
+  const items =
+    response?.notifications_overview ||
+    response?.notifications ||
+    response?.items ||
+    []
+  const meta = response?.meta || {}
   return {
     items,
-    total,
-    current_page: currentPage,
-    isFetching,
-    error,
-    refetch: fetchData,
+    total: response?.count ?? meta?.total_count ?? items.length ?? 0,
+    total_pages: meta?.total_pages ?? 1,
+    current_page: meta?.current_page ?? 1,
   }
 }
+
+export const useSubscriptions = (input: QueryParams) => {
+  return useQuery(['subscription_list', input], () => fetchData(input), {
+    enabled: !DISABLE_NONLOGIN_APIS,
+  })
+}
+
+export const getSubscriptionDetails = (id: string) =>
+  getData(`${apiUrl.SUBSCRIPTIONS}/${id}`)
+
+export const useSubscriptionDetails = (id?: string, enabled = true) => {
+  return useQuery(
+    ['subscription_details', id],
+    () => getSubscriptionDetails(id as string),
+    {
+      enabled: !!id && enabled && !DISABLE_NONLOGIN_APIS,
+    }
+  )
+}
+export const createSubscription = (input: any) =>
+  postData(`${apiUrl.SUBSCRIPTIONS}`, input)
+export const updateSubscription = ({ id, data }: any) =>
+  updateFromData(`${apiUrl.SUBSCRIPTIONS}/${id}`, data)
+export const deleteSubscription = (id?: string) =>
+  deleteData(`${apiUrl.SUBSCRIPTIONS}/${id}`)
+
+export const freezeSubscription = (
+  id: string,
+  payload?: { reason?: string; start_date?: string; end_date?: string }
+) => postData(`${apiUrl.SUBSCRIPTIONS}/${id}/freeze`, payload ?? {})
+
+export const unfreezeSubscription = (id: string) =>
+  postData(`${apiUrl.SUBSCRIPTIONS}/${id}/unfreeze`, {})
+
+// Aliases to match AdminUser module API names so copied components work without refactor
+export const useAdminUser = (input: QueryParams) => useSubscriptions(input)
+export const getAdminDetails = (id: string) => getSubscriptionDetails(id)
+export const deActivateAdmin = (id?: string) =>
+  updateFromData(`${apiUrl.SUBSCRIPTIONS}/${id}/status`, {})
+export const deleteAdmin = (id?: string) => deleteSubscription(id)
+export const freezeUser = (
+  id: string,
+  payload?: { reason?: string; start_date?: string; end_date?: string }
+) => freezeSubscription(id, payload)
+export const unfreezeUser = (id: string) => unfreezeSubscription(id)
+
+export const createAdmin = (input: any) => createSubscription(input)
+
+export const updateTask = ({ id, data }: any) =>
+  updateSubscription({ id, data })
+
+export const useCreateAdmin = (handleSubmission: (data: any) => void) => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  return useMutation(createAdmin, {
+    onSuccess: (res: any) => {
+      handleSubmission(res?.data)
+      enqueueSnackbar('Subscription created successfully', {
+        variant: 'success',
+      })
+    },
+    onError: (error: any) => {
+      enqueueSnackbar(
+        getErrorMessage(
+          error?.response?.data?.error || error?.response?.data?.detail
+        ),
+        { variant: 'error' }
+      )
+    },
+  })
+}
+
+// Notifications create
+export const createNotification = (payload: any) =>
+  postData(apiUrl.NOTIFICATIONS, payload)
+
+export const useCreateNotification = (onSuccess: (res: any) => void) => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  return useMutation(createNotification, {
+    onSuccess: (res: any) => {
+      enqueueSnackbar('Notification created successfully', {
+        variant: 'success',
+      })
+      onSuccess(res)
+    },
+    onError: (error: any) => {
+      enqueueSnackbar(
+        getErrorMessage(
+          error?.response?.data?.error || error?.response?.data?.detail
+        ),
+        { variant: 'error' }
+      )
+    },
+  })
+}
+
+export const useUpdateAdmin = (handleSubmission: (data: any) => void) => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  return useMutation(updateTask, {
+    onSuccess: (res: any) => {
+      handleSubmission(res?.data)
+      enqueueSnackbar('Details updated successfully', { variant: 'success' })
+    },
+    onError: (error: any) => {
+      enqueueSnackbar(
+        error?.response?.data?.detail
+          ? getErrorMessage(error?.response?.data?.detail)
+          : error?.response?.data?.message,
+        { variant: 'error' }
+      )
+    },
+  })
+}
+
+export const getRoles = () => Promise.resolve({ items: [], total: 0 })
+export const updatePassword = (id: string, data: string) =>
+  updateFromData(`${apiUrl.SUBSCRIPTIONS}/${id}/change_password`, data)
+export const sendAdminInvitation = (id?: string) =>
+  postData(`${apiUrl.SUBSCRIPTIONS}/${id}/invite`, {})
