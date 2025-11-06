@@ -1,4 +1,4 @@
-import { QbsTable } from 'qbs-react-grid'
+import SmartTable from '../../components/common/table/SmartTable'
 import { AutoComplete } from 'qbs-core'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -60,6 +60,7 @@ export default function Notifications() {
     end_date: '',
   })
   const [unfreezeConfirm, setUnfreezeConfirm] = useState(false)
+  const [searchDebounce, setSearchDebounce] = useState<any>(null)
 
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
@@ -244,6 +245,9 @@ export default function Notifications() {
   }
 
   const { data, refetch, isFetching } = useAdminUser(searchParams)
+  useEffect(() => {
+    refetch()
+  }, [page, page_size, search, ordering, JSON.stringify(filters)])
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,
@@ -465,16 +469,24 @@ export default function Notifications() {
             }
           />
           <div className=" p-4">
-            <QbsTable
+            <SmartTable
               data={data?.items ?? []}
               dataRowKey="id"
               toolbar={true}
-              search={false}
               height={
                 data?.items?.length === 0
                   ? calcWindowHeight(218)
-                  : calcWindowHeight(300)
+                  : calcWindowHeight(200)
               }
+              search={true}
+              searchValue={pageParams.search || ''}
+              onSearchChange={(val) => {
+                setPageParams({ ...pageParams, search: val, page: 1 })
+                if (searchDebounce) clearTimeout(searchDebounce)
+                const t = setTimeout(() => refetch(), 300)
+                setSearchDebounce(t)
+              }}
+              onSearch={() => refetch()}
               isLoading={isFetching}
               sortType={pageParams.sortType}
               sortColumn={pageParams.sortColumn}
@@ -483,21 +495,18 @@ export default function Notifications() {
               emptySubTitle={''}
               columns={columns}
               pagination={true}
-              renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
-                return sortType === 'asc' ? (
-                  <Icons name="ascending-icon" />
-                ) : sortType === 'desc' ? (
-                  <Icons name="descending-icon" />
-                ) : (
-                  <Icons name="qbs-sort-icon" />
-                )
-              }}
               paginationProps={{
                 onPagination: onChangePage,
                 total: data?.total ?? 0,
-                currentPage: data?.current_page ?? pageParams?.page ?? 1,
+                currentPage: pageParams?.page ?? 1,
                 rowsPerPage: Number(pageParams?.page_size ?? 10),
                 onRowsPerPage: onChangeRowsPerPage,
+                totalPages: Math.max(
+                  1,
+                  Math.ceil(
+                    (data?.total ?? 0) / Number(pageParams?.page_size ?? 10)
+                  )
+                ),
                 dropOptions: [10, 20, 30, 50, 100],
               }}
               actionProps={[
@@ -546,7 +555,6 @@ export default function Notifications() {
                       ? false
                       : true,
                 },
-
                 {
                   title: 'Delete',
                   action: (rowData) => handleOpenDeleteUser(rowData?.id),
@@ -555,6 +563,7 @@ export default function Notifications() {
                 },
               ]}
               columnToggle
+              externalActions={true}
             />
           </div>
 

@@ -1,16 +1,16 @@
 import { useMemo } from 'react'
 
-export const parseQueryParams = (params = {}) => {
-  const length = Object.entries(params).length
-  if (!Object.entries(params).length) return ''
-  return Object.entries(params).reduce(
-    (acc, [key, value], i) =>
-      acc +
-      (value && value !== ''
-        ? `${key}=${value}${i !== length - 1 ? '&' : ''}`
-        : ''),
-    '?'
+export const parseQueryParams = (params: Record<string, any> = {}) => {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== '' && v !== undefined && v !== null
   )
+  if (!entries.length) return ''
+  const qs = entries
+    .map(
+      ([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`
+    )
+    .join('&')
+  return `?${qs}`
 }
 
 export const parseExpQueryParams = (params = {}) => {
