@@ -117,7 +117,7 @@ const NOTIFICATIONS: RouterMenuProps = {
   parent_id: null,
   label: 'Notifications',
   key: 'notifications',
-  permission_slugs: [],
+  permission_slugs: ['superadmin'],
   isSidebarMenu: true,
 }
 const PLANS: RouterMenuProps = {
