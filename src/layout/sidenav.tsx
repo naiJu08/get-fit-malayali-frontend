@@ -1,17 +1,29 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 
 import Icons from '../components/common/icons'
 import { useLayoutStore } from '../store/layoutStore'
-import { sidebarList } from './store'
-
+import { router_config } from '../configs/route.config'
 import './layout.css'
-
+import { useAuthStore } from '../store/authStore'
+import { RouterMenuProps } from '../configs/route.config'
+const generateArray = (m: {
+  [key: string]: RouterMenuProps
+}): RouterMenuProps[] => {
+  return Object.keys(m).map((k) => {
+    const obj = m[k]
+    return { ...obj, slug: k }
+  })
+}
 export default function Sidenav() {
   const [active, setActive] = useState<boolean>(false)
   const [activeIndex, setActiveIndex] = useState<number>(0)
   const { expand } = useLayoutStore()
   const navigate = useNavigate()
+  const { roleData } = useAuthStore()
+  const [sidebarList] = React.useState<RouterMenuProps[]>(
+    generateArray(router_config) as RouterMenuProps[]
+  )
   const navSubmenu = (index: number, item: any) => {
     setActive(!active)
     setActiveIndex(index)
@@ -22,19 +34,17 @@ export default function Sidenav() {
   // const [sideMenu, setSideMenu] = useState<RouterMenuProps[]>(
   //   generateArray()
   // )
-  const selectedSub = (index: number, item?: any) => {
-    // navigate(item?.path)
-    window.open(item.path, '_self')
-  }
+
+  // const activeMenuItem = sidebarList.find(
+  // (item) => item.path && pathname.startsWith(item.path)
+  // )
+  // const activeSlug = activeMenuItem ? activeMenuItem.slug : null
 
   const { pathname } = useLocation()
 
-  const verifyChildLink = (childItem: any) => {
-    return childItem.find((a: any) => a.path === pathname) ? true : false
+  const checkPermission = (item: any) => {
+    return item.permission_slugs?.some((pr: any) => pr === roleData?.name)
   }
-
-  // console.log(pathname)
-
   return (
     <div
       className={`sidenav -left-full border-t-0 sm:left-0 duration-300 h-full fixed z-20 border bg-primaryBlue ${!expand ? 'w-20' : 'w-[280px] '}`}
@@ -68,92 +78,108 @@ export default function Sidenav() {
               </div>
             </li> */}
 
-          {sidebarList.map((item, index) => (
-            <li key={item.id}>
-              <Link
-                to={item.path || pathname}
-                onClick={() => navSubmenu(index, item)}
-                className={`flex items-center gap-2.5 p-3 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 ${item.path === pathname ? 'bg-white/20 text-white' : 'text-white'}  ${!expand ? 'justify-center ' : ' justify-start'} ${active && activeIndex === index ? 'text-white' : ''}`}
-              >
-                <div
-                  className={`w-5 h-5 stroke-white group-hover:stroke-white ${item.path === pathname ? 'stroke-white' : ''}`}
-                >
-                  <Icons name={item.icon} />
-                </div>
+          {sidebarList.map((item, index) => {
+            if (!checkPermission(item)) {
+              return null
+            }
 
-                <span
-                  className={`text-common text-white group-hover:text-white ${item.path === pathname ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'}`}
+            /** Determine if menu item is active */
+            // const isActive =
+            //   activeSlug &&
+            //   (activeSlug === item?.slug ||
+            //     item?.slugOptions?.includes(activeSlug))
+            // const isActiveIndex = active && activeIndex === index
+            return (
+              <li key={item.id}>
+                <Link
+                  to={item.path || pathname}
+                  onClick={() => navSubmenu(index, item)}
+                  className={`flex items-center gap-2.5 p-3 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 ${item.path === pathname ? 'bg-white/20 text-white' : 'text-white'}  ${!expand ? 'justify-center ' : ' justify-start'} ${active && activeIndex === index ? 'text-white' : ''}`}
                 >
-                  {item.name}
-                </span>
-                {item.dropdown && (
                   <div
-                    className={`w-4 h-4 ms-auto text-white group-hover:text-white ${item.path === pathname ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'}`}
+                    className={`w-5 h-5 stroke-white group-hover:stroke-white ${item.path === pathname ? 'stroke-white' : ''}`}
                   >
-                    <Icons name="drop-arrow" />
+                    {item.icon ? (
+                      <Icons name={item.icon} />
+                    ) : (
+                      <Icons name="menu-list" />
+                    )}
                   </div>
-                )}
-              </Link>
 
-              {item.dropdown && (
-                <ul
-                  className={` overflow-hidden submenu transition-[max-height] ease-in-out duration-700 ${!expand ? 'ps-0' : 'ps-5'} ${(active && activeIndex === index) || verifyChildLink(item.dropdown) ? 'max-h-96' : 'max-h-0'}`}
-                >
-                  {item.dropdown?.map((childItem, index) => (
-                    <>
-                      {!expand && childItem.path === pathname ? (
-                        <li
-                          className={`relative before:absolute before:h-[50px] before:w-[8px] before:border before:border-grey-borderAlt before:border-r-0 before:border-t-0 before:-left-[5%] before:-top-[30px] ${!expand ? 'before:hidden' : ''}`}
-                        >
-                          <div>
-                            <div
-                              onClick={() => selectedSub(childItem.id)}
-                              className={`flex  items-center p-2 transition mb-2  rounded-sm cursor-pointer hover:bg-primary bg-primary ${!expand ? 'justify-center py-3 font-semibold' : 'justify-between '} `}
-                            >
-                              <span className="text-common  text-bgWhite">
-                                {!expand
-                                  ? childItem.name.slice(0, 2)
-                                  : childItem.name}
-                              </span>
-                            </div>
-                            <div className="flex justify-center stroke-primary mb-3">
-                              <Icons name="three_dot_horizontal" />
-                            </div>
-                          </div>
-                        </li>
-                      ) : (
-                        <>
-                          {expand && (
-                            <li
-                              className={`relative before:absolute before:h-[50px] before:w-[8px] before:border before:border-grey-borderAlt before:border-r-0 before:border-t-0 before:-left-[5%] before:-top-[30px]`}
-                            >
-                              <div>
-                                <div
-                                  onClick={() => selectedSub(index, childItem)}
-                                  className={`flex items-center p-2 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 justify-between ${childItem.path === pathname ? 'bg-white/20' : ''}`}
-                                >
-                                  <span
-                                    className={`text-common text-white group-hover:text-white ${childItem.path === pathname ? 'text-white ' : ''}`}
-                                  >
-                                    {childItem.name}
-                                  </span>
-                                  <span
-                                    className={`text-common text-white group-hover:text-white ${childItem.path === pathname ? 'text-white ' : ''}`}
-                                  >
-                                    {childItem.value}
-                                  </span>
-                                </div>
+                  <span
+                    className={`text-common text-white group-hover:text-white ${item.path === pathname ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'}`}
+                  >
+                    {item.label}
+                  </span>
+                  {item.hasChild && (
+                    <div
+                      className={`w-4 h-4 ms-auto text-white group-hover:text-white ${item.path === pathname ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'}`}
+                    >
+                      <Icons name="drop-arrow" />
+                    </div>
+                  )}
+                </Link>
+
+                {/* {item.hasChild && (
+                  <ul
+                    className={` overflow-hidden submenu transition-[max-height] ease-in-out duration-700 ${!expand ? 'ps-0' : 'ps-5'} ${(active && activeIndex === index) || verifyChildLink(item.hasChild) ? 'max-h-96' : 'max-h-0'}`}
+                  >
+                    {item.hasChild?.map((childItem: any, index: number) => (
+                      <>
+                        {!expand && childItem.path === pathname ? (
+                          <li
+                            className={`relative before:absolute before:h-[50px] before:w-[8px] before:border before:border-grey-borderAlt before:border-r-0 before:border-t-0 before:-left-[5%] before:-top-[30px] ${!expand ? 'before:hidden' : ''}`}
+                          >
+                            <div>
+                              <div
+                                onClick={() => selectedSub(childItem.id)}
+                                className={`flex  items-center p-2 transition mb-2  rounded-sm cursor-pointer hover:bg-primary bg-primary ${!expand ? 'justify-center py-3 font-semibold' : 'justify-between '} `}
+                              >
+                                <span className="text-common  text-bgWhite">
+                                  {!expand
+                                    ? childItem.label.slice(0, 2)
+                                    : childItem.label}
+                                </span>
                               </div>
-                            </li>
-                          )}
-                        </>
-                      )}
-                    </>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
+                              <div className="flex justify-center stroke-primary mb-3">
+                                <Icons name="three_dot_horizontal" />
+                              </div>
+                            </div>
+                          </li>
+                        ) : (
+                          <>
+                            {expand && (
+                              <li
+                                className={`relative before:absolute before:h-[50px] before:w-[8px] before:border before:border-grey-borderAlt before:border-r-0 before:border-t-0 before:-left-[5%] before:-top-[30px]`}
+                              >
+                                <div>
+                                  <div
+                                    onClick={() => selectedSub(index, childItem)}
+                                    className={`flex items-center p-2 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 justify-between ${childItem.path === pathname ? 'bg-white/20' : ''}`}
+                                  >
+                                    <span
+                                      className={`text-common text-white group-hover:text-white ${childItem.path === pathname ? 'text-white ' : ''}`}
+                                    >
+                                      {childItem.label}
+                                    </span>
+                                    <span
+                                      className={`text-common text-white group-hover:text-white ${childItem.path === pathname ? 'text-white ' : ''}`}
+                                    >
+                                      {childItem.value}
+                                    </span>
+                                  </div>
+                                </div>
+                              </li>
+                            )}
+                          </>
+                        )}
+                      </>
+                    ))}
+                  </ul>
+                )} */}
+              </li>
+            )
+          })}
 
           {/* 
             <li>
