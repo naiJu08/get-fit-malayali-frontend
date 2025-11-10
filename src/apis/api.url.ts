@@ -4,6 +4,7 @@ const NOTIFICATION_LIST = 'notifications/web'
 const NOTIFICATION_CLEAR = 'notifications/web/clear_all'
 const ASSESSOR_LIST_URL = 'assessors'
 const ADMIN_USER = '/users'
+const NUTRITIONIST_USER = '/users/my_clients'
 const PLANS = 'plans'
 const RECIPES = 'recipes'
 const WORKOUT_PLAN = 'workout_plans'
@@ -13,7 +14,7 @@ const ORGANISATION_LIST_URL = 'organisations'
 const ORGANISATION_URL = 'organisation'
 const MY_PROFILE = 'profile'
 const MY_PROFILE_IMAGE = 'profile-image'
-
+const SUBSCRIPTIONS = 'subscriptions'
 const COUNTRIES = 'countries'
 const ORGANISATION_DATATABLES = 'datatable'
 
@@ -28,6 +29,7 @@ const apiUrl: { [key: string]: string } = {
   NOTIFICATION_CLEAR,
   ASSESSOR_LIST_URL,
   ADMIN_USER,
+  NUTRITIONIST_USER,
   SUBSCRIPTIONS,
   PLANS,
   RECIPES,

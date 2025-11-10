@@ -5,15 +5,12 @@ import CommonLoader from '../../components/common/commonLoader'
 // import { useAuthStore } from '../../configs/permissionGate'
 import { useAuthStore } from '../../store/authStore'
 
-import { useDomainManageStore } from '../../store/domainManageStore'
-
 type Props = {
   children: React.ReactNode
 }
 
 const GuestRoute = ({ children }: Props) => {
   const { authenticated } = useAuthStore()
-  const { domainType } = useDomainManageStore()
 
   return !authenticated ? (
     <Suspense fallback={<CommonLoader />}>
@@ -21,13 +18,7 @@ const GuestRoute = ({ children }: Props) => {
     </Suspense>
   ) : (
     <>
-      {domainType === 'Organisation' ? (
-        <Navigate to={'/myorganisation/profile'} replace />
-      ) : domainType === 'Assessor' ? (
-        <Navigate to={'/assessors'} replace />
-      ) : (
-        <Navigate to={'/dashboard'} replace />
-      )}
+      <Navigate to={'/'} replace />
     </>
   )
 }

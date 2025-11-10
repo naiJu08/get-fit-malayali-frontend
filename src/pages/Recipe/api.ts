@@ -64,3 +64,8 @@ export const useUpdateRecipe = () => {
     }
   )
 }
+
+export const getRecipeDetails = async (id: string | number) => {
+  const response = await getData(`${apiUrl.RECIPES}/${id}`)
+  return response
+}

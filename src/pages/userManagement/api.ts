@@ -6,17 +6,16 @@ import apiUrl from '../../apis/api.url'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
-import { useDomainManageStore } from '../../store/domainManageStore'
 import { LoginSchema } from './schema'
 
 export const useLogin = (handleOnSuccess: any) => {
-  const { setToken, setAuthenticated, setUserData } = useAuthStore()
+  const { setToken, setAuthenticated, setRoleData, setUserData } =
+    useAuthStore()
   const { setResetToken } = useAppStore()
 
   const { setIsLoading } = useAppStore()
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
-  const { domainType, setDomainType } = useDomainManageStore()
   const loginMutation = useMutation(
     async (params: LoginSchema) => {
       setIsLoading(true)
@@ -49,13 +48,10 @@ export const useLogin = (handleOnSuccess: any) => {
         setAuthenticated(true)
         setIsLoading(false)
         handleOnSuccess?.()
-        const role = user?.role
-        // Map API role to domainType used across app
-        const mappedDomain =
-          role === 'admin' || role === 'superadmin'
-            ? 'Employee'
-            : domainType || 'Employee'
-        setDomainType?.(mappedDomain as any)
+        setRoleData({
+          id: user.id,
+          name: user?.role,
+        })
         setUserData({
           id: user?.id,
           name: user?.name,
