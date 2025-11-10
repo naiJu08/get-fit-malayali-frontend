@@ -31,7 +31,7 @@ export const formSchema = z.object({
     .refine((v) => v === 0 || v === 1 || v === 2, {
       message: 'Invalid status',
     }),
-  notes: z.string().optional(),
+  notes: z.string().min(1, { message: 'Required.' }),
 })
 
 export type AdminSchema = z.infer<typeof formSchema>
