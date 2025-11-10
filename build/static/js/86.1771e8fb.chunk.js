@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkdiversity_mark_reactjs_admin_portal=self.webpackChunkdiversity_mark_reactjs_admin_portal||[]).push([[86],{8086:(e,s,t)=>{t.r(s),t.d(s,{default:()=>r});var a=t(7929);function r(){return(0,a.jsxs)("div",{className:"p-6",children:[(0,a.jsx)("h1",{className:"text-2xl font-bold mb-2 text-primaryText",children:"Support & Requests"}),(0,a.jsx)("p",{className:"text-neutral-600",children:"This is a sample Support & Requests page."})]})}}}]);
+//# sourceMappingURL=86.1771e8fb.chunk.js.map

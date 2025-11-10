@@ -111,6 +111,15 @@ const SUBSCRIPTIONS: RouterMenuProps = {
   permission_slugs: ['superadmin'],
   isSidebarMenu: true,
 }
+const NOTIFICATIONS: RouterMenuProps = {
+  id: 30,
+  path: '/notifications',
+  parent_id: null,
+  label: 'Notifications',
+  key: 'notifications',
+  permission_slugs: [],
+  isSidebarMenu: true,
+}
 const PLANS: RouterMenuProps = {
   id: 21,
   path: '/plans',
@@ -266,6 +275,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   DASHBOARD,
   ADMIN_USER,
   SUBSCRIPTIONS,
+  NOTIFICATIONS,
   WORKOUT,
   PLANS,
   PLAN_DETAILS,

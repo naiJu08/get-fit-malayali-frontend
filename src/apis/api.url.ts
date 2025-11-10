@@ -1,9 +1,8 @@
 const LOGIN_URL = 'auth/login'
-
-const NOTIFICATION_LIST = 'notifications/web'
-const NOTIFICATION_CLEAR = 'notifications/web/clear_all'
 const ASSESSOR_LIST_URL = 'assessors'
 const ADMIN_USER = '/users'
+const NOTIFICATIONS = '/notifications'
+const NOTIFICATIONS_SENT = '/notifications?scope=sent&aggregate=true'
 const NUTRITIONIST_USER = '/users/my_clients'
 const PLANS = 'plans'
 const RECIPES = 'recipes'
@@ -25,12 +24,12 @@ const ASSIGNED_CLIENTS = 'assigned_clients'
 
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
-  NOTIFICATION_LIST,
-  NOTIFICATION_CLEAR,
   ASSESSOR_LIST_URL,
   ADMIN_USER,
   NUTRITIONIST_USER,
   SUBSCRIPTIONS,
+  NOTIFICATIONS,
+  NOTIFICATIONS_SENT,
   PLANS,
   RECIPES,
   WORKOUT_PLAN,
