@@ -3,6 +3,7 @@ const ASSESSOR_LIST_URL = 'assessors'
 const ADMIN_USER = '/users'
 const NOTIFICATIONS = '/notifications'
 const NOTIFICATIONS_SENT = '/notifications?scope=sent&aggregate=true'
+const NUTRITIONIST_USER = '/users/my_clients'
 const PLANS = 'plans'
 const RECIPES = 'recipes'
 const WORKOUT_PLAN = 'workout_plans'
@@ -12,7 +13,7 @@ const ORGANISATION_LIST_URL = 'organisations'
 const ORGANISATION_URL = 'organisation'
 const MY_PROFILE = 'profile'
 const MY_PROFILE_IMAGE = 'profile-image'
-
+const SUBSCRIPTIONS = 'subscriptions'
 const COUNTRIES = 'countries'
 const ORGANISATION_DATATABLES = 'datatable'
 
@@ -25,6 +26,7 @@ const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
   ASSESSOR_LIST_URL,
   ADMIN_USER,
+  NUTRITIONIST_USER,
   SUBSCRIPTIONS,
   NOTIFICATIONS,
   NOTIFICATIONS_SENT,

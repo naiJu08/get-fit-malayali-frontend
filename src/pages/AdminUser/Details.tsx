@@ -18,10 +18,12 @@ import { AutoComplete } from 'qbs-core'
 import { DialogModal } from '../../components/common'
 import { QbsTable } from 'qbs-react-grid'
 import { calcWindowHeight } from '../../utilities/calcHeight'
+import { useAuthStore } from '../../store/authStore'
 
 export default function UserDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
@@ -163,7 +165,7 @@ export default function UserDetails() {
     isFetching: clientsLoading,
     refetch: refetchAssigned,
   } = useAssignedClients({
-    admin_id: user?.id,
+    admin_id: loginRole === 'nutritionist' ? undefined : user?.id,
     page: clientsPage,
     per_page: clientsPageSize,
   } as any)
@@ -273,7 +275,7 @@ export default function UserDetails() {
           >
             Details
           </button>
-          {isNutritionist ? (
+          {isNutritionist && loginRole !== 'nutritionist' ? (
             <button
               className={`px-3 py-2 text-sm font-medium rounded-t border-b-2 ${
                 activeTab === 'clients'
