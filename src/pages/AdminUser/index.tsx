@@ -1,6 +1,6 @@
 import { QbsTable } from 'qbs-react-grid'
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -32,6 +32,7 @@ import CreateAdmin from './create'
 
 export default function AdminUser() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
   const [deleteItem, setDeleteItem] = useState('')
@@ -86,6 +87,17 @@ export default function AdminUser() {
     setFreezeForm({ reason: '', start_date: '', end_date: '' })
     setFreezeModal(true)
   }
+
+  // Sync activeRole with URL path
+  useEffect(() => {
+    const path = location.pathname || ''
+    if (path.startsWith('/nutrionist')) {
+      setActiveRole('nutritionist')
+    } else if (path.startsWith('/users')) {
+      setActiveRole('user')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
 
   const handleFreezeChange = ({
     name,
@@ -177,7 +189,11 @@ export default function AdminUser() {
     setColumns(
       getColumns({
         onViewAction: onViewAction,
-        onNameClick: (row: any) => navigate(`/users/${row?.id}`),
+        onNameClick: (row: any) => {
+          const base =
+            activeRole === 'nutritionist' ? '/nutritionist' : '/users'
+          navigate(`${base}/${row?.id}`)
+        },
         activeRole,
       })
     )
@@ -354,9 +370,9 @@ export default function AdminUser() {
                     ? 'border-b-2 border-blue-600 text-blue-600'
                     : 'text-gray-600'
                 }`}
-                onClick={() => setActiveRole('user')}
+                onClick={() => navigate('/users')}
               >
-                User
+                Client
               </button>
               <button
                 type="button"
@@ -365,7 +381,7 @@ export default function AdminUser() {
                     ? 'border-b-2 border-blue-600 text-blue-600'
                     : 'text-gray-600'
                 }`}
-                onClick={() => setActiveRole('nutritionist')}
+                onClick={() => navigate('/nutrionist')}
               >
                 Nutritionist
               </button>
@@ -433,7 +449,13 @@ export default function AdminUser() {
                   },
                   {
                     icon: <Icons name="eye" />,
-                    action: (row) => navigate(`/users/${row?.id}`),
+                    action: (row) => {
+                      const base =
+                        activeRole === 'nutritionist'
+                          ? '/nutritionist'
+                          : '/users'
+                      navigate(`${base}/${row?.id}`)
+                    },
                     title: 'view',
                     toolTip: 'View Details',
                   },
