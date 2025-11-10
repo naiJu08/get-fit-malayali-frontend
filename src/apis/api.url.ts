@@ -25,7 +25,7 @@ const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
   ASSESSOR_LIST_URL,
   ADMIN_USER,
-  SUBSCRIPTIONS,
+  // SUBSCRIPTIONS,
   NOTIFICATIONS,
   NOTIFICATIONS_SENT,
   PLANS,

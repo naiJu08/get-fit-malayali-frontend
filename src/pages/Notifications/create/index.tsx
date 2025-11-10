@@ -75,7 +75,13 @@ export default function CreateAdmin({
       async: false,
       initialLoad: true,
     },
-    { name: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Notes' },
+    {
+      name: 'notes',
+      label: 'Notes',
+      type: 'textarea',
+      placeholder: 'Notes',
+      required: true,
+    },
   ]
 
   const handleClearAndClose = () => {

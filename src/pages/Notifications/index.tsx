@@ -103,20 +103,39 @@ export default function Notifications() {
       .map((u: any) => Number(u?.id))
       .filter((n: number) => !Number.isNaN(n))
 
+    // Basic required field validation
+    if (!ids.length) {
+      enqueueSnackbar('Please select at least one user', { variant: 'error' })
+      return
+    }
+    if (!createForm.title?.trim()) {
+      enqueueSnackbar('Please enter a title', { variant: 'error' })
+      return
+    }
+    if (!createForm.message?.trim()) {
+      enqueueSnackbar('Please enter a message', { variant: 'error' })
+      return
+    }
+    if (!createForm.notification_type?.trim()) {
+      enqueueSnackbar('Please select a type', { variant: 'error' })
+      return
+    }
+
     // Convert datetime-local to ISO if present
     const scheduledISO = createForm.scheduled_at
       ? new Date(createForm.scheduled_at).toISOString()
-      : null
+      : undefined
 
-    const payload: any = {
-      notification: {
-        user_ids: ids,
-        title: createForm.title,
-        message: createForm.message,
-        notification_type: createForm.notification_type,
-        scheduled_at: scheduledISO,
-      },
+    // Build payload and omit undefined/empty optional fields
+    const notification: any = {
+      user_ids: ids,
+      title: createForm.title.trim(),
+      message: createForm.message.trim(),
+      notification_type: createForm.notification_type,
     }
+    if (scheduledISO) notification.scheduled_at = scheduledISO
+
+    const payload: any = { notification }
 
     createNotificationMutate(payload as any)
   }
