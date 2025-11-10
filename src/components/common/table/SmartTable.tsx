@@ -26,6 +26,7 @@ type SmartTableProps = {
   data: any[]
   dataRowKey?: string
   columns: TableColumns[]
+  title?: string
   sortColumn?: string
   sortType?: 'asc' | 'desc'
   handleColumnSort?: (
@@ -52,6 +53,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
   data,
   dataRowKey = 'id',
   columns,
+  title,
   sortColumn,
   sortType,
   handleColumnSort,
@@ -318,10 +320,12 @@ const SmartTable: React.FC<SmartTableProps> = ({
       style={{ height }}
     >
       {/* Toolbar */}
-      {(toolbar || columnToggle || search) && (
+      {(toolbar || columnToggle || search || !!title) && (
         <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center gap-4">
-            {/* <div className="font-semibold text-lg text-gray-800">Data Table</div> */}
+            {title ? (
+              <div className="font-semibold text-lg text-gray-800">{title}</div>
+            ) : null}
             {search && (
               <div className="relative">
                 <input

@@ -16,10 +16,10 @@ export const formSchema = z.object({
   intensity_level: z
     .string({ invalid_type_error: 'Required.' })
     .min(1, { message: 'Required.' }),
-  video_url: z
-    .string({ invalid_type_error: 'Required.' })
-    .min(1, { message: 'Required.' })
-    .url({ message: 'Enter a valid URL' }),
+  // video_url: z
+  //   .string({ invalid_type_error: 'Required.' })
+  //   .min(1, { message: 'Required.' })
+  //   .url({ message: 'Enter a valid URL' }),
   video_file: z.any().optional(),
 })
 

@@ -101,7 +101,7 @@ export default function CreateAdmin({
         true
       ),
     },
-    { ...textField('video_url', 'Video URL', 'https://...', true) },
+    // { ...textField('video_url', 'Video URL', 'https://...', true) },
     {
       name: 'video_file',
       label: 'Video File',

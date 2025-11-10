@@ -1,17 +1,18 @@
-import { QbsTable } from 'qbs-react-grid'
+import SmartTable from '../../components/common/table/SmartTable'
 import { useEffect, useState } from 'react'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
 import { DialogModal, TextField } from '../../components/common'
-import SearchInput from '../../components/common/inputs/SearchInput'
+// import SearchInput from '../../components/common/inputs/SearchInput'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { checkPermissions } from '../../layout/store'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../utilities/parsers'
+import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   deActivateAdmin,
@@ -272,13 +273,13 @@ export default function Plans() {
           <div className=" p-4">
             <div className="mb-3 flex items-center gap-3">
               <div className="flex-1 max-w-sm">
-                <label className="text-xs text-gray-600 mb-3">Search</label>
-                <SearchInput
+                {/* <label className="text-xs text-gray-600 mb-3">Search</label> */}
+                {/* <SearchInput
                   placeholder="Search plans"
                   searchValue={searchInput}
                   handleChange={(val?: string) => setSearchInput(val ?? '')}
                   handleSearch={(val?: string) => handleSeach(val ?? '')}
-                />
+                /> */}
               </div>
 
               <div className="w-56 flex flex-col ">
@@ -298,7 +299,7 @@ export default function Plans() {
                 </select>
               </div>
             </div>
-            <QbsTable
+            <SmartTable
               data={(data?.plans ?? []).filter((row: any) => {
                 if (statusFilter === '') return true
                 const v = row?.active
@@ -313,24 +314,25 @@ export default function Plans() {
               })}
               dataRowKey="id"
               toolbar={true}
-              search={false}
+              height={
+                (data?.plans?.length ?? 0) === 0
+                  ? calcWindowHeight(218)
+                  : calcWindowHeight(200)
+              }
+              search={true}
+              searchValue={pageParams?.search || ''}
+              onSearchChange={(val) =>
+                setPageParams({ ...pageParams, search: val, page: 1 })
+              }
+              onSearch={() => handleSeach(pageParams?.search || '')}
               isLoading={isFetching}
               sortType={pageParams.sortType}
               sortColumn={pageParams.sortColumn}
               handleColumnSort={handleSort}
               emptyTitle="No records to display"
-              // emptySubTitle={handleReturnEmptyMsg(search)}
+              emptySubTitle={''}
               columns={columns}
               pagination={true}
-              renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
-                return sortType === 'asc' ? (
-                  <Icons name="ascending-icon" />
-                ) : sortType === 'desc' ? (
-                  <Icons name="descending-icon" />
-                ) : (
-                  <Icons name="qbs-sort-icon" />
-                )
-              }}
               paginationProps={{
                 onPagination: onChangePage,
                 total: data?.meta?.total_count ?? 0,
@@ -342,6 +344,13 @@ export default function Plans() {
                   pageParams?.per_page ?? data?.meta?.per_page ?? 10
                 ),
                 onRowsPerPage: onChangeRowsPerPage,
+                totalPages: Math.max(
+                  1,
+                  Math.ceil(
+                    (Number(data?.meta?.total_count ?? 0) || 0) /
+                      Number(pageParams?.per_page ?? data?.meta?.per_page ?? 10)
+                  )
+                ),
                 dropOptions: [10, 20, 30, 50, 100],
               }}
               actionProps={[
@@ -395,11 +404,8 @@ export default function Plans() {
                   toolTip: 'Delete',
                 },
               ]}
-              searchValue={pageParams?.search}
-              onSearch={handleSeach}
-              asyncSearch
-              handleSearchValue={(key?: string) => handleSeach(key)}
               columnToggle
+              externalActions={true}
             />
           </div>
 

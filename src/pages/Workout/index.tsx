@@ -1,4 +1,4 @@
-import { QbsTable } from 'qbs-react-grid'
+import SmartTable from '../../components/common/table/SmartTable'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -24,6 +24,7 @@ export default function WorkoutMain() {
   const [rowData, setRowData] = useState<any>()
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
+  const [searchDebounce, setSearchDebounce] = useState<any>(null)
 
   const params = useParams()
 
@@ -51,6 +52,11 @@ export default function WorkoutMain() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.meta?.total_pages])
+  // Refetch when filters/pagination/sort/search change (align with Notifications)
+  useEffect(() => {
+    refetch()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, per_page, search, ordering, JSON.stringify(filters)])
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,
@@ -82,13 +88,13 @@ export default function WorkoutMain() {
     )
   }, [])
 
-  const handleSeach = (key?: string) => {
-    setPageParams({
-      ...pageParams,
-      search: key as string,
-      page: 1,
-    })
-  }
+  // const handleSeach = (key?: string) => {
+  //   setPageParams({
+  //     ...pageParams,
+  //     search: key as string,
+  //     page: 1,
+  //   })
+  // }
 
   const handleEdit = async (rowData: any) => {
     if (rowData?.id) {
@@ -149,16 +155,24 @@ export default function WorkoutMain() {
             checkPermission={checkPermissions('Employee', 'create')}
           />
           <div className=" p-4">
-            <QbsTable
+            <SmartTable
               data={data?.workouts ?? []}
               dataRowKey="id"
               toolbar={true}
-              search={true}
               height={
-                data?.workouts?.length === 0
+                (data?.workouts?.length ?? 0) === 0
                   ? calcWindowHeight(218)
                   : calcWindowHeight(300)
               }
+              search={true}
+              searchValue={pageParams?.search || ''}
+              onSearchChange={(val) => {
+                setPageParams({ ...pageParams, search: val, page: 1 })
+                if (searchDebounce) clearTimeout(searchDebounce)
+                const t = setTimeout(() => refetch(), 300)
+                setSearchDebounce(t)
+              }}
+              onSearch={() => refetch()}
               isLoading={isFetching}
               sortType={pageParams.sortType}
               sortColumn={pageParams.sortColumn}
@@ -167,42 +181,41 @@ export default function WorkoutMain() {
               emptySubTitle={handleReturnEmptyMsg(search)}
               columns={columns}
               pagination={true}
-              renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
-                return sortType === 'asc' ? (
-                  <Icons name="ascending-icon" />
-                ) : sortType === 'desc' ? (
-                  <Icons name="descending-icon" />
-                ) : (
-                  <Icons name="qbs-sort-icon" />
-                )
-              }}
               paginationProps={{
                 onPagination: onChangePage,
                 total: data?.meta?.total_count ?? 0,
-                currentPage: data?.meta?.current_page ?? pageParams?.page ?? 1,
+                currentPage:
+                  typeof data?.meta?.current_page === 'number'
+                    ? (data?.meta?.current_page as number)
+                    : (pageParams?.page ?? 1),
                 rowsPerPage: Number(pageParams?.per_page ?? 10),
                 onRowsPerPage: onChangeRowsPerPage,
+                totalPages: Math.max(
+                  1,
+                  Math.ceil(
+                    (Number(data?.meta?.total_count ?? 0) || 0) /
+                      Number(pageParams?.per_page ?? 10)
+                  )
+                ),
                 dropOptions: [10, 20, 30, 50, 100],
               }}
               actionProps={[
-                {
-                  icon: <Icons name="edit" />,
-                  action: (row) => handleEdit(row),
-                  title: 'edit',
-                  toolTip: 'Edit',
-                },
                 {
                   icon: <Icons name="eye" />,
                   action: (row) => navigate(`/workout/${row?.id}`),
                   title: 'view',
                   toolTip: 'View Details',
                 },
+
+                {
+                  icon: <Icons name="edit" />,
+                  action: (row) => handleEdit(row),
+                  title: 'edit',
+                  toolTip: 'Edit',
+                },
               ]}
-              searchValue={pageParams?.search}
-              onSearch={handleSeach}
-              asyncSearch
-              handleSearchValue={(key?: string) => handleSeach(key)}
               columnToggle
+              externalActions={true}
             />
           </div>
           <CreateAdmin

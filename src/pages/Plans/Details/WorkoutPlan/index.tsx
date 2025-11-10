@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { QbsTable } from 'qbs-react-grid'
+import SmartTable from '../../../../components/common/table/SmartTable'
 import Icons from '../../../../components/common/icons'
 import { TableColumns } from '../../../../common/types'
 import { useWorkoutPlans } from './api'
 import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../../../utilities/parsers'
-import ListingHeader from '../../../../components/common/ListingTiles'
+// import ListingHeader from '../../../../components/common/ListingTiles'
 import WorkoutPlanForm from './create'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -24,11 +24,21 @@ export default function WorkoutPlanIndex({
     {
       title: 'Title',
       field: 'title',
-      sortable: true,
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.title ?? '' }),
+      renderCell: (row: any) => ({
+        cell: (
+          <button
+            type="button"
+            className="text-blue-600 hover:underline"
+            onClick={() => navigate(`/workout_details/${row?.id}`)}
+          >
+            {row?.title ?? ''}
+          </button>
+        ),
+      }),
       sortKey: 'title',
       link: true,
       rowClick: (row: any) => navigate(`/workout_details/${row?.id}`),
@@ -36,7 +46,7 @@ export default function WorkoutPlanIndex({
     {
       title: 'Day',
       field: 'day_number',
-      sortable: true,
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
@@ -73,7 +83,7 @@ export default function WorkoutPlanIndex({
     {
       title: 'Description',
       field: 'description',
-      sortable: true,
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
@@ -107,7 +117,7 @@ export default function WorkoutPlanIndex({
     setFormOpen(true)
   }
   const handleClose = () => setFormOpen(false)
-  const headerProps = { actionTitle: '' }
+  // const headerProps = { actionTitle: '' }
 
   useEffect(() => {
     if (typeof pageParams?.page !== 'number' || pageParams.page !== 1) {
@@ -142,25 +152,23 @@ export default function WorkoutPlanIndex({
 
   return (
     <div className="">
-      <div className="mb-3">
+      {/* <div className="mb-3">
         <ListingHeader
           data={{ title: planName || 'Workout Plans', icon: 'user' }}
           actionProps={headerProps}
         />
-      </div>
-      <QbsTable
+      </div> */}
+      <SmartTable
         data={data?.workout_plans ?? []}
         dataRowKey="id"
         toolbar={true}
+        title={planName || 'Workout Plans'}
         // search={true}
-        searchValue={pageParams?.search}
-        onSearch={(key?: string) =>
-          setPageParams({ ...pageParams, search: key as string, page: 1 })
+        searchValue={pageParams?.search || ''}
+        onSearchChange={(val) =>
+          setPageParams({ ...pageParams, search: val, page: 1 })
         }
-        asyncSearch
-        handleSearchValue={(key?: string) =>
-          setPageParams({ ...pageParams, search: key as string, page: 1 })
-        }
+        onSearch={() => setPageParams({ ...pageParams, page: 1 })}
         columns={columns}
         pagination={true}
         isLoading={isFetching}
@@ -168,15 +176,6 @@ export default function WorkoutPlanIndex({
         sortColumn={pageParams.sortColumn}
         handleColumnSort={handleSort}
         emptyTitle="No records to display"
-        renderSortIcon={(st?: 'asc' | 'desc' | undefined) => {
-          return st === 'asc' ? (
-            <Icons name="ascending-icon" />
-          ) : st === 'desc' ? (
-            <Icons name="descending-icon" />
-          ) : (
-            <Icons name="qbs-sort-icon" />
-          )
-        }}
         paginationProps={{
           onPagination: onChangePage,
           total: data?.meta?.total_count ?? 0,
@@ -188,9 +187,17 @@ export default function WorkoutPlanIndex({
             pageParams?.per_page ?? data?.meta?.per_page ?? 10
           ),
           onRowsPerPage: onChangeRowsPerPage,
+          totalPages: Math.max(
+            1,
+            Math.ceil(
+              (Number(data?.meta?.total_count ?? 0) || 0) /
+                Number(pageParams?.per_page ?? data?.meta?.per_page ?? 10)
+            )
+          ),
           dropOptions: [10, 20, 30, 50, 100],
         }}
         columnToggle
+        externalActions={true}
         actionProps={[
           {
             icon: <Icons name="eye" />,
@@ -198,7 +205,6 @@ export default function WorkoutPlanIndex({
             title: 'view',
             toolTip: 'View',
           },
-
           {
             icon: <Icons name="edit" />,
             action: (row: any) => openEdit(row),
