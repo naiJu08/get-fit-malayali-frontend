@@ -36,7 +36,17 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
         (typeof value === 'string' &&
           (value === '1' || value.toLowerCase() === 'true'))
       return {
-        cell: isActive ? 'Active' : 'Inactive',
+        cell: (
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+              isActive
+                ? 'bg-green-100 text-green-700'
+                : 'bg-red-100 text-red-700'
+            }`}
+          >
+            {isActive ? 'Active' : 'Inactive'}
+          </span>
+        ),
         toolTip: isActive ? 'Active' : 'Inactive',
       }
     } else {
@@ -77,20 +87,6 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
       title: 'Active',
       field: 'active',
       renderCell: createRenderCell('active', 'boolean'),
-      ...defaultColumnProps,
-      customCell: true,
-    },
-    {
-      title: 'Created By',
-      field: 'created_by',
-      renderCell: createRenderCell('created_by'),
-      ...defaultColumnProps,
-      customCell: true,
-    },
-    {
-      title: 'Created At',
-      field: 'created_at',
-      renderCell: createRenderCell('created_at', 'date'),
       ...defaultColumnProps,
       customCell: true,
     },

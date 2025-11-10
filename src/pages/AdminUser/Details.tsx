@@ -11,10 +11,12 @@ import BodyComposition from './Details/BodyComposition'
 import Vitals from './Details/Vitals'
 import Clients from './Details/Clients'
 import Reports from './Details/Reports'
+// import { useAuthStore } from '../../store/authStore'
 
 export default function UserDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
+  // const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const location = useLocation()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)

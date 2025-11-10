@@ -1,23 +1,196 @@
-import moment from 'moment'
+// import moment from 'moment'
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 
 import Icons from '../../../../components/common/icons'
 import InfoBox from '../../../../components/app/alertBox/infoBox'
 import { getWorkoutPlanDetails } from './api'
 import CustomDrawer from '../../../../components/common/drawer'
-import TabContainer from '../../../../components/common/tab/TabContainer'
+// import TabContainer from '../../../../components/common/tab/TabContainer'
+import Tab from '../../../../components/common/tab/Tab'
 import { TabItemProps } from '../../../../common/types'
 import { useWorkoutList } from '../../../Workout/api'
 import { useAddExercise } from './api'
+import { TabContainer } from '../../../../components/common'
+
+function DetailsTabContent({
+  wp,
+  loading,
+  error,
+}: {
+  wp: any
+  loading: boolean
+  error: string
+}) {
+  return (
+    <>
+      {/* Details Content */}
+      {loading && (
+        <div className="p-6">
+          <InfoBox content="Loading workout plan details..." />
+        </div>
+      )}
+      {error && !loading && (
+        <div className="p-6">
+          <InfoBox content={error} />
+        </div>
+      )}
+      {!loading && !error && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <DetailItem label="Title" value={wp?.title} />
+            <DetailItem label="Plan Id" value={safeStr(wp?.plan_id)} />
+            <DetailItem label="Day Number" value={safeStr(wp?.day_number)} />
+            <DetailItem
+              label="Exercises"
+              value={safeStr(wp?.exercises_count)}
+            />
+            <DetailItem
+              label="Total Duration (mins)"
+              value={safeStr(wp?.total_duration)}
+            />
+            <DetailItem label="Description" value={safeStr(wp?.description)} />
+          </div>
+        </>
+      )}
+    </>
+  )
+}
+
+function AssignTabContent({
+  wp,
+  loading,
+  error,
+  selectedWorkouts,
+  getEmbedUrl,
+}: any) {
+  return (
+    <>
+      {/* Assign Content */}
+      {loading && (
+        <div className="p-6">
+          <InfoBox content="Loading workout plan details..." />
+        </div>
+      )}
+      {error && !loading && (
+        <div className="p-6">
+          <InfoBox content={error} />
+        </div>
+      )}
+      {!loading && !error && (
+        <>
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-md font-semibold">Exercises</div>
+          </div>
+          {Array.isArray(wp?.exercises) && wp.exercises.length > 0 ? (
+            <div className="grid grid-cols-4 gap-3 place-items-start">
+              {wp.exercises
+                .slice()
+                .sort(
+                  (a: any, b: any) =>
+                    (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
+                )
+                .map((ex: any) => {
+                  const rawUrl =
+                    ex?.video_url ||
+                    ex?.workout_video_url ||
+                    ex?.workout?.video_url ||
+                    ''
+                  const url = String(rawUrl || '')
+                  const embed = getEmbedUrl(url)
+                  return (
+                    <div
+                      key={ex?.id}
+                      className="border rounded bg-white overflow-hidden w-56"
+                    >
+                      {embed ? (
+                        <div className="w-full h-36 bg-black/5">
+                          <iframe
+                            src={embed}
+                            title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : url ? (
+                        <video
+                          className=" h-36 object-cover"
+                          src={url}
+                          controls
+                        />
+                      ) : (
+                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                          No video
+                        </div>
+                      )}
+                      <div className="px-2 py-1 text-xs font-medium line-clamp-1">
+                        {ex?.workout_name || 'Untitled'}
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-600">No exercises assigned.</div>
+          )}
+
+          {selectedWorkouts.length > 0 && (
+            <div className="mt-6">
+              <div className="text-sm font-semibold mb-3">
+                Selected Workouts Preview
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {selectedWorkouts.map((w: any, i: number) => {
+                  const url = w?.video_url || ''
+                  const embed = getEmbedUrl(url)
+                  return (
+                    <div key={w?.id} className="border rounded">
+                      <div className="px-3 py-2 text-sm font-medium">
+                        {i + 1}. {w?.name || 'Untitled'}
+                      </div>
+                      <div className="px-3 pb-2 text-xxs text-gray-500 break-all">
+                        {url || '--'}
+                      </div>
+                      {embed ? (
+                        <div className="aspect-video w-full">
+                          <iframe
+                            src={embed}
+                            title={`Workout Video ${w?.id}`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : url ? (
+                        <video className="w-full" src={String(url)} controls />
+                      ) : (
+                        <div className="text-sm text-gray-600 px-3 pb-3">
+                          No video URL available.
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </>
+  )
+}
 
 export default function WorkoutPlanDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
-  const [activeTab, setActiveTab] = useState<'details' | 'assign'>('details')
+  const currentTab = (
+    searchParams.get('tab') === 'assign' ? 'assign' : 'details'
+  ) as 'details' | 'assign'
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
@@ -99,16 +272,12 @@ export default function WorkoutPlanDetails() {
 
   // Open/close drawer based on Assign tab
   useEffect(() => {
-    if (activeTab === 'assign') {
-      setAssignOpen(true)
-      // reset paging when opening
-      setWpPage(1)
-    } else {
+    if (currentTab !== 'assign') {
       setAssignOpen(false)
       setSelectedWorkouts([])
       setReviewOpen(false)
     }
-  }, [activeTab])
+  }, [currentTab])
 
   const handleNext = () => {
     if (selectedWorkouts.length === 0) return
@@ -135,30 +304,30 @@ export default function WorkoutPlanDetails() {
       )
       await refreshDetails()
       setReviewOpen(false)
-      setActiveTab('details')
+      setSearchParams({})
     } finally {
       setAssigning(false)
     }
   }
 
-  const handleAssignOne = async (workout: any, index: number) => {
-    if (!wp?.id || !workout?.id) return
-    setAssigning(true)
-    try {
-      await addExerciseAsync({
-        id: wp.id,
-        payload: {
-          exercise: {
-            workout_id: workout.id,
-            sequence_number: index + 1,
-          },
-        },
-      })
-      await refreshDetails()
-    } finally {
-      setAssigning(false)
-    }
-  }
+  // const handleAssignOne = async (workout: any, index: number) => {
+  //   if (!wp?.id || !workout?.id) return
+  //   setAssigning(true)
+  //   try {
+  //     await addExerciseAsync({
+  //       id: wp.id,
+  //       payload: {
+  //         exercise: {
+  //           workout_id: workout.id,
+  //           sequence_number: index + 1,
+  //         },
+  //       },
+  //     })
+  //     await refreshDetails()
+  //   } finally {
+  //     setAssigning(false)
+  //   }
+  // }
 
   const onDragStart = (index: number) => setDragIndex(index)
   const onDragOver = (e: any) => {
@@ -184,150 +353,55 @@ export default function WorkoutPlanDetails() {
           </button>
           <h1 className="text-xl font-semibold">Workout Plan Details</h1>
         </div>
+        <div>
+          <button
+            className="px-3 py-1.5 text-sm border rounded btn-primary"
+            onClick={() => {
+              setSearchParams({ tab: 'assign' })
+              setAssignOpen(true)
+              setWpPage(1)
+            }}
+          >
+            Assign
+          </button>
+        </div>
       </div>
       {(() => {
         const tabs: TabItemProps[] = [
           { id: 'details', label: 'Details' },
-          { id: 'assign', label: 'Assign' },
+          { id: 'assign', label: 'Exercises' },
         ]
         return (
           <div className="no-tab-bg mb-4">
             <TabContainer
               data={tabs}
-              activeTab={activeTab}
-              onClick={(item) => setActiveTab(item.id as any)}
+              activeTab={currentTab}
+              onClick={(item) => {
+                const next = item.id === 'assign' ? 'assign' : 'details'
+                // preserve current pathname; update tab query param
+                setSearchParams(next === 'assign' ? { tab: 'assign' } : {})
+              }}
             >
-              <div style={{ display: 'none' }} />
+              <Tab id="details">
+                <DetailsTabContent wp={wp} loading={loading} error={error} />
+              </Tab>
+              <Tab id="assign">
+                <AssignTabContent
+                  wp={wp}
+                  loading={loading}
+                  error={error}
+                  selectedWorkouts={selectedWorkouts}
+                  getEmbedUrl={getEmbedUrl}
+                />
+              </Tab>
             </TabContainer>
           </div>
         )
       })()}
 
-      {loading && (
-        <div className="p-6">
-          <InfoBox content="Loading workout plan details..." />
-        </div>
-      )}
-      {error && !loading && (
-        <div className="p-6">
-          <InfoBox content={error} />
-        </div>
-      )}
-      {!loading && !error && activeTab === 'details' && (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <DetailItem label="Title" value={wp?.title} />
-            <DetailItem label="Plan Id" value={safeStr(wp?.plan_id)} />
-            <DetailItem label="Day Number" value={safeStr(wp?.day_number)} />
-            <DetailItem
-              label="Exercises"
-              value={safeStr(wp?.exercises_count)}
-            />
-            <DetailItem
-              label="Total Duration (mins)"
-              value={safeStr(wp?.total_duration)}
-            />
-            <DetailItem label="Description" value={safeStr(wp?.description)} />
-            <DetailItem label="Created At" value={formatDate(wp?.created_at)} />
-          </div>
-          {Array.isArray(wp?.exercises) && wp.exercises.length > 0 && (
-            <div className="mt-6">
-              <div className="text-md font-semibold mb-4">Exercises</div>
-              <div className="grid grid-cols-4 gap-3 place-items-start">
-                {wp.exercises
-                  .slice()
-                  .sort(
-                    (a: any, b: any) =>
-                      (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
-                  )
-                  .map((ex: any) => {
-                    const rawUrl =
-                      ex?.video_url ||
-                      ex?.workout_video_url ||
-                      ex?.workout?.video_url ||
-                      ''
-                    const url = String(rawUrl || '')
-                    const embed = getEmbedUrl(url)
-                    return (
-                      <div
-                        key={ex?.id}
-                        className="border rounded bg-white overflow-hidden w-56"
-                      >
-                        {embed ? (
-                          <div className="w-full h-36 bg-black/5">
-                            <iframe
-                              src={embed}
-                              title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
-                              className="w-full h-full"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                            />
-                          </div>
-                        ) : url ? (
-                          <video
-                            className=" h-36 object-cover"
-                            src={url}
-                            controls
-                          />
-                        ) : (
-                          <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                            No video
-                          </div>
-                        )}
-                        <div className="px-2 py-1 text-xs font-medium line-clamp-1">
-                          {ex?.workout_name || 'Untitled'}
-                        </div>
-                      </div>
-                    )
-                  })}
-              </div>
-            </div>
-          )}
-          {selectedWorkouts.length > 0 && (
-            <div className="mt-6">
-              <div className="text-sm font-semibold mb-3">
-                Selected Workouts Preview
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {selectedWorkouts.map((w, i) => {
-                  const url = w?.video_url || ''
-                  const embed = getEmbedUrl(url)
-                  return (
-                    <div key={w?.id} className="border rounded">
-                      <div className="px-3 py-2 text-sm font-medium">
-                        {i + 1}. {w?.name || 'Untitled'}
-                      </div>
-                      <div className="px-3 pb-2 text-xxs text-gray-500 break-all">
-                        {url || '--'}
-                      </div>
-                      {embed ? (
-                        <div className="aspect-video w-full">
-                          <iframe
-                            src={embed}
-                            title={`Workout Video ${w?.id}`}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                          />
-                        </div>
-                      ) : url ? (
-                        <video className="w-full" src={String(url)} controls />
-                      ) : (
-                        <div className="text-sm text-gray-600 px-3 pb-3">
-                          No video URL available.
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-        </>
-      )}
       <CustomDrawer
         open={assignOpen}
-        handleClose={() => setActiveTab('details')}
+        handleClose={() => setSearchParams({})}
         title={'Assign Workout'}
         handleSubmit={handleNext}
         disableSubmit={selectedWorkouts.length === 0}
@@ -488,18 +562,21 @@ export default function WorkoutPlanDetails() {
         handleSubmit={handleBulkAssign}
         disableSubmit={assigning || selectedWorkouts.length === 0}
         actionLoader={assigning}
-        actionLabel={'Assign Selected'}
+        actionLabel={'Assign'}
       >
         <div className="w-[900px] max-w-[95vw]">
           <div className="border rounded p-3">
             <div className="text-sm font-medium mb-2">
               Selected Videos (Drag to Reorder)
+              <p className="mt-2">
+                Drag and drop videos to arrange the sequence
+              </p>
             </div>
             {selectedWorkouts.length === 0 && (
               <div className="text-xs text-gray-500">No workouts selected.</div>
             )}
             {selectedWorkouts.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {selectedWorkouts.map((w, i) => {
                   const url = w?.video_url || ''
                   const embed = getEmbedUrl(url)
@@ -512,7 +589,7 @@ export default function WorkoutPlanDetails() {
                       onDragOver={onDragOver}
                       onDrop={() => onDrop(i)}
                     >
-                      <div className="px-1 pt-1 text-xs font-medium line-clamp-1 flex items-center justify-between gap-2">
+                      {/* <div className="px-1 pt-1 text-xs font-medium line-clamp-1 flex items-center justify-between gap-2">
                         <span>
                           {i + 1}. {w?.name || 'Untitled'}
                         </span>
@@ -526,7 +603,7 @@ export default function WorkoutPlanDetails() {
                         >
                           Assign
                         </button>
-                      </div>
+                      </div> */}
                       <div className="px-1 pb-1 text-xxs text-gray-500 break-all line-clamp-1">
                         {url || '--'}
                       </div>
@@ -572,11 +649,11 @@ function DetailItem({ label, value }: { label: string; value: any }) {
   )
 }
 
-function formatDate(d: any) {
-  if (!d) return '--'
-  const m = moment(d)
-  return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
-}
+// function formatDate(d: any) {
+//   if (!d) return '--'
+//   const m = moment(d)
+//   return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
+// }
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)

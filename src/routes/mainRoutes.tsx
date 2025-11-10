@@ -10,6 +10,7 @@ import ChildRoute from './components/childRoute'
 // import ChildRoute from './components/childRoute'
 import GuestRoute from './components/guestRoute'
 import UserRoute from './components/userRoute'
+import SubscriptionDetailsMain from '../pages/Subscriptions/Details'
 // Users sample page is no longer used for the Users route; using AdminUser instead
 
 const Login = lazy(() => import('../pages/userManagement/login'))
@@ -18,6 +19,7 @@ const ForgetPassword = lazy(
 )
 
 const AdminUser = lazy(() => import('../pages/AdminUser'))
+const Subscriptions = lazy(() => import('../pages/Subscriptions'))
 const Workout = lazy(() => import('../pages/Workout'))
 const Plans = lazy(() => import('../pages/Plans'))
 const PlanDetails = lazy(() => import('../pages/Plans/Details/index'))
@@ -28,6 +30,8 @@ const DietPlanDetails = lazy(
   () => import('../pages/Plans/Details/DietPlan/details')
 )
 const Recipe = lazy(() => import('../pages/Recipe'))
+const Notifications = lazy(() => import('../pages/Notifications'))
+const RecipeDetail = lazy(() => import('../pages/Recipe/Detail'))
 const UserDetails = lazy(() => import('../pages/AdminUser/Details'))
 const WorkoutDetails = lazy(() => import('../pages/Workout/Details'))
 
@@ -36,7 +40,6 @@ const WorkoutDetails = lazy(() => import('../pages/Workout/Details'))
 const Dashboard = lazy(() => import('../pages/dashboard/dashboard'))
 const Settings = lazy(() => import('../pages/samples/Settings'))
 // const Users = lazy(() => import('../pages/samples/Users'))
-const Subscription = lazy(() => import('../pages/samples/Subscription'))
 const Discount = lazy(() => import('../pages/samples/Discount'))
 const Payment = lazy(() => import('../pages/samples/Payment'))
 const ExportPage = lazy(() => import('../pages/samples/Export'))
@@ -52,12 +55,17 @@ const routes: any = [
   { slug: 'WORKOUT_PLAN_DETAILS', component: <WorkoutPlanDetails /> },
   { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
   { slug: 'RECIPE', component: <Recipe /> },
-  { slug: 'SUBSCRIPTION_SAMPLE', component: <Subscription /> },
+  { slug: 'NOTIFICATIONS', component: <Notifications /> },
+  { slug: 'RECIPE_DETAILS', component: <RecipeDetail /> },
+  { slug: 'SUBSCRIPTIONS', component: <Subscriptions /> },
+  { slug: 'SUBSCRIPTIONS_DETAILS', component: <SubscriptionDetailsMain /> },
   { slug: 'DISCOUNT_SAMPLE', component: <Discount /> },
   { slug: 'PAYMENT_SAMPLE', component: <Payment /> },
   { slug: 'EXPORT_SAMPLE', component: <ExportPage /> },
   { slug: 'SUPPORT_SAMPLE', component: <Support /> },
   { slug: 'WORKOUT_DETAILS', component: <WorkoutDetails /> },
+  { slug: 'PLAN_DETAILS_WORKOUT', component: <PlanDetails /> },
+  { slug: 'PLAN_DETAILS_DIET', component: <PlanDetails /> },
 
   {
     isAuthRoute: true,
@@ -246,13 +254,22 @@ export default function MainRoutes() {
         }
         path="/nutritionist/:id/clients"
       />
+
       <Route
         element={
-          <UserRoute slug_key="SUBSCRIPTION_SAMPLE">
-            <Subscription />
+          <UserRoute slug_key="SUBSCRIPTIONS">
+            <Subscriptions />
           </UserRoute>
         }
-        path="/subscription"
+        path="/subscriptions"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id"
       />
       <Route
         element={
@@ -285,6 +302,14 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/support"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="NOTIFICATIONS">
+            <Notifications />
+          </UserRoute>
+        }
+        path="/notifications"
       />
     </Routes>
   )

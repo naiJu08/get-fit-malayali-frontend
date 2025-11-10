@@ -1,9 +1,9 @@
 const LOGIN_URL = 'auth/login'
-
-const NOTIFICATION_LIST = 'notifications/web'
-const NOTIFICATION_CLEAR = 'notifications/web/clear_all'
 const ASSESSOR_LIST_URL = 'assessors'
 const ADMIN_USER = '/users'
+const NOTIFICATIONS = '/notifications'
+const NOTIFICATIONS_SENT = '/notifications?scope=sent&aggregate=true'
+const NUTRITIONIST_USER = '/users/my_clients'
 const PLANS = 'plans'
 const RECIPES = 'recipes'
 const WORKOUT_PLAN = 'workout_plans'
@@ -13,14 +13,13 @@ const ORGANISATION_LIST_URL = 'organisations'
 const ORGANISATION_URL = 'organisation'
 const MY_PROFILE = 'profile'
 const MY_PROFILE_IMAGE = 'profile-image'
-
+const SUBSCRIPTIONS = 'subscriptions'
 const COUNTRIES = 'countries'
 const ORGANISATION_DATATABLES = 'datatable'
 
 const ACCREDITATION_LIST_URL = 'accreditations'
 const RENEW_APPLICATION = 'renew-accreditations'
 const WORKOUTS = 'workouts'
-const SUBSCRIPTIONS = 'subscriptions'
 const ASSIGNED_CLIENTS = 'assigned_clients'
 const BODY_MEASUREMENTS = 'body_measurements'
 const BODY_COMPOSITION = 'body_compositions'
@@ -29,10 +28,12 @@ const CLIENT_REPORTS = 'monthly_reports'
 
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
-  NOTIFICATION_LIST,
-  NOTIFICATION_CLEAR,
   ASSESSOR_LIST_URL,
   ADMIN_USER,
+  NUTRITIONIST_USER,
+  SUBSCRIPTIONS,
+  NOTIFICATIONS,
+  NOTIFICATIONS_SENT,
   PLANS,
   RECIPES,
   WORKOUT_PLAN,
@@ -47,7 +48,6 @@ const apiUrl: { [key: string]: string } = {
   ACCREDITATION_LIST_URL,
   RENEW_APPLICATION,
   WORKOUTS,
-  SUBSCRIPTIONS,
   ASSIGNED_CLIENTS,
   BODY_MEASUREMENTS,
   BODY_COMPOSITION,

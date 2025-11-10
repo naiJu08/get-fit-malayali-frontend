@@ -74,8 +74,8 @@ export default function Clients({ user }: { user: any }) {
       search: '',
       role: 'user',
       status: 'active',
-    } as any,
-    { enabled: assignOpen }
+    } as any
+    // { enabled: assignOpen }
   )
   const userOptions = (usersList?.items || []).filter((u: any) => {
     const r = String(u?.role || '').toLowerCase()

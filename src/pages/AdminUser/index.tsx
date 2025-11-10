@@ -29,9 +29,11 @@ import {
 } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
+import { useAuthStore } from '../../store/authStore'
 
 export default function AdminUser() {
   const navigate = useNavigate()
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const location = useLocation()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
@@ -199,6 +201,14 @@ export default function AdminUser() {
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRole])
+
+  // If logged-in role is nutritionist, ensure the tab stays on 'user'
+  useEffect(() => {
+    if (loginRole === 'nutritionist' && activeRole !== 'user') {
+      setActiveRole('user')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loginRole])
 
   // Ensure role filter follows active tab
   useEffect(() => {
@@ -374,17 +384,19 @@ export default function AdminUser() {
               >
                 Client
               </button>
-              <button
-                type="button"
-                className={`px-3 py-2 -mb-px ${
-                  activeRole === 'nutritionist'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-600'
-                }`}
-                onClick={() => navigate('/nutrionist')}
-              >
-                Nutritionist
-              </button>
+              {loginRole !== 'nutritionist' && (
+                <button
+                  type="button"
+                  className={`px-3 py-2 -mb-px ${
+                    activeRole === 'nutritionist'
+                      ? 'border-b-2 border-blue-600 text-blue-600'
+                      : 'text-gray-600'
+                  }`}
+                  onClick={() => setActiveRole('nutritionist')}
+                >
+                  Nutritionist
+                </button>
+              )}
             </div>
           </div>
           {/* <PageTitle data={data?.total} isLoading={isFetching} /> */}

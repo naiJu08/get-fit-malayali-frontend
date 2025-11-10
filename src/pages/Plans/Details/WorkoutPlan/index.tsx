@@ -7,7 +7,7 @@ import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserS
 import { getSortedColumnName } from '../../../../utilities/parsers'
 import ListingHeader from '../../../../components/common/ListingTiles'
 import WorkoutPlanForm from './create'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 export default function WorkoutPlanIndex({
   planName,
@@ -17,6 +17,8 @@ export default function WorkoutPlanIndex({
   planId?: string | number
 }) {
   const navigate = useNavigate()
+  const { id: routePlanId } = useParams()
+  const effectivePlanId = planId ?? routePlanId
 
   const [columns] = useState<TableColumns[]>([
     {
@@ -57,17 +59,17 @@ export default function WorkoutPlanIndex({
       customCell: true,
       renderCell: (row: any) => ({ cell: row?.total_duration ?? 0 }),
     },
-    {
-      title: 'Created At',
-      field: 'created_at',
-      resizable: true,
-      isVisible: true,
-      customCell: true,
-      renderCell: (row: any) => ({
-        cell: new Date(row?.created_at).toLocaleDateString(),
-      }),
-      sortKey: 'created_at',
-    },
+    // {
+    //   title: 'Created At',
+    //   field: 'created_at',
+    //   resizable: true,
+    //   isVisible: true,
+    //   customCell: true,
+    //   renderCell: (row: any) => ({
+    //     cell: new Date(row?.created_at).toLocaleDateString(),
+    //   }),
+    //   sortKey: 'created_at',
+    // },
     {
       title: 'Description',
       field: 'description',
@@ -87,7 +89,7 @@ export default function WorkoutPlanIndex({
     per_page: Number(per_page ?? 10),
     search,
     ordering,
-    plan_id: planId,
+    plan_id: effectivePlanId,
   }
 
   const { data, isFetching } = useWorkoutPlans(searchParams)
@@ -97,7 +99,7 @@ export default function WorkoutPlanIndex({
   const openEdit = (row: any) => {
     setFormValues({
       id: row?.id,
-      plan_id: row?.plan_id ?? planId,
+      plan_id: row?.plan_id ?? effectivePlanId,
       day_number: row?.day_number ?? '',
       title: row?.title ?? '',
       description: row?.description ?? '',
@@ -150,7 +152,7 @@ export default function WorkoutPlanIndex({
         data={data?.workout_plans ?? []}
         dataRowKey="id"
         toolbar={true}
-        search={true}
+        // search={true}
         searchValue={pageParams?.search}
         onSearch={(key?: string) =>
           setPageParams({ ...pageParams, search: key as string, page: 1 })

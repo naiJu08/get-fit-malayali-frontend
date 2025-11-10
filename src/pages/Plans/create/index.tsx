@@ -200,19 +200,9 @@ export default function CreatePlan({
   const { mutate: updatePlanMutate } = useUpdatePlan()
   const queryClient = useQueryClient()
   const onSubmit = (values: PlanSchema | any) => {
-    // Normalize checkbox to strict boolean
-    const toBool = (v: any) => {
-      if (typeof v === 'boolean') return v
-      if (typeof v === 'number') return v === 1
-      if (typeof v === 'string') {
-        const s = v.trim().toLowerCase()
-        if (s === 'true' || s === '1' || s === 'on' || s === 'yes') return true
-        if (s === 'false' || s === '0' || s === 'off' || s === 'no' || s === '')
-          return false
-      }
-      return !!v
-    }
-    const payload = { plan: { ...values, active: toBool(values?.active) } }
+    // Do not send status from the form; backend will use its default or preserve existing
+    // const { active: _omitActive, ...rest } = values || {}
+    const payload = { plan: { ...values } }
     if (edit && rowData?.plan?.id) {
       updatePlanMutate(
         { id: rowData.plan.id, payload },
@@ -235,7 +225,6 @@ export default function CreatePlan({
         category: rowData?.plan?.category ?? '',
         description: rowData?.plan?.description ?? '',
         duration_days: rowData?.plan?.duration_days ?? 0,
-        active: rowData?.plan?.active,
       })
     } else if (isDrawerOpen && !edit) {
       reset({
@@ -243,56 +232,45 @@ export default function CreatePlan({
         category: '',
         description: '',
         duration_days: 0,
-        active: false,
       })
     }
   }, [isDrawerOpen, edit, rowData, reset])
 
-  const formFields = [
+  const textField = (
+    name: string,
+    label: string,
+    placeholder: string,
+    required = false,
+    type: 'text' | 'textarea' = 'text'
+  ) => ({
+    name,
+    label,
+    type,
+    placeholder,
+    ...(required ? { required: true } : {}),
+  })
+
+  const formBuilderProps = [
+    { ...textField('name', 'Plan Name', 'Enter plan name', true) },
+    { ...textField('category', 'Category', 'Enter category', true) },
     {
-      name: 'name',
-      label: 'Plan Name',
-      type: 'text',
-      placeholder: 'Enter plan name',
-      required: true,
+      ...textField(
+        'description',
+        'Description',
+        'Enter plan description',
+        true,
+        'textarea'
+      ),
     },
     {
-      name: 'category',
-      label: 'Category',
-      type: 'text',
-      placeholder: 'Enter category',
-      required: true,
+      ...textField(
+        'duration_days',
+        'Duration (Days)',
+        'Enter duration in days',
+        true
+      ),
     },
-    {
-      name: 'description',
-      label: 'Description',
-      type: 'textarea',
-      placeholder: 'Enter plan description',
-      required: true,
-    },
-    {
-      name: 'duration_days',
-      label: 'Duration (Days)',
-      type: 'text',
-      placeholder: 'Enter duration in days',
-      required: true,
-    },
-    {
-      name: 'active',
-      label: 'Status',
-      type: 'custom_select',
-      // map selection to boolean using desc: 'value'
-      desc: 'value',
-      descId: 'id',
-      id: 'active_id',
-      placeholder: 'Select status',
-      initialLoad: true ? 'Active' : 'Inactive',
-      data: [
-        { id: 'active', name: 'Active', value: 'Active' },
-        { id: 'inactive', name: 'Inactive', value: 'Inactive' },
-      ],
-      required: true,
-    },
+    // Status removed from creation form; status changes are handled via listing action
   ]
 
   // const onSubmit = (data: PlanSchema) => {
@@ -350,7 +328,7 @@ export default function CreatePlan({
           {!viewMode ? (
             <>
               <FormProvider {...methods}>
-                <FormBuilder data={formFields} edit={true} />
+                <FormBuilder data={formBuilderProps} edit={true} spacing />
               </FormProvider>
             </>
           ) : (

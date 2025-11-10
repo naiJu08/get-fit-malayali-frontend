@@ -5,6 +5,7 @@ export const domainTypes = {
   EMPLOYEE: 'Employee',
   ASSESSOR: 'Assessor',
   ORGANISATION: 'Organisation',
+  NUTRITIONIST: 'Nutritionist',
 } as const
 
 export type DomainType = string
