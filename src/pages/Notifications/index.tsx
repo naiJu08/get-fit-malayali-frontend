@@ -72,7 +72,8 @@ export default function Notifications() {
     title: '',
     message: '',
     notification_type: 'reminder',
-    scheduled_at: '',
+    scheduled_date: '',
+    scheduled_time: '',
   })
 
   const handleCreateChange = (name: string, value: any) => {
@@ -85,7 +86,8 @@ export default function Notifications() {
       title: '',
       message: '',
       notification_type: 'reminder',
-      scheduled_at: '',
+      scheduled_date: '',
+      scheduled_time: '',
     })
   }
 
@@ -121,10 +123,21 @@ export default function Notifications() {
       return
     }
 
-    // Convert datetime-local to ISO if present
-    const scheduledISO = createForm.scheduled_at
-      ? new Date(createForm.scheduled_at).toISOString()
-      : undefined
+    // Combine date and time into ISO if both provided
+    let scheduledISO: string | undefined
+    const hasDate = !!createForm.scheduled_date
+    const hasTime = !!createForm.scheduled_time
+    if (hasDate && hasTime) {
+      // Build local datetime string and convert to ISO
+      const datetimeLocal = `${createForm.scheduled_date}T${createForm.scheduled_time}`
+      const dt = new Date(datetimeLocal)
+      if (!isNaN(dt.getTime())) scheduledISO = dt.toISOString()
+    } else if (hasDate || hasTime) {
+      enqueueSnackbar('Please provide both date and time for scheduling', {
+        variant: 'warning',
+      })
+      return
+    }
 
     // Build payload and omit undefined/empty optional fields
     const notification: any = {
@@ -559,21 +572,7 @@ export default function Notifications() {
                       ? false
                       : true,
                 },
-                {
-                  title: 'Activate',
-                  action: (rowData) =>
-                    handleDeleteModel(
-                      rowData?.id,
-                      rowData?.email,
-                      rowData?.status
-                    ),
-                  icon: <Icons name="activate-icon" />,
-                  toolTip: 'Activate',
-                  hide: (rowData: any) =>
-                    String(rowData?.status ?? '').toLowerCase() === 'inactive'
-                      ? false
-                      : true,
-                },
+
                 {
                   title: 'Delete',
                   action: (rowData) => handleOpenDeleteUser(rowData?.id),
@@ -602,6 +601,7 @@ export default function Notifications() {
               clearCreateForm()
             }}
             secondaryActionLabel="Cancel"
+            small={false}
             body={
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1">
@@ -704,14 +704,27 @@ export default function Notifications() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-sm text-gray-600">
-                      Scheduled At
+                      Scheduled Date
                     </label>
                     <input
-                      type="datetime-local"
+                      type="date"
                       className="textfield"
-                      value={createForm.scheduled_at}
+                      value={createForm.scheduled_date}
                       onChange={(e) =>
-                        handleCreateChange('scheduled_at', e.target.value)
+                        handleCreateChange('scheduled_date', e.target.value)
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-sm text-gray-600">
+                      Scheduled Time
+                    </label>
+                    <input
+                      type="time"
+                      className="textfield"
+                      value={createForm.scheduled_time}
+                      onChange={(e) =>
+                        handleCreateChange('scheduled_time', e.target.value)
                       }
                     />
                   </div>

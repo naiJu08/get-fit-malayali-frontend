@@ -1,4 +1,4 @@
-import { QbsTable } from 'qbs-react-grid'
+import SmartTable from '../../components/common/table/SmartTable'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -7,7 +7,6 @@ import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
 import DialogModal from '../../components/common/modal/DialogModal'
 import TextField from '../../components/common/inputs/TextField'
-import SearchInput from '../../components/common/inputs/SearchInput'
 import DynamicDropdown from '../../components/common/DynamicDropdown'
 import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
@@ -522,88 +521,73 @@ export default function Subscriptions() {
             }
           />
           <div className=" p-4">
-            <div className="flex items-end gap-3 mb-3 flex-wrap">
-              <div className="w-80 flex flex-col gap-1">
-                <label className="text-sm text-gray-600">Search</label>
-                <SearchInput
-                  placeholder=""
-                  searchValue={pageParams?.search ?? ''}
-                  handleChange={(val?: string) =>
-                    setPageParams({ ...pageParams, search: val ?? '', page: 1 })
-                  }
-                  handleSearch={(val?: string) => handleSeach(val ?? '')}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-gray-600">Plan</label>
-                <div className="w-56 flex flex-col gap-1 border p-[9px] border-1 rounded-xs bg-white">
-                  <DynamicDropdown
-                    key={`plan-dd-${planIdFilter || 'all'}-${planLabel}`}
-                    tileItem={{ label: 'Plan', value: planLabel }}
-                    value={planIdFilter}
-                    getData={getPlansDropdown}
-                    setUpdateCREId={(id: any) => {
-                      const v = id ? String(id) : ''
-                      setPlanIdFilter(v)
-                      // set label immediately from cache if available
-                      if (v) {
-                        const cached = plansCache?.[v]
-                        if (cached) setPlanLabel(cached)
-                        else setPlanLabel(planLabel) // keep current until resolved
-                      } else {
-                        setPlanLabel('All Plans')
-                      }
-                      applyPlanFilter(v)
-                      if (v && !plansCache?.[v]) resolvePlanLabel(v)
-                    }}
-                  />
-                </div>
-              </div>
-              <div className="w-56 flex flex-col gap-1">
-                <label className="text-sm text-gray-600">Status</label>
-                <select
-                  className="textfield"
-                  value={statusFilter}
-                  onChange={(e) => applyStatusFilter(e.target.value)}
-                >
-                  <option value="">All</option>
-                  <option value="active">Active</option>
-                  <option value="paused">Paused</option>
-                  <option value="expired">Expired</option>
-                </select>
-              </div>
-            </div>
-            <QbsTable
+            <SmartTable
               data={data?.items ?? []}
               dataRowKey="id"
               toolbar={true}
-              search={false}
+              search={true}
+              searchValue={pageParams?.search || ''}
+              onSearchChange={(val) =>
+                setPageParams({ ...pageParams, search: val, page: 1 })
+              }
+              onSearch={(val) => handleSeach(val)}
+              toolbarExtra={
+                <div className="flex items-end gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-600">Plan</label>
+                    <div className="w-64 flex flex-col gap-1 z-20 border p-[12px] rounded-lg bg-white">
+                      <DynamicDropdown
+                        key={`plan-dd-${planIdFilter || 'all'}-${planLabel}`}
+                        tileItem={{ label: 'Plan', value: planLabel }}
+                        value={planIdFilter}
+                        getData={getPlansDropdown}
+                        setUpdateCREId={(id: any) => {
+                          const v = id ? String(id) : ''
+                          setPlanIdFilter(v)
+                          if (v) {
+                            const cached = plansCache?.[v]
+                            if (cached) setPlanLabel(cached)
+                          } else {
+                            setPlanLabel('All Plans')
+                          }
+                          applyPlanFilter(v)
+                          if (v && !plansCache?.[v]) resolvePlanLabel(v)
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1 ">
+                    <label className="text-xs text-gray-600">Status</label>
+                    <select
+                      className="textfield w-44 "
+                      value={statusFilter}
+                      onChange={(e) => applyStatusFilter(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      <option value="active">Active</option>
+                      <option value="paused">Paused</option>
+                      <option value="expired">Expired</option>
+                    </select>
+                  </div>
+                </div>
+              }
               height={
                 data?.items?.length === 0
-                  ? calcWindowHeight(218)
-                  : calcWindowHeight(300)
+                  ? calcWindowHeight(150)
+                  : calcWindowHeight(150)
               }
               isLoading={isFetching}
-              sortType={pageParams.sortType}
-              sortColumn={pageParams.sortColumn}
+              sortType={pageParams.sortType as any}
+              sortColumn={pageParams.sortColumn as any}
               handleColumnSort={handleSort}
               emptyTitle="No records to display"
               emptySubTitle={handleReturnEmptyMsg(search)}
               columns={columns}
               pagination={true}
-              renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
-                return sortType === 'asc' ? (
-                  <Icons name="ascending-icon" />
-                ) : sortType === 'desc' ? (
-                  <Icons name="descending-icon" />
-                ) : (
-                  <Icons name="qbs-sort-icon" />
-                )
-              }}
               paginationProps={{
                 onPagination: onChangePage,
                 total: data?.total ?? 0,
-                currentPage: data?.current_page ?? pageParams?.page ?? 1,
+                currentPage: pageParams?.page ?? 1,
                 rowsPerPage: Number(pageParams?.page_size ?? 10),
                 onRowsPerPage: onChangeRowsPerPage,
                 dropOptions: [10, 20, 30, 50, 100],
@@ -662,11 +646,8 @@ export default function Subscriptions() {
                   toolTip: 'Delete',
                 },
               ]}
-              searchValue={pageParams?.search}
-              onSearch={handleSeach}
-              asyncSearch
-              handleSearchValue={(key?: string) => handleSeach(key)}
               columnToggle
+              externalActions={true}
             />
           </div>
 
