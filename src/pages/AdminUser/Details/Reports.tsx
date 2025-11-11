@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { QbsTable } from 'qbs-react-grid'
 import { calcWindowHeight } from '../../../utilities/calcHeight'
 import { createClientReport, useClientReports } from '../api'
 import Button from '../../../components/common/buttons/Button'
 import { useSnackbarManager } from '../../../components/common/snackbar'
 import { AutoComplete } from 'qbs-core'
+import SmartTable from '../../../components/common/table/SmartTable'
 
 export default function Reports({ user }: { user: any }) {
   const [page, setPage] = useState(1)
@@ -180,14 +180,14 @@ export default function Reports({ user }: { user: any }) {
         />
       </div>
 
-      <QbsTable
+      <SmartTable
         data={items}
         dataRowKey="id"
         toolbar={false}
         search={false}
         isLoading={isFetching}
         height={
-          items?.length === 0 ? calcWindowHeight(218) : calcWindowHeight(300)
+          items?.length === 0 ? calcWindowHeight(218) : calcWindowHeight(150)
         }
         emptyTitle="No reports to display"
         emptySubTitle={''}
@@ -201,6 +201,7 @@ export default function Reports({ user }: { user: any }) {
           onRowsPerPage: (n: number | string) => setPageSize(Number(n)),
           dropOptions: [10, 20, 30, 50, 100],
         }}
+        externalActions={true}
       />
     </div>
   )

@@ -164,6 +164,7 @@ import FatIcon from './FatIcon'
 import MuscleMassIcon from './Musclemass'
 import ArmIcon from './ArmIcon'
 import BoneMassIcon from './BoneMass'
+import NoDataIcon from './NoData'
 
 const Icons: React.FC<IconsProps> = ({
   name,
@@ -497,6 +498,8 @@ const Icons: React.FC<IconsProps> = ({
         return <ArmIcon />
       case 'bone-icon':
         return <BoneMassIcon />
+      case 'no-data-icon':
+        return <NoDataIcon />
       default:
         return <></>
     }

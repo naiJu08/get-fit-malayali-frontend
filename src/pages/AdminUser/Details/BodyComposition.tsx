@@ -23,8 +23,9 @@ export default function BodyComposition({ user }: { user: any }) {
         </div>
       )}
       {!isFetching && items.length === 0 && (
-        <div className="p-6 text-sm text-gray-600">
-          No body composition to display
+        <div className="p-10 min-h-[60vh] flex flex-col items-center justify-center text-gray-500">
+          <Icons name="no-data-icon" />
+          <div className="mt-3 text-sm">No body composition to display</div>
         </div>
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">

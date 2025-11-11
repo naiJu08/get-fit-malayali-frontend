@@ -4,8 +4,11 @@ import InfoBox from '../../../components/app/alertBox/infoBox'
 import Button from '../../../components/common/buttons/Button'
 import { AutoComplete } from 'qbs-core'
 import { DialogModal } from '../../../components/common'
+import Icons from '../../../components/common/icons'
 import { usePlans } from '../../Plans/api'
 import { createSubscription, getAdminDetails } from '../api'
+import { useAuthStore } from '../../../store/authStore'
+import { useSnackbarManager } from '../../../components/common/snackbar'
 
 export default function Subscriptions({
   id,
@@ -21,6 +24,8 @@ export default function Subscriptions({
   onRefresh: (data?: any) => void
 }) {
   const plans = user?.interested_plans || []
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+
   const subscribedPlan = user?.subscribed_plan
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [subForm, setSubForm] = useState<{
@@ -34,6 +39,7 @@ export default function Subscriptions({
   const [selectedPlanOption, setSelectedPlanOption] = useState<any>(null)
   const { data: plansList } = usePlans({ page: 1, per_page: 100 } as any)
   const allPlans: any[] = (plansList?.plans || plansList?.items || []) as any[]
+  const { enqueueSnackbar } = useSnackbarManager()
 
   const computeEndDate = (start: string, days?: number) => {
     if (!start || !days || isNaN(days as any)) return ''
@@ -107,6 +113,9 @@ export default function Subscriptions({
         const fresh = await getAdminDetails(String(id))
         onRefresh(fresh)
       } catch {}
+      enqueueSnackbar('Subscription created successfully', {
+        variant: 'success',
+      })
       setSelectedPlanOption(null)
       setDrawerOpen(false)
     } catch {
@@ -129,7 +138,7 @@ export default function Subscriptions({
       )}
       {!loading && !error && (
         <div className="flex flex-col gap-4">
-          {!subscribedPlan && (
+          {loginRole !== 'nutritionist' && !subscribedPlan && (
             <div className="flex justify-end">
               <Button
                 className="primaryButton"
@@ -171,8 +180,9 @@ export default function Subscriptions({
                     </div>
                   ))
                 ) : (
-                  <div className="p-6 col-span-full">
-                    <InfoBox content="No interested plans" />
+                  <div className="p-10 min-h-[60vh] flex flex-col items-center justify-center text-gray-500">
+                    <Icons name="no-data-icon" />
+                    <div className="mt-3 text-sm">No interested plans</div>
                   </div>
                 )}
               </div>

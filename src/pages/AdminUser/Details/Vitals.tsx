@@ -12,7 +12,10 @@ export default function Vitals({ user }: { user: any }) {
         <div className="p-6 text-sm text-gray-600">Loading vitals...</div>
       )}
       {!isFetching && items.length === 0 && (
-        <div className="p-6 text-sm text-gray-600">No vitals to display</div>
+        <div className="p-10 min-h-[60vh] flex flex-col items-center justify-center text-gray-500">
+          <Icons name="no-data-icon" />
+          <div className="mt-3 text-sm">No vitals to display</div>
+        </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">

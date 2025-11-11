@@ -22,8 +22,9 @@ export default function BodyMeasurements({ user }: { user: any }) {
         <div className="p-6 text-sm text-gray-600">Loading measurements...</div>
       )}
       {!bodyLoading && bodyItems.length === 0 && (
-        <div className="p-6 text-sm text-gray-600">
-          No body measurements to display
+        <div className="p-10 min-h-[60vh] flex flex-col items-center justify-center text-gray-500">
+          <Icons name="no-data-icon" />
+          <div className="mt-3 text-sm">No body measurements to display</div>
         </div>
       )}
 

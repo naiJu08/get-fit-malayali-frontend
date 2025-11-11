@@ -193,7 +193,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
   const empty = (
     <div className="flex flex-col items-center justify-center py-20 text-center text-gray-400">
       <div className="mb-4 transform scale-125">
-        <Icons name="qbs-empty" className="w-16 h-16 opacity-50" />
+        <Icons name="no-data-icon" className="w-16 h-16 opacity-50" />
       </div>
       <p className="text-lg font-medium text-gray-500 mb-2">{emptyTitle}</p>
       {emptySubTitle && (
@@ -444,7 +444,27 @@ const SmartTable: React.FC<SmartTableProps> = ({
                           ${isHovered ? 'text-gray-900' : ''}
                         `}
                       >
-                        {renderCell(col, row)}
+                        {(() => {
+                          const content = renderCell(col, row)
+                          const anyCol: any = col as any
+                          if (typeof anyCol.rowClick === 'function') {
+                            return (
+                              <button
+                                type="button"
+                                className={`$${'underline-offset-2'} ${
+                                  anyCol.link
+                                    ? 'text-blue-600 hover:underline'
+                                    : 'hover:opacity-80'
+                                }`}
+                                title={anyCol.toolTip}
+                                onClick={() => anyCol.rowClick(row)}
+                              >
+                                {content}
+                              </button>
+                            )
+                          }
+                          return content
+                        })()}
                       </td>
                     ))}
 

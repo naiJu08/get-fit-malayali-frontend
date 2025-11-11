@@ -11,12 +11,12 @@ import BodyComposition from './Details/BodyComposition'
 import Vitals from './Details/Vitals'
 import Clients from './Details/Clients'
 import Reports from './Details/Reports'
-// import { useAuthStore } from '../../store/authStore'
+import { useAuthStore } from '../../store/authStore'
 
 export default function UserDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
-  // const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const location = useLocation()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -81,7 +81,7 @@ export default function UserDetails() {
       navigate(`/nutritionist/${id}/details`, { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, id])
+  }, [location.pathname, id, navigate])
 
   const tabs = useMemo(
     () => [
@@ -93,10 +93,12 @@ export default function UserDetails() {
             { id: 'body', label: 'Body measurements' },
             { id: 'body-composition', label: 'Body composition' },
             { id: 'vitals', label: 'Vitals' },
-            { id: 'reports', label: 'Reports' },
+            ...(loginRole !== 'nutritionist'
+              ? [{ id: 'reports', label: 'Reports' }]
+              : []),
           ]),
     ],
-    [isNutritionist]
+    [isNutritionist, loginRole]
   )
 
   const handleTabClick = (item: { id: string | number; label: string }) => {
@@ -160,7 +162,7 @@ export default function UserDetails() {
             <Vitals user={user} />
           </Tab>
         )}
-        {!isNutritionist && (
+        {!isNutritionist && loginRole !== 'nutritionist' && (
           <Tab id="reports">
             <Reports user={user} />
           </Tab>

@@ -1,4 +1,3 @@
-import { QbsTable } from 'qbs-react-grid'
 import { useEffect, useState } from 'react'
 import { TableColumns } from '../../common/types'
 import Icons from '../../components/common/icons'
@@ -10,6 +9,8 @@ import { getRecipeColumns } from './columns'
 import { useNavigate } from 'react-router-dom'
 import CreateRecipe from './create'
 import { checkPermissions } from '../../layout/store'
+import SmartTable from '../../components/common/table/SmartTable'
+import { calcWindowHeight } from '../../utilities/calcHeight'
 
 export default function Recipe() {
   const [columns, setColumns] = useState<TableColumns[]>([])
@@ -89,10 +90,15 @@ export default function Recipe() {
         checkPermission={checkPermissions('Employee', 'create')}
       />
       <div className="p-4">
-        <QbsTable
+        <SmartTable
           data={data?.recipes ?? []}
           dataRowKey="id"
           toolbar
+          height={
+            data?.recipes?.length === 0
+              ? calcWindowHeight(218)
+              : calcWindowHeight(150)
+          }
           search
           isLoading={isFetching}
           sortType={pageParams.sortType}
@@ -109,15 +115,6 @@ export default function Recipe() {
               toolTip: 'Edit',
             },
           ]}
-          renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
-            return sortType === 'asc' ? (
-              <Icons name="ascending-icon" />
-            ) : sortType === 'desc' ? (
-              <Icons name="descending-icon" />
-            ) : (
-              <Icons name="qbs-sort-icon" />
-            )
-          }}
           paginationProps={{
             onPagination: onChangePage,
             total: data?.meta?.total_count ?? 0,
@@ -132,14 +129,14 @@ export default function Recipe() {
             dropOptions: [10, 20, 30, 50, 100],
           }}
           searchValue={pageParams?.search}
-          onSearch={(key?: string) =>
-            setPageParams({ ...pageParams, search: key as string, page: 1 })
+          onSearchChange={(val: string) =>
+            setPageParams({ ...pageParams, search: val })
           }
-          asyncSearch
-          handleSearchValue={(key?: string) =>
-            setPageParams({ ...pageParams, search: key as string, page: 1 })
+          onSearch={(key?: string) =>
+            setPageParams({ ...pageParams, search: String(key ?? ''), page: 1 })
           }
           columnToggle
+          externalActions={true}
         />
       </div>
       <CreateRecipe

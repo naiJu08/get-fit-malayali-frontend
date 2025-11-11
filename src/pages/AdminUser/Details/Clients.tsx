@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Button from '../../../components/common/buttons/Button'
 import Icons from '../../../components/common/icons'
-import { QbsTable } from 'qbs-react-grid'
+import SmartTable from '../../../components/common/table/SmartTable'
 import { calcWindowHeight } from '../../../utilities/calcHeight'
 import {
   createAssignedClient,
@@ -109,8 +109,20 @@ export default function Clients({ user }: { user: any }) {
     if (!row?.id) return
     try {
       setUnassigning(true)
-      await deleteAssignedClient(row.id)
+      const res = await deleteAssignedClient(row.id)
+      try {
+        enqueueSnackbar(res?.message || 'Client unassigned successfully', {
+          variant: 'success',
+        })
+      } catch {}
       await refetchAssigned()
+    } catch (err: any) {
+      try {
+        enqueueSnackbar(
+          err?.response?.data?.message || 'Failed to unassign client',
+          { variant: 'error' }
+        )
+      } catch {}
     } finally {
       setUnassigning(false)
     }
@@ -128,7 +140,7 @@ export default function Clients({ user }: { user: any }) {
           }}
         />
       </div>
-      <QbsTable
+      <SmartTable
         data={assignedClients}
         dataRowKey="id"
         toolbar={false}
@@ -137,12 +149,13 @@ export default function Clients({ user }: { user: any }) {
         height={
           assignedClients?.length === 0
             ? calcWindowHeight(218)
-            : calcWindowHeight(300)
+            : calcWindowHeight(150)
         }
         emptyTitle="No clients to display"
         emptySubTitle={''}
         columns={clientColumns}
         pagination={true}
+        externalActions={true}
         actionProps={[
           {
             icon: <Icons name="delete" />,
