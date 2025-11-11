@@ -122,12 +122,12 @@ export default function CreateAdmin({
       name: 'role',
       label: 'Role',
       required: true,
-      id: 'role',
+      id: 'role_id',
       desc: 'name',
       descId: 'id',
       data: [
-        { id: '1', name: 'Nutritionist' },
-        { id: '2', name: 'User' },
+        { id: 2, name: 'Nutritionist' },
+        { id: 3, name: 'Client' },
       ],
       type: 'custom_select',
       placeholder: 'Select role',
@@ -212,6 +212,7 @@ export default function CreateAdmin({
       password_confirmation: '',
       phone: '',
       role: '',
+      role_id: '',
       gender: '',
       date_of_birth: '',
       height: 0,
@@ -233,6 +234,7 @@ export default function CreateAdmin({
       password_confirmation: '',
       phone: '',
       role: '',
+      role_id: '',
       gender: '',
       date_of_birth: '',
       height: 0,
@@ -257,7 +259,14 @@ export default function CreateAdmin({
               : (rowData?.user?.name ?? ''),
           email: rowData?.user?.username ?? rowData?.user?.email ?? '',
           phone: rowData?.user?.phone ?? '',
-          role: rowData?.user?.group?.id ?? rowData?.user?.role ?? '',
+          role_id: rowData?.user?.group?.id ?? rowData?.user?.role ?? '',
+          role: (() => {
+            const r = rowData?.user?.group?.id ?? rowData?.user?.role
+            if (r === 2 || r === '2') return 'Nutritionist'
+            if (r === 3 || r === '3') return 'Client'
+            if (typeof r === 'string') return r
+            return ''
+          })(),
           gender: rowData?.user?.gender ?? '',
           date_of_birth: rowData?.user?.date_of_birth ?? '',
           height: rowData?.user?.height ?? 0,
@@ -289,13 +298,61 @@ export default function CreateAdmin({
   // Prefill role based on active tab when creating (not edit/view)
   useEffect(() => {
     if (isDrawerOpen && !edit && !viewMode) {
-      const defaultRoleId = activeRole === 'nutritionist' ? '1' : '2'
-      methods.setValue('role' as any, defaultRoleId as any, {
+      const defaultRoleId = activeRole === 'nutritionist' ? 2 : 3
+      const defaultRoleLabel = defaultRoleId === 2 ? 'Nutritionist' : 'Client'
+      methods.setValue('role_id' as any, defaultRoleId as any, {
+        shouldValidate: true,
+        shouldDirty: true,
+      })
+      methods.setValue('role' as any, defaultRoleLabel as any, {
         shouldValidate: true,
         shouldDirty: true,
       })
     }
   }, [isDrawerOpen, activeRole, edit, viewMode])
+  // Ensure role display is always label, not numeric id
+  useEffect(() => {
+    if (!isDrawerOpen) return
+    const v: any = (methods as any).getValues?.() || {}
+    const currentRole = v?.role
+    if (
+      typeof currentRole === 'number' ||
+      (typeof currentRole === 'string' && /^\d+$/.test(currentRole))
+    ) {
+      const id =
+        typeof currentRole === 'number'
+          ? currentRole
+          : parseInt(currentRole, 10)
+      const label = id === 2 ? 'Nutritionist' : id === 3 ? 'Client' : ''
+      if (label) {
+        methods.setValue('role' as any, label as any, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+    }
+  }, [isDrawerOpen])
+  // Keep role label in sync with role_id at all times
+  const roleIdValue = (methods as any).watch?.('role_id')
+  useEffect(() => {
+    if (!isDrawerOpen) return
+    const id = roleIdValue
+    const label =
+      id === 2 || id === '2'
+        ? 'Nutritionist'
+        : id === 3 || id === '3'
+          ? 'Client'
+          : ''
+    if (label) {
+      const currentRole = (methods as any).getValues?.('role')
+      if (currentRole !== label) {
+        methods.setValue('role' as any, label as any, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      }
+    }
+  }, [roleIdValue, isDrawerOpen])
   const onSubmit = (details: any) => {
     const pickId = (v: any, fallback = 0) => {
       if (v === null || v === undefined) return fallback
@@ -313,7 +370,7 @@ export default function CreateAdmin({
       }
       return fallback
     }
-    const rawRole = details?.role ?? details?.role_id
+    const rawRole = details?.role_id ?? details?.role
     let roleId = pickId(rawRole, 0)
     if (!roleId) {
       const mapRoleName = (s: any) => {

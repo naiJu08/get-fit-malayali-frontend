@@ -79,7 +79,7 @@ const TabContainer: React.FC<TabProps> = ({
         ))}
       </div>
       <div className="">
-        <div className="tab-section p-4 rounded">
+        <div className="tab-section py-4 rounded">
           <Wrapper activeTab={activeTab}>{children}</Wrapper>
         </div>
       </div>

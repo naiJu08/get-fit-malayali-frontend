@@ -1,6 +1,6 @@
-import { QbsTable } from 'qbs-react-grid'
+import SmartTable from '../../components/common/table/SmartTable'
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -34,6 +34,7 @@ import { useAuthStore } from '../../store/authStore'
 export default function AdminUser() {
   const navigate = useNavigate()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const location = useLocation()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
   const [deleteItem, setDeleteItem] = useState('')
@@ -88,6 +89,17 @@ export default function AdminUser() {
     setFreezeForm({ reason: '', start_date: '', end_date: '' })
     setFreezeModal(true)
   }
+
+  // Sync activeRole with URL path
+  useEffect(() => {
+    const path = location.pathname || ''
+    if (path.startsWith('/nutrionist')) {
+      setActiveRole('nutritionist')
+    } else if (path.startsWith('/users')) {
+      setActiveRole('user')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
 
   const handleFreezeChange = ({
     name,
@@ -179,7 +191,11 @@ export default function AdminUser() {
     setColumns(
       getColumns({
         onViewAction: onViewAction,
-        onNameClick: (row: any) => navigate(`/users/${row?.id}`),
+        onNameClick: (row: any) => {
+          const base =
+            activeRole === 'nutritionist' ? '/nutritionist' : '/users'
+          navigate(`${base}/${row?.id}`)
+        },
         activeRole,
       })
     )
@@ -354,43 +370,40 @@ export default function AdminUser() {
             actionProps={headerProps}
             checkPermission={checkPermissions('Employee', 'create')}
           />
-          {/* Role Tabs */}
+          {/* Role Tabs with action on the right */}
           <div className="px-4">
-            <div className="flex gap-4 border-b">
-              <button
-                type="button"
-                className={`px-3 py-2 -mb-px ${
-                  activeRole === 'user'
-                    ? 'border-b-2 border-blue-600 text-blue-600'
-                    : 'text-gray-600'
-                }`}
-                onClick={() => setActiveRole('user')}
-              >
-                User
-              </button>
-              {loginRole !== 'nutritionist' && (
+            <div className="flex items-center justify-between">
+              <div className="flex gap-4 border-b">
                 <button
                   type="button"
                   className={`px-3 py-2 -mb-px ${
-                    activeRole === 'nutritionist'
+                    activeRole === 'user'
                       ? 'border-b-2 border-blue-600 text-blue-600'
                       : 'text-gray-600'
                   }`}
-                  onClick={() => setActiveRole('nutritionist')}
+                  onClick={() => navigate('/users')}
                 >
-                  Nutritionist
+                  Client
                 </button>
-              )}
-            </div>
-          </div>
-          {/* <PageTitle data={data?.total} isLoading={isFetching} /> */}
-          <div className=" p-4">
-            <div className="relative">
-              {/* Right-aligned create button placed in the same row as the search */}
-              {checkPermissions('Employee', 'create') && (
-                <div className="absolute right-0 top-2 z-10">
+                {loginRole !== 'nutritionist' && (
+                  <button
+                    type="button"
+                    className={`px-3 py-2 -mb-px ${
+                      activeRole === 'nutritionist'
+                        ? 'border-b-2 border-blue-600 text-blue-600'
+                        : 'text-gray-600'
+                    }`}
+                    onClick={() => navigate('/nutrionist')}
+                  >
+                    Nutritionist
+                  </button>
+                )}
+              </div>
+
+              {loginRole !== 'nutritionist' &&
+                checkPermissions('Employee', 'create') && (
                   <Button
-                    className="bg-primaryGreen"
+                    className="bg-primaryGreen mt-4"
                     label={
                       activeRole === 'nutritionist'
                         ? 'Create Nutritionist'
@@ -399,9 +412,13 @@ export default function AdminUser() {
                     icon={'plus'}
                     onClick={openDrawer}
                   />
-                </div>
-              )}
-              <QbsTable
+                )}
+            </div>
+          </div>
+          {/* <PageTitle data={data?.total} isLoading={isFetching} /> */}
+          <div className=" p-4">
+            <div>
+              <SmartTable
                 data={data?.items ?? []}
                 dataRowKey="id"
                 toolbar={true}
@@ -409,7 +426,7 @@ export default function AdminUser() {
                 height={
                   data?.items?.length === 0
                     ? calcWindowHeight(218)
-                    : calcWindowHeight(300)
+                    : calcWindowHeight(200)
                 }
                 isLoading={isFetching}
                 sortType={pageParams.sortType}
@@ -419,15 +436,6 @@ export default function AdminUser() {
                 emptySubTitle={handleReturnEmptyMsg(search)}
                 columns={columns}
                 pagination={true}
-                renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
-                  return sortType === 'asc' ? (
-                    <Icons name="ascending-icon" />
-                  ) : sortType === 'desc' ? (
-                    <Icons name="descending-icon" />
-                  ) : (
-                    <Icons name="qbs-sort-icon" />
-                  )
-                }}
                 paginationProps={{
                   onPagination: onChangePage,
                   total: data?.total ?? 0,
@@ -445,7 +453,13 @@ export default function AdminUser() {
                   },
                   {
                     icon: <Icons name="eye" />,
-                    action: (row) => navigate(`/users/${row?.id}`),
+                    action: (row) => {
+                      const base =
+                        activeRole === 'nutritionist'
+                          ? '/nutritionist'
+                          : '/users'
+                      navigate(`${base}/${row?.id}`)
+                    },
                     title: 'view',
                     toolTip: 'View Details',
                   },
@@ -497,10 +511,12 @@ export default function AdminUser() {
                   },
                 ]}
                 searchValue={pageParams?.search}
-                onSearch={handleSeach}
-                asyncSearch
-                handleSearchValue={(key?: string) => handleSeach(key)}
+                onSearchChange={(val: string) =>
+                  setPageParams({ ...pageParams, search: val })
+                }
+                onSearch={(key?: string) => handleSeach(key)}
                 columnToggle
+                externalActions={true}
               />
             </div>
           </div>

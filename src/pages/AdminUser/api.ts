@@ -190,3 +190,115 @@ export const createAssignedClient = (payload: {
 export const deleteAssignedClient = (id: string | number) => {
   return deleteData(`${apiUrl.ASSIGNED_CLIENTS}/${id}`)
 }
+
+// Body Measurements (Client)
+const fetchBodyMeasurements = async (
+  input: QueryParams & { user_id?: string | number }
+) => {
+  const url = buildUrlWithParams(apiUrl.BODY_MEASUREMENTS, {
+    ...input,
+  })
+  const response = await getData(url)
+  return {
+    items: response?.body_measurements || [],
+    total: response?.meta?.total_count ?? 0,
+    total_pages: response?.meta?.total_pages ?? 1,
+    current_page: response?.meta?.current_page ?? 1,
+  }
+}
+
+export const useBodyMeasurements = (
+  input: QueryParams & { user_id?: string | number }
+) => {
+  return useQuery(
+    ['body_measurements', input],
+    () => fetchBodyMeasurements(input),
+    {
+      enabled: !!input?.user_id,
+    }
+  )
+}
+
+// Body Compositions (Client)
+const fetchBodyCompositions = async (
+  input: QueryParams & { user_id?: string | number }
+) => {
+  const url = buildUrlWithParams(apiUrl.BODY_COMPOSITION, {
+    ...input,
+  })
+  const response = await getData(url)
+  return {
+    items: response?.body_compositions || [],
+    total: response?.meta?.total_count ?? 0,
+    total_pages: response?.meta?.total_pages ?? 1,
+    current_page: response?.meta?.current_page ?? 1,
+  }
+}
+
+export const useBodyCompositions = (
+  input: QueryParams & { user_id?: string | number }
+) => {
+  return useQuery(
+    ['body_compositions', input],
+    () => fetchBodyCompositions(input),
+    {
+      enabled: !!input?.user_id,
+    }
+  )
+}
+
+// Vitals (Client)
+const fetchVitals = async (
+  input: QueryParams & { user_id?: string | number }
+) => {
+  const url = buildUrlWithParams(apiUrl.VITALS, {
+    ...input,
+  })
+  const response = await getData(url)
+  return {
+    items: response?.vitals || [],
+    total: response?.meta?.total_count ?? 0,
+    total_pages: response?.meta?.total_pages ?? 1,
+    current_page: response?.meta?.current_page ?? 1,
+  }
+}
+
+export const useVitals = (
+  input: QueryParams & { user_id?: string | number }
+) => {
+  return useQuery(['vitals', input], () => fetchVitals(input), {
+    enabled: !!input?.user_id,
+  })
+}
+
+// Client Monthly Reports
+const fetchClientReports = async (
+  input: QueryParams & { user_id?: string | number }
+) => {
+  const url = buildUrlWithParams(apiUrl.CLIENT_REPORTS, {
+    ...input,
+  })
+  const response = await getData(url)
+  return {
+    items: response?.monthly_reports || [],
+    total: response?.meta?.total_count ?? 0,
+    total_pages: response?.meta?.total_pages ?? 1,
+    current_page: response?.meta?.current_page ?? 1,
+  }
+}
+
+export const useClientReports = (
+  input: QueryParams & { user_id?: string | number }
+) => {
+  return useQuery(['client_reports', input], () => fetchClientReports(input), {
+    enabled: !!input?.user_id,
+  })
+}
+
+export const createClientReport = (payload: {
+  user_id: number | string
+  month: number
+  year: number
+}) => {
+  return postData(`${apiUrl.CLIENT_REPORTS}`, payload)
+}

@@ -147,6 +147,24 @@ import ExportFileIcon from './ExportFile'
 import DocumentIcon from './DocumentIcon'
 import CubeIcon from './CubeIcon'
 import LeftArrowIcon from './LeftArrow'
+import HeartRate from './HeartRate'
+import BloodPressureIcon from './BloodPressure'
+import SugarLevelIcon from './SugarLevelIcon'
+import SleepTimeIcon from './SleepTimeIcon'
+import WaterIntakeIcon from './WaterIntake'
+import ClockIcon from './ClockIcon'
+import Calendar from './CalendarIcon'
+import ChestIcon from './chest'
+import HipIcon from './hip'
+import WaterBottleIcon from './waterbottle'
+import WaistIcon from './WaistIcon'
+import NeckIcon from './NeckIcon'
+import ThighIcon from './ThighIcon'
+import FatIcon from './FatIcon'
+import MuscleMassIcon from './Musclemass'
+import ArmIcon from './ArmIcon'
+import BoneMassIcon from './BoneMass'
+import NoDataIcon from './NoData'
 
 const Icons: React.FC<IconsProps> = ({
   name,
@@ -446,6 +464,42 @@ const Icons: React.FC<IconsProps> = ({
         return <AccountingIcon />
       case 'left-arrow-icon':
         return <LeftArrowIcon />
+      case 'heart-rate-icon':
+        return <HeartRate />
+      case 'blood-pressure-icon':
+        return <BloodPressureIcon />
+      case 'sugar-level-icon':
+        return <SugarLevelIcon />
+      case 'sleep-time-icon':
+        return <SleepTimeIcon />
+      case 'water-intake-icon':
+        return <WaterIntakeIcon />
+      case 'clock-icon':
+        return <ClockIcon />
+      case 'calendar-icon':
+        return <Calendar />
+      case 'chest-icon':
+        return <ChestIcon />
+      case 'hip-icon':
+        return <HipIcon />
+      case 'water-bottle-icon':
+        return <WaterBottleIcon />
+      case 'waist-icon':
+        return <WaistIcon />
+      case 'neck-icon':
+        return <NeckIcon />
+      case 'thigh-icon':
+        return <ThighIcon />
+      case 'fat-icon':
+        return <FatIcon />
+      case 'muscle-mass-icon':
+        return <MuscleMassIcon />
+      case 'arm-icon':
+        return <ArmIcon />
+      case 'bone-icon':
+        return <BoneMassIcon />
+      case 'no-data-icon':
+        return <NoDataIcon />
       default:
         return <></>
     }

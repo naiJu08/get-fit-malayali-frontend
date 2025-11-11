@@ -21,6 +21,10 @@ const ACCREDITATION_LIST_URL = 'accreditations'
 const RENEW_APPLICATION = 'renew-accreditations'
 const WORKOUTS = 'workouts'
 const ASSIGNED_CLIENTS = 'assigned_clients'
+const BODY_MEASUREMENTS = 'body_measurements'
+const BODY_COMPOSITION = 'body_compositions'
+const VITALS = 'vitals'
+const CLIENT_REPORTS = 'monthly_reports'
 
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
@@ -45,6 +49,10 @@ const apiUrl: { [key: string]: string } = {
   RENEW_APPLICATION,
   WORKOUTS,
   ASSIGNED_CLIENTS,
+  BODY_MEASUREMENTS,
+  BODY_COMPOSITION,
+  VITALS,
+  CLIENT_REPORTS,
 }
 
 export default apiUrl
