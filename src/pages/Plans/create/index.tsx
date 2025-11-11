@@ -225,6 +225,7 @@ export default function CreatePlan({
         category: rowData?.plan?.category ?? '',
         description: rowData?.plan?.description ?? '',
         duration_days: rowData?.plan?.duration_days ?? 0,
+        fees: rowData?.plan?.fees ?? 0,
       })
     } else if (isDrawerOpen && !edit) {
       reset({
@@ -232,6 +233,7 @@ export default function CreatePlan({
         category: '',
         description: '',
         duration_days: 0,
+        fees: 0,
       })
     }
   }, [isDrawerOpen, edit, rowData, reset])
@@ -269,6 +271,9 @@ export default function CreatePlan({
         'Enter duration in days',
         true
       ),
+    },
+    {
+      ...textField('fees', 'Fees', 'Enter fees', true),
     },
     // Status removed from creation form; status changes are handled via listing action
   ]
@@ -354,6 +359,10 @@ export default function CreatePlan({
                 <div className="font-medium">
                   {rowData?.plan?.duration_days ?? '-'} days
                 </div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Fees</div>
+                <div className="font-medium">{rowData?.plan?.fees ?? '-'}</div>
               </div>
               <div>
                 {/* <div className="text-sm text-gray-500">Status</div> */}

@@ -179,7 +179,7 @@ const PLAN_DETAILS: RouterMenuProps = {
 // Explicit alias (kept for consistency with existing slugs usage)
 const PLAN_DETAILS_DETAILS: RouterMenuProps = {
   id: 221,
-  path: '/plans/:id',
+  path: '/plans/:id/details',
   parent_id: 21,
   isDetails: true,
   icon: 'user',
@@ -270,6 +270,16 @@ const ORGANISATION_USERLIST: RouterMenuProps = {
   permission_slugs: [],
   isSidebarMenu: true,
 }
+const PAYMENT_HISTORY: RouterMenuProps = {
+  id: 45,
+  path: '/payment-history',
+  parent_id: null,
+  label: 'Payment History',
+  icon: 'paymentapproval-icon',
+  key: 'payment-history',
+  permission_slugs: ['superadmin'],
+  isSidebarMenu: true,
+}
 
 // Note : The arrangements of below "router_config" object will reflect in Sidebar
 export const router_config: { [key: string]: RouterMenuProps } = {
@@ -297,4 +307,5 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   ORGANISATION_FILE_REPOSTITORY,
   ORGANISATION_USERLIST,
   WORKOUT_DETAILS,
+  PAYMENT_HISTORY,
 }

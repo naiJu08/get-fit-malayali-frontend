@@ -132,6 +132,9 @@ export const planFormSchema = z.object({
       invalid_type_error: 'Duration must be a number',
     })
     .positive('Duration must be greater than 0'),
+  fees: z.coerce
+    .number({ invalid_type_error: 'Fees must be a number' })
+    .min(0, 'Fees cannot be negative'),
 })
 
 export type PlanSchema = z.infer<typeof planFormSchema>

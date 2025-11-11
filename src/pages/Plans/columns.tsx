@@ -104,6 +104,13 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
       customCell: true,
       ...defaultColumnProps,
     },
+    {
+      title: 'fees',
+      renderCell: createRenderCell('fees'),
+      field: 'fees',
+      customCell: true,
+      ...defaultColumnProps,
+    },
 
     {
       title: 'Active',
