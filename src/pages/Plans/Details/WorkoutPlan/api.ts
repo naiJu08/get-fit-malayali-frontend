@@ -1,7 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { QueryParams } from '../../../../common/types'
 import apiUrl from '../../../../apis/api.url'
-import { getData, postData, updateData } from '../../../../apis/api.helpers'
+import {
+  getData,
+  postFormData,
+  updateFromData,
+} from '../../../../apis/api.helpers'
 import { parseQueryParams } from '../../../../utilities/parsers'
 
 export const DISABLE_NONLOGIN_APIS = false
@@ -23,7 +27,7 @@ export const useWorkoutPlans = (input: QueryParams) => {
 
 // Create workout plan
 export const createWorkoutPlan = (payload: any) => {
-  return postData(apiUrl.WORKOUT_PLAN, payload)
+  return postFormData(apiUrl.WORKOUT_PLAN, payload)
 }
 export const useCreateWorkoutPlan = () => {
   const qc = useQueryClient()
@@ -42,7 +46,7 @@ export const updateWorkoutPlan = ({
   id: string | number
   payload: any
 }) => {
-  return updateData(`${apiUrl.WORKOUT_PLAN}/${id}`, payload)
+  return updateFromData(`${apiUrl.WORKOUT_PLAN}/${id}`, payload)
 }
 export const useUpdateWorkoutPlan = () => {
   const qc = useQueryClient()
@@ -68,7 +72,7 @@ export const useWorkoutPlanDetail = (id?: string | number) => {
 }
 
 export const addExercise = (id: string | number, payload: any) => {
-  return postData(`${apiUrl.WORKOUT_PLAN}/${id}/add_exercise`, payload)
+  return postFormData(`${apiUrl.WORKOUT_PLAN}/${id}/add_exercise`, payload)
 }
 export const useAddExercise = () => {
   const qc = useQueryClient()
