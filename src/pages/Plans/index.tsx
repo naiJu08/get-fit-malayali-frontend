@@ -60,7 +60,11 @@ export default function Plans() {
     per_page: Number(per_page ?? 10),
     search,
     ordering,
-    ...(statusFilter !== '' ? { active: statusFilter } : {}),
+    ...(statusFilter !== ''
+      ? {
+          active: statusFilter === 'true' ? true : false,
+        }
+      : {}),
   }
 
   const handleEditPlan = (row: any) => {
@@ -256,6 +260,26 @@ export default function Plans() {
       ordering: getSortedColumnName(orderColumn, orderDirection),
     })
   }
+  // const applyStatusFilter = (value: string) => {
+  //   setStatusFilter(value)
+  //   const nextFilters: any = { ...(pageParams?.filters || {}) }
+  //   if (value?.trim()) {
+  //     nextFilters.status = value
+  //   } else {
+  //     delete nextFilters.status
+  //   }
+  //   setPageParams({ ...pageParams, filters: nextFilters, page: 1 })
+  // }
+  const applyStatusFilter = (value: string) => {
+    setStatusFilter(value)
+    const nextFilters: any = { ...(pageParams?.filters || {}) }
+    if (value?.trim()) {
+      nextFilters.active = value === 'true' ? true : false
+    } else {
+      delete nextFilters.active
+    }
+    setPageParams({ ...pageParams, filters: nextFilters, page: 1 })
+  }
   return (
     <div>
       {DISABLE_NONLOGIN_APIS ? (
@@ -271,49 +295,38 @@ export default function Plans() {
             checkPermission={checkPermissions('Employee', 'create')}
           />
           <div className=" p-4">
-            <div className="mb-3 flex items-center gap-3">
-              <div className="flex-1 max-w-sm">
-                {/* <label className="text-xs text-gray-600 mb-3">Search</label> */}
-                {/* <SearchInput
-                  placeholder="Search plans"
-                  searchValue={searchInput}
-                  handleChange={(val?: string) => setSearchInput(val ?? '')}
-                  handleSearch={(val?: string) => handleSeach(val ?? '')}
-                /> */}
-              </div>
-
-              <div className="w-56 flex flex-col ">
-                <label className="text-xs text-gray-600">Status</label>
-                <select
-                  className="textfield mt-1"
-                  value={statusFilter}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    setStatusFilter(v)
-                    setPageParams({ ...pageParams, page: 1 })
-                  }}
-                >
-                  <option value="">All</option>
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </select>
-              </div>
-            </div>
             <SmartTable
-              data={(data?.plans ?? []).filter((row: any) => {
-                if (statusFilter === '') return true
-                const v = row?.active
-                const isActive =
-                  (typeof v === 'boolean' && v === true) ||
-                  (typeof v === 'number' && v === 1) ||
-                  (typeof v === 'string' &&
-                    (v === '1' ||
-                      v.toLowerCase() === 'true' ||
-                      v.toLowerCase() === 'active'))
-                return statusFilter === 'true' ? isActive : !isActive
-              })}
+              // data={(data?.plans ?? []).filter((row: any) => {
+              //   if (statusFilter === '') return true
+              //   const v = row?.active
+              //   const isActive =
+              //     (typeof v === 'boolean' && v === true) ||
+              //     (typeof v === 'number' && v === 1) ||
+              //     (typeof v === 'string' &&
+              //       (v === '1' ||
+              //         v.toLowerCase() === 'true' ||
+              //         v.toLowerCase() === 'active'))
+              //   return statusFilter === 'true' ? isActive : !isActive
+              // })}
+              data={data?.plans ?? []}
               dataRowKey="id"
               toolbar={true}
+              toolbarExtra={
+                <div className="flex items-end gap-3">
+                  <div className="flex flex-col gap-1 ">
+                    <label className="text-xs text-gray-600">Status</label>
+                    <select
+                      className="textfield w-44 "
+                      value={statusFilter}
+                      onChange={(e) => applyStatusFilter(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+              }
               height={
                 (data?.plans?.length ?? 0) === 0
                   ? calcWindowHeight(218)

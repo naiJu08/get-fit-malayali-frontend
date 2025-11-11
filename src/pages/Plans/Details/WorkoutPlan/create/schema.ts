@@ -8,6 +8,7 @@ export const workoutPlanFormSchema = z.object({
     .refine((v) => Number.isFinite(v) && v >= 1, 'Day number must be >= 1'),
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional().or(z.literal('')),
+  video: z.any().optional(),
 })
 
 export type WorkoutPlanSchema = z.infer<typeof workoutPlanFormSchema>

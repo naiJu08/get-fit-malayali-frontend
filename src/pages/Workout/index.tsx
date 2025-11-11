@@ -1,5 +1,5 @@
 import SmartTable from '../../components/common/table/SmartTable'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
@@ -140,6 +140,16 @@ export default function WorkoutMain() {
     })
   }
 
+  const intensityOptions = useMemo(() => ['Moderate', 'High', 'Low'], [])
+
+  const currentIntensity = (filters as any)?.intensity_level || ''
+  const onIntensityChange = (val: string) => {
+    const newFilters = { ...(filters || {}) }
+    if (val) newFilters.intensity_level = val
+    else delete (newFilters as any).intensity_level
+    setPageParams({ ...pageParams, filters: newFilters, page: 1 })
+  }
+
   return (
     <div>
       {DISABLE_NONLOGIN_APIS ? (
@@ -159,6 +169,25 @@ export default function WorkoutMain() {
               data={data?.workouts ?? []}
               dataRowKey="id"
               toolbar={true}
+              toolbarExtra={
+                <div className="flex items-end gap-3">
+                  <div className="flex flex-col gap-1 ">
+                    <label className="text-xs text-gray-600">Intensity</label>
+                    <select
+                      className="textfield w-44 "
+                      value={currentIntensity}
+                      onChange={(e) => onIntensityChange(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      {intensityOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              }
               height={
                 (data?.workouts?.length ?? 0) === 0
                   ? calcWindowHeight(218)

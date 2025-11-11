@@ -140,16 +140,6 @@ export default function UserDetails() {
                       />
                     </>
                   )}
-                  <div className="mt-2">
-                    <a
-                      href={v}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600"
-                    >
-                      Open in new tab
-                    </a>
-                  </div>
                 </div>
               </div>
             </div>

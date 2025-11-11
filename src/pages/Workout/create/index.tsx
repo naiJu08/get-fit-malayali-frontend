@@ -170,19 +170,19 @@ export default function CreateAdmin({
   })
   const { handleSubmit } = methods
   const onSubmit = (details: any) => {
-    const payload = {
-      workout: {
-        name: details?.name ?? '',
-        description: details?.description ?? '',
-        intensity_level: details?.intensity_level ?? '',
-        video_url: details?.video_url ?? '',
-      },
+    const fd = new FormData()
+    fd.append('workout[name]', details?.name ?? '')
+    fd.append('workout[description]', details?.description ?? '')
+    fd.append('workout[intensity_level]', details?.intensity_level ?? '')
+    fd.append('workout[video_url]', details?.video_url ?? '')
+    if (details?.video_file) {
+      fd.append('video', details.video_file as any)
     }
 
     if (rowData?.id) {
-      updateMutation({ id: rowData?.id, data: payload })
+      updateMutation({ id: rowData?.id, data: fd })
     } else {
-      mutate(payload)
+      mutate(fd)
     }
   }
 

@@ -117,6 +117,7 @@ const NOTIFICATIONS: RouterMenuProps = {
   parent_id: null,
   label: 'Notifications',
   key: 'notifications',
+  icon: 'subscription-icon',
   permission_slugs: ['superadmin'],
   isSidebarMenu: true,
 }

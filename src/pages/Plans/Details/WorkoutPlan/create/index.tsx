@@ -30,6 +30,7 @@ export default function WorkoutPlanForm({
       day_number: Number(rowData?.day_number ?? 1),
       title: rowData?.title ?? '',
       description: rowData?.description ?? '',
+      video: '' as any,
     },
   })
 
@@ -44,26 +45,27 @@ export default function WorkoutPlanForm({
         day_number: Number(rowData?.day_number ?? 1),
         title: rowData?.title ?? '',
         description: rowData?.description ?? '',
+        video: rowData?.video ?? '',
       })
     }
   }, [isOpen, planId, rowData, reset])
 
   const onSubmit = (values: WorkoutPlanSchema) => {
-    const payload = {
-      workout_plan: {
-        plan_id: Number(values.plan_id ?? planId),
-        day_number: Number(values.day_number),
-        title: values.title,
-        description: values.description || '',
-      },
+    const fd = new FormData()
+    fd.append('workout_plan[plan_id]', String(Number(values.plan_id ?? planId)))
+    fd.append('workout_plan[day_number]', String(Number(values.day_number)))
+    fd.append('workout_plan[title]', values.title)
+    fd.append('workout_plan[description]', values.description || '')
+    if ((values as any)?.video) {
+      fd.append('video', (values as any).video as any)
     }
     if (edit && rowData?.id) {
       updateMutate(
-        { id: rowData.id, payload },
+        { id: rowData.id, payload: fd },
         { onSuccess: () => handleClose() }
       )
     } else {
-      createMutate(payload, { onSuccess: () => handleClose() })
+      createMutate(fd as any, { onSuccess: () => handleClose() })
     }
   }
 
@@ -87,6 +89,18 @@ export default function WorkoutPlanForm({
       label: 'Description',
       type: 'textarea',
       placeholder: 'Enter description',
+    },
+    {
+      name: 'video',
+      label: 'Video',
+      id: 'video',
+      type: 'file_upload',
+      placeholder: 'Upload video',
+      required: false,
+      accept: 'video/*',
+      supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
+      acceptedFiles: 'MP4, MOV, AVI (Max 50 MB)',
+      fileSize: 50,
     },
   ]
 

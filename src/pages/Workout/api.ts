@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import {
   getData,
   postData,
+  postFormData,
   updateFromData,
   deleteData,
 } from '../../apis/api.helpers'
@@ -51,7 +52,7 @@ export const unfreezeUser = (id: string) => {
 }
 
 export const createWorkout = (input: any) => {
-  return postData(`${apiUrl.WORKOUTS}`, input)
+  return postFormData(`${apiUrl.WORKOUTS}`, input)
 }
 
 export const useCreateWorkout = (handleSubmission: (data: any) => void) => {
