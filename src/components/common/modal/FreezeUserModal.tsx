@@ -27,6 +27,19 @@ export default function FreezeUserModal({
 }: FreezeUserModalProps) {
   if (!isOpen) return null
 
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today)
+  tomorrow.setDate(tomorrow.getDate() + 1)
+  const startDateVal = values.start_date ? new Date(values.start_date) : null
+  const endMinDate = startDateVal ? new Date(startDateVal) : undefined
+  if (endMinDate) endMinDate.setHours(0, 0, 0, 0)
+
+  const handleStartDateChange = (data: { name: string; value: any }) => {
+    onChange(data)
+    onChange({ name: 'end_date', value: null })
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black opacity-50" onClick={onClose} />
@@ -58,13 +71,15 @@ export default function FreezeUserModal({
             name="start_date"
             label="Start Date"
             value={values.start_date}
-            onChange={onChange}
+            onChange={handleStartDateChange}
+            minDate={tomorrow}
           />
           <CommonDatePicker
             name="end_date"
             label="End Date"
             value={values.end_date}
             onChange={onChange}
+            minDate={endMinDate}
           />
         </div>
         <div className="p-5 pt-0 flex items-center justify-end gap-2">

@@ -71,6 +71,14 @@ export const getAdminDetails = (id: string) => {
   return getData(`${apiUrl.ADMIN_USER}/${id}`)
 }
 
+export const getActivePlanOverview = (id: string | number) => {
+  return getData(`${apiUrl.SUBSCRIPTION_CALENDAR}/${id}/active_plan_overview`)
+}
+export const getOverviewDetail = (id: string | number, date: string) => {
+  const q = date ? `?date=${encodeURIComponent(date)}` : ''
+  return getData(`${apiUrl.SUBSCRIPTION_CALENDAR}/${id}/active_plan_day${q}`)
+}
+
 export const freezeUser = (
   id: string,
   payload: { reason: string; start_date: string; end_date: string }

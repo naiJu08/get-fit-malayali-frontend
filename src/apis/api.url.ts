@@ -25,6 +25,7 @@ const BODY_MEASUREMENTS = 'body_measurements'
 const BODY_COMPOSITION = 'body_compositions'
 const VITALS = 'vitals'
 const CLIENT_REPORTS = 'monthly_reports'
+const SUBSCRIPTION_CALENDAR = '/admin/users'
 
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
@@ -53,6 +54,7 @@ const apiUrl: { [key: string]: string } = {
   BODY_COMPOSITION,
   VITALS,
   CLIENT_REPORTS,
+  SUBSCRIPTION_CALENDAR,
 }
 
 export default apiUrl

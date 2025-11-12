@@ -6,9 +6,15 @@ import { AutoComplete } from 'qbs-core'
 import { DialogModal } from '../../../components/common'
 import Icons from '../../../components/common/icons'
 import { usePlans } from '../../Plans/api'
-import { createSubscription, getAdminDetails } from '../api'
+import {
+  createSubscription,
+  getAdminDetails,
+  getActivePlanOverview,
+  getOverviewDetail,
+} from '../api'
 import { useAuthStore } from '../../../store/authStore'
 import { useSnackbarManager } from '../../../components/common/snackbar'
+import { useEffect } from 'react'
 
 export default function Subscriptions({
   id,
@@ -27,7 +33,14 @@ export default function Subscriptions({
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
 
   const subscribedPlan = user?.subscribed_plan
+  const [overview, setOverview] = useState<any>(null)
+  const [overviewLoading, setOverviewLoading] = useState(false)
+  const [currentMonth, setCurrentMonth] = useState<string>('')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [dayDetailOpen, setDayDetailOpen] = useState(false)
+  const [dayDetail, setDayDetail] = useState<any>(null)
+  const [dayDetailLoading, setDayDetailLoading] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<string>('')
   const [subForm, setSubForm] = useState<{
     start_date: string
     end_date: string
@@ -40,6 +53,7 @@ export default function Subscriptions({
   const { data: plansList } = usePlans({ page: 1, per_page: 100 } as any)
   const allPlans: any[] = (plansList?.plans || plansList?.items || []) as any[]
   const { enqueueSnackbar } = useSnackbarManager()
+  const hasPlanOverview = !!overview?.subscription
 
   const computeEndDate = (start: string, days?: number) => {
     if (!start || !days || isNaN(days as any)) return ''
@@ -47,6 +61,144 @@ export default function Subscriptions({
     if (!d.isValid()) return ''
     const end = d.clone().add((days as number) - 1, 'days')
     return end.format('YYYY-MM-DD')
+  }
+
+  const buildMonthCells = (monthKey: string) => {
+    if (
+      !overview?.subscription?.start_date ||
+      !overview?.subscription?.end_date
+    )
+      return { title: '', cells: [] as any[] }
+    const start = moment(overview.subscription.start_date, 'YYYY-MM-DD')
+    const end = moment(overview.subscription.end_date, 'YYYY-MM-DD')
+    const monthStart = moment(monthKey + '-01', 'YYYY-MM-DD')
+    const daysMap: Record<string, any> = {}
+    if (Array.isArray(overview?.days)) {
+      overview.days.forEach((d: any) => {
+        daysMap[d?.date] = d
+      })
+    }
+    const cells: any[] = []
+    const daysInMonth = monthStart.daysInMonth()
+    const firstWeekday = monthStart.day() // 0=Sun
+    for (let i = 0; i < firstWeekday; i++) {
+      cells.push({
+        key: `${monthStart.format('YYYY-MM')}-pad-${i}`,
+        inRange: false,
+      })
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = monthStart.clone().date(d)
+      const dateStr = date.format('YYYY-MM-DD')
+      const inRange =
+        date.isSameOrAfter(start, 'day') && date.isSameOrBefore(end, 'day')
+      const meta = daysMap[dateStr]
+      cells.push({ key: dateStr, label: d, inRange, meta })
+    }
+    while (cells.length % 7 !== 0) {
+      cells.push({
+        key: `${monthStart.format('YYYY-MM')}-trail-${cells.length}`,
+        inRange: false,
+      })
+    }
+    return { title: monthStart.format('MMMM YYYY'), cells }
+  }
+
+  const monthRange = () => {
+    if (
+      !overview?.subscription?.start_date ||
+      !overview?.subscription?.end_date
+    )
+      return { min: '', max: '' }
+    const min = moment(overview.subscription.start_date, 'YYYY-MM-DD')
+      .startOf('month')
+      .format('YYYY-MM')
+    const max = moment(overview.subscription.end_date, 'YYYY-MM-DD')
+      .startOf('month')
+      .format('YYYY-MM')
+    return { min, max }
+  }
+
+  const canPrev = () => {
+    const { min } = monthRange()
+    return currentMonth && min && currentMonth > min
+  }
+  const canNext = () => {
+    const { max } = monthRange()
+    return currentMonth && max && currentMonth < max
+  }
+  const goPrev = () => {
+    if (!canPrev()) return
+    setCurrentMonth(
+      moment(currentMonth + '-01')
+        .subtract(1, 'month')
+        .format('YYYY-MM')
+    )
+  }
+  const goNext = () => {
+    if (!canNext()) return
+    setCurrentMonth(
+      moment(currentMonth + '-01')
+        .add(1, 'month')
+        .format('YYYY-MM')
+    )
+  }
+
+  useEffect(() => {
+    const fetchOverview = async () => {
+      if (!user?.id) return
+      try {
+        setOverviewLoading(true)
+        const res = await getActivePlanOverview(user.id)
+        setOverview(res)
+        const sd = res?.subscription?.start_date
+        if (sd) {
+          setCurrentMonth(
+            moment(sd, 'YYYY-MM-DD').startOf('month').format('YYYY-MM')
+          )
+        }
+      } catch (e) {
+        setOverview(null)
+      } finally {
+        setOverviewLoading(false)
+      }
+    }
+    fetchOverview()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
+
+  const statusColor = (day: any) => {
+    if (day?.freeze)
+      return 'bg-gradient-to-br from-red-400 to-red-400 text-white border-red-300 shadow-sm'
+    const s = String(day?.status || '').toLowerCase()
+    if (s === 'today')
+      return 'bg-gradient-to-br from-primaryBlue to-primaryBlue text-white border-blue-300 ring-1 ring-blue-200/60 shadow-sm'
+    if (s === 'over' || s === 'completed')
+      return 'bg-gradient-to-br from-emerald-600 to-emerald-600 text-white border-emerald-300 shadow-sm'
+    return 'bg-orange-400 text-white border-gray-200 shadow-sm'
+  }
+
+  const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+  const getDayCellClass = (cell: any) => {
+    if (!cell?.inRange)
+      return 'text-gray-400 bg-white border-gray-200 opacity-70 cursor-not-allowed'
+    return statusColor(cell?.meta)
+  }
+
+  const openDayDetail = async (dateStr: string) => {
+    if (!user?.id || !dateStr) return
+    try {
+      setSelectedDate(dateStr)
+      setDayDetailOpen(true)
+      setDayDetailLoading(true)
+      const res = await getOverviewDetail(String(user.id), dateStr)
+      setDayDetail(res)
+    } catch {
+      setDayDetail(null)
+    } finally {
+      setDayDetailLoading(false)
+    }
   }
 
   const handleSubFormChange = (
@@ -138,32 +290,202 @@ export default function Subscriptions({
       )}
       {!loading && !error && (
         <div className="flex flex-col gap-4">
-          {loginRole !== 'nutritionist' && !subscribedPlan && (
-            <div className="flex justify-end">
-              <Button
-                className="primaryButton"
-                label="Add Subscription"
-                onClick={() => openSubscriptionDrawer()}
-              />
-            </div>
-          )}
+          {loginRole !== 'nutritionist' &&
+            !(hasPlanOverview || subscribedPlan) && (
+              <div className="flex justify-end">
+                <Button
+                  className="primaryButton"
+                  label="Add Subscription"
+                  onClick={() => openSubscriptionDrawer()}
+                />
+              </div>
+            )}
           <div
             className={`relative border rounded-lg p-4 pt-6 ${subscribedPlan ? 'mt-4' : ''}`}
           >
             <div className="absolute -top-3 left-3 px-2 z-10 bg-mainBgColor">
               <span className="text-lg font-medium text-gray-700">
-                {subscribedPlan ? 'Subscribed Plan' : 'Interested Plans'}
+                {hasPlanOverview || subscribedPlan
+                  ? 'Subscribed Plan'
+                  : 'Interested Plans'}
               </span>
             </div>
-            {subscribedPlan ? (
-              <div className="grid grid-cols-1 gap-4">
-                <div className="border rounded-lg p-3 bg-white">
-                  <div className="text-sm font-medium mb-1">
-                    {safeStr(subscribedPlan?.name)}
+            {hasPlanOverview || subscribedPlan ? (
+              <div className="flex flex-col gap-4">
+                <div className="border rounded-lg p-3 bg-white flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm font-medium mb-1">
+                      {safeStr(
+                        overview?.subscription?.plan_name ??
+                          overview?.subscription?.name
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      Category:{' '}
+                      {safeStr(
+                        overview?.subscription?.plan_category ??
+                          overview?.subscription?.category
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {overview?.subscription?.start_date &&
+                      overview?.subscription?.end_date ? (
+                        <>
+                          <span>
+                            Start Date:{' '}
+                            <span className="font-semibold">
+                              {moment(overview.subscription.start_date).format(
+                                'MMM D, YYYY'
+                              )}
+                            </span>
+                          </span>
+
+                          <span className="mx-2">•</span>
+                          <span>
+                            End Date:{' '}
+                            <span className="font-semibold">
+                              {moment(overview.subscription.end_date).format(
+                                'MMM D, YYYY'
+                              )}
+                            </span>
+                          </span>
+                        </>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    Category: {safeStr(subscribedPlan?.category)}
+                  {overview?.subscription?.plan_id ? (
+                    <a
+                      href={`/plans/${overview.subscription.plan_id}`}
+                      className="text-xs text-primaryBlue underline whitespace-nowrap mt-1"
+                    >
+                      View plan details →
+                    </a>
+                  ) : null}
+                </div>
+                <div className="bg-white border border-gray-300 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-sm font-medium">Plan Calendar</div>
+                    <div className="flex gap-3 text-xs">
+                      <div className="flex items-center gap-1">
+                        <span className="w-3 h-3 rounded bg-primaryBlue inline-block"></span>
+                        Today
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="w-3 h-3 rounded bg-orange-400 inline-block"></span>
+                        Upcoming
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="w-3 h-3 rounded bg-green-500 inline-block"></span>
+                        Complete
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="w-3 h-3 rounded bg-red-400 inline-block"></span>
+                        Freeze
+                      </div>
+                    </div>
                   </div>
+                  {overviewLoading && (
+                    <div className="text-xs text-gray-500">
+                      Loading calendar...
+                    </div>
+                  )}
+                  {!overviewLoading &&
+                  overview?.subscription?.start_date &&
+                  overview?.subscription?.end_date ? (
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between">
+                        <button
+                          type="button"
+                          onClick={goPrev}
+                          disabled={!canPrev()}
+                          className={`px-2 py-1 text-xs border rounded ${canPrev() ? 'text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                        >
+                          ◀
+                        </button>
+                        <div className="text-xs font-medium">
+                          {buildMonthCells(currentMonth).title}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={goNext}
+                          disabled={!canNext()}
+                          className={`px-2 py-1 text-xs border rounded ${canNext() ? 'text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                        >
+                          ▶
+                        </button>
+                      </div>
+                      {(() => {
+                        const m = buildMonthCells(currentMonth)
+                        return (
+                          <>
+                            <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-1 bg-white">
+                              {WEEK_DAYS.map((w) => (
+                                <div key={w} className="py-1 text-center">
+                                  {w}
+                                </div>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-7">
+                              {m.cells.map((c: any) => (
+                                <div
+                                  key={c.key}
+                                  className={`relative h-28 border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)} ${c?.inRange ? 'cursor-pointer' : ''}`}
+                                  title={
+                                    c?.meta?.date
+                                      ? `${c.meta.date}  •  Diet: ${c?.meta?.diet_summary?.total_items ?? 0}  •  Workout: ${c?.meta?.workout_summary?.total_exercises ?? 0}`
+                                      : ''
+                                  }
+                                  role={c?.inRange ? 'button' : undefined}
+                                  tabIndex={c?.inRange ? 0 : -1}
+                                  onClick={() =>
+                                    c?.inRange &&
+                                    openDayDetail(c?.meta?.date || c.key)
+                                  }
+                                  onKeyDown={(e) => {
+                                    if (!c?.inRange) return
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault()
+                                      openDayDetail(c?.meta?.date || c.key)
+                                    }
+                                  }}
+                                >
+                                  <div className="flex flex-col h-full w-full">
+                                    <div className="text-[12px] font-medium">
+                                      {c?.label ?? ''}
+                                    </div>
+                                    {c?.inRange && c?.meta ? (
+                                      <div className="mt-1 text-[10px] leading-4">
+                                        <div className="flex items-center justify-between border rounded-[5px] bg-red-100 text-black px-2 py-1">
+                                          <span>Diet</span>
+                                          <span className="font-medium">
+                                            {c?.meta?.diet_summary
+                                              ?.total_items ?? 0}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center justify-between border rounded-[5px] bg-violet-200 text-black px-2 py-1 mt-2">
+                                          <span>Workout</span>
+                                          <span className="font-medium">
+                                            {c?.meta?.workout_summary
+                                              ?.total_exercises ?? 0}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        )
+                      })()}
+                    </div>
+                  ) : (
+                    !overviewLoading && (
+                      <div className="text-xs text-gray-500">
+                        No calendar data
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
             ) : (
@@ -274,6 +596,140 @@ export default function Subscriptions({
               <div className="text-xs text-red-500">
                 Please fill all required fields.
               </div>
+            )}
+          </div>
+        }
+      />
+
+      <DialogModal
+        isOpen={dayDetailOpen}
+        onClose={() => setDayDetailOpen(false)}
+        title={
+          dayDetail
+            ? `Plan Day ${safeStr(dayDetail?.day_number)} • ${moment(dayDetail?.date).format('MMM D, YYYY')}`
+            : selectedDate
+              ? `Day Details • ${moment(selectedDate).format('MMM D, YYYY')}`
+              : 'Day Details'
+        }
+        onSubmit={() => setDayDetailOpen(false)}
+        actionLabel="Close"
+        actionLoader={false}
+        small={false}
+        body={
+          <div className="flex flex-col gap-4">
+            {dayDetailLoading && (
+              <div className="text-xs text-gray-500">
+                Loading day details...
+              </div>
+            )}
+            {!dayDetailLoading && !dayDetail && (
+              <div className="text-xs text-gray-500">No details available.</div>
+            )}
+            {!dayDetailLoading && dayDetail && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="border rounded p-3 bg-white">
+                    <div className="text-sm font-medium mb-2">Diet Plans</div>
+                    {Array.isArray(dayDetail?.diet_plans) &&
+                    dayDetail.diet_plans.length > 0 ? (
+                      <div className="flex flex-col gap-2 text-xs">
+                        {dayDetail.diet_plans.map((d: any) => (
+                          <div
+                            key={`${d?.id}-${d?.sequence_number}`}
+                            className="flex items-center justify-between border rounded px-3 py-2"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {d?.meal_time || '--'}
+                              </span>
+                              <span className="text-gray-600">
+                                {d?.meal_name || '—'}
+                              </span>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-gray-500">Calories</div>
+                              <div className="font-medium">
+                                {d?.calories ?? '--'}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500">
+                        No diet items.
+                      </div>
+                    )}
+                  </div>
+                  <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
+                    <div className="text-sm font-medium mb-2">Workout Plan</div>
+                    {dayDetail?.workout_plan ? (
+                      <div className="flex flex-col gap-2 text-xs">
+                        <div className="mb-1">
+                          <div className="font-medium">
+                            {dayDetail?.workout_plan?.title || 'Workout'}
+                          </div>
+                          {dayDetail?.workout_plan?.description && (
+                            <div className="text-gray-600">
+                              {dayDetail.workout_plan.description}
+                            </div>
+                          )}
+                        </div>
+                        {Array.isArray(dayDetail?.workout_plan?.exercises) &&
+                        dayDetail.workout_plan.exercises.length > 0 ? (
+                          <div className="flex flex-col gap-2">
+                            {dayDetail.workout_plan.exercises.map(
+                              (ex: any, idx: number) => (
+                                <div
+                                  key={`${ex?.id}-${idx}`}
+                                  className="flex items-center justify-between border rounded px-3 py-2"
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">
+                                      {ex?.workout_name || '--'}
+                                    </span>
+                                    {ex?.video_url && (
+                                      <a
+                                        className="text-primaryBlue underline"
+                                        href={ex.video_url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                      >
+                                        Video
+                                      </a>
+                                    )}
+                                  </div>
+                                  <div className="text-right text-gray-600">
+                                    {ex?.reps ? (
+                                      <div>Reps: {ex.reps}</div>
+                                    ) : null}
+                                    {ex?.sets ? (
+                                      <div>Sets: {ex.sets}</div>
+                                    ) : null}
+                                    {ex?.duration_minutes ? (
+                                      <div>
+                                        Duration: {ex.duration_minutes}m
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              )
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-500">
+                            No exercises.
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500">
+                        No workout plan.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         }
