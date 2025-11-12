@@ -17,11 +17,6 @@ export const getColumns = () => {
     }
 
   const formatDate = (d: any) => (d ? moment(d).format('YYYY-MM-DD') : '')
-  const capitalize = (s: any) =>
-    typeof s === 'string'
-      ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
-      : s
-
   const column = [
     {
       title: 'Client',
@@ -52,19 +47,27 @@ export const getColumns = () => {
       ...defaultColumnProps,
     },
     {
-      title: 'Days Remaining',
-      field: 'days_remaining',
-      renderCell: createRenderCell('days_remaining'),
+      title: 'Fees',
+      field: 'plan_fees',
+      renderCell: createRenderCell('plan_fees'),
       customCell: true,
       ...defaultColumnProps,
     },
-    {
-      title: 'Status',
-      field: 'status',
-      renderCell: createRenderCell('status', capitalize),
-      customCell: true,
-      ...defaultColumnProps,
-    },
+
+    // {
+    //   title: 'Days Remaining',
+    //   field: 'days_remaining',
+    //   renderCell: createRenderCell('days_remaining'),
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
+    // {
+    //   title: 'Status',
+    //   field: 'status',
+    //   renderCell: createRenderCell('status', capitalize),
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
   ]
 
   return column

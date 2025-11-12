@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { QbsTable } from 'qbs-react-grid'
+import SmartTable from '../../../../components/common/table/SmartTable'
 import Icons from '../../../../components/common/icons'
 import { TableColumns } from '../../../../common/types'
 import { useDietPlans } from './api'
 import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../../../utilities/parsers'
-import ListingHeader from '../../../../components/common/ListingTiles'
+// import ListingHeader from '../../../../components/common/ListingTiles'
 import { useNavigate, useParams } from 'react-router-dom'
 import DietPlanForm from './create'
 
@@ -33,7 +33,7 @@ export default function DietPlanIndex({
     {
       title: 'Day',
       field: 'day_number',
-      sortable: true,
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
@@ -43,7 +43,7 @@ export default function DietPlanIndex({
     {
       title: 'Sequence',
       field: 'sequence_number',
-      sortable: true,
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
@@ -53,7 +53,7 @@ export default function DietPlanIndex({
     {
       title: 'Meal Time',
       field: 'meal_time',
-      sortable: true,
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
@@ -63,7 +63,7 @@ export default function DietPlanIndex({
     {
       title: 'Meal Name',
       field: 'meal_name',
-      sortable: true,
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
@@ -73,7 +73,7 @@ export default function DietPlanIndex({
     {
       title: 'Calories',
       field: 'calories',
-      sortable: true,
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
@@ -155,29 +155,27 @@ export default function DietPlanIndex({
     })
   }
 
-  const headerProps = { actionTitle: '' }
+  // const headerProps = { actionTitle: '' }
 
   return (
     <div className="">
-      <div className="mb-3">
+      {/* <div className="mb-3">
         <ListingHeader
           data={{ title: planName || 'Diet Plans', icon: 'user' }}
           actionProps={headerProps}
         />
-      </div>
-      <QbsTable
+      </div> */}
+      <SmartTable
         data={data?.diet_plans ?? []}
         dataRowKey="id"
         toolbar={true}
+        title={planName || 'Diet Plans'}
         // search={true}
-        searchValue={pageParams?.search}
-        onSearch={(key?: string) =>
-          setPageParams({ ...pageParams, search: key as string, page: 1 })
+        searchValue={String(pageParams?.search || '')}
+        onSearchChange={(val) =>
+          setPageParams({ ...pageParams, search: val, page: 1 })
         }
-        asyncSearch
-        handleSearchValue={(key?: string) =>
-          setPageParams({ ...pageParams, search: key as string, page: 1 })
-        }
+        onSearch={() => setPageParams({ ...pageParams, page: 1 })}
         columns={columns}
         pagination={true}
         isLoading={isFetching}
@@ -185,15 +183,6 @@ export default function DietPlanIndex({
         sortColumn={pageParams.sortColumn}
         handleColumnSort={handleSort}
         emptyTitle="No records to display"
-        renderSortIcon={(st?: 'asc' | 'desc' | undefined) => {
-          return st === 'asc' ? (
-            <Icons name="ascending-icon" />
-          ) : st === 'desc' ? (
-            <Icons name="descending-icon" />
-          ) : (
-            <Icons name="qbs-sort-icon" />
-          )
-        }}
         paginationProps={{
           onPagination: onChangePage,
           total: data?.meta?.total_count ?? 0,
@@ -205,9 +194,17 @@ export default function DietPlanIndex({
             pageParams?.per_page ?? data?.meta?.per_page ?? 10
           ),
           onRowsPerPage: onChangeRowsPerPage,
+          totalPages: Math.max(
+            1,
+            Math.ceil(
+              (Number(data?.meta?.total_count ?? 0) || 0) /
+                Number(pageParams?.per_page ?? data?.meta?.per_page ?? 10)
+            )
+          ),
           dropOptions: [10, 20, 30, 50, 100],
         }}
         columnToggle
+        externalActions={true}
         actionProps={[
           {
             icon: <Icons name="eye" />,

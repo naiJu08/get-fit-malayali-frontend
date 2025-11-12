@@ -114,7 +114,21 @@ export const getColumns = ({
     {
       title: 'Name',
       field: 'name',
-      renderCell: createRenderCell('name'),
+      renderCell: (row: any) => {
+        const value = getNestedProperty(row, 'name')
+        return {
+          cell: (
+            <button
+              className="text-blue-600 hover:underline"
+              onClick={() => onNameClick && onNameClick(row)}
+              type="button"
+            >
+              {value ?? ''}
+            </button>
+          ),
+          toolTip: value ?? '',
+        }
+      },
       customCell: true,
       link: true,
       rowClick: (row: any) => onNameClick && onNameClick(row),
@@ -134,20 +148,20 @@ export const getColumns = ({
       customCell: true,
       ...defaultColumnProps,
     },
-    {
-      title: 'Average Rating',
-      field: 'average_rating',
-      renderCell: createRenderCell('average_rating'),
-      customCell: true,
-      ...defaultColumnProps,
-    },
-    {
-      title: 'Video URL',
-      field: 'video_url',
-      renderCell: createRenderCell('video_url', 'link'),
-      customCell: true,
-      ...defaultColumnProps,
-    },
+    // {
+    //   title: 'Average Rating',
+    //   field: 'average_rating',
+    //   renderCell: createRenderCell('average_rating'),
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
+    // {
+    //   title: 'Video URL',
+    //   field: 'video_url',
+    //   renderCell: createRenderCell('video_url', 'link'),
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
   ]
 
   return column

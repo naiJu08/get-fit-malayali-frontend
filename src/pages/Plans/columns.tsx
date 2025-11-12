@@ -63,7 +63,21 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
       field: 'name',
       ...defaultColumnProps,
       fixed: true,
-      renderCell: createRenderCell('name'),
+      renderCell: (row: any) => {
+        const value = getNestedProperty(row, 'name')
+        return {
+          cell: (
+            <button
+              className="text-blue-600 hover:underline"
+              onClick={() => onNameClick && onNameClick(row)}
+              type="button"
+            >
+              {value ?? ''}
+            </button>
+          ),
+          toolTip: value ?? '',
+        }
+      },
       customCell: true,
       sortKey: 'name',
       link: true,
@@ -83,6 +97,21 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
       customCell: true,
       ...defaultColumnProps,
     },
+    {
+      title: 'Description',
+      renderCell: createRenderCell('description'),
+      field: 'description',
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
+      title: 'fees',
+      renderCell: createRenderCell('fees'),
+      field: 'fees',
+      customCell: true,
+      ...defaultColumnProps,
+    },
+
     {
       title: 'Active',
       field: 'active',

@@ -535,7 +535,7 @@ export default function Subscriptions() {
                 <div className="flex items-end gap-3">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-gray-600">Plan</label>
-                    <div className="w-56 flex flex-col gap-1 z-20 border p-[9px] rounded-xs bg-white">
+                    <div className="w-64 flex flex-col gap-1 z-20 border p-[12px] rounded-lg bg-white">
                       <DynamicDropdown
                         key={`plan-dd-${planIdFilter || 'all'}-${planLabel}`}
                         tileItem={{ label: 'Plan', value: planLabel }}
@@ -556,10 +556,10 @@ export default function Subscriptions() {
                       />
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1">
+                  <div className="flex flex-col gap-1 ">
                     <label className="text-xs text-gray-600">Status</label>
                     <select
-                      className="textfield w-44"
+                      className="textfield w-44 "
                       value={statusFilter}
                       onChange={(e) => applyStatusFilter(e.target.value)}
                     >

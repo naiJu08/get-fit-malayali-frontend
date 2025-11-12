@@ -1,17 +1,18 @@
-import { QbsTable } from 'qbs-react-grid'
+import SmartTable from '../../components/common/table/SmartTable'
 import { useEffect, useState } from 'react'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
 import { DialogModal, TextField } from '../../components/common'
-import SearchInput from '../../components/common/inputs/SearchInput'
+// import SearchInput from '../../components/common/inputs/SearchInput'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { checkPermissions } from '../../layout/store'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../utilities/parsers'
+import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   deActivateAdmin,
@@ -59,7 +60,11 @@ export default function Plans() {
     per_page: Number(per_page ?? 10),
     search,
     ordering,
-    ...(statusFilter !== '' ? { active: statusFilter } : {}),
+    ...(statusFilter !== ''
+      ? {
+          active: statusFilter === 'true' ? true : false,
+        }
+      : {}),
   }
 
   const handleEditPlan = (row: any) => {
@@ -255,6 +260,26 @@ export default function Plans() {
       ordering: getSortedColumnName(orderColumn, orderDirection),
     })
   }
+  // const applyStatusFilter = (value: string) => {
+  //   setStatusFilter(value)
+  //   const nextFilters: any = { ...(pageParams?.filters || {}) }
+  //   if (value?.trim()) {
+  //     nextFilters.status = value
+  //   } else {
+  //     delete nextFilters.status
+  //   }
+  //   setPageParams({ ...pageParams, filters: nextFilters, page: 1 })
+  // }
+  const applyStatusFilter = (value: string) => {
+    setStatusFilter(value)
+    const nextFilters: any = { ...(pageParams?.filters || {}) }
+    if (value?.trim()) {
+      nextFilters.active = value === 'true' ? true : false
+    } else {
+      delete nextFilters.active
+    }
+    setPageParams({ ...pageParams, filters: nextFilters, page: 1 })
+  }
   return (
     <div>
       {DISABLE_NONLOGIN_APIS ? (
@@ -270,67 +295,57 @@ export default function Plans() {
             checkPermission={checkPermissions('Employee', 'create')}
           />
           <div className=" p-4">
-            <div className="mb-3 flex items-center gap-3">
-              <div className="flex-1 max-w-sm">
-                <label className="text-xs text-gray-600 mb-3">Search</label>
-                <SearchInput
-                  placeholder="Search plans"
-                  searchValue={searchInput}
-                  handleChange={(val?: string) => setSearchInput(val ?? '')}
-                  handleSearch={(val?: string) => handleSeach(val ?? '')}
-                />
-              </div>
-
-              <div className="w-56 flex flex-col ">
-                <label className="text-xs text-gray-600">Status</label>
-                <select
-                  className="textfield mt-1"
-                  value={statusFilter}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    setStatusFilter(v)
-                    setPageParams({ ...pageParams, page: 1 })
-                  }}
-                >
-                  <option value="">All</option>
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </select>
-              </div>
-            </div>
-            <QbsTable
-              data={(data?.plans ?? []).filter((row: any) => {
-                if (statusFilter === '') return true
-                const v = row?.active
-                const isActive =
-                  (typeof v === 'boolean' && v === true) ||
-                  (typeof v === 'number' && v === 1) ||
-                  (typeof v === 'string' &&
-                    (v === '1' ||
-                      v.toLowerCase() === 'true' ||
-                      v.toLowerCase() === 'active'))
-                return statusFilter === 'true' ? isActive : !isActive
-              })}
+            <SmartTable
+              // data={(data?.plans ?? []).filter((row: any) => {
+              //   if (statusFilter === '') return true
+              //   const v = row?.active
+              //   const isActive =
+              //     (typeof v === 'boolean' && v === true) ||
+              //     (typeof v === 'number' && v === 1) ||
+              //     (typeof v === 'string' &&
+              //       (v === '1' ||
+              //         v.toLowerCase() === 'true' ||
+              //         v.toLowerCase() === 'active'))
+              //   return statusFilter === 'true' ? isActive : !isActive
+              // })}
+              data={data?.plans ?? []}
               dataRowKey="id"
               toolbar={true}
-              search={false}
+              toolbarExtra={
+                <div className="flex items-end gap-3">
+                  <div className="flex flex-col gap-1 ">
+                    <label className="text-xs text-gray-600">Status</label>
+                    <select
+                      className="textfield w-44 "
+                      value={statusFilter}
+                      onChange={(e) => applyStatusFilter(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+              }
+              height={
+                (data?.plans?.length ?? 0) === 0
+                  ? calcWindowHeight(218)
+                  : calcWindowHeight(200)
+              }
+              search={true}
+              searchValue={pageParams?.search || ''}
+              onSearchChange={(val) =>
+                setPageParams({ ...pageParams, search: val, page: 1 })
+              }
+              onSearch={() => handleSeach(pageParams?.search || '')}
               isLoading={isFetching}
               sortType={pageParams.sortType}
               sortColumn={pageParams.sortColumn}
               handleColumnSort={handleSort}
               emptyTitle="No records to display"
-              // emptySubTitle={handleReturnEmptyMsg(search)}
+              emptySubTitle={''}
               columns={columns}
               pagination={true}
-              renderSortIcon={(sortType?: 'asc' | 'desc' | undefined) => {
-                return sortType === 'asc' ? (
-                  <Icons name="ascending-icon" />
-                ) : sortType === 'desc' ? (
-                  <Icons name="descending-icon" />
-                ) : (
-                  <Icons name="qbs-sort-icon" />
-                )
-              }}
               paginationProps={{
                 onPagination: onChangePage,
                 total: data?.meta?.total_count ?? 0,
@@ -342,6 +357,13 @@ export default function Plans() {
                   pageParams?.per_page ?? data?.meta?.per_page ?? 10
                 ),
                 onRowsPerPage: onChangeRowsPerPage,
+                totalPages: Math.max(
+                  1,
+                  Math.ceil(
+                    (Number(data?.meta?.total_count ?? 0) || 0) /
+                      Number(pageParams?.per_page ?? data?.meta?.per_page ?? 10)
+                  )
+                ),
                 dropOptions: [10, 20, 30, 50, 100],
               }}
               actionProps={[
@@ -395,11 +417,8 @@ export default function Plans() {
                   toolTip: 'Delete',
                 },
               ]}
-              searchValue={pageParams?.search}
-              onSearch={handleSeach}
-              asyncSearch
-              handleSearchValue={(key?: string) => handleSeach(key)}
               columnToggle
+              externalActions={true}
             />
           </div>
 
