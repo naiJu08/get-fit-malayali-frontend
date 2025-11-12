@@ -88,27 +88,27 @@ export const getRecipeColumns = (onNameClick?: (row: any) => void) => {
       customCell: true,
       ...defaultColumnProps,
     },
-    {
-      title: 'Image URL',
-      field: 'image_url',
-      renderCell: createRenderCell('image_url', 'link'),
-      customCell: true,
-      ...defaultColumnProps,
-    },
+    // {
+    //   title: 'Image URL',
+    //   field: 'image_url',
+    //   renderCell: createRenderCell('image_url', 'link'),
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
 
-    {
-      title: 'Created By',
-      field: 'created_by',
-      renderCell: createRenderCell('created_by'),
-      customCell: true,
-      ...defaultColumnProps,
-    },
-    {
-      title: 'Created At',
-      field: 'created_at',
-      renderCell: createRenderCell('created_at', 'date'),
-      customCell: true,
-      ...defaultColumnProps,
-    },
+    // {
+    //   title: 'Created By',
+    //   field: 'created_by',
+    //   renderCell: createRenderCell('created_by'),
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
+    // {
+    //   title: 'Created At',
+    //   field: 'created_at',
+    //   renderCell: createRenderCell('created_at', 'date'),
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
   ]
 }

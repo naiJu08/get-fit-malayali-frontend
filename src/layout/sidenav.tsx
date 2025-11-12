@@ -42,6 +42,53 @@ export default function Sidenav() {
 
   const { pathname } = useLocation()
 
+  const normalizePath = (value?: string) => {
+    if (!value) return ''
+    if (value === '/') return '/'
+    return value.replace(/\/+$/, '')
+  }
+
+  const pathMatches = (current: string, candidate?: string) => {
+    if (!candidate) return false
+    const normalizedCandidate = normalizePath(candidate)
+    const normalizedCurrent = normalizePath(current)
+    if (!normalizedCandidate) return false
+
+    if (!candidate.includes(':')) {
+      if (normalizedCurrent === normalizedCandidate) return true
+      return normalizedCurrent.startsWith(`${normalizedCandidate}/`)
+    }
+
+    const pattern = `^${normalizedCandidate.replace(/:[^/]+/g, '[^/]+')}$`
+    const regex = new RegExp(pattern)
+    if (regex.test(normalizedCurrent)) return true
+
+    const base = normalizePath(candidate.split('/:')[0])
+    if (base) {
+      if (normalizedCurrent === base) return true
+      if (normalizedCurrent.startsWith(`${base}/`)) return true
+    }
+
+    return false
+  }
+
+  const candidatePathsForItem = (item: RouterMenuProps) => {
+    const paths: string[] = []
+    if (item.path) paths.push(item.path)
+    if (Array.isArray(item.slugOptions)) {
+      item.slugOptions.forEach((slugKey) => {
+        const slugConfig = router_config?.[slugKey]
+        if (slugConfig?.path) paths.push(slugConfig.path)
+      })
+    }
+    return paths
+  }
+
+  const isItemActive = (item: RouterMenuProps) => {
+    const candidates = candidatePathsForItem(item)
+    return candidates.some((candidate) => pathMatches(pathname, candidate))
+  }
+
   const checkPermission = (item: any) => {
     return item.permission_slugs?.some((pr: any) => pr === roleData?.name)
   }
@@ -89,15 +136,16 @@ export default function Sidenav() {
             //   (activeSlug === item?.slug ||
             //     item?.slugOptions?.includes(activeSlug))
             // const isActiveIndex = active && activeIndex === index
+            const isActive = isItemActive(item)
             return (
               <li key={item.id}>
                 <Link
                   to={item.path || pathname}
                   onClick={() => navSubmenu(index, item)}
-                  className={`flex items-center gap-2.5 p-3 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 ${item.path === pathname ? 'bg-white/20 text-white' : 'text-white'}  ${!expand ? 'justify-center ' : ' justify-start'} ${active && activeIndex === index ? 'text-white' : ''}`}
+                  className={`flex items-center gap-2.5 p-3 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 ${isActive ? 'bg-white/20 text-white' : 'text-white'}  ${!expand ? 'justify-center ' : ' justify-start'} ${active && activeIndex === index ? 'text-white' : ''}`}
                 >
                   <div
-                    className={`w-5 h-5 stroke-white group-hover:stroke-white ${item.path === pathname ? 'stroke-white' : ''}`}
+                    className={`w-5 h-5 stroke-white group-hover:stroke-white ${isActive ? 'stroke-white' : ''}`}
                   >
                     {item.icon ? (
                       <Icons name={item.icon} />
@@ -107,13 +155,13 @@ export default function Sidenav() {
                   </div>
 
                   <span
-                    className={`text-common text-white group-hover:text-white ${item.path === pathname ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'}`}
+                    className={`text-common text-white group-hover:text-white ${isActive ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'}`}
                   >
                     {item.label}
                   </span>
                   {item.hasChild && (
                     <div
-                      className={`w-4 h-4 ms-auto text-white group-hover:text-white ${item.path === pathname ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'}`}
+                      className={`w-4 h-4 ms-auto text-white group-hover:text-white ${isActive ? 'text-white' : ''} ${!expand ? 'hidden ' : ' block'}`}
                     >
                       <Icons name="drop-arrow" />
                     </div>

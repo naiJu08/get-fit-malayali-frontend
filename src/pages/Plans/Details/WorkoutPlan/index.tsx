@@ -33,7 +33,9 @@ export default function WorkoutPlanIndex({
           <button
             type="button"
             className="text-blue-600 hover:underline"
-            onClick={() => navigate(`/workout_details/${row?.id}`)}
+            onClick={() =>
+              navigate(`/plans/${row?.plan_id}/workout_details/${row?.id}`)
+            }
           >
             {row?.title ?? ''}
           </button>
@@ -41,7 +43,8 @@ export default function WorkoutPlanIndex({
       }),
       sortKey: 'title',
       link: true,
-      rowClick: (row: any) => navigate(`/workout_details/${row?.id}`),
+      rowClick: (row: any) =>
+        navigate(`/plans/${row?.plan_id}/workout_details/${row?.id}`),
     },
     {
       title: 'Day',
@@ -201,7 +204,8 @@ export default function WorkoutPlanIndex({
         actionProps={[
           {
             icon: <Icons name="eye" />,
-            action: (row: any) => navigate(`/workout_details/${row?.id}`),
+            action: (row: any) =>
+              navigate(`/plans/${row?.plan_id}/workout_details/${row?.id}`),
             title: 'view',
             toolTip: 'View',
           },

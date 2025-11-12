@@ -68,83 +68,87 @@ export default function UserDetails() {
             label="Intensity Level"
             value={workout?.intensity_level}
           />
+          <DetailItem label="Feedback Count" value={workout?.feedbacks_count} />
+
+          {!loading &&
+            !error &&
+            (() => {
+              const raw = workout?.video_url
+              const v = typeof raw === 'string' ? raw.trim() : ''
+              const isUrl = typeof v === 'string' && /^https?:\/\/\S+$/i.test(v)
+              if (!isUrl) return null
+
+              const ytMatch = v.match(
+                /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+              )
+              const vimeoMatch = v.match(/vimeo\.com\/(?:video\/)?(\d+)/)
+              const gDriveMatch = v.match(
+                /drive\.google\.com\/file\/d\/([^/]+)/
+              )
+              const dropboxMatch = v.match(/dropbox\.com\/s\/([^?]+)/)
+
+              const driveEmbed = gDriveMatch
+                ? `https://drive.google.com/file/d/${gDriveMatch[1]}/preview`
+                : null
+              const dropboxRaw = dropboxMatch
+                ? `https://dl.dropboxusercontent.com/s/${dropboxMatch[1]}`
+                : null
+
+              return (
+                <div className="">
+                  <div className="border rounded-lg p-3 bg-white ">
+                    <div className="text-xs text-gray-500 mb-2">Video</div>
+                    <div className="relative w-64">
+                      {ytMatch ? (
+                        <div className="w-full aspect-video">
+                          <iframe
+                            className="w-full h-full rounded"
+                            src={`https://www.youtube.com/embed/${ytMatch[1]}`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : vimeoMatch ? (
+                        <div className="w-full aspect-video">
+                          <iframe
+                            className="w-full h-full rounded"
+                            src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
+                            allow="autoplay; fullscreen; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : gDriveMatch ? (
+                        <div className="w-full aspect-video">
+                          <iframe
+                            className="w-full h-full rounded"
+                            src={driveEmbed as string}
+                            allow="autoplay; fullscreen; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <video
+                            className="w-64 rounded"
+                            controls
+                            muted
+                            playsInline
+                            src={dropboxRaw || v}
+                            onError={() => {
+                              /* Silent error: we still show the link below */
+                            }}
+                          />
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
         </div>
       )}
 
       {/* Video preview below all detail items */}
-      {!loading &&
-        !error &&
-        (() => {
-          const raw = workout?.video_url
-          const v = typeof raw === 'string' ? raw.trim() : ''
-          const isUrl = typeof v === 'string' && /^https?:\/\/\S+$/i.test(v)
-          if (!isUrl) return null
-
-          const ytMatch = v.match(
-            /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
-          )
-          const vimeoMatch = v.match(/vimeo\.com\/(?:video\/)?(\d+)/)
-          const gDriveMatch = v.match(/drive\.google\.com\/file\/d\/([^/]+)/)
-          const dropboxMatch = v.match(/dropbox\.com\/s\/([^?]+)/)
-
-          const driveEmbed = gDriveMatch
-            ? `https://drive.google.com/file/d/${gDriveMatch[1]}/preview`
-            : null
-          const dropboxRaw = dropboxMatch
-            ? `https://dl.dropboxusercontent.com/s/${dropboxMatch[1]}`
-            : null
-
-          return (
-            <div className="mt-4">
-              <div className="border rounded-lg p-3 bg-white w-[625px]">
-                <div className="text-xs text-gray-500 mb-2">Video</div>
-                <div className="relative w-64">
-                  {ytMatch ? (
-                    <div className="w-full aspect-video">
-                      <iframe
-                        className="w-full h-full rounded"
-                        src={`https://www.youtube.com/embed/${ytMatch[1]}`}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                  ) : vimeoMatch ? (
-                    <div className="w-full aspect-video">
-                      <iframe
-                        className="w-full h-full rounded"
-                        src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
-                        allow="autoplay; fullscreen; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                  ) : gDriveMatch ? (
-                    <div className="w-full aspect-video">
-                      <iframe
-                        className="w-full h-full rounded"
-                        src={driveEmbed as string}
-                        allow="autoplay; fullscreen; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                  ) : (
-                    <>
-                      <video
-                        className="w-64 rounded"
-                        controls
-                        muted
-                        playsInline
-                        src={dropboxRaw || v}
-                        onError={() => {
-                          /* Silent error: we still show the link below */
-                        }}
-                      />
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          )
-        })()}
     </div>
   )
 }
