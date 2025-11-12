@@ -133,6 +133,7 @@ export default function CreateAdmin({
       placeholder: 'Select role',
       async: false,
       initialLoad: true,
+      disabled: true,
     },
     {
       name: 'gender',
