@@ -11,6 +11,7 @@ import {
   getAdminDetails,
   getActivePlanOverview,
   getOverviewDetail,
+  freezeSubscription,
 } from '../api'
 import { useAuthStore } from '../../../store/authStore'
 import { useSnackbarManager } from '../../../components/common/snackbar'
@@ -41,6 +42,18 @@ export default function Subscriptions({
   const [dayDetail, setDayDetail] = useState<any>(null)
   const [dayDetailLoading, setDayDetailLoading] = useState(false)
   const [selectedDate, setSelectedDate] = useState<string>('')
+  const [toggleFreezeOpen, setToggleFreezeOpen] = useState(false)
+  const [toggleFreezeRow, setToggleFreezeRow] = useState<any>(null)
+  const [loader, setLoader] = useState(false)
+  const [freezeForm, setFreezeForm] = useState<{
+    reason: string
+    start_date: string
+    end_date: string
+  }>({
+    reason: '',
+    start_date: '',
+    end_date: '',
+  })
   const [subForm, setSubForm] = useState<{
     start_date: string
     end_date: string
@@ -102,6 +115,18 @@ export default function Subscriptions({
       })
     }
     return { title: monthStart.format('MMMM YYYY'), cells }
+  }
+
+  const toISODate = (val: string) => {
+    if (!val) return ''
+    // Accept both DD-MM-YYYY and YYYY-MM-DD; return ISO YYYY-MM-DD
+    if (moment(val, 'DD-MM-YYYY', true).isValid()) {
+      return moment(val, 'DD-MM-YYYY').format('YYYY-MM-DD')
+    }
+    if (moment(val, 'YYYY-MM-DD', true).isValid()) {
+      return val
+    }
+    return ''
   }
 
   const monthRange = () => {
@@ -169,7 +194,7 @@ export default function Subscriptions({
 
   const statusColor = (day: any) => {
     if (day?.freeze)
-      return 'bg-gradient-to-br from-red-400 to-red-400 text-white border-red-300 shadow-sm'
+      return 'bg-gradient-to-br from-red-600 to-red-600 text-white border-red-300 shadow-sm'
     const s = String(day?.status || '').toLowerCase()
     if (s === 'today')
       return 'bg-gradient-to-br from-primaryBlue to-primaryBlue text-white border-blue-300 ring-1 ring-blue-200/60 shadow-sm'
@@ -183,6 +208,8 @@ export default function Subscriptions({
   const getDayCellClass = (cell: any) => {
     if (!cell?.inRange)
       return 'text-gray-400 bg-white border-gray-200 opacity-70 cursor-not-allowed'
+    if (cell?.meta?.freeze)
+      return 'bg-gradient-to-br from-red-600 to-red-600 text-white border-red-300 shadow-sm cursor-not-allowed'
     return statusColor(cell?.meta)
   }
 
@@ -198,6 +225,95 @@ export default function Subscriptions({
       setDayDetail(null)
     } finally {
       setDayDetailLoading(false)
+    }
+  }
+
+  const isFrozen = (row?: any) => {
+    return !!(row?.is_frozen ?? overview?.subscription?.is_frozen)
+  }
+
+  const handleFreezeChange = (data: { name: string; value: any }) => {
+    const subStart = overview?.subscription?.start_date || ''
+    const subEnd = overview?.subscription?.end_date || ''
+    if (data.name === 'start_date') {
+      let newStart = toISODate(data.value as string)
+      if (
+        subStart &&
+        newStart &&
+        moment(newStart, 'YYYY-MM-DD', true).isBefore(
+          moment(subStart, 'YYYY-MM-DD')
+        )
+      ) {
+        newStart = subStart
+      }
+      if (
+        subEnd &&
+        newStart &&
+        moment(newStart, 'YYYY-MM-DD', true).isAfter(
+          moment(subEnd, 'YYYY-MM-DD')
+        )
+      ) {
+        newStart = subEnd
+      }
+      let newEnd = freezeForm.end_date
+      if (
+        newEnd &&
+        moment(newEnd, 'YYYY-MM-DD', true).isBefore(
+          moment(newStart, 'YYYY-MM-DD')
+        )
+      ) {
+        newEnd = ''
+      }
+      if (
+        subEnd &&
+        newEnd &&
+        moment(newEnd, 'YYYY-MM-DD', true).isAfter(moment(subEnd, 'YYYY-MM-DD'))
+      ) {
+        newEnd = subEnd
+      }
+      setFreezeForm((prev) => ({
+        ...prev,
+        start_date: newStart,
+        end_date: newEnd,
+      }))
+      return
+    }
+    setFreezeForm((prev) => ({ ...prev, [data.name]: data.value }))
+  }
+
+  const handleConfirmToggleFreeze = async () => {
+    try {
+      setLoader(true)
+      const isAlreadyFrozen = isFrozen(toggleFreezeRow)
+      if (!isAlreadyFrozen) {
+        const sid = String(
+          toggleFreezeRow?.id || overview?.subscription?.id || ''
+        )
+        if (!sid) throw new Error('Missing subscription id')
+        await freezeSubscription(sid, {
+          reason: freezeForm.reason || undefined,
+          start_date: freezeForm.start_date || undefined,
+          end_date: freezeForm.end_date || undefined,
+        })
+        try {
+          const res = await getActivePlanOverview(user.id)
+          setOverview(res)
+        } catch {}
+        try {
+          const fresh = await getAdminDetails(String(id))
+          onRefresh(fresh)
+        } catch {}
+        enqueueSnackbar('Subscription frozen successfully', {
+          variant: 'success',
+        })
+      } else {
+        // TODO: implement unfreeze subscription API when available
+        enqueueSnackbar('Unfreeze API not implemented', { variant: 'warning' })
+      }
+      setToggleFreezeOpen(false)
+      setToggleFreezeRow(null)
+    } finally {
+      setLoader(false)
     }
   }
 
@@ -362,6 +478,25 @@ export default function Subscriptions({
                     </a>
                   ) : null}
                 </div>
+                <div className="flex justify-end">
+                  <Button
+                    className="primaryButton"
+                    label={
+                      isFrozen(overview?.subscription)
+                        ? 'Unfreeze Subscription'
+                        : 'Freeze Subscription'
+                    }
+                    onClick={() => {
+                      setToggleFreezeRow(overview?.subscription)
+                      setToggleFreezeOpen(true)
+                      setFreezeForm({
+                        reason: '',
+                        start_date: '',
+                        end_date: '',
+                      })
+                    }}
+                  />
+                </div>
                 <div className="bg-white border border-gray-300 rounded-lg p-3">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-sm font-medium">Plan Calendar</div>
@@ -429,20 +564,27 @@ export default function Subscriptions({
                               {m.cells.map((c: any) => (
                                 <div
                                   key={c.key}
-                                  className={`relative h-28 border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)} ${c?.inRange ? 'cursor-pointer' : ''}`}
+                                  className={`relative h-28 border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)} ${c?.inRange && !c?.meta?.freeze ? 'cursor-pointer' : ''}`}
                                   title={
                                     c?.meta?.date
                                       ? `${c.meta.date}  •  Diet: ${c?.meta?.diet_summary?.total_items ?? 0}  •  Workout: ${c?.meta?.workout_summary?.total_exercises ?? 0}`
                                       : ''
                                   }
-                                  role={c?.inRange ? 'button' : undefined}
-                                  tabIndex={c?.inRange ? 0 : -1}
+                                  role={
+                                    c?.inRange && !c?.meta?.freeze
+                                      ? 'button'
+                                      : undefined
+                                  }
+                                  tabIndex={
+                                    c?.inRange && !c?.meta?.freeze ? 0 : -1
+                                  }
                                   onClick={() =>
                                     c?.inRange &&
+                                    !c?.meta?.freeze &&
                                     openDayDetail(c?.meta?.date || c.key)
                                   }
                                   onKeyDown={(e) => {
-                                    if (!c?.inRange) return
+                                    if (!c?.inRange || c?.meta?.freeze) return
                                     if (e.key === 'Enter' || e.key === ' ') {
                                       e.preventDefault()
                                       openDayDetail(c?.meta?.date || c.key)
@@ -489,7 +631,13 @@ export default function Subscriptions({
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                className={`grid grid-cols-1 ${
+                  Array.isArray(plans) && plans.length > 0
+                    ? 'md:grid-cols-2'
+                    : 'md:grid-cols-1'
+                } gap-4`}
+              >
                 {Array.isArray(plans) && plans.length > 0 ? (
                   plans.map((p: any) => (
                     <div key={p?.id} className="border rounded-lg p-3 bg-white">
@@ -598,6 +746,87 @@ export default function Subscriptions({
               </div>
             )}
           </div>
+        }
+      />
+
+      <DialogModal
+        isOpen={toggleFreezeOpen}
+        onClose={() => setToggleFreezeOpen(false)}
+        title={
+          isFrozen(toggleFreezeRow)
+            ? 'Unfreeze Subscription'
+            : 'Freeze Subscription'
+        }
+        onSubmit={handleConfirmToggleFreeze}
+        secondaryAction={() => {
+          setToggleFreezeOpen(false)
+          setToggleFreezeRow(null)
+        }}
+        secondaryActionLabel="Cancel"
+        actionLabel={isFrozen(toggleFreezeRow) ? 'Unfreeze' : 'Freeze'}
+        actionLoader={loader}
+        body={
+          isFrozen(toggleFreezeRow) ? (
+            <InfoBox content={'Do you want to unfreeze this subscription?'} />
+          ) : (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-600">Reason</label>
+                <input
+                  className="textfield"
+                  name="reason"
+                  value={freezeForm.reason}
+                  onChange={(e) =>
+                    handleFreezeChange({
+                      name: e.target.name,
+                      value: e.target.value,
+                    })
+                  }
+                  placeholder="Enter reason"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-600">Start date</label>
+                  <input
+                    type="date"
+                    className="textfield"
+                    name="start_date"
+                    value={freezeForm.start_date}
+                    min={overview?.subscription?.start_date || undefined}
+                    max={overview?.subscription?.end_date || undefined}
+                    onChange={(e) =>
+                      handleFreezeChange({
+                        name: e.target.name,
+                        value: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-600">End date</label>
+                  <input
+                    type="date"
+                    className="textfield"
+                    name="end_date"
+                    value={freezeForm.end_date}
+                    min={
+                      freezeForm.start_date ||
+                      overview?.subscription?.start_date ||
+                      undefined
+                    }
+                    max={overview?.subscription?.end_date || undefined}
+                    onChange={(e) =>
+                      handleFreezeChange({
+                        name: e.target.name,
+                        value: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          )
         }
       />
 
