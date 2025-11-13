@@ -372,7 +372,7 @@ export default function Notifications() {
   }
   const basicData = {
     title: 'Notifications',
-    icon: 'subscription-icon',
+    icon: 'notification',
   }
 
   const handleSort = (orderColumn: any, orderDirection: any) => {

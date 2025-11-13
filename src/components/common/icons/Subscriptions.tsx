@@ -16,7 +16,7 @@
 // export default Subscription;
 import React from 'react'
 
-const Subscription = ({ size = 20, color = 'white' }) => (
+const Subscription = ({ size = 20, color = 'currentColor' }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"

@@ -243,7 +243,7 @@ export default function Plans() {
   }
   const basicData = {
     title: 'Plans',
-    icon: 'user',
+    icon: 'plan',
   }
   const openDrawer = () => {
     setCreateOpen(true)

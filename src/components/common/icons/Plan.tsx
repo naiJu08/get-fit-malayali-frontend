@@ -3,7 +3,7 @@ import React from 'react'
 export default function Plan({
   width = 24,
   height = 24,
-  fill = '#fff', // White color
+  fill = 'currentColor', // White color
   className = '',
   style = {},
   ...props
