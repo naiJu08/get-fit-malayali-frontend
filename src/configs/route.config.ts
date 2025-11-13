@@ -99,6 +99,7 @@ const ADMIN_USER: RouterMenuProps = {
   label: 'Users',
   key: 'admin-user',
   permission_slugs: ['superadmin', 'nutritionist'],
+  breadcrumb: ['ADMIN_USER', 'ADMIN_USER_DETAILS'],
   isSidebarMenu: true,
 }
 const SUBSCRIPTIONS: RouterMenuProps = {
@@ -107,7 +108,7 @@ const SUBSCRIPTIONS: RouterMenuProps = {
   parent_id: null,
   label: 'Subscriptions',
   key: 'subscriptions',
-  icon: 'subscription-icon',
+  icon: 'subscription',
   permission_slugs: ['superadmin'],
   isSidebarMenu: true,
 }
@@ -117,7 +118,7 @@ const NOTIFICATIONS: RouterMenuProps = {
   parent_id: null,
   label: 'Notifications',
   key: 'notifications',
-  icon: 'subscription-icon',
+  icon: 'notification',
   permission_slugs: ['superadmin'],
   isSidebarMenu: true,
 }
@@ -127,8 +128,10 @@ const PLANS: RouterMenuProps = {
   parent_id: null,
   label: 'Plans',
   key: 'plans',
-  icon: 'subscription-icon',
+  icon: 'plan',
+  breadcrumb: ['PLANS', 'PLAN_DETAILS'],
   permission_slugs: ['superadmin', 'nutritionist'],
+  slugOptions: ['PLANS', 'PLAN_DETAILS', 'DIET_DETAILS'],
   isSidebarMenu: true,
 }
 const WORKOUT: RouterMenuProps = {
@@ -137,7 +140,7 @@ const WORKOUT: RouterMenuProps = {
   parent_id: null,
   label: 'Workout',
   key: 'workout',
-  icon: 'subscription-icon',
+  icon: 'workout',
   permission_slugs: ['superadmin'],
   isSidebarMenu: true,
 }
@@ -215,7 +218,7 @@ const RECIPE: RouterMenuProps = {
   parent_id: 21,
   label: 'Recipe',
   key: 'recipe',
-  icon: 'subscription-icon',
+  icon: 'recipe',
   permission_slugs: ['superadmin'],
   isSidebarMenu: true,
 }
@@ -231,13 +234,14 @@ const RECIPE_DETAILS: RouterMenuProps = {
 
 const WORKOUT_PLAN_DETAILS: RouterMenuProps = {
   id: 26,
-  path: '/workout_details/:id',
+  path: '/plans/:plan_id/workout_details/:id',
   parent_id: 21,
   isDetails: true,
   icon: 'user',
   label: 'Workout plan Details',
   key: 'workout-details',
   permission_slugs: [],
+  breadcrumb: ['PLANS', 'PLAN_DETAILS'],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
 
@@ -250,6 +254,7 @@ const DIET_DETAILS: RouterMenuProps = {
   label: 'Diet Details',
   key: 'diet-details',
   permission_slugs: [],
+  breadcrumb: ['PLANS', 'PLAN_DETAILS'],
 }
 
 const ORGANISATION_FILE_REPOSTITORY: RouterMenuProps = {

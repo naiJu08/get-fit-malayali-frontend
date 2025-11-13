@@ -8,7 +8,7 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-export const getColumns = () => {
+export const getColumns = (onNameClick?: (row: any) => void) => {
   const createRenderCell =
     (key: string, formatter?: (v: any) => any) => (row: any) => {
       const val = getNestedProperty(row, key)
@@ -26,7 +26,21 @@ export const getColumns = () => {
     {
       title: 'Client',
       field: 'user_name',
-      renderCell: createRenderCell('user_name'),
+      renderCell: (row: any) => {
+        const value = getNestedProperty(row, 'user_name')
+        return {
+          cell: (
+            <button
+              className="text-blue-600 hover:underline"
+              onClick={() => onNameClick && onNameClick(row)}
+              type="button"
+            >
+              {value ?? ''}
+            </button>
+          ),
+          toolTip: value ?? '',
+        }
+      },
       customCell: true,
       ...defaultColumnProps,
     },

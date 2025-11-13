@@ -33,10 +33,23 @@ export default function CreateRecipe({
   const queryClient = useQueryClient()
 
   const onSubmit = (values: RecipeSchema) => {
-    const payload = { recipe: { ...values } }
+    // Build multipart form data to support image file upload
+    const fd = new FormData()
+    fd.append('recipe[name]', (values as any)?.name ?? '')
+    fd.append('recipe[description]', (values as any)?.description ?? '')
+    fd.append('recipe[category]', (values as any)?.category ?? '')
+    fd.append('recipe[calories]', String((values as any)?.calories ?? ''))
+    fd.append('recipe[portion_size]', (values as any)?.portion_size ?? '')
+
+    const imageVal: any = (values as any)?.image
+    if (imageVal && typeof imageVal !== 'string') {
+      // Only append when a new File is provided
+      fd.append('image', imageVal)
+    }
+
     if (edit && rowData?.id) {
       updateRecipeMutate(
-        { id: rowData.id, payload },
+        { id: rowData.id, payload: fd },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recipes_list'] })
@@ -46,7 +59,7 @@ export default function CreateRecipe({
         }
       )
     } else {
-      createRecipeMutate(payload, {
+      createRecipeMutate(fd, {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['recipes_list'] })
           handleRefresh?.()
@@ -65,7 +78,7 @@ export default function CreateRecipe({
         category: rowData?.category ?? '',
         calories: rowData?.calories ?? ('' as unknown as number),
         portion_size: rowData?.portion_size ?? '',
-        image_url: rowData?.image_url ?? '',
+        image: rowData?.image_url ?? '',
       })
     } else if (isDrawerOpen && !edit) {
       reset({
@@ -74,7 +87,7 @@ export default function CreateRecipe({
         category: '',
         calories: '' as unknown as number,
         portion_size: '',
-        image_url: '',
+        image: '',
       })
     }
   }, [isDrawerOpen, edit, rowData, reset])
@@ -116,10 +129,21 @@ export default function CreateRecipe({
       required: true,
     },
     {
-      name: 'image_url',
-      label: 'Image URL',
-      type: 'text',
-      placeholder: 'https://...',
+      name: 'image',
+      label: 'Image',
+      id: 'image',
+      type: 'file_upload',
+      placeholder: 'Upload recipe image',
+      required: false,
+      accept: 'image/*',
+      supportedExtensions: [
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'image/webp',
+      ],
+      acceptedFiles: 'PNG, JPG, JPEG, WEBP (Max 5 MB)',
+      fileSize: 5,
     },
   ]
 
@@ -132,6 +156,7 @@ export default function CreateRecipe({
       onSubmit={handleSubmit(onSubmit)}
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"
+      small={false}
       body={
         <div className="flex flex-col gap-4">
           <FormProvider {...methods}>
