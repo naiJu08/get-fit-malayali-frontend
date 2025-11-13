@@ -27,6 +27,8 @@ const VITALS = 'vitals'
 const CLIENT_REPORTS = 'monthly_reports'
 const SUBSCRIPTION_CALENDAR = '/admin/users'
 
+const ADMIN_DASHBOARD = 'admin/dashboard'
+
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
   ASSESSOR_LIST_URL,
@@ -55,6 +57,7 @@ const apiUrl: { [key: string]: string } = {
   VITALS,
   CLIENT_REPORTS,
   SUBSCRIPTION_CALENDAR,
+  ADMIN_DASHBOARD,
 }
 
 export default apiUrl

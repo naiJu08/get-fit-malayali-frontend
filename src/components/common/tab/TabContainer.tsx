@@ -33,22 +33,33 @@ const TabContainer: React.FC<TabProps> = ({
   activeTab,
 }) => {
   const generateClassName = (tab: TabItemProps): string => {
-    let generatedClassName = 'w-max text-sm leading-6  font-medium '
+    let generatedClassName = 'w-max text-sm leading-6 font-medium '
     if (tab.id === activeTab) {
-      generatedClassName +=
-        ' text-primary border-primary font-bold cursor-default '
-      generatedClassName += tab.bgClass ? `${tab.bgClass}` : 'bg-white'
+      generatedClassName += ' text-primary font-bold cursor-default '
+      generatedClassName += tab.activeClass
+        ? `${tab.activeClass} `
+        : tab.bgClass
+          ? `${tab.bgClass} `
+          : 'bg-white '
+      generatedClassName += tab.activeBorderClass
+        ? `${tab.activeBorderClass} `
+        : 'border-primary '
     } else {
       if (tab.disabled) {
-        generatedClassName +=
-          ' text-grey-medium cursor-not-allowed border-transparent '
+        generatedClassName += ' text-grey-medium cursor-not-allowed '
       } else {
-        generatedClassName +=
-          ' text-grey-medium cursor-pointer border-transparent '
+        generatedClassName += ' text-grey-medium cursor-pointer '
       }
-      if (tab.bgClass) generatedClassName += `${tab.bgClass}`
+      generatedClassName += tab.inactiveClass
+        ? `${tab.inactiveClass} `
+        : tab.bgClass
+          ? `${tab.bgClass} `
+          : ''
+      generatedClassName += tab.inactiveBorderClass
+        ? `${tab.inactiveBorderClass} `
+        : 'border-transparent '
     }
-    return generatedClassName
+    return generatedClassName.trimEnd()
   }
   const handleClick = (item: TabItemProps) => {
     if (!item.disabled) {
