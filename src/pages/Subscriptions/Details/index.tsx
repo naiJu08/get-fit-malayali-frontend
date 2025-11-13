@@ -46,7 +46,46 @@ export default function SubscriptionDetailsMain() {
 
   const plan = subscription?.plan_details
 
-  // Status badge styling
+  // Normalise frozen metadata coming from the API. Different endpoints may
+  // return it either inside `freeze_details`, `freeze_info`, or as flat
+  // properties like `freeze_reason`.
+  const freezeDetailsRaw =
+    subscription?.freeze_details ||
+    subscription?.freeze_info ||
+    subscription?.freeze ||
+    null
+
+  const freezeDetails =
+    freezeDetailsRaw && typeof freezeDetailsRaw === 'object'
+      ? freezeDetailsRaw
+      : null
+
+  const freezeReason =
+    freezeDetails?.reason ?? subscription?.freeze_reason ?? null
+  const freezeStart =
+    freezeDetails?.start_date ??
+    freezeDetails?.start ??
+    subscription?.freeze_start_date ??
+    subscription?.freeze_start ??
+    null
+  const freezeEnd =
+    freezeDetails?.end_date ??
+    freezeDetails?.end ??
+    subscription?.freeze_end_date ??
+    subscription?.freeze_end ??
+    null
+  const freezeUpdatedAt =
+    freezeDetails?.updated_at ??
+    freezeDetails?.updatedOn ??
+    subscription?.freeze_updated_at ??
+    null
+  const freezeDays: string[] = Array.isArray(subscription?.frozen_days)
+    ? subscription?.frozen_days
+    : Array.isArray(freezeDetails?.days)
+      ? freezeDetails?.days
+      : []
+  const totalFreezeDays =
+    subscription?.total_frozen_days ?? freezeDetails?.total_days ?? null
   const getStatusBadge = (status: string) => {
     const statusColors: { [key: string]: string } = {
       active: 'bg-green-100 text-green-800 border-green-200',
@@ -320,6 +359,89 @@ export default function SubscriptionDetailsMain() {
             </div>
           </div>
         </div>
+
+        {freezeDays.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center mr-3">
+                <svg
+                  className="w-4 h-4 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Frozen Details
+              </h2>
+            </div>
+            <div className="space-y-3">
+              {freezeReason && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Reason</span>
+                  <span className="text-gray-900 text-sm text-right">
+                    {freezeReason}
+                  </span>
+                </div>
+              )}
+              {totalFreezeDays != null && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Total Frozen Days</span>
+                  <span className="text-gray-900 font-medium">
+                    {totalFreezeDays}
+                  </span>
+                </div>
+              )}
+              {freezeStart && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Start Date</span>
+                  <span className="text-gray-900">
+                    {formatDate(freezeStart)}
+                  </span>
+                </div>
+              )}
+              {freezeEnd && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">End Date</span>
+                  <span className="text-gray-900">{formatDate(freezeEnd)}</span>
+                </div>
+              )}
+              {freezeUpdatedAt && (
+                <div className="flex justify-between py-2 border-b border-gray-100">
+                  <span className="text-gray-600">Last Updated</span>
+                  <span className="text-gray-900">
+                    {formatDate(freezeUpdatedAt)}
+                  </span>
+                </div>
+              )}
+              {freezeDays.length > 0 && (
+                <div className="py-2 border-b border-gray-100">
+                  <span className="text-gray-600 block mb-2">Frozen Days</span>
+                  <ul className="list-disc list-inside text-sm text-gray-900 space-y-1">
+                    {freezeDays.map((day) => (
+                      <li key={day}>{formatDate(day)}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {/* {freezeNotes && (
+                <div className="py-2">
+                  <span className="text-gray-600 block mb-2">Notes</span>
+                  <p className="text-gray-900 text-sm bg-gray-50 rounded-lg p-3 whitespace-pre-line">
+                    {freezeNotes}
+                  </p>
+                </div>
+              )} */}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

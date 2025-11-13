@@ -7,7 +7,7 @@ import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
 import { DialogModal, TextField } from '../../components/common'
 import Button from '../../components/common/buttons/Button'
-import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
+// import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
@@ -24,8 +24,8 @@ import {
   useAdminUser,
   DISABLE_NONLOGIN_APIS,
   deleteAdmin,
-  freezeUser,
-  unfreezeUser,
+  // freezeUser,
+  // unfreezeUser,
 } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
@@ -50,18 +50,18 @@ export default function AdminUser() {
   const [openConfirm, setOpenConfirm] = useState(false)
   const [deleteUserModal, setDeleteUserModal] = useState(false)
   const [deleteUserId, setDeleteUserId] = useState<string>('')
-  const [freezeModal, setFreezeModal] = useState(false)
-  const [freezeUserId, setFreezeUserId] = useState<string>('')
-  const [freezeForm, setFreezeForm] = useState<{
-    reason: string
-    start_date: string
-    end_date: string
-  }>({
-    reason: '',
-    start_date: '',
-    end_date: '',
-  })
-  const [unfreezeConfirm, setUnfreezeConfirm] = useState(false)
+  // const [freezeModal, setFreezeModal] = useState(false)
+  // const [freezeUserId, setFreezeUserId] = useState<string>('')
+  // const [freezeForm, setFreezeForm] = useState<{
+  //   reason: string
+  //   start_date: string
+  //   end_date: string
+  // }>({
+  //   reason: '',
+  //   start_date: '',
+  //   end_date: '',
+  // })
+  // const [unfreezeConfirm, setUnfreezeConfirm] = useState(false)
 
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
@@ -80,15 +80,15 @@ export default function AdminUser() {
     ordering: ordering,
     ...filters,
   }
-  const isFrozen = (rowData: any) => {
-    const val = String(rowData?.status ?? '').toLowerCase()
-    return val === 'suspended'
-  }
-  const handleOpenFreeze = (row: any) => {
-    setFreezeUserId(row?.id)
-    setFreezeForm({ reason: '', start_date: '', end_date: '' })
-    setFreezeModal(true)
-  }
+  // const isFrozen = (rowData: any) => {
+  //   const val = String(rowData?.status ?? '').toLowerCase()
+  //   return val === 'suspended'
+  // }
+  // const handleOpenFreeze = (row: any) => {
+  //   setFreezeUserId(row?.id)
+  //   setFreezeForm({ reason: '', start_date: '', end_date: '' })
+  //   setFreezeModal(true)
+  // }
 
   // Sync activeRole with URL path
   useEffect(() => {
@@ -101,68 +101,68 @@ export default function AdminUser() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
 
-  const handleFreezeChange = ({
-    name,
-    value,
-  }: {
-    name: string
-    value: any
-  }) => {
-    if (name === 'start_date' || name === 'end_date') {
-      const d = value ? new Date(value) : null
-      const iso = d
-        ? new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-            .toISOString()
-            .slice(0, 10)
-        : ''
-      setFreezeForm((prev) => ({ ...prev, [name]: iso }))
-    } else {
-      setFreezeForm((prev) => ({ ...prev, [name]: value }))
-    }
-  }
+  // const handleFreezeChange = ({
+  //   name,
+  //   value,
+  // }: {
+  //   name: string
+  //   value: any
+  // }) => {
+  //   if (name === 'start_date' || name === 'end_date') {
+  //     const d = value ? new Date(value) : null
+  //     const iso = d
+  //       ? new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+  //           .toISOString()
+  //           .slice(0, 10)
+  //       : ''
+  //     setFreezeForm((prev) => ({ ...prev, [name]: iso }))
+  //   } else {
+  //     setFreezeForm((prev) => ({ ...prev, [name]: value }))
+  //   }
+  // }
 
-  const handleSubmitFreeze = () => {
-    if (!freezeUserId) return
-    setloader(true)
-    freezeUser(freezeUserId, freezeForm)
-      .then(() => {
-        enqueueSnackbar('User frozen successfully', { variant: 'success' })
-        setloader(false)
-        setFreezeModal(false)
-        refetch()
-      })
-      .catch((err) => {
-        setloader(false)
-        enqueueSnackbar(
-          err?.response?.data?.error?.message || err?.response?.data?.message,
-          { variant: 'error' }
-        )
-      })
-  }
+  // const handleSubmitFreeze = () => {
+  //   if (!freezeUserId) return
+  //   setloader(true)
+  //   freezeUser(freezeUserId, freezeForm)
+  //     .then(() => {
+  //       enqueueSnackbar('User frozen successfully', { variant: 'success' })
+  //       setloader(false)
+  //       setFreezeModal(false)
+  //       refetch()
+  //     })
+  //     .catch((err) => {
+  //       setloader(false)
+  //       enqueueSnackbar(
+  //         err?.response?.data?.error?.message || err?.response?.data?.message,
+  //         { variant: 'error' }
+  //       )
+  //     })
+  // }
 
-  const handleOpenUnfreeze = (row: any) => {
-    setFreezeUserId(row?.id)
-    setUnfreezeConfirm(true)
-  }
+  // const handleOpenUnfreeze = (row: any) => {
+  //   setFreezeUserId(row?.id)
+  //   setUnfreezeConfirm(true)
+  // }
 
-  const handleSubmitUnfreeze = () => {
-    if (!freezeUserId) return
-    setloader(true)
-    unfreezeUser(freezeUserId)
-      .then(() => {
-        enqueueSnackbar('User unfrozen successfully', { variant: 'success' })
-        setloader(false)
-        setUnfreezeConfirm(false)
-        refetch()
-      })
-      .catch((err) => {
-        setloader(false)
-        enqueueSnackbar(
-          err?.response?.data?.error?.message || err?.response?.data?.message,
-          { variant: 'error' }
-        )
-      })
-  }
+  // const handleSubmitUnfreeze = () => {
+  //   if (!freezeUserId) return
+  //   setloader(true)
+  //   unfreezeUser(freezeUserId)
+  //     .then(() => {
+  //       enqueueSnackbar('User unfrozen successfully', { variant: 'success' })
+  //       setloader(false)
+  //       setUnfreezeConfirm(false)
+  //       refetch()
+  //     })
+  //     .catch((err) => {
+  //       setloader(false)
+  //       enqueueSnackbar(
+  //         err?.response?.data?.error?.message || err?.response?.data?.message,
+  //         { variant: 'error' }
+  //       )
+  //     })
+  // }
 
   const { data, refetch, isFetching } = useAdminUser(searchParams)
   const onChangePage = (row: number) => {
@@ -463,20 +463,20 @@ export default function AdminUser() {
                     title: 'view',
                     toolTip: 'View Details',
                   },
-                  {
-                    title: 'Freeze',
-                    action: (row) => handleOpenFreeze(row),
-                    icon: <Icons name="lock-icon" />,
-                    toolTip: 'Freeze User',
-                    hide: (rowData: any) => isFrozen(rowData),
-                  },
-                  {
-                    title: 'Unfreeze',
-                    action: (row) => handleOpenUnfreeze(row),
-                    icon: <Icons name="activate-icon" />,
-                    toolTip: 'Unfreeze User',
-                    hide: (rowData: any) => !isFrozen(rowData),
-                  },
+                  // {
+                  //   title: 'Freeze',
+                  //   action: (row) => handleOpenFreeze(row),
+                  //   icon: <Icons name="lock-icon" />,
+                  //   toolTip: 'Freeze User',
+                  //   hide: (rowData: any) => isFrozen(rowData),
+                  // },
+                  // {
+                  //   title: 'Unfreeze',
+                  //   action: (row) => handleOpenUnfreeze(row),
+                  //   icon: <Icons name="activate-icon" />,
+                  //   toolTip: 'Unfreeze User',
+                  //   hide: (rowData: any) => !isFrozen(rowData),
+                  // },
                   {
                     title: 'Deactivate',
                     action: (rowData) =>
@@ -580,16 +580,16 @@ export default function AdminUser() {
             setUserName={setUserName}
           />
 
-          <FreezeUserModal
+          {/* <FreezeUserModal
             isOpen={freezeModal}
             onClose={() => setFreezeModal(false)}
             onSubmit={handleSubmitFreeze}
             loading={loader}
             values={freezeForm}
             onChange={handleFreezeChange}
-          />
+          /> */}
 
-          <ConfirmDeleteModal
+          {/* <ConfirmDeleteModal
             isOpen={unfreezeConfirm}
             onClose={() => setUnfreezeConfirm(false)}
             onConfirm={handleSubmitUnfreeze}
@@ -598,7 +598,7 @@ export default function AdminUser() {
             subTitle={'Do you really want to unfreeze this user?'}
             confirmLabel="Unfreeze"
             cancelLabel="Cancel"
-          />
+          /> */}
 
           <CreateAdmin
             isDrawerOpen={createOpen}

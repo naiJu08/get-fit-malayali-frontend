@@ -1,5 +1,5 @@
 import SmartTable from '../../components/common/table/SmartTable'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
@@ -264,9 +264,18 @@ export default function Subscriptions() {
       setCreateOpen(true)
     }
   }
+  const handleClientNameClick = useCallback(
+    (row: any) => {
+      if (row?.id) {
+        navigate(`/subscriptions/${row.id}`)
+      }
+    },
+    [navigate]
+  )
+
   useEffect(() => {
-    setColumns(getColumns())
-  }, [])
+    setColumns(getColumns(handleClientNameClick))
+  }, [handleClientNameClick])
 
   const handleSeach = (key?: string) => {
     setPageParams({

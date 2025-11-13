@@ -8,7 +8,16 @@ export const recipeFormSchema = z.object({
     .preprocess((v) => (typeof v === 'string' ? Number(v) : v), z.number())
     .refine((v) => !Number.isNaN(v), 'Invalid number'),
   portion_size: z.string().min(1, 'Required'),
-  image_url: z.string().url('Invalid URL').optional().or(z.literal('')),
+  image: z
+    .union([
+      // When editing, this may be a pre-existing URL string
+      z.string().url('Invalid URL'),
+      // When uploading, this will be a File
+      z.instanceof(File),
+      // Or left empty
+      z.literal(''),
+    ])
+    .optional(),
 })
 
 export type RecipeSchema = z.infer<typeof recipeFormSchema>

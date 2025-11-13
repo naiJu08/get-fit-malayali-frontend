@@ -165,6 +165,11 @@ import MuscleMassIcon from './Musclemass'
 import ArmIcon from './ArmIcon'
 import BoneMassIcon from './BoneMass'
 import NoDataIcon from './NoData'
+import Plan from './Plan'
+import Workout from './Workout'
+import Notifications from './Notifications'
+import Subscription from './Subscriptions'
+import Recipe from './Recipe'
 
 const Icons: React.FC<IconsProps> = ({
   name,
@@ -500,6 +505,17 @@ const Icons: React.FC<IconsProps> = ({
         return <BoneMassIcon />
       case 'no-data-icon':
         return <NoDataIcon />
+      case 'plan':
+        return <Plan />
+      case 'workout':
+        return <Workout />
+      case 'notification':
+        return <Notifications />
+      case 'subscription':
+        return <Subscription />
+      case 'recipe':
+        return <Recipe />
+
       default:
         return <></>
     }

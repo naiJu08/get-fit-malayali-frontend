@@ -68,8 +68,22 @@ const RecipeDetail: React.FC = () => {
               label="Low Calorie"
               value={recipe?.low_calorie ? 'Yes' : 'No'}
             />
-            <DetailItem label="Created By" value={recipe?.created_by} />
-            <DetailItem label="Image URL" value={recipe?.image_url} />
+            <div className="border rounded-lg p-3 bg-white">
+              <div className="text-xs text-gray-500 mb-1">Image</div>
+              <div className="text-sm">
+                {recipe?.image_url ? (
+                  <div className="w-[160px] h-[160px] overflow-hidden rounded-md border">
+                    <img
+                      className="w-full h-full object-cover"
+                      src={recipe?.image_url}
+                      alt="Recipe"
+                    />
+                  </div>
+                ) : (
+                  <span>--</span>
+                )}
+              </div>
+            </div>
           </div>
         </>
       )}
