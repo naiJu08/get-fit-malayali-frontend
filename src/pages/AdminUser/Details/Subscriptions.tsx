@@ -391,6 +391,10 @@ export default function Subscriptions({
       })
       setSelectedPlanOption(null)
       setDrawerOpen(false)
+      // Force full page refresh to reflect new subscription state
+      if (typeof window !== 'undefined' && window.location) {
+        window.location.reload()
+      }
     } catch {
     } finally {
       setSubmitting(false)
@@ -682,7 +686,7 @@ export default function Subscriptions({
               </label>
               <AutoComplete
                 name="plan_id"
-                type="custom_select"
+                type="custom_search_select"
                 desc="name"
                 descId="id"
                 data={allPlans}
