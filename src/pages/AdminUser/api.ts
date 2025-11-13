@@ -78,7 +78,12 @@ export const getOverviewDetail = (id: string | number, date: string) => {
   const q = date ? `?date=${encodeURIComponent(date)}` : ''
   return getData(`${apiUrl.SUBSCRIPTION_CALENDAR}/${id}/active_plan_day${q}`)
 }
-
+export const freezeSubscription = (
+  id: string,
+  payload?: { reason?: string; start_date?: string; end_date?: string }
+) => {
+  return postData(`${apiUrl.SUBSCRIPTIONS}/${id}/freeze`, payload)
+}
 export const freezeUser = (
   id: string,
   payload: { reason: string; start_date: string; end_date: string }
