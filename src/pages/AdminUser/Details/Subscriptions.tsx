@@ -172,6 +172,11 @@ export default function Subscriptions({
   useEffect(() => {
     const fetchOverview = async () => {
       if (!user?.id) return
+      if (!user?.subscribed_plan) {
+        setOverview(null)
+        setCurrentMonth('')
+        return
+      }
       try {
         setOverviewLoading(true)
         const res = await getActivePlanOverview(user.id)
