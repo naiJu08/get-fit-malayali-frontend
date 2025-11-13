@@ -109,6 +109,13 @@ export default function Recipe() {
           pagination
           actionProps={[
             {
+              icon: <Icons name="eye" />,
+              action: (row: any) => navigate(`/recipe/${row?.id}`),
+              title: 'view',
+              toolTip: 'View',
+            },
+
+            {
               icon: <Icons name="edit" />,
               action: (row: any) => openEdit(row),
               title: 'edit',
