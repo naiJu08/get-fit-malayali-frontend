@@ -39,7 +39,7 @@ const WorkoutDetails = lazy(() => import('../pages/Workout/Details'))
 
 // Dashboard
 
-const Dashboard = lazy(() => import('../pages/dashboard/dashboard'))
+const Dashboard = lazy(() => import('../pages/dashboard'))
 const Settings = lazy(() => import('../pages/samples/Settings'))
 // const Users = lazy(() => import('../pages/samples/Users'))
 const Discount = lazy(() => import('../pages/samples/Discount'))

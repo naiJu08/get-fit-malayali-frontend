@@ -349,6 +349,10 @@ export interface TabItemProps {
   disabled?: boolean
   hide?: boolean
   bgClass?: string
+  activeClass?: string
+  inactiveClass?: string
+  activeBorderClass?: string
+  inactiveBorderClass?: string
 }
 export interface TabProps {
   data: TabItemProps[]
