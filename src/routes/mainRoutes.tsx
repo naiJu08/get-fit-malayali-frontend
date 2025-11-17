@@ -53,7 +53,8 @@ const ExportPage = lazy(() => import('../pages/samples/Export'))
 const Support = lazy(() => import('../pages/samples/Support'))
 const YogaDetails = lazy(() => import('../pages/Yoga/Details'))
 const YogaMain = lazy(() => import('../pages/Yoga'))
-
+const MeditationMain = lazy(() => import('../pages/Meditation'))
+const MeditationDetails = lazy(() => import('../pages/Meditation/Details'))
 const routes: any = [
   { slug: 'DASHBOARD', component: <Dashboard /> },
   { slug: 'SETTINGS_SAMPLE', component: <Settings /> },
@@ -76,6 +77,7 @@ const routes: any = [
   { slug: 'SUPPORT_SAMPLE', component: <Support /> },
   { slug: 'WORKOUT_DETAILS', component: <WorkoutDetails /> },
   { slug: 'YOGA_DETAILS', component: <YogaDetails /> },
+  { slug: 'MEDITATION_DETAILS', component: <MeditationDetails /> },
   { slug: 'PLAN_DETAILS_WORKOUT', component: <PlanDetails /> },
   { slug: 'PLAN_DETAILS_DIET', component: <PlanDetails /> },
   { slug: 'PAYMENT_HISTORY', component: <PaymentHistory /> },
@@ -104,6 +106,7 @@ const routes: any = [
   { slug: 'ADMIN_USER', component: <AdminUser /> },
   { slug: 'WORKOUT_DETAILS', component: <WorkoutDetails /> },
   { slug: 'YOGA', component: <YogaMain /> },
+  { slug: 'MEDITATION', component: <MeditationMain /> },
 ]
 
 export default function MainRoutes() {
