@@ -49,7 +49,7 @@ const ExportPage = lazy(() => import('../pages/samples/Export'))
 const Support = lazy(() => import('../pages/samples/Support'))
 const YogaDetails = lazy(() => import('../pages/Yoga/Details'))
 const YogaMain = lazy(() => import('../pages/Yoga'))
-
+const MeditationMain = lazy(() => import('../pages/Meditation'))
 const routes: any = [
   { slug: 'DASHBOARD', component: <Dashboard /> },
   { slug: 'SETTINGS_SAMPLE', component: <Settings /> },
@@ -98,6 +98,7 @@ const routes: any = [
   { slug: 'ADMIN_USER', component: <AdminUser /> },
   { slug: 'WORKOUT_DETAILS', component: <WorkoutDetails /> },
   { slug: 'YOGA', component: <YogaMain /> },
+  { slug: 'MEDITATION', component: <MeditationMain /> },
 ]
 
 export default function MainRoutes() {

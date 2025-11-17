@@ -155,6 +155,16 @@ const YOGA: RouterMenuProps = {
   permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
+const MEDITATION: RouterMenuProps = {
+  id: 46,
+  path: '/meditation',
+  parent_id: null,
+  label: 'Meditation',
+  key: 'meditation',
+  icon: 'workout',
+  permission_slugs: ['superadmin', 'nutritionist'],
+  isSidebarMenu: true,
+}
 
 const WORKOUT_DETAILS: RouterMenuProps = {
   id: 28,
@@ -337,4 +347,5 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   WORKOUT_DETAILS,
   PAYMENT_HISTORY,
   YOGA_DETAILS,
+  MEDITATION,
 }
