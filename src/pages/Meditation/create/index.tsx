@@ -91,9 +91,12 @@ export default function CreateAdmin({
   }
 
   const formBuilderProps = [
-    { ...textField('name', 'Name', 'Enter meditation name', true) },
+    { ...textField('title', 'Title', 'Enter meditation title', true) },
     { ...textField('description', 'Description', 'Enter description', true) },
-    { ...textField('duration_minutes', 'Duration', 'Enter duration', true) },
+    {
+      ...textField('duration_minutes', 'Duration', 'Enter duration', true),
+      type: 'number',
+    },
     // { ...textField('video_url', 'Video URL', 'https://...', true) },
     {
       name: 'video_file',
@@ -117,7 +120,7 @@ export default function CreateAdmin({
 
   const handleClearAndClose = () => {
     methods.reset({
-      name: '',
+      title: '',
       description: '',
       duration_minutes: '',
       video_url: '',
@@ -128,7 +131,7 @@ export default function CreateAdmin({
 
   const handleSubmission = () => {
     methods.reset({
-      name: '',
+      title: '',
       description: '',
       duration_minutes: '',
       video_url: '',
@@ -141,7 +144,7 @@ export default function CreateAdmin({
   useEffect(() => {
     if (isDrawerOpen && edit && !viewMode && rowData) {
       methods.reset({
-        name: rowData?.name ?? '',
+        title: rowData?.title ?? '',
         description: rowData?.description ?? '',
         duration_minutes: rowData?.duration_minutes ?? '',
         video_url: rowData?.video_url ?? '',
@@ -164,14 +167,13 @@ export default function CreateAdmin({
   const { handleSubmit } = methods
   const onSubmit = (details: any) => {
     const fd = new FormData()
-    fd.append('meditation[name]', details?.name ?? '')
+    fd.append('meditation[title]', details?.title ?? '')
     fd.append('meditation[description]', details?.description ?? '')
     fd.append('meditation[duration_minutes]', details?.duration_minutes ?? '')
-    // fd.append('yoga[video_url]', details?.video_url ?? '')
-    if (details?.video_file) {
-      fd.append('meditation[video_url]', details.video_file as any)
-    }
 
+    if (details?.video_file) {
+      fd.append('video', details.video_file as any)
+    }
     if (rowData?.id) {
       updateMutation({ id: rowData?.id, data: fd })
     } else {

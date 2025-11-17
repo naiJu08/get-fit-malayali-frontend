@@ -31,8 +31,8 @@ export default function MeditationMain() {
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
   const [searchDebounce, setSearchDebounce] = useState<any>(null)
-  const [deleteYogaModal, setDeleteYogaModal] = useState(false)
-  const [deleteYogaId, setDeleteYogaId] = useState<string>('')
+  const [deleteMeditationModal, setDeleteMeditationModal] = useState(false)
+  const [deleteMeditationId, setDeleteMeditationId] = useState<string>('')
   const [loader, setLoader] = useState(false)
   const params = useParams()
 
@@ -82,7 +82,7 @@ export default function MeditationMain() {
     setViewIndicator(true)
     if (row?.id) {
       const data = await getMeditationDetails(String(row?.id))
-      setRowData((data as any)?.yoga ?? data)
+      setRowData((data as any)?.meditation ?? data)
       setViewMode(true)
       setCreateOpen(true)
     }
@@ -91,7 +91,7 @@ export default function MeditationMain() {
     setColumns(
       getColumns({
         onViewAction: onViewAction,
-        onNameClick: (row: any) => navigate(`/yoga/${row?.id}`),
+        onNameClick: (row: any) => navigate(`/meditation/${row?.id}`),
       })
     )
   }, [])
@@ -107,7 +107,7 @@ export default function MeditationMain() {
   const handleEdit = async (rowData: any) => {
     if (rowData?.id) {
       const data = await getMeditationDetails(String(rowData?.id))
-      setRowData((data as any)?.yoga ?? data)
+      setRowData((data as any)?.meditation ?? data)
       setCreateOpen(true)
       setViewMode(false)
       setEdit(true)
@@ -128,28 +128,28 @@ export default function MeditationMain() {
   const handleRefresh = () => {
     refetch()
   }
-  const handleDeleteYoga = async () => {
-    if (!deleteYogaId) return
+  const handleDeleteMeditation = async () => {
+    if (!deleteMeditationId) return
     try {
       setLoader(true)
-      await deleteMeditation(String(deleteYogaId))
-      setDeleteYogaModal(false)
-      setDeleteYogaId('')
+      await deleteMeditation(String(deleteMeditationId))
+      setDeleteMeditationModal(false)
+      setDeleteMeditationId('')
       refetch()
     } finally {
       setLoader(false)
     }
   }
   const basicData = {
-    title: 'Yoga',
-    icon: 'yoga-icon',
+    title: 'Meditation',
+    icon: 'meditation-icon',
   }
   const openDrawer = () => {
     setCreateOpen(true)
     setRowData({})
   }
   const headerProps = {
-    actionTitle: 'Create Yoga',
+    actionTitle: 'Create Meditation',
   }
   const handleSort = (orderColumn: any, orderDirection: any) => {
     setPageParams({
@@ -251,7 +251,7 @@ export default function MeditationMain() {
               actionProps={[
                 {
                   icon: <Icons name="eye" />,
-                  action: (row) => navigate(`/yoga/${row?.id}`),
+                  action: (row) => navigate(`/meditation/${row?.id}`),
                   title: 'view',
                   toolTip: 'View Details',
                 },
@@ -266,8 +266,8 @@ export default function MeditationMain() {
                   icon: <Icons name="table-delete" />,
                   action: (row) => {
                     if (!row?.id) return
-                    setDeleteYogaId(String(row.id))
-                    setDeleteYogaModal(true)
+                    setDeleteMeditationId(String(row.id))
+                    setDeleteMeditationModal(true)
                   },
                   title: 'delete',
                   toolTip: 'Delete',
@@ -278,13 +278,13 @@ export default function MeditationMain() {
             />
           </div>
           <ConfirmDeleteModal
-            isOpen={deleteYogaModal}
-            onClose={() => setDeleteYogaModal(false)}
-            onConfirm={() => handleDeleteYoga()}
+            isOpen={deleteMeditationModal}
+            onClose={() => setDeleteMeditationModal(false)}
+            onConfirm={() => handleDeleteMeditation()}
             loading={loader}
             title={'Are you sure?'}
             subTitle={
-              'Do you really want to delete this yoga? This process cannot be undone.'
+              'Do you really want to delete this meditation? This process cannot be undone.'
             }
             confirmLabel="Delete"
             cancelLabel="Cancel"

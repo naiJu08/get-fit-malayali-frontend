@@ -6,7 +6,7 @@ const passerror =
   'Password should contain at least one uppercase letter, one lowercase letter, one digit, and one special character, with a minimum length of eight characters, and must not contain any spaces.'
 
 export const formSchema = z.object({
-  name: z
+  title: z
     .string({ invalid_type_error: 'Required.' })
     .min(1, { message: 'Required.' })
     .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
@@ -14,7 +14,7 @@ export const formSchema = z.object({
     .string({ invalid_type_error: 'Required.' })
     .min(1, { message: 'Required.' }),
   duration_minutes: z
-    .string({ invalid_type_error: 'Required.' })
+    .number({ invalid_type_error: 'Required.' })
     .min(1, { message: 'Required.' }),
   // video_url: z
   //   .string({ invalid_type_error: 'Required.' })

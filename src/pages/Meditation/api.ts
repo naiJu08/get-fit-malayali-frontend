@@ -78,8 +78,32 @@ export const useCreateMeditation = (handleSubmission: (data: any) => void) => {
 export const deleteMeditation = (id: string) => {
   return deleteData(`${apiUrl.MEDITATION}/${id}`)
 }
+export const useDeleteMeditation = (handleSubmission?: (data: any) => void) => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  return useMutation(deleteMeditation, {
+    onSuccess: (res: any) => {
+      const message =
+        res?.data?.message || res?.message || 'Meditation deleted successfully'
+      if (handleSubmission) {
+        handleSubmission(res.data ?? res)
+      }
+      enqueueSnackbar(message, { variant: 'success' })
+    },
+
+    onError: (error: any) => {
+      enqueueSnackbar(
+        error?.response?.data?.detail
+          ? getErrorMessage(error?.response?.data?.detail)
+          : error?.response?.message,
+        {
+          variant: 'error',
+        }
+      )
+    },
+  })
+}
 export const updateMeditation = ({ id, data }: any) => {
-  return updateFromData(`${apiUrl.YOGA}/${id}`, data)
+  return updateFromData(`${apiUrl.MEDITATION}/${id}`, data)
 }
 export const useUpdateMeditation = (handleSubmission: (data: any) => void) => {
   const { enqueueSnackbar } = useSnackbarManager()

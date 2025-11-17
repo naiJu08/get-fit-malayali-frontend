@@ -59,24 +59,12 @@ export default function MeditationDetails() {
       )}
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DetailItem label="Name" value={meditation?.name} />
+          <DetailItem label="Name" value={meditation?.title} />
           <DetailItem
             label="Description"
             value={meditation?.description || meditation?.description}
           />
-          <DetailItem
-            label="Intensity Level"
-            value={meditation?.intensity_level}
-          />
-          <DetailItem
-            label="Average Rating"
-            value={meditation?.average_rating}
-          />
-          <DetailItem
-            label="Feedback Count"
-            value={meditation?.feedbacks_count}
-          />
-
+          <DetailItem label="Duration" value={meditation?.duration_minutes} />
           {!loading &&
             !error &&
             (() => {

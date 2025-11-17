@@ -143,7 +143,7 @@ export const getColumns = ({
     },
     {
       title: 'Duration',
-      renderCell: createRenderCell('intensity_level'),
+      renderCell: createRenderCell('duration_minutes'),
       field: 'duration_minutes',
       customCell: true,
       ...defaultColumnProps,
