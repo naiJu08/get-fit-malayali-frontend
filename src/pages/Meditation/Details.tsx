@@ -40,10 +40,10 @@ export default function MeditationDetails() {
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate('/yoga')} aria-label="Back">
+          <button onClick={() => navigate('/meditation')} aria-label="Back">
             <Icons name="left-arrow-icon" />
           </button>
-          <h1 className="text-xl font-semibold">Yoga Detail</h1>
+          <h1 className="text-xl font-semibold">Meditation Detail</h1>
         </div>
       </div>
 
