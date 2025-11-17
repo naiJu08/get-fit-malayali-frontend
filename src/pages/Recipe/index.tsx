@@ -84,7 +84,7 @@ export default function Recipe() {
   return (
     <div>
       <ListingHeader
-        data={{ title: 'Recipes', icon: 'user' }}
+        data={{ title: 'Recipes', icon: 'recipe' }}
         onActionClick={openDrawer}
         actionProps={headerProps}
         checkPermission={checkPermissions('Employee', 'create')}

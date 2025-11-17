@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-const Notifications = ({ color = '#FFFFFF', ...props }) => (
+const Notifications = ({ color = 'currentColor', ...props }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     width={22}
