@@ -8,18 +8,21 @@ import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { checkPermissions } from '../../layout/store'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
-import { useAuthStore } from '../../store/authStore'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
 import { handleReturnEmptyMsg } from '../../utilities/validation'
-import { getWorkoutDetails, useWorkoutList, DISABLE_NONLOGIN_APIS } from './api'
+import {
+  getYogaDetails,
+  useYogaList,
+  DISABLE_NONLOGIN_APIS,
+  deleteYoga,
+} from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
+import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 
-export default function WorkoutMain() {
+export default function YogaMain() {
   const navigate = useNavigate()
-  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
-  const isNutritionist = roleName === 'nutritionist'
   const [columns, setColumns] = useState<TableColumns[]>([])
   const [createOpen, setCreateOpen] = useState(false)
   const [viewMode, setViewMode] = useState(false)
@@ -28,7 +31,9 @@ export default function WorkoutMain() {
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
   const [searchDebounce, setSearchDebounce] = useState<any>(null)
-
+  const [deleteYogaModal, setDeleteYogaModal] = useState(false)
+  const [deleteYogaId, setDeleteYogaId] = useState<string>('')
+  const [loader, setLoader] = useState(false)
   const params = useParams()
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
@@ -41,7 +46,7 @@ export default function WorkoutMain() {
     ...filters,
   }
 
-  const { data, refetch, isFetching } = useWorkoutList(searchParams)
+  const { data, refetch, isFetching } = useYogaList(searchParams)
   useEffect(() => {
     const totalPages = data?.meta?.total_pages
     if (typeof totalPages === 'number' && totalPages > 0) {
@@ -76,8 +81,8 @@ export default function WorkoutMain() {
   const onViewAction = async (row: any) => {
     setViewIndicator(true)
     if (row?.id) {
-      const data = await getWorkoutDetails(String(row?.id))
-      setRowData((data as any)?.workout ?? data)
+      const data = await getYogaDetails(String(row?.id))
+      setRowData((data as any)?.yoga ?? data)
       setViewMode(true)
       setCreateOpen(true)
     }
@@ -85,13 +90,11 @@ export default function WorkoutMain() {
   useEffect(() => {
     setColumns(
       getColumns({
-        onNameClick: !isNutritionist
-          ? (row: any) => navigate(`/workout/${row?.id}`)
-          : undefined,
-        disableNameLink: isNutritionist,
+        onViewAction: onViewAction,
+        onNameClick: (row: any) => navigate(`/yoga/${row?.id}`),
       })
     )
-  }, [isNutritionist])
+  }, [])
 
   // const handleSeach = (key?: string) => {
   //   setPageParams({
@@ -103,8 +106,8 @@ export default function WorkoutMain() {
 
   const handleEdit = async (rowData: any) => {
     if (rowData?.id) {
-      const data = await getWorkoutDetails(String(rowData?.id))
-      setRowData((data as any)?.workout ?? data)
+      const data = await getYogaDetails(String(rowData?.id))
+      setRowData((data as any)?.yoga ?? data)
       setCreateOpen(true)
       setViewMode(false)
       setEdit(true)
@@ -125,17 +128,28 @@ export default function WorkoutMain() {
   const handleRefresh = () => {
     refetch()
   }
+  const handleDeleteYoga = async () => {
+    if (!deleteYogaId) return
+    try {
+      setLoader(true)
+      await deleteYoga(String(deleteYogaId))
+      setDeleteYogaModal(false)
+      setDeleteYogaId('')
+      refetch()
+    } finally {
+      setLoader(false)
+    }
+  }
   const basicData = {
-    title: 'Workouts',
-    icon: 'workout',
+    title: 'Yoga',
+    icon: 'yoga-icon',
   }
   const openDrawer = () => {
-    if (isNutritionist) return
     setCreateOpen(true)
     setRowData({})
   }
   const headerProps = {
-    actionTitle: 'Create Workout',
+    actionTitle: 'Create Yoga',
   }
   const handleSort = (orderColumn: any, orderDirection: any) => {
     setPageParams({
@@ -166,15 +180,13 @@ export default function WorkoutMain() {
         <>
           <ListingHeader
             data={basicData}
-            onActionClick={!isNutritionist ? openDrawer : undefined}
-            actionProps={!isNutritionist ? headerProps : undefined}
-            checkPermission={
-              !isNutritionist && checkPermissions('Employee', 'create')
-            }
+            onActionClick={openDrawer}
+            actionProps={headerProps}
+            checkPermission={checkPermissions('Employee', 'create')}
           />
           <div className=" p-4">
             <SmartTable
-              data={data?.workouts ?? []}
+              data={data?.yogas ?? []}
               dataRowKey="id"
               toolbar={true}
               toolbarExtra={
@@ -197,9 +209,9 @@ export default function WorkoutMain() {
                 </div>
               }
               height={
-                (data?.workouts?.length ?? 0) === 0
+                (data?.yogas?.length ?? 0) === 0
                   ? calcWindowHeight(218)
-                  : calcWindowHeight(300)
+                  : calcWindowHeight(150)
               }
               search={true}
               searchValue={pageParams?.search || ''}
@@ -236,28 +248,47 @@ export default function WorkoutMain() {
                 ),
                 dropOptions: [10, 20, 30, 50, 100],
               }}
-              actionProps={
-                isNutritionist
-                  ? []
-                  : [
-                      {
-                        icon: <Icons name="eye" />,
-                        action: (row) => navigate(`/workout/${row?.id}`),
-                        title: 'view',
-                        toolTip: 'View Details',
-                      },
-                      {
-                        icon: <Icons name="edit" />,
-                        action: (row) => handleEdit(row),
-                        title: 'edit',
-                        toolTip: 'Edit',
-                      },
-                    ]
-              }
+              actionProps={[
+                {
+                  icon: <Icons name="eye" />,
+                  action: (row) => navigate(`/yoga/${row?.id}`),
+                  title: 'view',
+                  toolTip: 'View Details',
+                },
+
+                {
+                  icon: <Icons name="edit" />,
+                  action: (row) => handleEdit(row),
+                  title: 'edit',
+                  toolTip: 'Edit',
+                },
+                {
+                  icon: <Icons name="table-delete" />,
+                  action: (row) => {
+                    if (!row?.id) return
+                    setDeleteYogaId(String(row.id))
+                    setDeleteYogaModal(true)
+                  },
+                  title: 'delete',
+                  toolTip: 'Delete',
+                },
+              ]}
               columnToggle
               externalActions={true}
             />
           </div>
+          <ConfirmDeleteModal
+            isOpen={deleteYogaModal}
+            onClose={() => setDeleteYogaModal(false)}
+            onConfirm={() => handleDeleteYoga()}
+            loading={loader}
+            title={'Are you sure?'}
+            subTitle={
+              'Do you really want to delete this yoga? This process cannot be undone.'
+            }
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+          />
           <CreateAdmin
             isDrawerOpen={createOpen}
             rowData={rowData}

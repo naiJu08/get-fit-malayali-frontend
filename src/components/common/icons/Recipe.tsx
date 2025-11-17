@@ -1,4 +1,4 @@
-const Recipe = ({ size = 20, color = 'white' }) => (
+const Recipe = ({ size = 20, color = 'currentColor' }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 512.031 512.031"

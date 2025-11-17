@@ -13,6 +13,7 @@ import UserRoute from './components/userRoute'
 import SubscriptionDetailsMain from '../pages/Subscriptions/Details'
 import PaymentHistory from '../pages/PaymentHistory'
 import YogaPlanDetails from '../pages/Plans/Details/YogaPlan/details'
+
 // Users sample page is no longer used for the Users route; using AdminUser instead
 
 const Login = lazy(() => import('../pages/userManagement/login'))
@@ -50,6 +51,8 @@ const Discount = lazy(() => import('../pages/samples/Discount'))
 const Payment = lazy(() => import('../pages/samples/Payment'))
 const ExportPage = lazy(() => import('../pages/samples/Export'))
 const Support = lazy(() => import('../pages/samples/Support'))
+const YogaDetails = lazy(() => import('../pages/Yoga/Details'))
+const YogaMain = lazy(() => import('../pages/Yoga'))
 
 const routes: any = [
   { slug: 'DASHBOARD', component: <Dashboard /> },
@@ -72,6 +75,7 @@ const routes: any = [
   { slug: 'EXPORT_SAMPLE', component: <ExportPage /> },
   { slug: 'SUPPORT_SAMPLE', component: <Support /> },
   { slug: 'WORKOUT_DETAILS', component: <WorkoutDetails /> },
+  { slug: 'YOGA_DETAILS', component: <YogaDetails /> },
   { slug: 'PLAN_DETAILS_WORKOUT', component: <PlanDetails /> },
   { slug: 'PLAN_DETAILS_DIET', component: <PlanDetails /> },
   { slug: 'PAYMENT_HISTORY', component: <PaymentHistory /> },
@@ -99,6 +103,7 @@ const routes: any = [
 
   { slug: 'ADMIN_USER', component: <AdminUser /> },
   { slug: 'WORKOUT_DETAILS', component: <WorkoutDetails /> },
+  { slug: 'YOGA', component: <YogaMain /> },
 ]
 
 export default function MainRoutes() {

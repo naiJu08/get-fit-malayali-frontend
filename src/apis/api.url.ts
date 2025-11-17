@@ -29,6 +29,7 @@ const CLIENT_REPORTS = 'monthly_reports'
 const SUBSCRIPTION_CALENDAR = '/admin/users'
 
 const ADMIN_DASHBOARD = 'admin/dashboard'
+const YOGA = '/yogas'
 
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
@@ -60,6 +61,7 @@ const apiUrl: { [key: string]: string } = {
   CLIENT_REPORTS,
   SUBSCRIPTION_CALENDAR,
   ADMIN_DASHBOARD,
+  YOGA,
 }
 
 export default apiUrl

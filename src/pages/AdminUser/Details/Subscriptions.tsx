@@ -172,6 +172,11 @@ export default function Subscriptions({
   useEffect(() => {
     const fetchOverview = async () => {
       if (!user?.id) return
+      if (!user?.subscribed_plan) {
+        setOverview(null)
+        setCurrentMonth('')
+        return
+      }
       try {
         setOverviewLoading(true)
         const res = await getActivePlanOverview(user.id)
@@ -386,6 +391,10 @@ export default function Subscriptions({
       })
       setSelectedPlanOption(null)
       setDrawerOpen(false)
+      // Force full page refresh to reflect new subscription state
+      if (typeof window !== 'undefined' && window.location) {
+        window.location.reload()
+      }
     } catch {
     } finally {
       setSubmitting(false)
@@ -677,7 +686,7 @@ export default function Subscriptions({
               </label>
               <AutoComplete
                 name="plan_id"
-                type="custom_select"
+                type="custom_search_select"
                 desc="name"
                 descId="id"
                 data={allPlans}

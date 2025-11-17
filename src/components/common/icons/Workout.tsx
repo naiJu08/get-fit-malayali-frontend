@@ -1,9 +1,9 @@
 import React from 'react'
 
 export default function Workout({
-  width = 22,
-  height = 22,
-  fill = '#fff', // White color
+  width = 24,
+  height = 24,
+  fill = 'currentColor',
   className = '',
   style = {},
   ...props

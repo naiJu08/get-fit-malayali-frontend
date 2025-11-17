@@ -42,10 +42,10 @@ const ListingHeader: React.FC<DetailTileProps> = ({
     <div className="px-5 py-3 flex justify-between flex-wrap gap-3 items-center bg-white border-b border-formBorder">
       <div className="flex gap-6">
         <div className="flex items-center flex-wrap gap-5 text-[#222] ">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             {data?.icon && (
-              <div className="w-10 h-10 bg-primary flex  items-center justify-center rounded-lg ">
-                <Icons className="iconWhite" name={data?.icon} />
+              <div className="w-7 h-7 bg-primary flex  items-center justify-center rounded-lg ">
+                <Icons name={data.icon ?? 'title-icon'} />
               </div>
             )}
             <div className="">

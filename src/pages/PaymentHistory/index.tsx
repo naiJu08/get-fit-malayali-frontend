@@ -132,7 +132,7 @@ export default function Subscriptions() {
 
   const basicData = {
     title: 'Payment History',
-    icon: 'subscription-icon',
+    icon: 'paymentapproval-icon',
   }
 
   const handleSort = (orderColumn: any, orderDirection: any) => {

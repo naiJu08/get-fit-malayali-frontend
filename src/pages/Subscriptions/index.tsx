@@ -409,7 +409,7 @@ export default function Subscriptions() {
   }
   const basicData = {
     title: 'Subscriptions',
-    icon: 'subscription-icon',
+    icon: 'subscription',
   }
 
   const handleSort = (orderColumn: any, orderDirection: any) => {
