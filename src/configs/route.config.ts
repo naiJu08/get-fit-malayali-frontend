@@ -141,7 +141,7 @@ const WORKOUT: RouterMenuProps = {
   label: 'Workout',
   key: 'workout',
   icon: 'workout',
-  permission_slugs: ['superadmin'],
+  permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
 
@@ -244,6 +244,18 @@ const WORKOUT_PLAN_DETAILS: RouterMenuProps = {
   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
+const YOGAPLAN_DETAILS: RouterMenuProps = {
+  id: 26,
+  path: '/plans/:plan_id/yogaplan_details/:id',
+  parent_id: 21,
+  isDetails: true,
+  icon: 'user',
+  label: 'Yogaplan Details',
+  key: 'yogaplan-details',
+  permission_slugs: [],
+  breadcrumb: ['PLANS', 'PLAN_DETAILS'],
+  // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
+}
 
 const DIET_DETAILS: RouterMenuProps = {
   id: 27,
@@ -255,6 +267,16 @@ const DIET_DETAILS: RouterMenuProps = {
   key: 'diet-details',
   permission_slugs: [],
   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
+}
+const YOGAPLAN: RouterMenuProps = {
+  id: 224,
+  path: '/plans/:id/yogaplan',
+  parent_id: 21,
+  isDetails: true,
+  icon: 'user',
+  label: 'Yogaplan',
+  key: 'yogaplan',
+  permission_slugs: [],
 }
 
 const ORGANISATION_FILE_REPOSTITORY: RouterMenuProps = {
@@ -298,6 +320,8 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   PLAN_DETAILS_DETAILS,
   PLAN_DETAILS_WORKOUT,
   PLAN_DETAILS_DIET,
+  YOGAPLAN,
+  YOGAPLAN_DETAILS,
   WORKOUT_PLAN_DETAILS,
   SUBSCRIPTIONS_DETAILS,
   DIET_DETAILS,

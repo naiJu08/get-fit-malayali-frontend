@@ -5,6 +5,7 @@ import Icons from '../../../components/common/icons'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import WorkoutPlanIndex from './WorkoutPlan'
 import DietPlanIndex from './DietPlan'
+import YogaPlanIndex from './YogaPlan'
 import DetailsInfo from './DetailsInfo'
 import { Tab, TabContainer } from '../../../components/common/tab'
 
@@ -16,6 +17,11 @@ function WorkoutTab(props: { planName?: string; planId?: string | number }) {
 function DietTab(props: { planName?: string; planId?: string | number }) {
   const { planName, planId } = props
   return <DietPlanIndex planName={planName} planId={planId} />
+}
+
+function YogaTab(props: { planName?: string; planId?: string | number }) {
+  const { planName, planId } = props
+  return <YogaPlanIndex planName={planName} planId={planId} />
 }
 
 export default function PlanDetails() {
@@ -34,27 +40,44 @@ function PlanDetailsContent() {
 
   const plan = (data as any)?.plan ?? (data as any) ?? {}
 
-  const tabs = useMemo(
-    () => [
+  const hasYogaPlan = useMemo(() => {
+    const yogaFlag = plan?.yoga_included
+    if (typeof yogaFlag === 'string') {
+      const normalized = yogaFlag.trim().toLowerCase()
+      return normalized === 'true' || normalized === '1'
+    }
+    return Boolean(yogaFlag)
+  }, [plan?.yoga_included])
+
+  type TabConfig = { id: string; label: string }
+  const tabs = useMemo(() => {
+    const baseTabs: TabConfig[] = [
       { id: 'details', label: 'Details' },
-      {
-        id: 'workout-plan',
-        label: 'Workout Plan',
-      },
+      { id: 'workout-plan', label: 'Workout Plan' },
       { id: 'dietplan', label: 'Diet Plan' },
-    ],
-    []
-  )
+    ]
+    if (hasYogaPlan) baseTabs.push({ id: 'yogaplan', label: 'Yoga Plan' })
+    return baseTabs
+  }, [hasYogaPlan])
 
   // Derive active tab from URL (like User Details)
   const path = location.pathname || ''
   const trimmed = path.replace(/\/+$/, '')
   const parts = trimmed.split('/')
   const lastSegment = parts[parts.length - 1]
-  const activeTab =
-    lastSegment === String(id)
-      ? 'details'
-      : (lastSegment as 'details' | 'workout-plan' | 'dietplan')
+  const allowedTabIds = tabs.map((t) => t.id)
+  const derivedTab = lastSegment === String(id) ? 'details' : lastSegment
+  const activeTab = allowedTabIds.includes(derivedTab) ? derivedTab : 'details'
+
+  // Redirect /plans/:id -> /plans/:id/details
+  if (location.pathname === `/plans/${id}`) {
+    // keep base URL for Details tab
+  }
+
+  // Normalize any /plans/:id/details to base /plans/:id
+  if (location.pathname === `/plans/${id}/details`) {
+    navigate(`/plans/${id}`, { replace: true })
+  }
 
   // Redirect /plans/:id -> /plans/:id/details
   if (location.pathname === `/plans/${id}`) {
@@ -100,6 +123,11 @@ function PlanDetailsContent() {
         <Tab id="dietplan">
           <DietTab planName={plan?.name} planId={id} />
         </Tab>
+        {hasYogaPlan && (
+          <Tab id="yogaplan">
+            <YogaTab planName={plan?.name} planId={id} />
+          </Tab>
+        )}
       </TabContainer>
       {/* </div> */}
 

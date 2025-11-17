@@ -1,33 +1,29 @@
-// import moment from 'moment'
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 
 import Icons from '../../../../components/common/icons'
 import InfoBox from '../../../../components/app/alertBox/infoBox'
-import { getWorkoutPlanDetails } from './api'
 import CustomDrawer from '../../../../components/common/drawer'
-// import TabContainer from '../../../../components/common/tab/TabContainer'
+import { getYogaPlanDetails, useAddYogaExercise } from './api'
+import { TabContainer } from '../../../../components/common'
 import Tab from '../../../../components/common/tab/Tab'
 import { TabItemProps } from '../../../../common/types'
 import { useWorkoutList } from '../../../Workout/api'
-import { useAddExercise } from './api'
-import { TabContainer } from '../../../../components/common'
 
 function DetailsTabContent({
-  wp,
+  yp,
   loading,
   error,
 }: {
-  wp: any
+  yp: any
   loading: boolean
   error: string
 }) {
   return (
     <>
-      {/* Details Content */}
       {loading && (
         <div className="p-6">
-          <InfoBox content="Loading workout plan details..." />
+          <InfoBox content="Loading yoga plan details..." />
         </div>
       )}
       {error && !loading && (
@@ -38,18 +34,18 @@ function DetailsTabContent({
       {!loading && !error && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <DetailItem label="Title" value={wp?.title} />
-            <DetailItem label="Plan Id" value={safeStr(wp?.plan_id)} />
-            <DetailItem label="Day Number" value={safeStr(wp?.day_number)} />
+            <DetailItem label="Title" value={yp?.title} />
+            <DetailItem label="Plan Id" value={safeStr(yp?.plan_id)} />
+            <DetailItem label="Day Number" value={safeStr(yp?.day_number)} />
             <DetailItem
               label="Exercises"
-              value={safeStr(wp?.exercises_count)}
+              value={safeStr(yp?.exercises_count)}
             />
             <DetailItem
               label="Total Duration (mins)"
-              value={safeStr(wp?.total_duration)}
+              value={safeStr(yp?.total_duration)}
             />
-            <DetailItem label="Description" value={safeStr(wp?.description)} />
+            <DetailItem label="Description" value={safeStr(yp?.description)} />
           </div>
         </>
       )}
@@ -58,7 +54,7 @@ function DetailsTabContent({
 }
 
 function AssignTabContent({
-  wp,
+  yp,
   loading,
   error,
   selectedWorkouts,
@@ -66,10 +62,9 @@ function AssignTabContent({
 }: any) {
   return (
     <>
-      {/* Assign Content */}
       {loading && (
         <div className="p-6">
-          <InfoBox content="Loading workout plan details..." />
+          <InfoBox content="Loading yoga plan details..." />
         </div>
       )}
       {error && !loading && (
@@ -82,9 +77,9 @@ function AssignTabContent({
           <div className="flex items-center justify-between mb-3">
             <div className="text-md font-semibold">Exercises</div>
           </div>
-          {Array.isArray(wp?.exercises) && wp.exercises.length > 0 ? (
+          {Array.isArray(yp?.exercises) && yp.exercises.length > 0 ? (
             <div className="grid grid-cols-4 gap-3 place-items-start">
-              {wp.exercises
+              {yp.exercises
                 .slice()
                 .sort(
                   (a: any, b: any) =>
@@ -125,7 +120,10 @@ function AssignTabContent({
                         </div>
                       )}
                       <div className="px-2 py-1 text-xs font-medium line-clamp-1">
-                        {ex?.workout_name || 'Untitled'}
+                        {ex?.workout_name ||
+                          ex?.name ||
+                          ex?.title ||
+                          'Untitled'}
                       </div>
                     </div>
                   )
@@ -135,7 +133,7 @@ function AssignTabContent({
             <div className="text-sm text-gray-600">No exercises assigned.</div>
           )}
 
-          {selectedWorkouts.length > 0 && (
+          {selectedWorkouts?.length > 0 && (
             <div className="mt-6">
               <div className="text-sm font-semibold mb-3">
                 Selected Workouts Preview
@@ -181,8 +179,8 @@ function AssignTabContent({
   )
 }
 
-export default function WorkoutPlanDetails() {
-  const { id } = useParams()
+export default function YogaPlanDetails() {
+  const { id, plan_id } = useParams()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData] = useState<any>(null)
@@ -198,32 +196,20 @@ export default function WorkoutPlanDetails() {
   const [wpPerPage, setWpPerPage] = useState<number>(20)
   const [wpSearch, setWpSearch] = useState<string>('')
   const [assigning, setAssigning] = useState<boolean>(false)
-  const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const { mutateAsync: addExerciseAsync } = useAddExercise()
-
-  const refreshDetails = async () => {
-    try {
-      setLoading(true)
-      const res = await getWorkoutPlanDetails(String(id))
-      setData(res)
-    } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load workout plan')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const { mutateAsync: addYogaExerciseAsync } = useAddYogaExercise()
 
   useEffect(() => {
     let mounted = true
     const run = async () => {
       try {
         setLoading(true)
-        const res = await getWorkoutPlanDetails(String(id))
+        const res = await getYogaPlanDetails(String(id))
         if (!mounted) return
         setData(res)
       } catch (e: any) {
         if (!mounted) return
-        setError(e?.response?.data?.message || 'Failed to load workout plan')
+        setError(e?.response?.data?.message || 'Failed to load yoga plan')
       } finally {
         if (!mounted) return
         setLoading(false)
@@ -235,7 +221,17 @@ export default function WorkoutPlanDetails() {
     }
   }, [id])
 
-  const wp = data?.workout_plan || data || {}
+  const yp = data?.yoga_plan || data || {}
+  const refreshDetails = async () => {
+    try {
+      setLoading(true)
+      const res = await getYogaPlanDetails(String(id))
+      setData(res)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Load workouts for assignment
   const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList({
     page: wpPage,
@@ -261,7 +257,7 @@ export default function WorkoutPlanDetails() {
     return ''
   }
 
-  const isSelected = (id: any) => selectedWorkouts.some((w) => w?.id === id)
+  const isSelected = (wid: any) => selectedWorkouts.some((w) => w?.id === wid)
   const toggleSelected = (w: any) => {
     setSelectedWorkouts((prev) =>
       prev.some((x) => x?.id === w?.id)
@@ -270,7 +266,6 @@ export default function WorkoutPlanDetails() {
     )
   }
 
-  // Open/close drawer based on Assign tab
   useEffect(() => {
     if (currentTab !== 'assign') {
       setAssignOpen(false)
@@ -286,13 +281,13 @@ export default function WorkoutPlanDetails() {
   }
 
   const handleBulkAssign = async () => {
-    if (!wp?.id || selectedWorkouts.length === 0) return
+    if (!yp?.id || selectedWorkouts.length === 0) return
     setAssigning(true)
     try {
       await Promise.all(
         selectedWorkouts.map((w, idx) =>
-          addExerciseAsync({
-            id: wp.id,
+          addYogaExerciseAsync({
+            id: yp.id,
             payload: {
               exercise: {
                 workout_id: w?.id,
@@ -310,51 +305,24 @@ export default function WorkoutPlanDetails() {
     }
   }
 
-  // const handleAssignOne = async (workout: any, index: number) => {
-  //   if (!wp?.id || !workout?.id) return
-  //   setAssigning(true)
-  //   try {
-  //     await addExerciseAsync({
-  //       id: wp.id,
-  //       payload: {
-  //         exercise: {
-  //           workout_id: workout.id,
-  //           sequence_number: index + 1,
-  //         },
-  //       },
-  //     })
-  //     await refreshDetails()
-  //   } finally {
-  //     setAssigning(false)
-  //   }
-  // }
-
-  const onDragStart = (index: number) => setDragIndex(index)
-  const onDragOver = (e: any) => {
-    e.preventDefault()
-  }
-  const onDrop = (index: number) => {
-    if (dragIndex === null || dragIndex === index) return
-    setSelectedWorkouts((prev) => {
-      const next = prev.slice()
-      const [item] = next.splice(dragIndex, 1)
-      next.splice(index, 0, item)
-      return next
-    })
-    setDragIndex(null)
-  }
+  const tabs: TabItemProps[] = [
+    { id: 'details', label: 'Details' },
+    { id: 'assign', label: 'Exercises' },
+  ]
 
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate(`/plans/${wp?.plan_id}/workout-plan`)}
+            onClick={() =>
+              navigate(`/plans/${yp?.plan_id || plan_id}/yogaplan`)
+            }
             aria-label="Back"
           >
             <Icons name="left-arrow-icon" />
           </button>
-          <h1 className="text-xl font-semibold">Workout Plan Details</h1>
+          <h1 className="text-xl font-semibold">Yoga Plan Details</h1>
         </div>
         <div>
           <button
@@ -369,38 +337,30 @@ export default function WorkoutPlanDetails() {
           </button>
         </div>
       </div>
-      {(() => {
-        const tabs: TabItemProps[] = [
-          { id: 'details', label: 'Details' },
-          { id: 'assign', label: 'Exercises' },
-        ]
-        return (
-          <div className="no-tab-bg mb-4">
-            <TabContainer
-              data={tabs}
-              activeTab={currentTab}
-              onClick={(item) => {
-                const next = item.id === 'assign' ? 'assign' : 'details'
-                // preserve current pathname; update tab query param
-                setSearchParams(next === 'assign' ? { tab: 'assign' } : {})
-              }}
-            >
-              <Tab id="details">
-                <DetailsTabContent wp={wp} loading={loading} error={error} />
-              </Tab>
-              <Tab id="assign">
-                <AssignTabContent
-                  wp={wp}
-                  loading={loading}
-                  error={error}
-                  selectedWorkouts={selectedWorkouts}
-                  getEmbedUrl={getEmbedUrl}
-                />
-              </Tab>
-            </TabContainer>
-          </div>
-        )
-      })()}
+
+      <div className="no-tab-bg mb-4">
+        <TabContainer
+          data={tabs}
+          activeTab={currentTab}
+          onClick={(item) => {
+            const next = item.id === 'assign' ? 'assign' : 'details'
+            setSearchParams(next === 'assign' ? { tab: 'assign' } : {})
+          }}
+        >
+          <Tab id="details">
+            <DetailsTabContent yp={yp} loading={loading} error={error} />
+          </Tab>
+          <Tab id="assign">
+            <AssignTabContent
+              yp={yp}
+              loading={loading}
+              error={error}
+              selectedWorkouts={selectedWorkouts}
+              getEmbedUrl={getEmbedUrl}
+            />
+          </Tab>
+        </TabContainer>
+      </div>
 
       <CustomDrawer
         open={assignOpen}
@@ -455,7 +415,6 @@ export default function WorkoutPlanDetails() {
                     key={w?.id}
                     className={`w-full flex items-start gap-2 p-2 hover:bg-gray-50 cursor-pointer ${isSelected(w?.id) ? 'bg-primary/10' : ''}`}
                     onClick={(e) => {
-                      // avoid double toggle when clicking input
                       if (
                         (e.target as HTMLElement).tagName.toLowerCase() !==
                         'input'
@@ -557,7 +516,6 @@ export default function WorkoutPlanDetails() {
         </div>
       </CustomDrawer>
 
-      {/* Review Drawer */}
       <CustomDrawer
         open={reviewOpen}
         handleClose={() => setReviewOpen(false)}
@@ -571,42 +529,17 @@ export default function WorkoutPlanDetails() {
           <div className="border rounded p-3">
             <div className="text-sm font-medium mb-2">
               Selected Videos (Drag to Reorder)
-              <p className="mt-2">
-                Drag and drop videos to arrange the sequence
-              </p>
             </div>
             {selectedWorkouts.length === 0 && (
               <div className="text-xs text-gray-500">No workouts selected.</div>
             )}
             {selectedWorkouts.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {selectedWorkouts.map((w, i) => {
+                {selectedWorkouts.map((w) => {
                   const url = w?.video_url || ''
                   const embed = getEmbedUrl(url)
                   return (
-                    <div
-                      key={w?.id}
-                      className="border rounded p-2 cursor-move"
-                      draggable
-                      onDragStart={() => onDragStart(i)}
-                      onDragOver={onDragOver}
-                      onDrop={() => onDrop(i)}
-                    >
-                      {/* <div className="px-1 pt-1 text-xs font-medium line-clamp-1 flex items-center justify-between gap-2">
-                        <span>
-                          {i + 1}. {w?.name || 'Untitled'}
-                        </span>
-                        <button
-                          className="text-[10px] px-2 py-1 border rounded disabled:opacity-50"
-                          disabled={assigning}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleAssignOne(w, i)
-                          }}
-                        >
-                          Assign
-                        </button>
-                      </div> */}
+                    <div key={w?.id} className="border rounded p-2 cursor-move">
                       <div className="px-1 pb-1 text-xxs text-gray-500 break-all line-clamp-1">
                         {url || '--'}
                       </div>
@@ -652,12 +585,9 @@ function DetailItem({ label, value }: { label: string; value: any }) {
   )
 }
 
-// function formatDate(d: any) {
-//   if (!d) return '--'
-//   const m = moment(d)
-//   return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
-// }
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
 }
+
+// import moment from 'moment'

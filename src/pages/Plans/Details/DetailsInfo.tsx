@@ -63,6 +63,7 @@ export default function DetailsInfo({
             label="Subscribers"
             value={safeStr(plan?.subscribers_count)}
           />
+          <DetailItem label="Yoga" value={plan?.yoga_included} />
         </div>
       )}
     </>

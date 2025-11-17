@@ -8,6 +8,7 @@ const PLANS = 'plans'
 const RECIPES = 'recipes'
 const WORKOUT_PLAN = 'workout_plans'
 const DIET_PLAN = 'diet_plans'
+const YOGA_PLAN = 'yoga_plans'
 const GROUP_LIST = 'groups'
 const ORGANISATION_LIST_URL = 'organisations'
 const ORGANISATION_URL = 'organisation'
@@ -41,6 +42,7 @@ const apiUrl: { [key: string]: string } = {
   RECIPES,
   WORKOUT_PLAN,
   DIET_PLAN,
+  YOGA_PLAN,
   GROUP_LIST,
   ORGANISATION_LIST_URL,
   MY_PROFILE,
