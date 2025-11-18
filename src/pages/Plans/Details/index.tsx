@@ -6,6 +6,7 @@ import InfoBox from '../../../components/app/alertBox/infoBox'
 import WorkoutPlanIndex from './WorkoutPlan'
 import DietPlanIndex from './DietPlan'
 import YogaPlanIndex from './YogaPlan'
+import MeditationPlanIndex from './MeditationPlan'
 import DetailsInfo from './DetailsInfo'
 import { Tab, TabContainer } from '../../../components/common/tab'
 
@@ -22,6 +23,11 @@ function DietTab(props: { planName?: string; planId?: string | number }) {
 function YogaTab(props: { planName?: string; planId?: string | number }) {
   const { planName, planId } = props
   return <YogaPlanIndex planName={planName} planId={planId} />
+}
+
+function MeditationTab(props: { planName?: string }) {
+  const { planName } = props
+  return <MeditationPlanIndex planName={planName} />
 }
 
 export default function PlanDetails() {
@@ -49,6 +55,15 @@ function PlanDetailsContent() {
     return Boolean(yogaFlag)
   }, [plan?.yoga_included])
 
+  const hasMeditationPlan = useMemo(() => {
+    const medFlag = plan?.meditation_included
+    if (typeof medFlag === 'string') {
+      const normalized = medFlag.trim().toLowerCase()
+      return normalized === 'true' || normalized === '1'
+    }
+    return Boolean(medFlag)
+  }, [plan?.meditation_included])
+
   type TabConfig = { id: string; label: string }
   const tabs = useMemo(() => {
     const baseTabs: TabConfig[] = [
@@ -57,8 +72,10 @@ function PlanDetailsContent() {
       { id: 'dietplan', label: 'Diet Plan' },
     ]
     if (hasYogaPlan) baseTabs.push({ id: 'yogaplan', label: 'Yoga Plan' })
+    if (hasMeditationPlan)
+      baseTabs.push({ id: 'meditationplan', label: 'Meditations' })
     return baseTabs
-  }, [hasYogaPlan])
+  }, [hasYogaPlan, hasMeditationPlan])
 
   // Derive active tab from URL (like User Details)
   const path = location.pathname || ''
@@ -126,6 +143,11 @@ function PlanDetailsContent() {
         {hasYogaPlan && (
           <Tab id="yogaplan">
             <YogaTab planName={plan?.name} planId={id} />
+          </Tab>
+        )}
+        {hasMeditationPlan && (
+          <Tab id="meditationplan">
+            <MeditationTab planName={plan?.name} />
           </Tab>
         )}
       </TabContainer>

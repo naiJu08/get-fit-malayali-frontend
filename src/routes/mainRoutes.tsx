@@ -65,6 +65,7 @@ const routes: any = [
   { slug: 'WORKOUT_PLAN_DETAILS', component: <WorkoutPlanDetails /> },
   { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
   { slug: 'YOGAPLAN', component: <PlanDetails /> },
+  { slug: 'MEDITATIONPLAN', component: <PlanDetails /> },
   { slug: 'YOGAPLAN_DETAILS', component: <YogaPlanDetails /> },
   { slug: 'RECIPE', component: <Recipe /> },
   { slug: 'NOTIFICATIONS', component: <Notifications /> },

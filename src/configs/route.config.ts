@@ -151,7 +151,7 @@ const YOGA: RouterMenuProps = {
   parent_id: null,
   label: 'Yoga',
   key: 'yoga',
-  icon: 'workout',
+  icon: 'yoga-icon',
   permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
@@ -321,6 +321,16 @@ const YOGAPLAN: RouterMenuProps = {
   key: 'yogaplan',
   permission_slugs: [],
 }
+const MEDITATIONPLAN: RouterMenuProps = {
+  id: 225,
+  path: '/plans/:id/meditationplan',
+  parent_id: 21,
+  isDetails: true,
+  icon: 'user',
+  label: 'Meditationplan',
+  key: 'meditationplan',
+  permission_slugs: [],
+}
 
 const ORGANISATION_FILE_REPOSTITORY: RouterMenuProps = {
   id: 41,
@@ -384,4 +394,5 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   YOGA_DETAILS,
   MEDITATION,
   MEDITATION_DETAILS,
+  MEDITATIONPLAN,
 }
