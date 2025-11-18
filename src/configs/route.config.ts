@@ -161,7 +161,7 @@ const MEDITATION: RouterMenuProps = {
   parent_id: null,
   label: 'Meditation',
   key: 'meditation',
-  icon: 'workout',
+  icon: 'meditation-icon',
   permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }

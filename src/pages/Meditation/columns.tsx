@@ -173,13 +173,13 @@ export const getColumns = ({
     //   customCell: true,
     //   ...defaultColumnProps,
     // },
-    {
-      title: 'Video URL',
-      field: 'video_url',
-      renderCell: createRenderCell('video_url', 'link'),
-      customCell: true,
-      ...defaultColumnProps,
-    },
+    // {
+    //   title: 'Video URL',
+    //   field: 'video_url',
+    //   renderCell: createRenderCell('video_url', 'link'),
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
   ]
 
   return column
