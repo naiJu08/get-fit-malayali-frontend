@@ -156,7 +156,7 @@ const YOGA: RouterMenuProps = {
   isSidebarMenu: true,
 }
 const MEDITATION: RouterMenuProps = {
-  id: 46,
+  id: 47,
   path: '/meditation',
   parent_id: null,
   label: 'Meditation',

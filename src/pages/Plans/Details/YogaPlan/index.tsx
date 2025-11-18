@@ -1,52 +1,41 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-
 import SmartTable from '../../../../components/common/table/SmartTable'
 import Icons from '../../../../components/common/icons'
 import { TableColumns } from '../../../../common/types'
+// import { useDietPlans } from './api'
 import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../../../utilities/parsers'
+// import ListingHeader from '../../../../components/common/ListingTiles'
+import { useNavigate, useParams } from 'react-router-dom'
+// import DietPlanForm from './create'
 import { useYogaPlans } from './api'
 import YogaPlanForm from './create'
 
-type Props = {
+export default function YogaPlanIndex({
+  planName,
+  planId,
+}: {
   planName?: string
   planId?: string | number
-}
-
-export default function YogaPlanIndex({ planName, planId }: Props) {
+}) {
   const navigate = useNavigate()
   const { id: routePlanId } = useParams()
   const effectivePlanId = planId ?? routePlanId
-
   const [columns] = useState<TableColumns[]>([
-    {
-      title: 'Title',
-      field: 'title',
-      resizable: true,
-      isVisible: true,
-      customCell: true,
-      renderCell: (row: any) => ({
-        cell: (
-          <button
-            type="button"
-            className="text-blue-600 hover:underline"
-            onClick={() =>
-              navigate(`/plans/${row?.plan_id}/yogaplan_details/${row?.id}`)
-            }
-          >
-            {row?.title ?? ''}
-          </button>
-        ),
-      }),
-      sortKey: 'title',
-      link: true,
-      rowClick: (row: any) =>
-        navigate(`/plans/${row?.plan_id}/yogaplan_details/${row?.id}`),
-    },
+    // {
+    //   title: 'Plan',
+    //   field: 'plan_name',
+    //   sortable: true,
+    //   resizable: true,
+    //   isVisible: true,
+    //   customCell: true,
+    //   renderCell: (row: any) => ({ cell: row?.plan_name ?? '' }),
+    //   sortKey: 'plan_name',
+    // },
     {
       title: 'Day',
       field: 'day_number',
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
@@ -54,30 +43,58 @@ export default function YogaPlanIndex({ planName, planId }: Props) {
       sortKey: 'day_number',
     },
     {
-      title: 'Exercises',
-      field: 'exercises_count',
+      title: 'Sequence',
+      field: 'sequence_number',
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.exercises_count ?? 0 }),
+      renderCell: (row: any) => ({ cell: row?.sequence_number ?? '' }),
+      sortKey: 'sequence_number',
     },
     {
-      title: 'Total Duration (mins)',
-      field: 'total_duration',
+      title: 'Meal Time',
+      field: 'meal_time',
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.total_duration ?? 0 }),
+      renderCell: (row: any) => ({ cell: row?.meal_time ?? '' }),
+      sortKey: 'meal_time',
     },
     {
-      title: 'Description',
-      field: 'description',
+      title: 'Meal Name',
+      field: 'meal_name',
+      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.description ?? '' }),
-      sortKey: 'description',
+      renderCell: (row: any) => ({ cell: row?.meal_name ?? '' }),
+      sortKey: 'meal_name',
     },
+    {
+      title: 'Calories',
+      field: 'calories',
+      // sortable: true,
+      resizable: true,
+      isVisible: true,
+      customCell: true,
+      renderCell: (row: any) => ({ cell: row?.calories ?? '' }),
+      sortKey: 'calories',
+    },
+    // {
+    //   title: 'Created At',
+    //   field: 'created_at',
+    //   resizable: true,
+    //   isVisible: true,
+    //   customCell: true,
+    //   renderCell: (row: any) => ({
+    //     cell: row?.created_at
+    //       ? new Date(row?.created_at).toLocaleDateString()
+    //       : '',
+    //   }),
+    //   sortKey: 'created_at',
+    // },
   ])
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
@@ -95,19 +112,18 @@ export default function YogaPlanIndex({ planName, planId }: Props) {
 
   const [formOpen, setFormOpen] = useState(false)
   const [formValues, setFormValues] = useState<any | null>(null)
-
   const openEdit = (row: any) => {
     setFormValues({
       id: row?.id,
       plan_id: row?.plan_id ?? effectivePlanId,
       day_number: row?.day_number ?? '',
-      title: row?.title ?? '',
-      description: row?.description ?? '',
-      duration_minutes: row?.duration_minutes ?? row?.total_duration ?? 0,
+      sequence_number: row?.sequence_number ?? '',
+      meal_time: row?.meal_time ?? '',
+      meal_name: row?.meal_name ?? '',
+      calories: row?.calories ?? '',
     })
     setFormOpen(true)
   }
-
   const handleClose = () => setFormOpen(false)
 
   useEffect(() => {
@@ -141,13 +157,22 @@ export default function YogaPlanIndex({ planName, planId }: Props) {
     })
   }
 
+  // const headerProps = { actionTitle: '' }
+
   return (
-    <div>
+    <div className="">
+      {/* <div className="mb-3">
+        <ListingHeader
+          data={{ title: planName || 'Diet Plans', icon: 'user' }}
+          actionProps={headerProps}
+        />
+      </div> */}
       <SmartTable
         data={data?.yoga_plans ?? []}
         dataRowKey="id"
         toolbar={true}
         title={planName || 'Yoga Plans'}
+        // search={true}
         searchValue={String(pageParams?.search || '')}
         onSearchChange={(val) =>
           setPageParams({ ...pageParams, search: val, page: 1 })
@@ -186,7 +211,7 @@ export default function YogaPlanIndex({ planName, planId }: Props) {
           {
             icon: <Icons name="eye" />,
             action: (row: any) =>
-              navigate(`/plans/${row?.plan_id}/yogaplan_details/${row?.id}`),
+              navigate(`/plans/${row?.plan_id}/yoga_details/${row?.id}`),
             title: 'view',
             toolTip: 'View',
           },

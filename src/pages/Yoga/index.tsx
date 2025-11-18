@@ -4,9 +4,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
-import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
+import Icons from '../../components/common/icons'
 import { checkPermissions } from '../../layout/store'
+import { useAuthStore } from '../../store/authStore'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
@@ -34,6 +35,8 @@ export default function YogaMain() {
   const [deleteYogaModal, setDeleteYogaModal] = useState(false)
   const [deleteYogaId, setDeleteYogaId] = useState<string>('')
   const [loader, setLoader] = useState(false)
+  const { roleData } = useAuthStore()
+  const isNutritionist = roleData?.name === 'nutritionist'
   const params = useParams()
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
@@ -91,10 +94,13 @@ export default function YogaMain() {
     setColumns(
       getColumns({
         onViewAction: onViewAction,
-        onNameClick: (row: any) => navigate(`/yoga/${row?.id}`),
+        onNameClick: !isNutritionist
+          ? (row: any) => navigate(`/yoga/${row?.id}`)
+          : undefined,
       })
     )
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNutritionist])
 
   // const handleSeach = (key?: string) => {
   //   setPageParams({
@@ -170,6 +176,35 @@ export default function YogaMain() {
     setPageParams({ ...pageParams, filters: newFilters, page: 1 })
   }
 
+  const actions: any[] = []
+
+  if (!isNutritionist) {
+    actions.push(
+      {
+        icon: <Icons name="eye" />,
+        action: (row: any) => navigate(`/yoga/${row?.id}`),
+        title: 'view',
+        toolTip: 'View Details',
+      },
+      {
+        icon: <Icons name="edit" />,
+        action: (row: any) => handleEdit(row),
+        title: 'edit',
+        toolTip: 'Edit',
+      },
+      {
+        icon: <Icons name="table-delete" />,
+        action: (row: any) => {
+          if (!row?.id) return
+          setDeleteYogaId(String(row.id))
+          setDeleteYogaModal(true)
+        },
+        title: 'delete',
+        toolTip: 'Delete',
+      }
+    )
+  }
+
   return (
     <div>
       {DISABLE_NONLOGIN_APIS ? (
@@ -180,9 +215,11 @@ export default function YogaMain() {
         <>
           <ListingHeader
             data={basicData}
-            onActionClick={openDrawer}
+            onActionClick={isNutritionist ? undefined : openDrawer}
             actionProps={headerProps}
-            checkPermission={checkPermissions('Employee', 'create')}
+            checkPermission={
+              !isNutritionist && checkPermissions('Employee', 'create')
+            }
           />
           <div className=" p-4">
             <SmartTable
@@ -248,31 +285,7 @@ export default function YogaMain() {
                 ),
                 dropOptions: [10, 20, 30, 50, 100],
               }}
-              actionProps={[
-                {
-                  icon: <Icons name="eye" />,
-                  action: (row) => navigate(`/yoga/${row?.id}`),
-                  title: 'view',
-                  toolTip: 'View Details',
-                },
-
-                {
-                  icon: <Icons name="edit" />,
-                  action: (row) => handleEdit(row),
-                  title: 'edit',
-                  toolTip: 'Edit',
-                },
-                {
-                  icon: <Icons name="table-delete" />,
-                  action: (row) => {
-                    if (!row?.id) return
-                    setDeleteYogaId(String(row.id))
-                    setDeleteYogaModal(true)
-                  },
-                  title: 'delete',
-                  toolTip: 'Delete',
-                },
-              ]}
+              actionProps={actions}
               columnToggle
               externalActions={true}
             />
