@@ -110,9 +110,20 @@ export default function CreateRecipe({
     {
       name: 'category',
       label: 'Category',
-      type: 'text',
-      placeholder: 'Enter category',
+      type: 'custom_select',
+      placeholder: 'Select category',
       required: true,
+      id: 'category_value',
+      desc: 'name',
+      descId: 'id',
+      data: [
+        { id: 'Breakfast', name: 'Breakfast' },
+        { id: 'Lunch', name: 'Lunch' },
+        { id: 'Dinner', name: 'Dinner' },
+        { id: 'Snack', name: 'Snack' },
+        { id: 'Dessert', name: 'Dessert' },
+        { id: 'Beverage', name: 'Beverage' },
+      ],
     },
     {
       name: 'calories',

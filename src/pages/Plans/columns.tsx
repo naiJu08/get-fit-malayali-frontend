@@ -9,7 +9,13 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-export const getColumns = (onNameClick?: (row: any) => void) => {
+export const getColumns = ({
+  onNameClick,
+  disableNameLink = false,
+}: {
+  onNameClick?: (row: any) => void
+  disableNameLink?: boolean
+} = {}) => {
   const createRenderCell = (key: string, isCustom?: string) => (row: any) => {
     if (isCustom === 'date') {
       return {
@@ -65,23 +71,32 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
       fixed: true,
       renderCell: (row: any) => {
         const value = getNestedProperty(row, 'name')
+        if (!disableNameLink && onNameClick) {
+          return {
+            cell: (
+              <button
+                className="text-blue-600 hover:underline"
+                onClick={() => onNameClick && onNameClick(row)}
+                type="button"
+              >
+                {value ?? ''}
+              </button>
+            ),
+            toolTip: value ?? '',
+          }
+        }
         return {
-          cell: (
-            <button
-              className="text-blue-600 hover:underline"
-              onClick={() => onNameClick && onNameClick(row)}
-              type="button"
-            >
-              {value ?? ''}
-            </button>
-          ),
+          cell: value ?? '',
           toolTip: value ?? '',
         }
       },
       customCell: true,
       sortKey: 'name',
-      link: true,
-      rowClick: onNameClick,
+      link: !disableNameLink && !!onNameClick,
+      rowClick:
+        !disableNameLink && onNameClick
+          ? (row: any) => onNameClick && onNameClick(row)
+          : undefined,
     },
     {
       title: 'Category',

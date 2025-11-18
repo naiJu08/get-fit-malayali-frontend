@@ -1,7 +1,7 @@
 import SmartTable from '../../components/common/table/SmartTable'
 import { AutoComplete } from 'qbs-core'
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+// import { useNavigate } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -34,11 +34,11 @@ import { getColumns } from './columns'
 import { useCreateNotification } from './api'
 
 export default function Notifications() {
-  const navigate = useNavigate()
+  // const navigate = useNavigate()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
-  const [deleteItem, setDeleteItem] = useState('')
-  const [status, setStatus] = useState('')
+  const [deleteItem] = useState('')
+  const [status] = useState('')
   const [deleteModal, setDeleteModal] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [rowData, setRowData] = useState<any>()
@@ -304,12 +304,12 @@ export default function Notifications() {
     setColumns(getColumns())
   }, [])
 
-  const handleDeleteModel = (id: string, username: string, status: string) => {
-    setDeleteItem(id)
-    setDeleteModal(true)
-    setUserName(username)
-    setStatus(status)
-  }
+  // const handleDeleteModel = (id: string, username: string, status: string) => {
+  //   setDeleteItem(id)
+  //   setDeleteModal(true)
+  //   setUserName(username)
+  //   setStatus(status)
+  // }
 
   const handleSendInvitation = () => {
     setloader(true)
@@ -542,36 +542,36 @@ export default function Notifications() {
                 dropOptions: [10, 20, 30, 50, 100],
               }}
               actionProps={[
-                {
-                  icon: <Icons name="eye" />,
-                  action: (row) => navigate(`/subscriptions/${row?.id}`),
-                  title: 'view',
-                  toolTip: 'View Details',
-                },
-                {
-                  title: 'Freeze/Unfreeze',
-                  action: (row) => {
-                    setToggleFreezeRow(row)
-                    setToggleFreezeOpen(true)
-                  },
-                  icon: <Icons name="lock-icon" />,
-                  toolTip: 'Toggle Freeze',
-                },
-                {
-                  title: 'Deactivate',
-                  action: (rowData) =>
-                    handleDeleteModel(
-                      rowData?.id,
-                      rowData?.email,
-                      rowData?.status
-                    ),
-                  icon: <Icons name="deactivate-icon" />,
-                  toolTip: 'Deactivate',
-                  hide: (rowData: any) =>
-                    String(rowData?.status ?? '').toLowerCase() === 'active'
-                      ? false
-                      : true,
-                },
+                // {
+                //   icon: <Icons name="eye" />,
+                //   action: (row) => navigate(`/subscriptions/${row?.id}`),
+                //   title: 'view',
+                //   toolTip: 'View Details',
+                // },
+                // {
+                //   title: 'Freeze/Unfreeze',
+                //   action: (row) => {
+                //     setToggleFreezeRow(row)
+                //     setToggleFreezeOpen(true)
+                //   },
+                //   icon: <Icons name="lock-icon" />,
+                //   toolTip: 'Toggle Freeze',
+                // },
+                // {
+                //   title: 'Deactivate',
+                //   action: (rowData) =>
+                //     handleDeleteModel(
+                //       rowData?.id,
+                //       rowData?.email,
+                //       rowData?.status
+                //     ),
+                //   icon: <Icons name="deactivate-icon" />,
+                //   toolTip: 'Deactivate',
+                //   hide: (rowData: any) =>
+                //     String(rowData?.status ?? '').toLowerCase() === 'active'
+                //       ? false
+                //       : true,
+                // },
 
                 {
                   title: 'Delete',

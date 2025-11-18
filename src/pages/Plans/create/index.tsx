@@ -162,6 +162,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useEffect } from 'react'
+import ToggleSwitch from '../../../components/common/inputs/ToggleSwitch'
 import { planFormSchema, PlanSchema } from './schema'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
@@ -226,6 +227,10 @@ export default function CreatePlan({
         description: rowData?.plan?.description ?? '',
         duration_days: rowData?.plan?.duration_days ?? 0,
         fees: rowData?.plan?.fees ?? 0,
+        yoga_included: Boolean(rowData?.plan?.yoga_included ?? false),
+        meditation_included: Boolean(
+          rowData?.plan?.meditation_included ?? false
+        ),
       })
     } else if (isDrawerOpen && !edit) {
       reset({
@@ -234,6 +239,8 @@ export default function CreatePlan({
         description: '',
         duration_days: 0,
         fees: 0,
+        yoga_included: false,
+        meditation_included: false,
       })
     }
   }, [isDrawerOpen, edit, rowData, reset])
@@ -275,7 +282,6 @@ export default function CreatePlan({
     {
       ...textField('fees', 'Fees', 'Enter fees', true),
     },
-    // Status removed from creation form; status changes are handled via listing action
   ]
 
   // const onSubmit = (data: PlanSchema) => {
@@ -334,6 +340,38 @@ export default function CreatePlan({
             <>
               <FormProvider {...methods}>
                 <FormBuilder data={formBuilderProps} edit={true} spacing />
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-600">Yoga Included</span>
+                  <ToggleSwitch
+                    id="yoga_included"
+                    checked={methods.watch('yoga_included')}
+                    onChange={(checked) =>
+                      methods.setValue('yoga_included', checked, {
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                  <span className="text-xs text-gray-500">
+                    {methods.watch('yoga_included') ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-600">
+                    Meditation Included
+                  </span>
+                  <ToggleSwitch
+                    id="meditation_included"
+                    checked={methods.watch('meditation_included')}
+                    onChange={(checked) =>
+                      methods.setValue('meditation_included', checked, {
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                  <span className="text-xs text-gray-500">
+                    {methods.watch('meditation_included') ? 'Yes' : 'No'}
+                  </span>
+                </div>
               </FormProvider>
             </>
           ) : (
@@ -363,6 +401,18 @@ export default function CreatePlan({
               <div>
                 <div className="text-sm text-gray-500">Fees</div>
                 <div className="font-medium">{rowData?.plan?.fees ?? '-'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Yoga Included</div>
+                <div className="font-medium">
+                  {rowData?.plan?.yoga_included ? 'Yes' : 'No'}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Meditation Included</div>
+                <div className="font-medium">
+                  {rowData?.plan?.meditation_included ? 'Yes' : 'No'}
+                </div>
               </div>
               <div>
                 {/* <div className="text-sm text-gray-500">Status</div> */}
