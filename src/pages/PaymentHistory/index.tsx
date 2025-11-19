@@ -194,7 +194,7 @@ export default function Subscriptions() {
               }
               height={
                 data?.items?.length === 0
-                  ? calcWindowHeight(150)
+                  ? calcWindowHeight(218)
                   : calcWindowHeight(150)
               }
               isLoading={isFetching}

@@ -544,7 +544,7 @@ export default function Notifications() {
               height={
                 data?.items?.length === 0
                   ? calcWindowHeight(218)
-                  : calcWindowHeight(200)
+                  : calcWindowHeight(150)
               }
               search={true}
               searchValue={pageParams.search || ''}

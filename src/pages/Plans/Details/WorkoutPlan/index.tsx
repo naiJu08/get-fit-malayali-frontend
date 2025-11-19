@@ -8,6 +8,7 @@ import { getSortedColumnName } from '../../../../utilities/parsers'
 // import ListingHeader from '../../../../components/common/ListingTiles'
 import WorkoutPlanForm from './create'
 import { useNavigate, useParams } from 'react-router-dom'
+import { calcWindowHeight } from '../../../../utilities/calcHeight'
 
 export default function WorkoutPlanIndex({
   planName,
@@ -166,6 +167,11 @@ export default function WorkoutPlanIndex({
         dataRowKey="id"
         toolbar={true}
         title={planName || 'Workout Plans'}
+        height={
+          (data?.plans?.length ?? 0) === 0
+            ? calcWindowHeight(218)
+            : calcWindowHeight(200)
+        }
         // search={true}
         searchValue={pageParams?.search || ''}
         onSearchChange={(val) =>

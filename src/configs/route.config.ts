@@ -289,7 +289,7 @@ const WORKOUT_PLAN_DETAILS: RouterMenuProps = {
 }
 const YOGAPLAN_DETAILS: RouterMenuProps = {
   id: 26,
-  path: '/plans/:plan_id/yogaplan_details/:id',
+  path: '/plans/:plan_id/yoga_details/:id',
   parent_id: 21,
   isDetails: true,
   icon: 'user',

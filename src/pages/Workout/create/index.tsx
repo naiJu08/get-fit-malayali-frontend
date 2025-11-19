@@ -62,6 +62,7 @@ export default function CreateAdmin({
     ...(disabled ? { disabled: true } : {}),
   })
   const [deleteModal, setDeleteModal] = useState(false)
+  const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null)
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
   // useEffect(() => {
@@ -93,14 +94,30 @@ export default function CreateAdmin({
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter workout name', true) },
     { ...textField('description', 'Description', 'Enter description', true) },
+    // {
+    //   ...textField(
+    //     'intensity_level',
+    //     'Intensity Level',
+    //     'e.g., Moderate',
+    //     true
+    //   ),
+    // },
     {
-      ...textField(
-        'intensity_level',
-        'Intensity Level',
-        'e.g., Moderate',
-        true
-      ),
+      name: 'intensity_level',
+      label: 'Intensity Level',
+      id: 'intensity_level',
+      type: 'custom_select',
+      placeholder: 'Select intensity',
+      desc: 'name',
+      descId: 'id',
+      required: true,
+      data: [
+        { id: 'Low', name: 'Low' },
+        { id: 'High', name: 'High' },
+        { id: 'Moderate', name: 'Moderate' },
+      ],
     },
+
     // { ...textField('video_url', 'Video URL', 'https://...', true) },
     {
       name: 'video_file',
@@ -108,11 +125,13 @@ export default function CreateAdmin({
       id: 'video_file',
       type: 'file_upload',
       placeholder: 'Upload video file',
-      required: false,
+      required: true,
       accept: 'video/*',
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
       acceptedFiles: 'MP4, MOV, AVI (Max 50 MB)',
       fileSize: 50,
+      selectedFiles: rowData?.video_file,
+      subName: 'video_file',
     },
   ]
 
@@ -130,6 +149,7 @@ export default function CreateAdmin({
       video_url: '',
       video_file: '',
     } as any)
+    setVideoDurationMs(null)
     handleClose()
   }
 
@@ -141,6 +161,7 @@ export default function CreateAdmin({
       video_url: '',
       video_file: '',
     } as any)
+    setVideoDurationMs(null)
 
     handleRefresh?.()
     handleClearAndClose()
@@ -168,7 +189,41 @@ export default function CreateAdmin({
     mode: 'onChange',
     reValidateMode: 'onChange',
   })
-  const { handleSubmit } = methods
+  const { handleSubmit, watch } = methods
+
+  const watchedVideoFile = watch('video_file')
+
+  useEffect(() => {
+    if (!watchedVideoFile) {
+      setVideoDurationMs(null)
+      return
+    }
+
+    if (watchedVideoFile instanceof File) {
+      const videoElement = document.createElement('video')
+      videoElement.preload = 'metadata'
+
+      const objectUrl = URL.createObjectURL(watchedVideoFile)
+      videoElement.src = objectUrl
+
+      const handleLoadedMetadata = () => {
+        const durationSeconds = videoElement.duration
+        if (!isNaN(durationSeconds)) {
+          setVideoDurationMs(durationSeconds * 1000)
+        }
+        URL.revokeObjectURL(objectUrl)
+      }
+
+      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+
+      return () => {
+        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        URL.revokeObjectURL(objectUrl)
+      }
+    } else {
+      setVideoDurationMs(null)
+    }
+  }, [watchedVideoFile])
   const onSubmit = (details: any) => {
     const fd = new FormData()
     fd.append('workout[name]', details?.name ?? '')
@@ -177,6 +232,11 @@ export default function CreateAdmin({
     fd.append('workout[video_url]', details?.video_url ?? '')
     if (details?.video_file) {
       fd.append('video', details.video_file as any)
+    }
+
+    if (videoDurationMs !== null) {
+      const durationMinutes = videoDurationMs / 60000
+      fd.append('workout[duration_minutes]', durationMinutes.toFixed(2))
     }
 
     if (rowData?.id) {
@@ -276,6 +336,15 @@ export default function CreateAdmin({
                 <FormProvider {...methods}>
                   <FormBuilder data={formBuilderProps} edit={true} spacing />
                 </FormProvider>
+                {videoDurationMs !== null && (
+                  <div className="text-sm text-primaryText">
+                    {(() => {
+                      const minutes = videoDurationMs / 60000
+                      const formatted = minutes.toFixed(2).padStart(5, '0')
+                      return `Video duration: ${formatted} minutes`
+                    })()}
+                  </div>
+                )}
               </>
             ) : (
               <CustomeSideViewer
