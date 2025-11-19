@@ -156,12 +156,12 @@ const YOGA: RouterMenuProps = {
   isSidebarMenu: true,
 }
 const MEDITATION: RouterMenuProps = {
-  id: 46,
+  id: 47,
   path: '/meditation',
   parent_id: null,
   label: 'Meditation',
   key: 'meditation',
-  icon: 'workout',
+  icon: 'meditation-icon',
   permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
