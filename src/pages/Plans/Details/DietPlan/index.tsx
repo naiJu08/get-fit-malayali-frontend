@@ -8,6 +8,7 @@ import { getSortedColumnName } from '../../../../utilities/parsers'
 // import ListingHeader from '../../../../components/common/ListingTiles'
 import { useNavigate, useParams } from 'react-router-dom'
 import DietPlanForm from './create'
+import { calcWindowHeight } from '../../../../utilities/calcHeight'
 
 export default function DietPlanIndex({
   planName,
@@ -177,6 +178,11 @@ export default function DietPlanIndex({
         }
         onSearch={() => setPageParams({ ...pageParams, page: 1 })}
         columns={columns}
+        height={
+          (data?.plans?.length ?? 0) === 0
+            ? calcWindowHeight(218)
+            : calcWindowHeight(200)
+        }
         pagination={true}
         isLoading={isFetching}
         sortType={pageParams.sortType}

@@ -67,6 +67,7 @@ export default function YogaDetails() {
           <DetailItem label="Intensity Level" value={yoga?.intensity_level} />
           <DetailItem label="Average Rating" value={yoga?.average_rating} />
           <DetailItem label="Feedback Count" value={yoga?.feedbacks_count} />
+          <DetailItem label="Duration" value={yoga?.duration_minutes} />
 
           {!loading &&
             !error &&

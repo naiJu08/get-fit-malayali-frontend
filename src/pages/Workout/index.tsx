@@ -199,7 +199,7 @@ export default function WorkoutMain() {
               height={
                 (data?.workouts?.length ?? 0) === 0
                   ? calcWindowHeight(218)
-                  : calcWindowHeight(300)
+                  : calcWindowHeight(150)
               }
               search={true}
               searchValue={pageParams?.search || ''}
