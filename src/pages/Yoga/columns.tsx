@@ -163,6 +163,14 @@ export const getColumns = ({
       customCell: true,
       ...defaultColumnProps,
     },
+    {
+      title: 'Duration(in minutes)',
+      field: 'duration_minutes',
+      renderCell: createRenderCell('duration_minutes'),
+      customCell: true,
+      ...defaultColumnProps,
+    },
+
     // {
     //   title: 'Average Rating',
     //   field: 'average_rating',

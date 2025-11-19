@@ -62,6 +62,7 @@ export default function CreateAdmin({
     ...(disabled ? { disabled: true } : {}),
   })
   const [deleteModal, setDeleteModal] = useState(false)
+  const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null)
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
   // useEffect(() => {
@@ -126,6 +127,7 @@ export default function CreateAdmin({
       video_url: '',
       video_file: '',
     } as any)
+    setVideoDurationMs(null)
     handleClose()
   }
 
@@ -138,6 +140,7 @@ export default function CreateAdmin({
       video_file: '',
     } as any)
 
+    setVideoDurationMs(null)
     handleRefresh?.()
     handleClearAndClose()
   }
@@ -164,12 +167,49 @@ export default function CreateAdmin({
     mode: 'onChange',
     reValidateMode: 'onChange',
   })
-  const { handleSubmit } = methods
+  const { handleSubmit, watch } = methods
+
+  const watchedVideoFile = watch('video_file')
+
+  useEffect(() => {
+    if (!watchedVideoFile) {
+      setVideoDurationMs(null)
+      return
+    }
+
+    if (watchedVideoFile instanceof File) {
+      const videoElement = document.createElement('video')
+      videoElement.preload = 'metadata'
+
+      const objectUrl = URL.createObjectURL(watchedVideoFile)
+      videoElement.src = objectUrl
+
+      const handleLoadedMetadata = () => {
+        const durationSeconds = videoElement.duration
+        if (!isNaN(durationSeconds)) {
+          setVideoDurationMs(durationSeconds * 1000)
+        }
+        URL.revokeObjectURL(objectUrl)
+      }
+
+      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+
+      return () => {
+        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        URL.revokeObjectURL(objectUrl)
+      }
+    } else {
+      setVideoDurationMs(null)
+    }
+  }, [watchedVideoFile])
   const onSubmit = (details: any) => {
     const fd = new FormData()
     fd.append('meditation[title]', details?.title ?? '')
     fd.append('meditation[description]', details?.description ?? '')
-    fd.append('meditation[duration_minutes]', details?.duration_minutes ?? '')
+    if (videoDurationMs !== null) {
+      const durationMinutes = videoDurationMs / 60000
+      fd.append('meditation[duration_minutes]', durationMinutes.toFixed(2))
+    }
 
     if (details?.video_file) {
       fd.append('video', details.video_file as any)
@@ -271,6 +311,15 @@ export default function CreateAdmin({
                 <FormProvider {...methods}>
                   <FormBuilder data={formBuilderProps} edit={true} spacing />
                 </FormProvider>
+                {videoDurationMs !== null && (
+                  <div className="text-sm text-primaryText">
+                    {(() => {
+                      const minutes = videoDurationMs / 60000
+                      const formatted = minutes.toFixed(2).padStart(5, '0')
+                      return `Video duration: ${formatted} minutes`
+                    })()}
+                  </div>
+                )}
               </>
             ) : (
               <CustomeSideViewer

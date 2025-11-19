@@ -341,7 +341,7 @@ export default function Plans() {
               height={
                 (data?.plans?.length ?? 0) === 0
                   ? calcWindowHeight(218)
-                  : calcWindowHeight(200)
+                  : calcWindowHeight(150)
               }
               search={true}
               searchValue={pageParams?.search || ''}

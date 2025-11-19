@@ -68,7 +68,8 @@ export default function UserDetails() {
             label="Intensity Level"
             value={workout?.intensity_level}
           />
-          <DetailItem label="Feedback Count" value={workout?.feedbacks_count} />
+          {/* <DetailItem label="Feedback Count" value={workout?.feedbacks_count} /> */}
+          <DetailItem label="Duration" value={workout?.duration_minutes} />
 
           {!loading &&
             !error &&
@@ -156,7 +157,7 @@ export default function UserDetails() {
 function DetailItem({ label, value }: { label: string; value: any }) {
   const isUrl = typeof value === 'string' && /^https?:\/\/\S+$/i.test(value)
   return (
-    <div className="border rounded-lg p-3 bg-white ">
+    <div className="border rounded-lg p-3 bg-white">
       <div className="text-xs text-gray-500 mb-1">{label}</div>
       <div className="text-sm">
         {isUrl ? (
