@@ -555,7 +555,9 @@ const SmartTable: React.FC<SmartTableProps> = ({
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-medium text-gray-700 mr-2">
               Actions for:{' '}
-              <strong className="text-blue-600">{selectedRowKey}</strong>
+              <strong className="text-blue-600">
+                {title ?? selectedRowKey}
+              </strong>
             </span>
             <div className="flex flex-wrap gap-2">
               {actionProps.map((a, i) => {

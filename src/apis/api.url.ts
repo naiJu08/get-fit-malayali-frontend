@@ -2,6 +2,7 @@ const LOGIN_URL = 'auth/login'
 const ASSESSOR_LIST_URL = 'assessors'
 const ADMIN_USER = '/users'
 const NOTIFICATIONS = '/notifications'
+const NOTIFICATION_DETAIL = '/notifications'
 const NOTIFICATIONS_SENT = '/notifications?scope=sent&aggregate=true'
 const NUTRITIONIST_USER = '/users/my_clients'
 const PLANS = 'plans'
@@ -39,6 +40,7 @@ const apiUrl: { [key: string]: string } = {
   NUTRITIONIST_USER,
   SUBSCRIPTIONS,
   NOTIFICATIONS,
+  NOTIFICATION_DETAIL,
   NOTIFICATIONS_SENT,
   PLANS,
   RECIPES,

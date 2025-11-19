@@ -384,15 +384,51 @@ export default function Notifications() {
     })
   }
 
-  const handleOpenDeleteUser = (id: string) => {
-    setDeleteUserId(id)
+  const resolveNotificationId = (row: any) =>
+    row?.id ??
+    row?.notification_id ??
+    row?.notification?.id ??
+    row?.notification?.notification_id ??
+    row?.uuid ??
+    row?.notification_uuid ??
+    row?.notification?.uuid ??
+    null
+
+  const handleOpenDeleteUser = (row: any) => {
+    const id = resolveNotificationId(row)
+    if (!id) {
+      if (!row?.id) {
+        enqueueSnackbar('Fetching notification details...', {
+          variant: 'info',
+        })
+        if (row?.notification?.id) {
+          setDeleteUserId(String(row.notification.id))
+          setDeleteUserModal(true)
+          return
+        }
+        if (row?.notification_uuid || row?.uuid) {
+          setDeleteUserId(String(row.notification_uuid || row.uuid))
+          setDeleteUserModal(true)
+          return
+        }
+        enqueueSnackbar('Unable to determine notification id for deletion', {
+          variant: 'error',
+        })
+        return
+      }
+      enqueueSnackbar('Unable to determine notification id for deletion', {
+        variant: 'error',
+      })
+      return
+    }
+    setDeleteUserId(String(id))
     setDeleteUserModal(true)
   }
   const handleDeleteUser = () => {
     setloader(true)
     deleteAdmin(deleteUserId)
       .then(() => {
-        enqueueSnackbar('Subscription deleted successfully', {
+        enqueueSnackbar('Notification deleted successfully', {
           variant: 'success',
         })
         setloader(false)
@@ -575,7 +611,7 @@ export default function Notifications() {
 
                 {
                   title: 'Delete',
-                  action: (rowData) => handleOpenDeleteUser(rowData?.id),
+                  action: (rowData) => handleOpenDeleteUser(rowData),
                   icon: <Icons name="delete" />,
                   toolTip: 'Delete',
                 },
