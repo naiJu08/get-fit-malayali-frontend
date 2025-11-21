@@ -36,6 +36,8 @@ const DietPlanDetails = lazy(
 //   () => import('../pages/Plans/Details/YogaPlan/index')
 // )
 const Recipe = lazy(() => import('../pages/Recipe'))
+const Meals = lazy(() => import('../pages/Meals'))
+const MealsDetails = lazy(() => import('../pages/Meals/Detail'))
 const Notifications = lazy(() => import('../pages/Notifications'))
 const RecipeDetail = lazy(() => import('../pages/Recipe/Detail'))
 const UserDetails = lazy(() => import('../pages/AdminUser/Details'))
@@ -68,6 +70,8 @@ const routes: any = [
   { slug: 'MEDITATIONPLAN', component: <PlanDetails /> },
   { slug: 'YOGAPLAN_DETAILS', component: <YogaPlanDetails /> },
   { slug: 'RECIPE', component: <Recipe /> },
+  { slug: 'MEALS', component: <Meals /> },
+  { slug: 'MEALS_DETAILS', component: <MealsDetails /> },
   { slug: 'NOTIFICATIONS', component: <Notifications /> },
   { slug: 'RECIPE_DETAILS', component: <RecipeDetail /> },
   { slug: 'SUBSCRIPTIONS', component: <Subscriptions /> },

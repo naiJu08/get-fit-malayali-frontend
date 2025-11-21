@@ -134,6 +134,29 @@ export const getColumns = ({
       ...defaultColumnProps,
       customCell: true,
     },
+    {
+      title: 'Thumbnail',
+      field: 'thumbnail_url', // or whatever field your API returns
+      customCell: true,
+      ...defaultColumnProps,
+      renderCell: (row: any) => {
+        const url = getNestedProperty(row, 'thumbnail_url') // adjust key if needed
+        return {
+          cell: url ? (
+            <div className="w-14 h-14 rounded-md overflow-hidden border bg-gray-50">
+              <img
+                src={url}
+                alt="Thumbnail"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            '--'
+          ),
+          toolTip: url || '',
+        }
+      },
+    },
   ]
 
   return column

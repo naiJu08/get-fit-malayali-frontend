@@ -6,6 +6,7 @@ const NOTIFICATIONS_SENT = '/notifications?scope=sent&aggregate=true'
 const NUTRITIONIST_USER = '/users/my_clients'
 const PLANS = 'plans'
 const RECIPES = 'recipes'
+const MEALS = 'meals'
 const WORKOUT_PLAN = 'workout_plans'
 const DIET_PLAN = 'diet_plans'
 const YOGA_PLAN = 'yoga_plans'
@@ -42,6 +43,7 @@ const apiUrl: { [key: string]: string } = {
   NOTIFICATIONS_SENT,
   PLANS,
   RECIPES,
+  MEALS,
   WORKOUT_PLAN,
   DIET_PLAN,
   YOGA_PLAN,

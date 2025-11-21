@@ -170,7 +170,29 @@ export default function CreateAdmin({
             type: 'text',
             allowPositiveOnly: true,
           },
-          { ...textField('lifestyle', 'Lifestyle', 'e.g., Active') },
+          {
+            name: 'lifestyle',
+            label: 'Lifestyle',
+            id: 'lifestyle',
+            desc: 'name',
+            descId: 'id',
+            data: [
+              { id: 'Mostly sitting', name: 'Mostly sitting' },
+              {
+                id: 'Standing and light movement',
+                name: 'Standing and light movement',
+              },
+              { id: 'Active lifestyle', name: 'Active lifestyle' },
+              {
+                id: 'Physically intense lifestyle',
+                name: 'Physically intense lifestyle',
+              },
+            ],
+            type: 'custom_select',
+            placeholder: 'Select Lifestyle',
+            async: false,
+            initialLoad: true,
+          },
           { ...textField('goal', 'Goal', 'e.g., Muscle Gain') },
           {
             name: 'food_preferences',
@@ -181,6 +203,9 @@ export default function CreateAdmin({
             data: [
               { id: 'Vegetarian', name: 'Vegetarian' },
               { id: 'Non-Vegetarian', name: 'Non-Vegetarian' },
+              { id: 'Eggetarian', name: 'Eggetarian' },
+              { id: 'Vegan', name: 'Vegan' },
+              { id: 'Pescatarian', name: 'Pescatarian' },
             ],
             type: 'custom_select',
             placeholder: 'Select Food Preference',
@@ -188,11 +213,42 @@ export default function CreateAdmin({
             initialLoad: true,
           },
           {
-            ...textField(
-              'medical_conditions',
-              'Medical Conditions',
-              'e.g., None'
-            ),
+            name: 'medical_conditions',
+            label: 'Medical Conditions',
+            id: 'medical_conditions',
+            desc: 'name',
+            descId: 'id',
+            data: [
+              { id: 'None', name: 'None' },
+              { id: 'PCOD', name: 'PCOD' },
+              { id: 'Diabetes', name: 'Diabetes' },
+              { id: 'Hypertension', name: 'Hypertension' },
+            ],
+            type: 'custom_select',
+            placeholder: 'Select Medical Condition',
+            async: false,
+            initialLoad: true,
+          },
+          {
+            name: 'food_allergies',
+            label: 'Food Allergies',
+            id: 'food_allergies',
+            desc: 'name',
+            descId: 'id',
+            data: [
+              { id: 'Peanuts', name: 'Peanuts' },
+              { id: 'Tree nuts', name: 'Tree nuts' },
+              { id: 'Gluten', name: 'Gluten' },
+              { id: 'Shellfish', name: 'Shellfish' },
+              {
+                id: 'Latex fruit syndrome',
+                name: 'Latex fruit syndrome',
+              },
+            ],
+            type: 'custom_select',
+            placeholder: 'Select Food Allergy',
+            async: false,
+            initialLoad: true,
           },
           { ...textField('ethnicity', 'Ethnicity', 'e.g., Indian') },
         ]
@@ -222,6 +278,7 @@ export default function CreateAdmin({
       goal: '',
       food_preferences: '',
       medical_conditions: '',
+      food_allergies: '',
       ethnicity: '',
     } as any)
     handleClose()
@@ -276,6 +333,7 @@ export default function CreateAdmin({
           goal: rowData?.user?.goal ?? '',
           food_preferences: rowData?.user?.food_preferences ?? '',
           medical_conditions: rowData?.user?.medical_conditions ?? '',
+          food_allergies: rowData?.user?.food_allergies ?? '',
           ethnicity: rowData?.user?.ethnicity ?? '',
         } as any)
       }
@@ -428,7 +486,10 @@ export default function CreateAdmin({
             : (details?.date_of_birth ?? ''),
         height: details?.height ? Number(details?.height) : null,
         weight: details?.weight ? Number(details?.weight) : null,
-        lifestyle: details?.lifestyle ?? '',
+        lifestyle:
+          typeof details?.lifestyle === 'object'
+            ? (details?.lifestyle?.name ?? details?.lifestyle?.id ?? '')
+            : (details?.lifestyle ?? ''),
         goal: details?.goal ?? '',
         food_preferences:
           typeof details?.food_preferences === 'object'
@@ -436,7 +497,18 @@ export default function CreateAdmin({
               details?.food_preferences?.id ??
               '')
             : (details?.food_preferences ?? ''),
-        medical_conditions: details?.medical_conditions ?? '',
+        medical_conditions:
+          typeof details?.medical_conditions === 'object'
+            ? (details?.medical_conditions?.name ??
+              details?.medical_conditions?.id ??
+              '')
+            : (details?.medical_conditions ?? ''),
+        food_allergies:
+          typeof details?.food_allergies === 'object'
+            ? (details?.food_allergies?.name ??
+              details?.food_allergies?.id ??
+              '')
+            : (details?.food_allergies ?? ''),
         ethnicity: details?.ethnicity ?? '',
       },
     }

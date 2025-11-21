@@ -423,6 +423,11 @@ export default function AdminUser() {
                 dataRowKey="id"
                 toolbar={true}
                 search={true}
+                searchPlaceholder={
+                  activeRole === 'nutritionist'
+                    ? 'Search Nutritionist Name'
+                    : 'Search Client Name'
+                }
                 height={
                   data?.items?.length === 0
                     ? calcWindowHeight(218)
@@ -451,18 +456,18 @@ export default function AdminUser() {
                     title: 'edit',
                     toolTip: 'Edit',
                   },
-                  {
-                    icon: <Icons name="eye" />,
-                    action: (row) => {
-                      const base =
-                        activeRole === 'nutritionist'
-                          ? '/nutritionist'
-                          : '/users'
-                      navigate(`${base}/${row?.id}`)
-                    },
-                    title: 'view',
-                    toolTip: 'View Details',
-                  },
+                  // {
+                  //   icon: <Icons name="eye" />,
+                  //   action: (row) => {
+                  //     const base =
+                  //       activeRole === 'nutritionist'
+                  //         ? '/nutritionist'
+                  //         : '/users'
+                  //     navigate(`${base}/${row?.id}`)
+                  //   },
+                  //   title: 'view',
+                  //   toolTip: 'View Details',
+                  // },
                   // {
                   //   title: 'Freeze',
                   //   action: (row) => handleOpenFreeze(row),
