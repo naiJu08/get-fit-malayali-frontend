@@ -32,6 +32,7 @@ import {
 } from './api'
 import { getColumns } from './columns'
 import { useCreateNotification } from './api'
+import { checkPermissions } from '../../layout/store'
 
 export default function Notifications() {
   // const navigate = useNavigate()
@@ -374,6 +375,8 @@ export default function Notifications() {
     title: 'Notifications',
     icon: 'notification',
   }
+  const headerProps = { actionTitle: 'Create Notification' }
+  const openDrawer = () => setCreateOpen(true)
 
   const handleSort = (orderColumn: any, orderDirection: any) => {
     setPageParams({
@@ -451,7 +454,7 @@ export default function Notifications() {
         </div>
       ) : (
         <>
-          <ListingHeader data={basicData} checkPermission={false} />
+          {/* <ListingHeader data={basicData} checkPermission={false} />
           <div className="px-4 mt-2 flex justify-end">
             <button
               className="px-3 py-2 bg-primaryGreen text-white rounded"
@@ -459,7 +462,14 @@ export default function Notifications() {
             >
               Create
             </button>
-          </div>
+          </div> */}
+          <ListingHeader
+            data={basicData}
+            onActionClick={openDrawer}
+            actionProps={headerProps}
+            checkPermission={checkPermissions('Employee', 'create')}
+          />
+
           <DialogModal
             isOpen={toggleFreezeOpen}
             onClose={() => setToggleFreezeOpen(false)}
@@ -546,7 +556,7 @@ export default function Notifications() {
                   ? calcWindowHeight(218)
                   : calcWindowHeight(150)
               }
-              search={true}
+              // search={true}
               searchValue={pageParams.search || ''}
               onSearchChange={(val) => {
                 setPageParams({ ...pageParams, search: val, page: 1 })

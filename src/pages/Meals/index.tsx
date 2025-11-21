@@ -1,24 +1,25 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TableColumns } from '../../common/types'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
+import SmartTable from '../../components/common/table/SmartTable'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../utilities/parsers'
-import { useRecipes } from './api'
-import { getRecipeColumns } from './columns'
-import { useNavigate } from 'react-router-dom'
-import CreateRecipe from './create'
-import { checkPermissions } from '../../layout/store'
-import SmartTable from '../../components/common/table/SmartTable'
 import { calcWindowHeight } from '../../utilities/calcHeight'
+import { checkPermissions } from '../../layout/store'
+import { useMeals, useDeleteMeal } from './api'
+import { getMealsColumns } from './columns'
+import CreateMeal from './create'
 
-export default function Recipe() {
+export default function Meals() {
   const [columns, setColumns] = useState<TableColumns[]>([])
   const [createOpen, setCreateOpen] = useState(false)
   const [edit, setEdit] = useState(false)
   const [rowData, setRowData] = useState<any>()
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const navigate = useNavigate()
+  const deleteMealMutation = useDeleteMeal()
 
   const { page, per_page, search, ordering } = pageParams
   const searchParams = {
@@ -28,8 +29,11 @@ export default function Recipe() {
     ordering,
   }
 
-  const headerProps = { actionTitle: 'Create Recipe' }
+  const headerProps = { actionTitle: 'Create Meal' }
+
+  // TODO: adjust this to your desired create flow
   const openDrawer = () => setCreateOpen(true)
+
   const handleRefresh = () => {
     setPageParams({ ...pageParams, page: 1 })
   }
@@ -39,18 +43,31 @@ export default function Recipe() {
     setEdit(true)
     setCreateOpen(true)
   }
-
-  const { data, isFetching } = useRecipes(searchParams)
+  const { data, isFetching } = useMeals(searchParams)
 
   useEffect(() => {
     setColumns(
-      getRecipeColumns((row: any) => {
-        navigate(`/recipe/${row?.id}`)
+      getMealsColumns((row: any) => {
+        navigate(`/meals/${row?.id}`)
       })
     )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+  useEffect(() => {
+    const totalPages = data?.meta?.total_pages
+    if (typeof totalPages === 'number' && totalPages > 0) {
+      if ((pageParams?.page ?? 1) > totalPages) {
+        setPageParams({ ...pageParams, page: totalPages })
+      } else if ((pageParams?.page ?? 1) < 1) {
+        setPageParams({ ...pageParams, page: 1 })
+      }
+    } else if ((pageParams?.page ?? 1) < 1) {
+      setPageParams({ ...pageParams, page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.meta?.total_pages])
 
-  // Clamp page to valid range when meta changes
+  // Clamp page to valid range when meta changes (same logic as Recipe)
   useEffect(() => {
     const totalPages = data?.meta?.total_pages
     if (typeof totalPages === 'number' && totalPages > 0) {
@@ -68,6 +85,7 @@ export default function Recipe() {
   const onChangePage = (pageNumber: number) => {
     setPageParams({ ...pageParams, page: pageNumber })
   }
+
   const onChangeRowsPerPage = (count: number | string) => {
     setPageParams({ ...pageParams, per_page: Number(count), page: 1 })
   }
@@ -81,25 +99,37 @@ export default function Recipe() {
     })
   }
 
+  const handleDelete = (row: any) => {
+    if (!row?.id) return
+    if (window.confirm('Are you sure you want to delete this meal?')) {
+      deleteMealMutation.mutate(row.id, {
+        onSuccess: () => {
+          handleRefresh()
+        },
+      } as any)
+    }
+  }
+
   return (
     <div>
       <ListingHeader
-        data={{ title: 'Recipes', icon: 'recipe' }}
+        data={{ title: 'Meals', icon: 'meal-icon' }}
         onActionClick={openDrawer}
         actionProps={headerProps}
         checkPermission={checkPermissions('Employee', 'create')}
       />
       <div className="p-4">
         <SmartTable
-          data={data?.recipes ?? []}
+          data={data?.meals ?? []}
           dataRowKey="id"
           toolbar
           height={
-            data?.recipes?.length === 0
+            data?.meals?.length === 0
               ? calcWindowHeight(218)
               : calcWindowHeight(150)
           }
-          // search
+          search
+          searchPlaceholder="Search Meal Name"
           isLoading={isFetching}
           sortType={pageParams.sortType}
           sortColumn={pageParams.sortColumn}
@@ -110,16 +140,21 @@ export default function Recipe() {
           actionProps={[
             {
               icon: <Icons name="eye" />,
-              action: (row: any) => navigate(`/recipe/${row?.id}`),
+              action: (row: any) => navigate(`/meals/${row?.id}`),
               title: 'view',
               toolTip: 'View',
             },
-
             {
               icon: <Icons name="edit" />,
               action: (row: any) => openEdit(row),
               title: 'edit',
               toolTip: 'Edit',
+            },
+            {
+              icon: <Icons name="delete" />,
+              action: (row: any) => handleDelete(row),
+              title: 'delete',
+              toolTip: 'Delete',
             },
           ]}
           paginationProps={{
@@ -140,13 +175,17 @@ export default function Recipe() {
             setPageParams({ ...pageParams, search: val })
           }
           onSearch={(key?: string) =>
-            setPageParams({ ...pageParams, search: String(key ?? ''), page: 1 })
+            setPageParams({
+              ...pageParams,
+              search: String(key ?? ''),
+              page: 1,
+            })
           }
           columnToggle
           externalActions={true}
         />
       </div>
-      <CreateRecipe
+      <CreateMeal
         isDrawerOpen={createOpen}
         handleClose={() => {
           setCreateOpen(false)

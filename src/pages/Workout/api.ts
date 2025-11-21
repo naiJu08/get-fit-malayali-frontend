@@ -40,6 +40,10 @@ export const getWorkoutDetails = (id: string) => {
   return getData(`${apiUrl.WORKOUTS}/${id}`)
 }
 
+export const deleteWorkout = (id: string | number) => {
+  return deleteData(`${apiUrl.WORKOUTS}/${id}`)
+}
+
 export const freezeUser = (
   id: string,
   payload: { reason: string; start_date: string; end_date: string }

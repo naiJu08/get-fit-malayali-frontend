@@ -85,6 +85,7 @@ export const formSchema = z
     goal: z.string().optional(),
     food_preferences: z.string().optional(),
     medical_conditions: z.string().optional(),
+    food_allergies: z.string().optional(),
     ethnicity: z.string().optional(),
   })
   .refine(
@@ -155,6 +156,7 @@ export const formSchemaNutritionist = z
     goal: z.string().optional(),
     food_preferences: z.string().optional(),
     medical_conditions: z.string().optional(),
+    food_allergies: z.string().optional(),
     ethnicity: z.string().optional(),
   })
   .refine(

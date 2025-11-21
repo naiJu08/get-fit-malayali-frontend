@@ -46,6 +46,13 @@ export const sidebarList: SidebarItem[] = [
   {
     id: 4,
     icon: 'subscription-icon',
+    name: 'Plans',
+    path: '/plans',
+  },
+
+  {
+    id: 7,
+    icon: 'subscription-icon',
     name: 'Subscriptions',
     path: '/subscriptions',
   },
@@ -56,12 +63,6 @@ export const sidebarList: SidebarItem[] = [
     path: '/notifications',
   },
   {
-    id: 7,
-    icon: 'subscription-icon',
-    name: 'Plans',
-    path: '/plans',
-  },
-  {
     id: 10,
     icon: 'subscription-icon',
     name: 'Recipes',
@@ -69,13 +70,13 @@ export const sidebarList: SidebarItem[] = [
   },
 
   {
-    id: 10,
+    id: 5,
     icon: 'subscription-icon',
     name: 'Workout',
     path: '/workout',
   },
   {
-    id: 5,
+    id: 15,
     icon: 'discount-icon',
     name: 'Discounts Coupons',
     value: 3,

@@ -101,13 +101,6 @@ export default function CreateRecipe({
       required: true,
     },
     {
-      name: 'description',
-      label: 'Description',
-      type: 'textarea',
-      placeholder: 'Enter description',
-      required: true,
-    },
-    {
       name: 'category',
       label: 'Category',
       type: 'custom_select',
@@ -140,6 +133,14 @@ export default function CreateRecipe({
       required: true,
     },
     {
+      name: 'description',
+      label: 'Description',
+      type: 'textarea',
+      placeholder: 'Enter description',
+      required: true,
+    },
+
+    {
       name: 'image',
       label: 'Image',
       id: 'image',
@@ -171,7 +172,7 @@ export default function CreateRecipe({
       body={
         <div className="flex flex-col gap-4">
           <FormProvider {...methods}>
-            <FormBuilder data={formFields} edit={true} />
+            <FormBuilder data={formFields} edit={true} spacing />
           </FormProvider>
         </div>
       }
