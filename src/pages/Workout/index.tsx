@@ -12,12 +12,19 @@ import { useAuthStore } from '../../store/authStore'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
 import { handleReturnEmptyMsg } from '../../utilities/validation'
-import { getWorkoutDetails, useWorkoutList, DISABLE_NONLOGIN_APIS } from './api'
+import { useSnackbarManager } from '../../components/common/snackbar'
+import {
+  getWorkoutDetails,
+  useWorkoutList,
+  DISABLE_NONLOGIN_APIS,
+  deleteWorkout,
+} from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
 
 export default function WorkoutMain() {
   const navigate = useNavigate()
+  const { enqueueSnackbar } = useSnackbarManager()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
   const [columns, setColumns] = useState<TableColumns[]>([])
@@ -80,6 +87,20 @@ export default function WorkoutMain() {
       setRowData((data as any)?.workout ?? data)
       setViewMode(true)
       setCreateOpen(true)
+    }
+  }
+
+  const handleDelete = async (rowData: any) => {
+    if (!rowData?.id) return
+    try {
+      await deleteWorkout(String(rowData.id))
+      enqueueSnackbar('Workout deleted successfully', { variant: 'success' })
+      refetch()
+    } catch (err: any) {
+      enqueueSnackbar(
+        err?.response?.data?.message || 'Failed to delete workout',
+        { variant: 'error' }
+      )
     }
   }
   useEffect(() => {
@@ -202,6 +223,7 @@ export default function WorkoutMain() {
                   : calcWindowHeight(150)
               }
               search={true}
+              searchPlaceholder="Search Workout Name"
               searchValue={pageParams?.search || ''}
               onSearchChange={(val) => {
                 setPageParams({ ...pageParams, search: val, page: 1 })
@@ -251,6 +273,12 @@ export default function WorkoutMain() {
                         action: (row) => handleEdit(row),
                         title: 'edit',
                         toolTip: 'Edit',
+                      },
+                      {
+                        icon: <Icons name="delete" />,
+                        action: (row) => handleDelete(row),
+                        title: 'delete',
+                        toolTip: 'Delete',
                       },
                     ]
               }

@@ -251,6 +251,7 @@ export default function YogaMain() {
                   : calcWindowHeight(150)
               }
               search={true}
+              searchPlaceholder="Search Yoga Name"
               searchValue={pageParams?.search || ''}
               onSearchChange={(val) => {
                 setPageParams({ ...pageParams, search: val, page: 1 })

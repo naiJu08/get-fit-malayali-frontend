@@ -137,6 +137,7 @@ export const planFormSchema = z.object({
     .min(0, 'Fees cannot be negative'),
   yoga_included: z.boolean().default(false),
   meditation_included: z.boolean().default(false),
+  thumbnail: z.any().optional(),
 })
 
 export type PlanSchema = z.infer<typeof planFormSchema>

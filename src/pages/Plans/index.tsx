@@ -344,6 +344,7 @@ export default function Plans() {
                   : calcWindowHeight(150)
               }
               search={true}
+              searchPlaceholder="Search Plan Name"
               searchValue={pageParams?.search || ''}
               onSearchChange={(val) =>
                 setPageParams({ ...pageParams, search: val, page: 1 })

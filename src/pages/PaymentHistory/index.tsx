@@ -160,6 +160,7 @@ export default function Subscriptions() {
               dataRowKey="id"
               toolbar={true}
               search={true}
+              searchPlaceholder="Search client Name"
               searchValue={pageParams?.search || ''}
               onSearchChange={(val) =>
                 setPageParams({ ...pageParams, search: val, page: 1 })

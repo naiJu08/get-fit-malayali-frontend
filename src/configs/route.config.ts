@@ -102,26 +102,6 @@ const ADMIN_USER: RouterMenuProps = {
   breadcrumb: ['ADMIN_USER', 'ADMIN_USER_DETAILS'],
   isSidebarMenu: true,
 }
-const SUBSCRIPTIONS: RouterMenuProps = {
-  id: 29,
-  path: '/subscriptions',
-  parent_id: null,
-  label: 'Subscriptions',
-  key: 'subscriptions',
-  icon: 'subscription',
-  permission_slugs: ['superadmin'],
-  isSidebarMenu: true,
-}
-const NOTIFICATIONS: RouterMenuProps = {
-  id: 30,
-  path: '/notifications',
-  parent_id: null,
-  label: 'Notifications',
-  key: 'notifications',
-  icon: 'notification',
-  permission_slugs: ['superadmin'],
-  isSidebarMenu: true,
-}
 const PLANS: RouterMenuProps = {
   id: 21,
   path: '/plans',
@@ -144,7 +124,6 @@ const WORKOUT: RouterMenuProps = {
   permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
-
 const YOGA: RouterMenuProps = {
   id: 46,
   path: '/yoga',
@@ -163,6 +142,27 @@ const MEDITATION: RouterMenuProps = {
   key: 'meditation',
   icon: 'meditation-icon',
   permission_slugs: ['superadmin', 'nutritionist'],
+  isSidebarMenu: true,
+}
+
+const SUBSCRIPTIONS: RouterMenuProps = {
+  id: 29,
+  path: '/subscriptions',
+  parent_id: null,
+  label: 'Subscriptions',
+  key: 'subscriptions',
+  icon: 'subscription',
+  permission_slugs: ['superadmin'],
+  isSidebarMenu: true,
+}
+const NOTIFICATIONS: RouterMenuProps = {
+  id: 30,
+  path: '/notifications',
+  parent_id: null,
+  label: 'Notifications',
+  key: 'notifications',
+  icon: 'notification',
+  permission_slugs: ['superadmin'],
   isSidebarMenu: true,
 }
 
@@ -265,12 +265,32 @@ const RECIPE: RouterMenuProps = {
   permission_slugs: ['superadmin'],
   isSidebarMenu: true,
 }
+
 const RECIPE_DETAILS: RouterMenuProps = {
   id: 29,
   path: '/recipe/:id',
   parent_id: 21,
   label: 'Recipe Details',
   key: 'recipe',
+  permission_slugs: [],
+  isSidebarMenu: true,
+}
+const MEALS: RouterMenuProps = {
+  id: 48,
+  path: '/meals',
+  parent_id: null,
+  label: 'Meals',
+  key: 'meals',
+  icon: 'meal-icon',
+  permission_slugs: ['superadmin', 'nutritionist'],
+  isSidebarMenu: true,
+}
+const MEALS_DETAILS: RouterMenuProps = {
+  id: 30,
+  path: '/meals/:id',
+  parent_id: 21,
+  label: 'Meals Details',
+  key: 'meals-details',
   permission_slugs: [],
   isSidebarMenu: true,
 }
@@ -363,13 +383,20 @@ const PAYMENT_HISTORY: RouterMenuProps = {
 
 // Note : The arrangements of below "router_config" object will reflect in Sidebar
 export const router_config: { [key: string]: RouterMenuProps } = {
+  // Primary sidebar order
   DASHBOARD,
   ADMIN_USER,
-  SUBSCRIPTIONS,
-  NOTIFICATIONS,
+  PLANS,
   WORKOUT,
   YOGA,
-  PLANS,
+  MEDITATION,
+  MEALS,
+  SUBSCRIPTIONS,
+  NOTIFICATIONS,
+  RECIPE,
+  PAYMENT_HISTORY,
+
+  // Remaining routes (details and others)
   PLAN_DETAILS,
   PLAN_DETAILS_DETAILS,
   PLAN_DETAILS_WORKOUT,
@@ -379,8 +406,8 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   WORKOUT_PLAN_DETAILS,
   SUBSCRIPTIONS_DETAILS,
   DIET_DETAILS,
-  RECIPE,
   RECIPE_DETAILS,
+  MEALS_DETAILS,
   LOGIN,
   FORGET_PASSWORD,
   RESET_PASSWORD,
@@ -390,9 +417,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   ORGANISATION_FILE_REPOSTITORY,
   ORGANISATION_USERLIST,
   WORKOUT_DETAILS,
-  PAYMENT_HISTORY,
   YOGA_DETAILS,
-  MEDITATION,
   MEDITATION_DETAILS,
   MEDITATIONPLAN,
 }
