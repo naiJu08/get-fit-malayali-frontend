@@ -374,23 +374,6 @@ export default function DietPlanForm({
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold">Meals</h3>
-                <button
-                  type="button"
-                  className="text-xs text-primary-500 underline"
-                  onClick={() =>
-                    appendMeal({
-                      meal_id: 0,
-                      count: 1,
-                      protein: '',
-                      carbs: '',
-                      fat: '',
-                      fiber: '',
-                      total_calories: '',
-                    })
-                  }
-                >
-                  Add more
-                </button>
               </div>
 
               {mealFields.map((field, index) => {
@@ -409,13 +392,15 @@ export default function DietPlanForm({
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium">Meal {index + 1}</span>
-                      <button
-                        type="button"
-                        className="text-[10px] text-red-500"
-                        onClick={() => removeMeal(index)}
-                      >
-                        Remove
-                      </button>
+                      {mealFields.length > 1 && index > 0 && (
+                        <button
+                          type="button"
+                          className="text-[10px] text-red-500"
+                          onClick={() => removeMeal(index)}
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
@@ -666,6 +651,26 @@ export default function DietPlanForm({
                   </div>
                 )
               })}
+
+              <div className="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  className="text-xs text-primary-500 underline"
+                  onClick={() =>
+                    appendMeal({
+                      meal_id: 0,
+                      count: 1,
+                      protein: '',
+                      carbs: '',
+                      fat: '',
+                      fiber: '',
+                      total_calories: '',
+                    })
+                  }
+                >
+                  Add more
+                </button>
+              </div>
             </div>
           </>
         </FormProvider>
