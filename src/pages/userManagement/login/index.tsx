@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
+import { createElement, useEffect, useState, type ComponentType } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
+import type { IconBaseProps, IconType } from 'react-icons'
 import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/common'
@@ -9,6 +10,9 @@ import { useAppStore } from '../../../store/appStore'
 import { useDomainManageStore } from '../../../store/domainManageStore'
 import { loginSchema, LoginSchema } from '../schema'
 import { useLogin } from '../api'
+
+const renderIcon = (Icon: IconType, props?: IconBaseProps) =>
+  createElement(Icon as ComponentType<IconBaseProps>, props)
 
 export default function Login() {
   const { isLoading } = useAppStore()
@@ -187,7 +191,7 @@ export default function Login() {
                       id="username"
                       type="email"
                       required={true}
-                      className="w-full pl-10 pr-4 py-4 bg-white border border-neutral-200 rounded-2xl text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-4 focus:ring-red-100 focus:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      className="rounded appearance-none relative block w-full px-3 py-2 border border-formBorder placeholder-gray-500 textfield focus:outline-none focus:ring-primaryBlue focus:border-primaryBlue focus:z-10 sm:text-sm"
                       placeholder="Enter your username or email"
                       autoComplete="username"
                       spellCheck={false}
@@ -241,7 +245,6 @@ export default function Login() {
                       type={showPassword ? 'text' : 'password'}
                       required={true}
                       className="w-full pl-10 pr-12 py-4 bg-white border border-neutral-200 rounded-2xl text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-4 focus:ring-red-100 focus:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
-                      placeholder="Enter your password"
                       autoComplete="current-password"
                       spellCheck={false}
                       {...register('password')}
@@ -251,11 +254,12 @@ export default function Login() {
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 p-2 text-neutral-400 hover:text-neutral-600 transition-colors duration-200 rounded-lg hover:bg-neutral-100"
                       onClick={() => setShowPassword((c) => !c)}
                     >
-                      {showPassword ? (
-                        <AiFillEye size={20} className="text-red-500" />
-                      ) : (
-                        <AiFillEyeInvisible size={20} />
-                      )}
+                      {showPassword
+                        ? renderIcon(AiFillEye, {
+                            size: 20,
+                            className: 'text-red-500',
+                          })
+                        : renderIcon(AiFillEyeInvisible, { size: 20 })}
                     </button>
                   </div>
                   {errors.password && (
