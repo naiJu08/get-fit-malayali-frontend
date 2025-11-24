@@ -1,2 +1,0 @@
-"use strict";(self.webpackChunkdiversity_mark_reactjs_admin_portal=self.webpackChunkdiversity_mark_reactjs_admin_portal||[]).push([[481],{9481:(e,a,s)=>{s.r(a),s.d(a,{default:()=>r});var t=s(7929);function r(){return(0,t.jsxs)("div",{className:"p-6",children:[(0,t.jsx)("h1",{className:"text-2xl font-bold mb-2 text-primaryText",children:"Payments"}),(0,t.jsx)("p",{className:"text-neutral-600",children:"This is a sample Payments page."})]})}}}]);
-//# sourceMappingURL=481.414ec56e.chunk.js.map
