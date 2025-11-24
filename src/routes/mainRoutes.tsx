@@ -12,6 +12,7 @@ import GuestRoute from './components/guestRoute'
 import UserRoute from './components/userRoute'
 import SubscriptionDetailsMain from '../pages/Subscriptions/Details'
 import PaymentHistory from '../pages/PaymentHistory'
+import YogaPlanDetails from '../pages/Plans/Details/YogaPlan/details'
 
 // Users sample page is no longer used for the Users route; using AdminUser instead
 
@@ -31,7 +32,12 @@ const WorkoutPlanDetails = lazy(
 const DietPlanDetails = lazy(
   () => import('../pages/Plans/Details/DietPlan/details')
 )
+// const YogaplanDetails = lazy(
+//   () => import('../pages/Plans/Details/YogaPlan/index')
+// )
 const Recipe = lazy(() => import('../pages/Recipe'))
+const Meals = lazy(() => import('../pages/Meals'))
+const MealsDetails = lazy(() => import('../pages/Meals/Detail'))
 const Notifications = lazy(() => import('../pages/Notifications'))
 const RecipeDetail = lazy(() => import('../pages/Recipe/Detail'))
 const UserDetails = lazy(() => import('../pages/AdminUser/Details'))
@@ -60,7 +66,12 @@ const routes: any = [
   { slug: 'PLAN_DETAILS', component: <PlanDetails /> },
   { slug: 'WORKOUT_PLAN_DETAILS', component: <WorkoutPlanDetails /> },
   { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
+  { slug: 'YOGAPLAN', component: <PlanDetails /> },
+  { slug: 'MEDITATIONPLAN', component: <PlanDetails /> },
+  { slug: 'YOGAPLAN_DETAILS', component: <YogaPlanDetails /> },
   { slug: 'RECIPE', component: <Recipe /> },
+  { slug: 'MEALS', component: <Meals /> },
+  { slug: 'MEALS_DETAILS', component: <MealsDetails /> },
   { slug: 'NOTIFICATIONS', component: <Notifications /> },
   { slug: 'RECIPE_DETAILS', component: <RecipeDetail /> },
   { slug: 'SUBSCRIPTIONS', component: <Subscriptions /> },

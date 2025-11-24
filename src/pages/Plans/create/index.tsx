@@ -162,6 +162,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useEffect } from 'react'
+import ToggleSwitch from '../../../components/common/inputs/ToggleSwitch'
 import { planFormSchema, PlanSchema } from './schema'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
@@ -202,14 +203,35 @@ export default function CreatePlan({
   const onSubmit = (values: PlanSchema | any) => {
     // Do not send status from the form; backend will use its default or preserve existing
     // const { active: _omitActive, ...rest } = values || {}
-    const payload = { plan: { ...values } }
+    // const payload = { plan: { ...values } }
+    const fd = new FormData()
+
+    fd.append('plan[name]', values.name ?? '')
+    fd.append('plan[category]', values.category ?? '')
+    fd.append('plan[description]', values.description ?? '')
+    fd.append('plan[duration_days]', String(values.duration_days ?? ''))
+    fd.append('plan[fees]', String(values.fees ?? ''))
+    fd.append(
+      'plan[yoga_included]',
+      String(values.yoga_included ? 'true' : 'false')
+    )
+    fd.append(
+      'plan[meditation_included]',
+      String(values.meditation_included ? 'true' : 'false')
+    )
+
+    const thumbVal: any = values.thumbnail
+    // Only append if a new File is provided (not just an existing URL/string)
+    if (thumbVal && typeof thumbVal !== 'string') {
+      fd.append('plan[thumbnail]', thumbVal) // field name as backend expects
+    }
     if (edit && rowData?.plan?.id) {
       updatePlanMutate(
-        { id: rowData.plan.id, payload },
+        { id: rowData.plan.id, payload: fd },
         { onSuccess: () => handleClose() }
       )
     } else {
-      createPlanMutate(payload, {
+      createPlanMutate(fd, {
         onSuccess: () => {
           // Refresh the listing and close
           queryClient.invalidateQueries(['plans_list'])
@@ -226,6 +248,11 @@ export default function CreatePlan({
         description: rowData?.plan?.description ?? '',
         duration_days: rowData?.plan?.duration_days ?? 0,
         fees: rowData?.plan?.fees ?? 0,
+        yoga_included: Boolean(rowData?.plan?.yoga_included ?? false),
+        meditation_included: Boolean(
+          rowData?.plan?.meditation_included ?? false
+        ),
+        thumbnail: rowData?.plan?.thumbnail_url ?? '',
       })
     } else if (isDrawerOpen && !edit) {
       reset({
@@ -234,6 +261,9 @@ export default function CreatePlan({
         description: '',
         duration_days: 0,
         fees: 0,
+        yoga_included: false,
+        meditation_included: false,
+        thumbnail: '',
       })
     }
   }, [isDrawerOpen, edit, rowData, reset])
@@ -256,14 +286,9 @@ export default function CreatePlan({
     { ...textField('name', 'Plan Name', 'Enter plan name', true) },
     { ...textField('category', 'Category', 'Enter category', true) },
     {
-      ...textField(
-        'description',
-        'Description',
-        'Enter plan description',
-        true,
-        'textarea'
-      ),
+      ...textField('fees', 'Fees', 'Enter fees', true),
     },
+
     {
       ...textField(
         'duration_days',
@@ -273,9 +298,32 @@ export default function CreatePlan({
       ),
     },
     {
-      ...textField('fees', 'Fees', 'Enter fees', true),
+      ...textField(
+        'description',
+        'Description',
+        'Enter plan description',
+        true,
+        'textarea'
+      ),
     },
-    // Status removed from creation form; status changes are handled via listing action
+
+    {
+      name: 'thumbnail',
+      label: 'Thumbnail',
+      id: 'thumbnail',
+      type: 'file_upload',
+      placeholder: 'Upload thumbnail',
+      required: false,
+      accept: 'image/*',
+      supportedExtensions: [
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'image/webp',
+      ],
+      acceptedFiles: 'PNG, JPG, JPEG, WEBP (Max 5 MB)',
+      fileSize: 5,
+    },
   ]
 
   // const onSubmit = (data: PlanSchema) => {
@@ -334,6 +382,38 @@ export default function CreatePlan({
             <>
               <FormProvider {...methods}>
                 <FormBuilder data={formBuilderProps} edit={true} spacing />
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-600">Yoga Included</span>
+                  <ToggleSwitch
+                    id="yoga_included"
+                    checked={methods.watch('yoga_included')}
+                    onChange={(checked) =>
+                      methods.setValue('yoga_included', checked, {
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                  <span className="text-xs text-gray-500">
+                    {methods.watch('yoga_included') ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-sm text-gray-600">
+                    Meditation Included
+                  </span>
+                  <ToggleSwitch
+                    id="meditation_included"
+                    checked={methods.watch('meditation_included')}
+                    onChange={(checked) =>
+                      methods.setValue('meditation_included', checked, {
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                  <span className="text-xs text-gray-500">
+                    {methods.watch('meditation_included') ? 'Yes' : 'No'}
+                  </span>
+                </div>
               </FormProvider>
             </>
           ) : (
@@ -363,6 +443,18 @@ export default function CreatePlan({
               <div>
                 <div className="text-sm text-gray-500">Fees</div>
                 <div className="font-medium">{rowData?.plan?.fees ?? '-'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Yoga Included</div>
+                <div className="font-medium">
+                  {rowData?.plan?.yoga_included ? 'Yes' : 'No'}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Meditation Included</div>
+                <div className="font-medium">
+                  {rowData?.plan?.meditation_included ? 'Yes' : 'No'}
+                </div>
               </div>
               <div>
                 {/* <div className="text-sm text-gray-500">Status</div> */}

@@ -63,6 +63,23 @@ export default function DetailsInfo({
             label="Subscribers"
             value={safeStr(plan?.subscribers_count)}
           />
+          {/* <DetailItem label="Yoga" value={plan?.yoga_included} /> */}
+          <div className="border rounded-lg p-3 bg-white">
+            <div className="text-xs text-gray-500 mb-1">Thumbnail</div>
+            <div className="text-sm">
+              {plan?.thumbnail_url ? (
+                <div className="w-[160px] h-[160px] overflow-hidden rounded-md border">
+                  <img
+                    className="w-full h-full object-cover"
+                    src={plan.thumbnail_url}
+                    alt="Plan thumbnail"
+                  />
+                </div>
+              ) : (
+                <span>--</span>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </>

@@ -101,18 +101,22 @@ export default function CreateRecipe({
       required: true,
     },
     {
-      name: 'description',
-      label: 'Description',
-      type: 'textarea',
-      placeholder: 'Enter description',
-      required: true,
-    },
-    {
       name: 'category',
       label: 'Category',
-      type: 'text',
-      placeholder: 'Enter category',
+      type: 'custom_select',
+      placeholder: 'Select category',
       required: true,
+      id: 'category_value',
+      desc: 'name',
+      descId: 'id',
+      data: [
+        { id: 'Breakfast', name: 'Breakfast' },
+        { id: 'Lunch', name: 'Lunch' },
+        { id: 'Dinner', name: 'Dinner' },
+        { id: 'Snack', name: 'Snack' },
+        { id: 'Dessert', name: 'Dessert' },
+        { id: 'Beverage', name: 'Beverage' },
+      ],
     },
     {
       name: 'calories',
@@ -128,6 +132,14 @@ export default function CreateRecipe({
       placeholder: 'Enter portion size',
       required: true,
     },
+    {
+      name: 'description',
+      label: 'Description',
+      type: 'textarea',
+      placeholder: 'Enter description',
+      required: true,
+    },
+
     {
       name: 'image',
       label: 'Image',
@@ -160,7 +172,7 @@ export default function CreateRecipe({
       body={
         <div className="flex flex-col gap-4">
           <FormProvider {...methods}>
-            <FormBuilder data={formFields} edit={true} />
+            <FormBuilder data={formFields} edit={true} spacing />
           </FormProvider>
         </div>
       }

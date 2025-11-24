@@ -12,7 +12,11 @@ const defaultColumnProps = {
 
 export const getColumns = ({
   onNameClick,
-}: { onNameClick?: (row: any) => void } | AdminListResponse | any) => {
+  disableNameLink = false,
+}: {
+  onNameClick?: (row: any) => void
+  disableNameLink?: boolean
+}) => {
   const createRenderCell =
     (key: string, isCustom?: string) => (row: AdminListResponse) => {
       if (isCustom === 'fullname') {
@@ -116,22 +120,31 @@ export const getColumns = ({
       field: 'name',
       renderCell: (row: any) => {
         const value = getNestedProperty(row, 'name')
+        if (!disableNameLink && onNameClick) {
+          return {
+            cell: (
+              <button
+                className="text-blue-600 hover:underline"
+                onClick={() => onNameClick && onNameClick(row)}
+                type="button"
+              >
+                {value ?? ''}
+              </button>
+            ),
+            toolTip: value ?? '',
+          }
+        }
         return {
-          cell: (
-            <button
-              className="text-blue-600 hover:underline"
-              onClick={() => onNameClick && onNameClick(row)}
-              type="button"
-            >
-              {value ?? ''}
-            </button>
-          ),
+          cell: value ?? '',
           toolTip: value ?? '',
         }
       },
       customCell: true,
-      link: true,
-      rowClick: (row: any) => onNameClick && onNameClick(row),
+      link: !disableNameLink && !!onNameClick,
+      rowClick:
+        !disableNameLink && onNameClick
+          ? (row: any) => onNameClick && onNameClick(row)
+          : undefined,
       ...defaultColumnProps,
     },
     {
@@ -148,13 +161,13 @@ export const getColumns = ({
       customCell: true,
       ...defaultColumnProps,
     },
-    // {
-    //   title: 'Average Rating',
-    //   field: 'average_rating',
-    //   renderCell: createRenderCell('average_rating'),
-    //   customCell: true,
-    //   ...defaultColumnProps,
-    // },
+    {
+      title: 'Duration(in minutes)',
+      field: 'duration_minutes',
+      renderCell: createRenderCell('duration_minutes'),
+      customCell: true,
+      ...defaultColumnProps,
+    },
     // {
     //   title: 'Video URL',
     //   field: 'video_url',

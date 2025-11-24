@@ -69,40 +69,68 @@ export default function WorkoutPlanForm({
     }
   }
 
-  const formFields = [
-    {
-      name: 'day_number',
-      label: 'Day Number',
-      type: 'text',
-      placeholder: 'Enter day number',
-      required: true,
-    },
-    {
-      name: 'title',
-      label: 'Title',
-      type: 'text',
-      placeholder: 'Enter title',
-      required: true,
-    },
-    {
-      name: 'description',
-      label: 'Description',
-      type: 'textarea',
-      placeholder: 'Enter description',
-    },
-    {
-      name: 'video',
-      label: 'Video',
-      id: 'video',
-      type: 'file_upload',
-      placeholder: 'Upload video',
-      required: false,
-      accept: 'video/*',
-      supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
-      acceptedFiles: 'MP4, MOV, AVI (Max 50 MB)',
-      fileSize: 50,
-    },
-  ]
+  const formFields = edit
+    ? [
+        {
+          name: 'day_number',
+          label: 'Day Number',
+          type: 'text',
+          placeholder: 'Enter day number',
+          required: true,
+          disabled: true,
+        },
+        {
+          name: 'title',
+          label: 'Title',
+          type: 'text',
+          placeholder: 'Enter title',
+          required: true,
+        },
+        {
+          name: 'description',
+          label: 'Description',
+          type: 'textarea',
+          placeholder: 'Enter description',
+        },
+      ]
+    : [
+        {
+          name: 'day_number',
+          label: 'Day Number',
+          type: 'text',
+          placeholder: 'Enter day number',
+          required: true,
+        },
+        {
+          name: 'title',
+          label: 'Title',
+          type: 'text',
+          placeholder: 'Enter title',
+          required: true,
+        },
+        {
+          name: 'description',
+          label: 'Description',
+          type: 'textarea',
+          placeholder: 'Enter description',
+        },
+        {
+          name: 'video',
+          label: 'Video',
+          id: 'video',
+          type: 'file_upload',
+          placeholder: 'Upload video',
+          required: false,
+          accept: 'video/*',
+          supportedExtensions: [
+            'video/mp4',
+            'video/quicktime',
+            'video/x-msvideo',
+          ],
+          acceptedFiles: 'MP4, MOV, AVI (Max 50 MB)',
+          fileSize: 50,
+        },
+      ]
 
   return (
     <DialogModal

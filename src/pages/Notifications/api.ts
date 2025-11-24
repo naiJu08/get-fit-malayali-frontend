@@ -19,11 +19,25 @@ const fetchData = async (input: QueryParams) => {
   const join = base.includes('?') ? '&' : '?'
   const url = `${base}${join}${parseQueryParams(input).replace(/^\?/, '')}`
   const response = await getData(url)
-  const items =
+  const rawItems =
     response?.notifications_overview ||
     response?.notifications ||
     response?.items ||
     []
+  const items = Array.isArray(rawItems)
+    ? rawItems.map((item) => {
+        const resolvedId =
+          item?.id ??
+          item?.notification_id ??
+          item?.notification?.id ??
+          item?.notification?.notification_id ??
+          item?.uuid ??
+          item?.notification_uuid ??
+          item?.notification?.uuid ??
+          null
+        return resolvedId ? { ...item, id: resolvedId } : item
+      })
+    : rawItems
   const meta = response?.meta || {}
   return {
     items,
@@ -71,7 +85,7 @@ export const useAdminUser = (input: QueryParams) => useSubscriptions(input)
 export const getAdminDetails = (id: string) => getSubscriptionDetails(id)
 export const deActivateAdmin = (id?: string) =>
   updateFromData(`${apiUrl.SUBSCRIPTIONS}/${id}/status`, {})
-export const deleteAdmin = (id?: string) => deleteSubscription(id)
+export const deleteAdmin = (id?: string) => deleteNotification(id)
 export const freezeUser = (
   id: string,
   payload?: { reason?: string; start_date?: string; end_date?: string }
@@ -125,6 +139,20 @@ export const useCreateNotification = (onSuccess: (res: any) => void) => {
       )
     },
   })
+}
+
+export const deleteNotification = async (id?: string) => {
+  if (!id) {
+    return Promise.reject(new Error('Notification id is required'))
+  }
+  try {
+    return await deleteData(`${apiUrl.NOTIFICATION_DETAIL}/${id}`)
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      return error?.response?.data ?? null
+    }
+    throw error
+  }
 }
 
 export const useUpdateAdmin = (handleSubmission: (data: any) => void) => {

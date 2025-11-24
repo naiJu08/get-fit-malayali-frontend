@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react'
 import SmartTable from '../../../../components/common/table/SmartTable'
 import Icons from '../../../../components/common/icons'
 import { TableColumns } from '../../../../common/types'
-import { useDietPlans } from './api'
+// import { useDietPlans } from './api'
 import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../../../utilities/parsers'
 // import ListingHeader from '../../../../components/common/ListingTiles'
 import { useNavigate, useParams } from 'react-router-dom'
-import DietPlanForm from './create'
+// import DietPlanForm from './create'
+import { useYogaPlans } from './api'
+import YogaPlanForm from './create'
 import { calcWindowHeight } from '../../../../utilities/calcHeight'
 
-export default function DietPlanIndex({
+export default function YogaPlanIndex({
   planName,
   planId,
 }: {
@@ -21,20 +23,9 @@ export default function DietPlanIndex({
   const { id: routePlanId } = useParams()
   const effectivePlanId = planId ?? routePlanId
   const [columns] = useState<TableColumns[]>([
-    // {
-    //   title: 'Plan',
-    //   field: 'plan_name',
-    //   sortable: true,
-    //   resizable: true,
-    //   isVisible: true,
-    //   customCell: true,
-    //   renderCell: (row: any) => ({ cell: row?.plan_name ?? '' }),
-    //   sortKey: 'plan_name',
-    // },
     {
       title: 'Day',
       field: 'day_number',
-      // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
@@ -42,44 +33,40 @@ export default function DietPlanIndex({
       sortKey: 'day_number',
     },
     {
-      title: 'Sequence',
-      field: 'sequence_number',
-      // sortable: true,
+      title: 'Title',
+      field: 'title',
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.sequence_number ?? '' }),
-      sortKey: 'sequence_number',
+      renderCell: (row: any) => ({ cell: row?.title ?? '' }),
+      sortKey: 'title',
     },
     {
-      title: 'Meal Time',
-      field: 'meal_time',
-      // sortable: true,
+      title: 'Description',
+      field: 'description',
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.meal_time ?? '' }),
-      sortKey: 'meal_time',
+      renderCell: (row: any) => ({ cell: row?.description ?? '' }),
+      sortKey: 'description',
     },
     {
-      title: 'Meal Name',
-      field: 'meal_name',
-      // sortable: true,
+      title: 'Exercises',
+      field: 'exercises_count',
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.meal_name ?? '' }),
-      sortKey: 'meal_name',
+      renderCell: (row: any) => ({ cell: row?.exercises_count ?? 0 }),
+      sortKey: 'exercises_count',
     },
     {
-      title: 'Calories',
-      field: 'calories',
-      // sortable: true,
+      title: 'Total Duration (min)',
+      field: 'total_duration',
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.calories ?? '' }),
-      sortKey: 'calories',
+      renderCell: (row: any) => ({ cell: row?.total_duration ?? 0 }),
+      sortKey: 'total_duration',
     },
     // {
     //   title: 'Created At',
@@ -107,7 +94,7 @@ export default function DietPlanIndex({
     plan_id: effectivePlanId,
   }
 
-  const { data, isFetching } = useDietPlans(searchParams)
+  const { data, isFetching } = useYogaPlans(searchParams)
 
   const [formOpen, setFormOpen] = useState(false)
   const [formValues, setFormValues] = useState<any | null>(null)
@@ -167,10 +154,10 @@ export default function DietPlanIndex({
         />
       </div> */}
       <SmartTable
-        data={data?.diet_plans ?? []}
+        data={data?.yoga_plans ?? []}
         dataRowKey="id"
         toolbar={true}
-        title={planName || 'Diet Plans'}
+        title={planName || 'Yoga Plans'}
         // search={true}
         searchValue={String(pageParams?.search || '')}
         onSearchChange={(val) =>
@@ -178,17 +165,17 @@ export default function DietPlanIndex({
         }
         onSearch={() => setPageParams({ ...pageParams, page: 1 })}
         columns={columns}
-        height={
-          (data?.plans?.length ?? 0) === 0
-            ? calcWindowHeight(218)
-            : calcWindowHeight(200)
-        }
         pagination={true}
         isLoading={isFetching}
         sortType={pageParams.sortType}
         sortColumn={pageParams.sortColumn}
         handleColumnSort={handleSort}
         emptyTitle="No records to display"
+        height={
+          (data?.plans?.length ?? 0) === 0
+            ? calcWindowHeight(218)
+            : calcWindowHeight(200)
+        }
         paginationProps={{
           onPagination: onChangePage,
           total: data?.meta?.total_count ?? 0,
@@ -214,7 +201,8 @@ export default function DietPlanIndex({
         actionProps={[
           {
             icon: <Icons name="eye" />,
-            action: (row: any) => navigate(`/diet_details/${row?.id}`),
+            action: (row: any) =>
+              navigate(`/plans/${row?.plan_id}/yoga_details/${row?.id}`),
             title: 'view',
             toolTip: 'View',
           },
@@ -226,7 +214,8 @@ export default function DietPlanIndex({
           },
         ]}
       />
-      <DietPlanForm
+
+      <YogaPlanForm
         isOpen={formOpen}
         handleClose={handleClose}
         edit={true}

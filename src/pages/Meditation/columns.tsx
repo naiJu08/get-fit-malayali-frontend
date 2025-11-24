@@ -12,7 +12,14 @@ const defaultColumnProps = {
 
 export const getColumns = ({
   onNameClick,
-}: { onNameClick?: (row: any) => void } | AdminListResponse | any) => {
+  disableNameLink = false,
+}:
+  | {
+      onNameClick?: (row: any) => void
+      disableNameLink?: boolean
+    }
+  | AdminListResponse
+  | any) => {
   const createRenderCell =
     (key: string, isCustom?: string) => (row: AdminListResponse) => {
       if (isCustom === 'fullname') {
@@ -116,22 +123,33 @@ export const getColumns = ({
       field: 'title',
       renderCell: (row: any) => {
         const value = getNestedProperty(row, 'title')
+        if (!disableNameLink && onNameClick) {
+          return {
+            cell: (
+              <button
+                className="text-blue-600 hover:underline"
+                onClick={() => onNameClick && onNameClick(row)}
+                type="button"
+              >
+                {value ?? ''}
+              </button>
+            ),
+            toolTip: value ?? '',
+          }
+        }
         return {
-          cell: (
-            <button
-              className="text-blue-600 hover:underline"
-              onClick={() => onNameClick && onNameClick(row)}
-              type="button"
-            >
-              {value ?? ''}
-            </button>
-          ),
+          cell: <span>{value ?? ''}</span>,
           toolTip: value ?? '',
         }
       },
       customCell: true,
       link: true,
-      rowClick: (row: any) => onNameClick && onNameClick(row),
+      // rowClick: (row: any) => onNameClick && onNameClick(row),
+      // ...defaultColumnProps,
+      rowClick:
+        !disableNameLink && onNameClick
+          ? (row: any) => onNameClick && onNameClick(row)
+          : undefined,
       ...defaultColumnProps,
     },
     {
@@ -155,13 +173,13 @@ export const getColumns = ({
     //   customCell: true,
     //   ...defaultColumnProps,
     // },
-    {
-      title: 'Video URL',
-      field: 'video_url',
-      renderCell: createRenderCell('video_url', 'link'),
-      customCell: true,
-      ...defaultColumnProps,
-    },
+    // {
+    //   title: 'Video URL',
+    //   field: 'video_url',
+    //   renderCell: createRenderCell('video_url', 'link'),
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
   ]
 
   return column

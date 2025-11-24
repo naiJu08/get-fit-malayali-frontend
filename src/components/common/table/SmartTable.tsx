@@ -48,6 +48,7 @@ type SmartTableProps = {
   onSearch?: (val?: string) => void
   externalActions?: boolean
   toolbarExtra?: React.ReactNode
+  searchPlaceholder?: string
 }
 
 const SmartTable: React.FC<SmartTableProps> = ({
@@ -73,6 +74,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
   onSearch,
   externalActions = false,
   toolbarExtra,
+  searchPlaceholder,
 }) => {
   const [visibleColumns, setVisibleColumns] = useState<TableColumns[]>(columns)
   const [showColumnMenu, setShowColumnMenu] = useState(false)
@@ -334,7 +336,8 @@ const SmartTable: React.FC<SmartTableProps> = ({
                 <div className="relative">
                   <input
                     className="pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl w-80 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm"
-                    placeholder="Search records..."
+                    // placeholder="Search records..."
+                    placeholder={searchPlaceholder}
                     value={searchValue || ''}
                     onChange={(e) =>
                       onSearchChange && onSearchChange(e.target.value)
@@ -555,7 +558,9 @@ const SmartTable: React.FC<SmartTableProps> = ({
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-medium text-gray-700 mr-2">
               Actions for:{' '}
-              <strong className="text-blue-600">{selectedRowKey}</strong>
+              <strong className="text-blue-600">
+                {title ?? selectedRowKey}
+              </strong>
             </span>
             <div className="flex flex-wrap gap-2">
               {actionProps.map((a, i) => {

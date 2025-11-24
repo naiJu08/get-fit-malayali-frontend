@@ -8,15 +8,25 @@ import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { checkPermissions } from '../../layout/store'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
+import { useAuthStore } from '../../store/authStore'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
 import { handleReturnEmptyMsg } from '../../utilities/validation'
-import { getWorkoutDetails, useWorkoutList, DISABLE_NONLOGIN_APIS } from './api'
+import { useSnackbarManager } from '../../components/common/snackbar'
+import {
+  getWorkoutDetails,
+  useWorkoutList,
+  DISABLE_NONLOGIN_APIS,
+  deleteWorkout,
+} from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
 
 export default function WorkoutMain() {
   const navigate = useNavigate()
+  const { enqueueSnackbar } = useSnackbarManager()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
   const [columns, setColumns] = useState<TableColumns[]>([])
   const [createOpen, setCreateOpen] = useState(false)
   const [viewMode, setViewMode] = useState(false)
@@ -79,14 +89,30 @@ export default function WorkoutMain() {
       setCreateOpen(true)
     }
   }
+
+  const handleDelete = async (rowData: any) => {
+    if (!rowData?.id) return
+    try {
+      await deleteWorkout(String(rowData.id))
+      enqueueSnackbar('Workout deleted successfully', { variant: 'success' })
+      refetch()
+    } catch (err: any) {
+      enqueueSnackbar(
+        err?.response?.data?.message || 'Failed to delete workout',
+        { variant: 'error' }
+      )
+    }
+  }
   useEffect(() => {
     setColumns(
       getColumns({
-        onViewAction: onViewAction,
-        onNameClick: (row: any) => navigate(`/workout/${row?.id}`),
+        onNameClick: !isNutritionist
+          ? (row: any) => navigate(`/workout/${row?.id}`)
+          : undefined,
+        disableNameLink: isNutritionist,
       })
     )
-  }, [])
+  }, [isNutritionist])
 
   // const handleSeach = (key?: string) => {
   //   setPageParams({
@@ -125,6 +151,7 @@ export default function WorkoutMain() {
     icon: 'workout',
   }
   const openDrawer = () => {
+    if (isNutritionist) return
     setCreateOpen(true)
     setRowData({})
   }
@@ -160,9 +187,11 @@ export default function WorkoutMain() {
         <>
           <ListingHeader
             data={basicData}
-            onActionClick={openDrawer}
-            actionProps={headerProps}
-            checkPermission={checkPermissions('Employee', 'create')}
+            onActionClick={!isNutritionist ? openDrawer : undefined}
+            actionProps={!isNutritionist ? headerProps : undefined}
+            checkPermission={
+              !isNutritionist && checkPermissions('Employee', 'create')
+            }
           />
           <div className=" p-4">
             <SmartTable
@@ -191,9 +220,10 @@ export default function WorkoutMain() {
               height={
                 (data?.workouts?.length ?? 0) === 0
                   ? calcWindowHeight(218)
-                  : calcWindowHeight(300)
+                  : calcWindowHeight(150)
               }
               search={true}
+              searchPlaceholder="Search Workout Name"
               searchValue={pageParams?.search || ''}
               onSearchChange={(val) => {
                 setPageParams({ ...pageParams, search: val, page: 1 })
@@ -228,21 +258,30 @@ export default function WorkoutMain() {
                 ),
                 dropOptions: [10, 20, 30, 50, 100],
               }}
-              actionProps={[
-                {
-                  icon: <Icons name="eye" />,
-                  action: (row) => navigate(`/workout/${row?.id}`),
-                  title: 'view',
-                  toolTip: 'View Details',
-                },
-
-                {
-                  icon: <Icons name="edit" />,
-                  action: (row) => handleEdit(row),
-                  title: 'edit',
-                  toolTip: 'Edit',
-                },
-              ]}
+              actionProps={
+                isNutritionist
+                  ? []
+                  : [
+                      {
+                        icon: <Icons name="eye" />,
+                        action: (row) => navigate(`/workout/${row?.id}`),
+                        title: 'view',
+                        toolTip: 'View Details',
+                      },
+                      {
+                        icon: <Icons name="edit" />,
+                        action: (row) => handleEdit(row),
+                        title: 'edit',
+                        toolTip: 'Edit',
+                      },
+                      {
+                        icon: <Icons name="delete" />,
+                        action: (row) => handleDelete(row),
+                        title: 'delete',
+                        toolTip: 'Delete',
+                      },
+                    ]
+              }
               columnToggle
               externalActions={true}
             />

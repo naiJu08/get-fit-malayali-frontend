@@ -7,6 +7,7 @@ import InfoBox from '../../components/app/alertBox/infoBox'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { checkPermissions } from '../../layout/store'
+import { useAuthStore } from '../../store/authStore'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
@@ -34,6 +35,8 @@ export default function MeditationMain() {
   const [deleteMeditationModal, setDeleteMeditationModal] = useState(false)
   const [deleteMeditationId, setDeleteMeditationId] = useState<string>('')
   const [loader, setLoader] = useState(false)
+  const { roleData } = useAuthStore()
+  const isNutritionist = roleData?.name === 'nutritionist'
   const params = useParams()
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
@@ -91,10 +94,13 @@ export default function MeditationMain() {
     setColumns(
       getColumns({
         onViewAction: onViewAction,
-        onNameClick: (row: any) => navigate(`/meditation/${row?.id}`),
+        onNameClick: !isNutritionist
+          ? (row: any) => navigate(`/meditation/${row?.id}`)
+          : undefined,
       })
     )
-  }, [])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNutritionist])
 
   // const handleSeach = (key?: string) => {
   //   setPageParams({
@@ -160,6 +166,45 @@ export default function MeditationMain() {
     })
   }
 
+  // const intensityOptions = useMemo(() => ['Moderate', 'High', 'Low'], [])
+
+  // const currentIntensity = (filters as any)?.intensity_level || ''
+  // const onIntensityChange = (val: string) => {
+  //   const newFilters = { ...(filters || {}) }
+  //   if (val) newFilters.intensity_level = val
+  //   else delete (newFilters as any).intensity_level
+  //   setPageParams({ ...pageParams, filters: newFilters, page: 1 })
+  // }
+
+  const actions: any[] = []
+
+  if (!isNutritionist) {
+    actions.push(
+      {
+        icon: <Icons name="eye" />,
+        action: (row: any) => navigate(`/meditation/${row?.id}`),
+        title: 'view',
+        toolTip: 'View Details',
+      },
+      {
+        icon: <Icons name="edit" />,
+        action: (row: any) => handleEdit(row),
+        title: 'edit',
+        toolTip: 'Edit',
+      },
+      {
+        icon: <Icons name="table-delete" />,
+        action: (row: any) => {
+          if (!row?.id) return
+          setDeleteMeditationId(String(row.id))
+          setDeleteMeditationModal(true)
+        },
+        title: 'delete',
+        toolTip: 'Delete',
+      }
+    )
+  }
+
   return (
     <div>
       {DISABLE_NONLOGIN_APIS ? (
@@ -170,9 +215,11 @@ export default function MeditationMain() {
         <>
           <ListingHeader
             data={basicData}
-            onActionClick={openDrawer}
+            onActionClick={isNutritionist ? undefined : openDrawer}
             actionProps={headerProps}
-            checkPermission={checkPermissions('Employee', 'create')}
+            checkPermission={
+              !isNutritionist && checkPermissions('Employee', 'create')
+            }
           />
           <div className=" p-4">
             <SmartTable
@@ -186,6 +233,7 @@ export default function MeditationMain() {
                   : calcWindowHeight(150)
               }
               search={true}
+              searchPlaceholder="Search Title"
               searchValue={pageParams?.search || ''}
               onSearchChange={(val) => {
                 setPageParams({ ...pageParams, search: val, page: 1 })
@@ -220,31 +268,7 @@ export default function MeditationMain() {
                 ),
                 dropOptions: [10, 20, 30, 50, 100],
               }}
-              actionProps={[
-                {
-                  icon: <Icons name="eye" />,
-                  action: (row) => navigate(`/meditation/${row?.id}`),
-                  title: 'view',
-                  toolTip: 'View Details',
-                },
-
-                {
-                  icon: <Icons name="edit" />,
-                  action: (row) => handleEdit(row),
-                  title: 'edit',
-                  toolTip: 'Edit',
-                },
-                {
-                  icon: <Icons name="table-delete" />,
-                  action: (row) => {
-                    if (!row?.id) return
-                    setDeleteMeditationId(String(row.id))
-                    setDeleteMeditationModal(true)
-                  },
-                  title: 'delete',
-                  toolTip: 'Delete',
-                },
-              ]}
+              actionProps={actions}
               columnToggle
               externalActions={true}
             />

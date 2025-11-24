@@ -135,6 +135,9 @@ export const planFormSchema = z.object({
   fees: z.coerce
     .number({ invalid_type_error: 'Fees must be a number' })
     .min(0, 'Fees cannot be negative'),
+  yoga_included: z.boolean().default(false),
+  meditation_included: z.boolean().default(false),
+  thumbnail: z.any().optional(),
 })
 
 export type PlanSchema = z.infer<typeof planFormSchema>
