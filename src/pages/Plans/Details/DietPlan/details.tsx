@@ -126,25 +126,23 @@ export default function DietPlanDetails() {
                     </div>
                     <div className="grid grid-cols-2 gap-2 text-xs">
                       <div>
-                        <div className="text-gray-500">
-                          Per serving calories
-                        </div>
+                        <div className="text-gray-500">Total Calories</div>
                         <div>{safeStr(it?.per_serving?.calories)}</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">Per serving protein</div>
+                        <div className="text-gray-500">Protein</div>
                         <div>{safeStr(it?.per_serving?.protein)}</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">Per serving carbs</div>
+                        <div className="text-gray-500">Carbs</div>
                         <div>{safeStr(it?.per_serving?.carbs)}</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">Per serving fat</div>
+                        <div className="text-gray-500">Fat</div>
                         <div>{safeStr(it?.per_serving?.fat)}</div>
                       </div>
                       <div>
-                        <div className="text-gray-500">Per serving fiber</div>
+                        <div className="text-gray-500">Fiber</div>
                         <div>{safeStr(it?.per_serving?.fiber)}</div>
                       </div>
                     </div>

@@ -1,11 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { FormProvider, useForm, useFieldArray } from 'react-hook-form'
+import {
+  FormProvider,
+  useForm,
+  useFieldArray,
+  Controller,
+} from 'react-hook-form'
 import { dietPlanFormSchema, DietPlanSchema } from './schema'
-import { DialogModal } from '../../../../../components/common'
+import { DialogModal, TextField } from '../../../../../components/common'
 import FormBuilder from '../../../../../components/app/formBuilder'
 import { useCreateDietPlan, useUpdateDietPlan } from '../api'
 import { useEffect } from 'react'
 import { useMeals } from '../../../../Meals/api'
+import { AutoComplete } from 'qbs-core'
 
 type Props = {
   isOpen: boolean
@@ -41,7 +47,7 @@ export default function DietPlanForm({
     },
   })
 
-  const { handleSubmit, reset, watch, setValue, control, register } = methods
+  const { handleSubmit, reset, watch, setValue, control } = methods
   const { mutate: createMutate, isLoading: creating } = useCreateDietPlan()
   const { mutate: updateMutate, isLoading: updating } = useUpdateDietPlan()
 
@@ -49,6 +55,7 @@ export default function DietPlanForm({
     fields: mealFields,
     append: appendMeal,
     remove: removeMeal,
+    replace: replaceMeals,
   } = useFieldArray({
     control,
     name: 'meals',
@@ -103,16 +110,16 @@ export default function DietPlanForm({
     return sum + perServingTotal * count
   }, 0)
 
-  const mealNameOptions = filteredMeals.map((m: any) => ({
-    id: m.id,
-    name: m.name,
-    value: m.name,
-    total_calories: m.total_calories ?? m.calories ?? 0,
-    protein: m.calories_breakdown?.protein ?? 0,
-    carbs: m.calories_breakdown?.carbs ?? 0,
-    fat: m.calories_breakdown?.fat ?? 0,
-    fiber: m.calories_breakdown?.fiber ?? 0,
-  }))
+  // const mealNameOptions = filteredMeals.map((m: any) => ({
+  //   id: m.id,
+  //   name: m.name,
+  //   value: m.name,
+  //   total_calories: m.total_calories ?? m.calories ?? 0,
+  //   protein: m.calories_breakdown?.protein ?? 0,
+  //   carbs: m.calories_breakdown?.carbs ?? 0,
+  //   fat: m.calories_breakdown?.fat ?? 0,
+  //   fiber: m.calories_breakdown?.fiber ?? 0,
+  // }))
 
   // const selectedMealName = watch('meal_name')
   // const selectedMeal = mealNameOptions.find(
@@ -120,41 +127,71 @@ export default function DietPlanForm({
   // )
 
   useEffect(() => {
-    if (isOpen) {
-      reset({
-        plan_id: Number(planId ?? rowData?.plan_id ?? 0),
-        day_number: Number(rowData?.day_number ?? 1),
-        sequence_number: Number(rowData?.sequence_number ?? 1),
-        meal_time: rowData?.meal_time ?? '',
-        meal_name: rowData?.meal_name ?? '',
-        protein: (rowData as any)?.protein ?? '',
-        carbs: (rowData as any)?.carbs ?? '',
-        fat: (rowData as any)?.fat ?? '',
-        fiber: (rowData as any)?.fiber ?? '',
-        total_calories: (rowData as any)?.total_calories ?? '',
-        calories: rowData?.calories ?? '',
-      })
+    if (!isOpen) return
 
-      // Ensure at least one meal section is visible when the dialog opens
-      if (!rowData?.meals || (rowData as any)?.meals?.length === 0) {
-        appendMeal({
-          meal_id: 0,
-          count: 1,
-          protein: '',
-          carbs: '',
-          fat: '',
-          fiber: '',
-          total_calories: '',
-        })
-      }
+    // Map existing items (edit mode) into meals array so the section is prefilled
+    const items = Array.isArray(rowData?.items) ? rowData.items : []
+    const mappedMeals =
+      items.length > 0
+        ? items.map((it: any) => ({
+            meal_id: it.meal_id ?? 0,
+            count: it.quantity ?? 1,
+            protein: '',
+            carbs: '',
+            fat: '',
+            fiber: '',
+            total_calories: '',
+          }))
+        : []
+
+    reset({
+      plan_id: Number(planId ?? rowData?.plan_id ?? 0),
+      day_number: Number(rowData?.day_number ?? 1),
+      sequence_number: Number(rowData?.sequence_number ?? 1),
+      meal_time: rowData?.meal_time ?? '',
+      meal_name: rowData?.meal_name ?? '',
+      protein: (rowData as any)?.protein ?? '',
+      carbs: (rowData as any)?.carbs ?? '',
+      fat: (rowData as any)?.fat ?? '',
+      fiber: (rowData as any)?.fiber ?? '',
+      total_calories: (rowData as any)?.total_calories ?? '',
+      calories: rowData?.calories ?? '',
+      meals:
+        mappedMeals.length > 0
+          ? mappedMeals
+          : [
+              {
+                meal_id: 0,
+                count: 1,
+                protein: '',
+                carbs: '',
+                fat: '',
+                fiber: '',
+                total_calories: '',
+              },
+            ],
+    } as any)
+
+    if (mappedMeals.length > 0) {
+      replaceMeals(mappedMeals)
+    } else if (mealFields.length === 0) {
+      appendMeal({
+        meal_id: 0,
+        count: 1,
+        protein: '',
+        carbs: '',
+        fat: '',
+        fiber: '',
+        total_calories: '',
+      })
     }
-  }, [isOpen, planId, rowData, reset, appendMeal])
+  }, [isOpen, planId, rowData, reset, appendMeal, replaceMeals])
 
   const onSubmit = (values: DietPlanSchema) => {
     const itemsPayload = (values.meals || [])
-      .filter((m: any) => m.meal_id && m.count)
+      .filter((m: any) => typeof m.meal_id === 'number' && m.meal_id && m.count)
       .map((m: any) => ({
-        meal_id: Number(m.meal_id),
+        meal_id: m.meal_id as number,
         quantity: Number(m.count),
       }))
 
@@ -222,132 +259,7 @@ export default function DietPlanForm({
       data: mealTimeOptions,
       required: true,
     },
-    {
-      name: 'meal_name',
-      label: 'Meal Name',
-      type: 'custom_search_select',
-      desc: 'name',
-      descId: 'id',
-      id: 'meal_id',
-      placeholder: 'Select meal',
-      data: mealNameOptions,
-      initialLoad: rowData?.meal_name ?? '',
-      required: false,
-    },
-    // {
-    //   name: 'protein',
-    //   label: 'Protein',
-    //   type: 'text',
-    //   required: true,
-    //   disabled: true,
-    // },
-    // {
-    //   name: 'carbs',
-    //   label: 'Carbs',
-    //   type: 'text',
-    //   required: true,
-    //   disabled: true,
-    // },
-    // {
-    //   name: 'fat',
-    //   label: 'Fat',
-    //   type: 'text',
-    //   required: true,
-    //   disabled: true,
-    // },
-    // {
-    //   name: 'fiber',
-    //   label: 'Fiber',
-    //   type: 'text',
-    //   required: true,
-    //   disabled: true,
-    // },
-    // {
-    //   name: 'total_calories',
-    //   label: 'Total Calories',
-    //   type: 'text',
-    //   required: true,
-    //   disabled: true,
-    // },
-    // {
-    //   name: 'calories',
-    //   label: 'Calories',
-    //   type: 'text',
-    //   placeholder: 'Enter calories',
-    // },
   ]
-  // const formFields1 = [
-  //       {
-  //       name: 'meal_name',
-  //       label: 'Meal Name',
-  //       ...(edit
-  //         ? {
-  //           // Single-select meal name in edit mode
-  //           type: 'custom_search_select',
-  //           desc: 'name',
-  //           descId: 'id',
-  //           id: 'meal_id',
-  //           placeholder: 'Select meal',
-  //           data: mealNameOptions,
-  //           initialLoad: rowData?.meal_name ?? '',
-  //           handleCallBack: (selected: any) => {
-  //             if (selected && typeof selected.total_calories !== 'undefined') {
-  //               setValue('calories', selected.total_calories ?? '', {
-  //                 shouldValidate: true,
-  //               })
-  //               setValue('protein', selected.protein ?? '', {
-  //                 shouldValidate: true,
-  //               })
-  //               setValue('carbs', selected.carbs ?? '', {
-  //                 shouldValidate: true,
-  //               })
-  //               setValue('fat', selected.fat ?? '', {
-  //                 shouldValidate: true,
-  //               })
-  //               setValue('fiber', selected.fiber ?? '', {
-  //                 shouldValidate: true,
-  //               })
-  //               setValue('total_calories', selected.total_calories ?? '', {
-  //                 shouldValidate: true,
-  //               })
-  //             }
-  //           },
-  //         }
-  //         : {
-  //           type: 'text',
-  //           placeholder: 'Enter meal name',
-  //         }),
-  //     },
-  //     {
-  //       name: 'protein',
-  //       label: 'Protein',
-  //       type: 'text',
-  //       required: true,
-  //       disabled: true,
-  //     },
-  //     {
-  //       name: 'carbs',
-  //       label: 'Carbs',
-  //       type: 'text',
-  //       required: true,
-  //       disabled: true,
-  //     },
-  //     {
-  //       name: 'fat',
-  //       label: 'Fat',
-  //       type: 'text',
-  //       required: true,
-  //       disabled: true,
-  //     },
-  //     {
-  //       name: 'fiber',
-  //       label: 'Fiber',
-  //        type: 'text',
-  //        required: true,
-  //        disabled: true,
-  //      },
-
-  // ]
   return (
     <DialogModal
       isOpen={isOpen}
@@ -400,153 +312,104 @@ export default function DietPlanForm({
                         <label className="block text-[10px] font-medium mb-1">
                           Meal Name
                         </label>
-                        {/* <select
-                          className="w-full border rounded-sm px-3 py-2 text-sm "
-                          value={selectedId ?? ''}
-                          onChange={(e) => {
-                            // const mealId = Number(e.target.value)
-                            // const meal = filteredMeals.find(
-                            //   (m: any) => String(m.meal_id) === String(mealId)
-                            // )
-                            // setValue(
-                            //   `meals.${index}.meal_id` as const,
-                            //   mealId,
-                            //   { shouldValidate: true }
-                            // )
-                            // if (meal) {
-                            //   const totalCalories =
-                            //     meal.total_calories ?? meal.calories ?? 0
-                            //   const protein =
-                            //     meal.calories_breakdown?.protein ?? 0
-                            //   const carbs =
-                            //     meal.calories_breakdown?.carbs ?? 0
-                            //   const fat =
-                            //     meal.calories_breakdown?.fat ?? 0
-                            //   const fiber =
-                            //     meal.calories_breakdown?.fiber ?? 0
-
-                            //   setValue(
-                            //     `meals.${index}.protein` as const,
-                            //     protein,
-                            //     { shouldValidate: false }
-                            //   )
-                            //   setValue(
-                            //     `meals.${index}.carbs` as const,
-                            //     carbs,
-                            //     { shouldValidate: false }
-                            //   )
-                            //   setValue(
-                            //     `meals.${index}.fat` as const,
-                            //     fat,
-                            //     { shouldValidate: false }
-                            //   )
-                            //   setValue(
-                            //     `meals.${index}.fiber` as const,
-                            //     fiber,
-                            //     { shouldValidate: false }
-                            //   )
-                            //   setValue(
-                            //     `meals.${index}.total_calories` as const,
-                            //     totalCalories,
-                            //     { shouldValidate: false }
-                            //   )
-                            // }
-                            const mealId = Number(e.target.value)
-                            // const meal = filteredMeals.find((m: any) => m.id === mealId)
-
-                            setValue(`meals.${index}.meal_id` as const, mealId, { shouldValidate: true })
-                          }}
-                        >
-                          <option value="">Select meal</option>
-                          {filteredMeals.map((m: any) => (
-                            <option key={m.id} value={m.id}>
-                              {m.name}
-                            </option>
-                          ))}
-                        </select> */}
-                        <select
-                          className="w-full border rounded-sm px-3 py-2 text-sm "
-                          value={selectedId ?? ''}
-                          onChange={(e) => {
-                            const mealId = Number(e.target.value)
-
+                        <AutoComplete
+                          name={`meals.${index}.meal_id`}
+                          type="custom_search_select"
+                          desc="name"
+                          descId="id"
+                          placeholder="Select meal"
+                          data={filteredMeals}
+                          // show meal NAME in the input, while storing numeric id in form state
+                          value={selectedMeal ? selectedMeal.name : ''}
+                          className="w-full"
+                          onChange={(option: any) => {
+                            const mealId = option?.id ?? option?.value ?? ''
                             setValue(
                               `meals.${index}.meal_id` as const,
-                              mealId,
-                              {
-                                shouldValidate: true,
-                              }
+                              mealId === '' ? '' : mealId,
+                              { shouldValidate: true }
                             )
-
-                            // Call the API again if you really need to
                             refetchMeals()
                           }}
-                        >
-                          <option value="">Select meal</option>
-                          {filteredMeals.map((m: any) => (
-                            <option key={m.id} value={m.id}>
-                              {m.name}
-                            </option>
-                          ))}
-                        </select>
+                        />
                       </div>
 
                       <div>
                         <label className="block text-[10px] font-medium mb-1">
                           Intake quantity
                         </label>
-                        <input
-                          type="number"
-                          className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
-                          min={1}
-                          {...register(`meals.${index}.count` as const)}
+                        <Controller
+                          name={`meals.${index}.count` as const}
+                          control={control}
+                          render={({ field: { onChange, value } }) => (
+                            <TextField
+                              id={`meals.${index}.count`}
+                              name={`meals.${index}.count`}
+                              type="text"
+                              label={undefined} // label already above
+                              placeholder=""
+                              value={
+                                value !== undefined && value !== null
+                                  ? String(value)
+                                  : '1'
+                              }
+                              onChange={(e: any) => {
+                                const v = e.target.value
+                                // store as number in RHF, but pass as string to TextField
+                                onChange(v === '' ? '' : Number(v))
+                              }}
+                              allowPositiveOnly
+                              // optional: disabled / readOnly if you want it non-editable
+                              // disabled={true}
+                            />
+                          )}
                         />
-                        {/* <input
-                          type="text"
-                          className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
-                          value={
-                            selectedMeal
-                              ? (selectedMeal.total_calories ?? selectedMeal.calories ?? 0) * intakeQty
-                              : ''
-                          }
-                          readOnly
-                        /> */}
                       </div>
 
                       <div>
                         <label className="block text-[10px] font-medium mb-1">
-                          Calories
+                          Total Calorie
                         </label>
-                        <input
+                        <TextField
+                          id={`meals.${index}.total_calories`}
+                          name={`meals.${index}.total_calories`}
                           type="text"
-                          className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
-                          value={(() => {
-                            if (!selectedMeal) return ''
-
-                            const p = Number(
-                              selectedMeal?.per_serving?.protein ??
-                                selectedMeal?.calories_breakdown?.protein ??
-                                0
-                            )
-                            const c = Number(
-                              selectedMeal?.per_serving?.carbs ??
-                                selectedMeal?.calories_breakdown?.carbs ??
-                                0
-                            )
-                            const f = Number(
-                              selectedMeal?.per_serving?.fat ??
-                                selectedMeal?.calories_breakdown?.fat ??
-                                0
-                            )
-                            const fi = Number(
-                              selectedMeal?.per_serving?.fiber ??
-                                selectedMeal?.calories_breakdown?.fiber ??
-                                0
-                            )
-                            const perServingTotal = p + c + f + fi
-                            return perServingTotal * intakeQty
-                          })()}
-                          readOnly
+                          label={undefined}
+                          placeholder=""
+                          value={
+                            !selectedMeal
+                              ? ''
+                              : String(
+                                  (() => {
+                                    const p = Number(
+                                      selectedMeal?.per_serving?.protein ??
+                                        selectedMeal?.calories_breakdown
+                                          ?.protein ??
+                                        0
+                                    )
+                                    const c = Number(
+                                      selectedMeal?.per_serving?.carbs ??
+                                        selectedMeal?.calories_breakdown
+                                          ?.carbs ??
+                                        0
+                                    )
+                                    const f = Number(
+                                      selectedMeal?.per_serving?.fat ??
+                                        selectedMeal?.calories_breakdown?.fat ??
+                                        0
+                                    )
+                                    const fi = Number(
+                                      selectedMeal?.per_serving?.fiber ??
+                                        selectedMeal?.calories_breakdown
+                                          ?.fiber ??
+                                        0
+                                    )
+                                    const perServingTotal = p + c + f + fi
+                                    return perServingTotal * intakeQty
+                                  })()
+                                )
+                          }
+                          disabled
                         />
                       </div>
                     </div>
@@ -560,22 +423,31 @@ export default function DietPlanForm({
                           type="text"
                           className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
                           value={
-                            (selectedMeal?.calories_breakdown?.protein ?? '') as any
-                          }
-                          readOnly
-                        /> */}
-                        <input
-                          type="text"
-                          className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
-                          value={
                             selectedMeal
                               ? (selectedMeal?.per_serving?.protein ??
-                                  selectedMeal?.calories_breakdown?.protein ??
-                                  0) * intakeQty
+                                selectedMeal?.calories_breakdown?.protein ??
+                                0) * intakeQty
                               : ''
                           }
                           readOnly
-                        />
+                        /> */}
+                        <TextField
+                          id={`meals.${index}.protein`}
+                          name={`meals.${index}.protein`}
+                          type="text"
+                          label={undefined}
+                          placeholder=""
+                          value={
+                            selectedMeal
+                              ? String(
+                                  (selectedMeal?.per_serving?.protein ??
+                                    selectedMeal?.calories_breakdown?.protein ??
+                                    0) * intakeQty
+                                )
+                              : ''
+                          }
+                          disabled
+                        />{' '}
                       </div>
                       <div>
                         <label className="block text-[10px] font-medium mb-1">
@@ -583,23 +455,32 @@ export default function DietPlanForm({
                         </label>
                         {/* <input
                           type="text"
-                          className="w-full border rounded px-3 py-2 text-sm bg-gray-100"
-                          value={
-                            (selectedMeal?.calories_breakdown?.carbs ?? '') as any
-                          }
-                          readOnly
-                        /> */}
-                        <input
-                          type="text"
                           className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
                           value={
                             selectedMeal
                               ? (selectedMeal?.per_serving?.carbs ??
-                                  selectedMeal?.calories_breakdown?.carbs ??
-                                  0) * intakeQty
+                                selectedMeal?.calories_breakdown?.carbs ??
+                                0) * intakeQty
                               : ''
                           }
                           readOnly
+                        /> */}
+                        <TextField
+                          id={`meals.${index}.carbs`}
+                          name={`meals.${index}.carbs`}
+                          type="text"
+                          label={undefined}
+                          placeholder=""
+                          value={
+                            selectedMeal
+                              ? String(
+                                  (selectedMeal?.per_serving?.carbs ??
+                                    selectedMeal?.calories_breakdown?.carbs ??
+                                    0) * intakeQty
+                                )
+                              : ''
+                          }
+                          disabled
                         />
                       </div>
                       <div>
@@ -608,23 +489,32 @@ export default function DietPlanForm({
                         </label>
                         {/* <input
                           type="text"
-                          className="w-full border rounded px-3 py-2 text-sm bg-gray-100"
-                          value={
-                            (selectedMeal?.calories_breakdown?.fat ?? '') as any
-                          }
-                          readOnly
-                        /> */}
-                        <input
-                          type="text"
                           className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
                           value={
                             selectedMeal
                               ? (selectedMeal?.per_serving?.fat ??
-                                  selectedMeal?.calories_breakdown?.fat ??
-                                  0) * intakeQty
+                                selectedMeal?.calories_breakdown?.fat ??
+                                0) * intakeQty
                               : ''
                           }
                           readOnly
+                        /> */}
+                        <TextField
+                          id={`meals.${index}.fat`}
+                          name={`meals.${index}.fat`}
+                          type="text"
+                          label={undefined}
+                          placeholder=""
+                          value={
+                            selectedMeal
+                              ? String(
+                                  (selectedMeal?.per_serving?.fat ??
+                                    selectedMeal?.calories_breakdown?.fat ??
+                                    0) * intakeQty
+                                )
+                              : ''
+                          }
+                          disabled
                         />
                       </div>
                       <div>
@@ -633,23 +523,32 @@ export default function DietPlanForm({
                         </label>
                         {/* <input
                           type="text"
-                          className="w-full border rounded px-3 py-2 text-sm bg-gray-100"
-                          value={
-                            (selectedMeal?.calories_breakdown?.fiber ?? '') as any
-                          }
-                          readOnly
-                        /> */}
-                        <input
-                          type="text"
                           className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
                           value={
                             selectedMeal
                               ? (selectedMeal?.per_serving?.fiber ??
-                                  selectedMeal?.calories_breakdown?.fiber ??
-                                  0) * intakeQty
+                                selectedMeal?.calories_breakdown?.fiber ??
+                                0) * intakeQty
                               : ''
                           }
                           readOnly
+                        /> */}
+                        <TextField
+                          id={`meals.${index}.fiber`}
+                          name={`meals.${index}.fiber`}
+                          type="text"
+                          label={undefined}
+                          placeholder=""
+                          value={
+                            selectedMeal
+                              ? String(
+                                  (selectedMeal?.per_serving?.fiber ??
+                                    selectedMeal?.calories_breakdown?.fiber ??
+                                    0) * intakeQty
+                                )
+                              : ''
+                          }
+                          disabled
                         />
                       </div>
                     </div>
@@ -663,7 +562,7 @@ export default function DietPlanForm({
                 </span>
                 <button
                   type="button"
-                  className="text-xs text-primary-500 underline"
+                  className="inline-flex items-center justify-center rounded-full bg-blue-500 px-2.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                   onClick={() =>
                     appendMeal({
                       meal_id: 0,
@@ -675,8 +574,9 @@ export default function DietPlanForm({
                       total_calories: '',
                     })
                   }
+                  aria-label="Add meal row"
                 >
-                  Add more
+                  +
                 </button>
               </div>
             </div>

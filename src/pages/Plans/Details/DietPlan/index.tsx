@@ -5,10 +5,11 @@ import { TableColumns } from '../../../../common/types'
 import { useDietPlans } from './api'
 import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../../../utilities/parsers'
-// import ListingHeader from '../../../../components/common/ListingTiles'
+import ListingHeader from '../../../../components/common/ListingTiles'
 import { useNavigate, useParams } from 'react-router-dom'
 import DietPlanForm from './create'
 import { calcWindowHeight } from '../../../../utilities/calcHeight'
+import { checkPermissions } from '../../../../layout/store'
 
 export default function DietPlanIndex({
   planName,
@@ -125,7 +126,23 @@ export default function DietPlanIndex({
 
   const [formOpen, setFormOpen] = useState(false)
   const [formValues, setFormValues] = useState<any | null>(null)
+  const [editMode, setEditMode] = useState(false)
+
+  const openCreate = () => {
+    setEditMode(false)
+    setFormValues({
+      plan_id: effectivePlanId,
+      day_number: 1,
+      sequence_number: 1,
+      meal_time: '',
+      meal_name: '',
+      calories: '',
+    })
+    setFormOpen(true)
+  }
+
   const openEdit = (row: any) => {
+    setEditMode(true)
     setFormValues({
       id: row?.id,
       plan_id: row?.plan_id ?? effectivePlanId,
@@ -134,10 +151,16 @@ export default function DietPlanIndex({
       meal_time: row?.meal_time ?? '',
       meal_name: row?.meal_name ?? '',
       calories: row?.calories ?? '',
+      // pass existing items so the form can prefill meals in edit mode
+      items: Array.isArray(row?.items) ? row.items : [],
     })
     setFormOpen(true)
   }
-  const handleClose = () => setFormOpen(false)
+  const handleClose = () => {
+    setFormOpen(false)
+    setEditMode(false)
+    setFormValues(null)
+  }
 
   useEffect(() => {
     if (typeof pageParams?.page !== 'number' || pageParams.page !== 1) {
@@ -170,16 +193,18 @@ export default function DietPlanIndex({
     })
   }
 
-  // const headerProps = { actionTitle: '' }
+  const headerProps = { actionTitle: 'Create Diet Plan' }
 
   return (
     <div className="">
-      {/* <div className="mb-3">
+      <div className="mb-3">
         <ListingHeader
-          data={{ title: planName || 'Diet Plans', icon: 'user' }}
+          data={{ title: planName || 'Diet Plans', icon: 'meal-icon' }}
           actionProps={headerProps}
+          onActionClick={openCreate}
+          checkPermission={checkPermissions('Employee', 'create')}
         />
-      </div> */}
+      </div>
       <SmartTable
         data={data?.diet_plans ?? []}
         dataRowKey="id"
@@ -243,9 +268,9 @@ export default function DietPlanIndex({
       <DietPlanForm
         isOpen={formOpen}
         handleClose={handleClose}
-        edit={true}
+        edit={editMode}
         rowData={formValues ?? undefined}
-        planId={planId}
+        planId={effectivePlanId}
       />
     </div>
   )
