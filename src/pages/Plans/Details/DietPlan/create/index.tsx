@@ -103,17 +103,16 @@ export default function DietPlanForm({
     return sum + perServingTotal * count
   }, 0)
 
-  // const mealNameOptions = filteredMeals.map((m: any) => ({
-  //   id: m.id,
-  //   name: m.name,
-  //   value: m.name,
-  //   // Prefer total_calories from the meals API; fallback to calories if present
-  //   total_calories: m.total_calories ?? m.calories ?? 0,
-  //   protein: m.calories_breakdown?.protein ?? 0,
-  //   carbs: m.calories_breakdown?.carbs ?? 0,
-  //   fat: m.calories_breakdown?.fat ?? 0,
-  //   fiber: m.calories_breakdown?.fiber ?? 0,
-  // }))
+  const mealNameOptions = filteredMeals.map((m: any) => ({
+    id: m.id,
+    name: m.name,
+    value: m.name,
+    total_calories: m.total_calories ?? m.calories ?? 0,
+    protein: m.calories_breakdown?.protein ?? 0,
+    carbs: m.calories_breakdown?.carbs ?? 0,
+    fat: m.calories_breakdown?.fat ?? 0,
+    fiber: m.calories_breakdown?.fiber ?? 0,
+  }))
 
   // const selectedMealName = watch('meal_name')
   // const selectedMeal = mealNameOptions.find(
@@ -210,68 +209,31 @@ export default function DietPlanForm({
       required: true,
       disabled: true,
     },
-    edit
-      ? {
-          name: 'meal_time',
-          label: 'Meal Time',
-          type: 'custom_search_select',
-          // Display option names and map by id
-          desc: 'name',
-          descId: 'id',
-          id: 'meal_time_id',
-          placeholder: 'Select meal time',
-          initialLoad: rowData?.meal_time ?? '',
-          data: mealTimeOptions,
-          required: true,
-        }
-      : {
-          name: 'meal_time',
-          label: 'Meal Time',
-          type: 'text',
-          placeholder: 'Enter meal time',
-          required: true,
-        },
-    // {
-    //   name: 'meal_name',
-    //   label: 'Meal Name',
-    //   ...(edit
-    //     ? {
-    //       // Single-select meal name in edit mode
-    //       type: 'custom_search_select',
-    //       desc: 'name',
-    //       descId: 'id',
-    //       id: 'meal_id',
-    //       placeholder: 'Select meal',
-    //       data: mealNameOptions,
-    //       initialLoad: rowData?.meal_name ?? '',
-    //       handleCallBack: (selected: any) => {
-    //         if (selected && typeof selected.total_calories !== 'undefined') {
-    //           setValue('calories', selected.total_calories ?? '', {
-    //             shouldValidate: true,
-    //           })
-    //           setValue('protein', selected.protein ?? '', {
-    //             shouldValidate: true,
-    //           })
-    //           setValue('carbs', selected.carbs ?? '', {
-    //             shouldValidate: true,
-    //           })
-    //           setValue('fat', selected.fat ?? '', {
-    //             shouldValidate: true,
-    //           })
-    //           setValue('fiber', selected.fiber ?? '', {
-    //             shouldValidate: true,
-    //           })
-    //           setValue('total_calories', selected.total_calories ?? '', {
-    //             shouldValidate: true,
-    //           })
-    //         }
-    //       },
-    //     }
-    //     : {
-    //       type: 'text',
-    //       placeholder: 'Enter meal name',
-    //     }),
-    // },
+    {
+      name: 'meal_time',
+      label: 'Meal Time',
+      type: 'custom_search_select',
+      // Display option names and map by id
+      desc: 'name',
+      descId: 'id',
+      id: 'meal_time_id',
+      placeholder: 'Select meal time',
+      initialLoad: rowData?.meal_time ?? '',
+      data: mealTimeOptions,
+      required: true,
+    },
+    {
+      name: 'meal_name',
+      label: 'Meal Name',
+      type: 'custom_search_select',
+      desc: 'name',
+      descId: 'id',
+      id: 'meal_id',
+      placeholder: 'Select meal',
+      data: mealNameOptions,
+      initialLoad: rowData?.meal_name ?? '',
+      required: false,
+    },
     // {
     //   name: 'protein',
     //   label: 'Protein',
