@@ -57,6 +57,12 @@ export default function Plans() {
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
+  useEffect(() => {
+    if (pageParams?.search) {
+      setPageParams({ ...pageParams, search: '', page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const { page, per_page, search, ordering } = pageParams
   const searchParams = {
     page,

@@ -165,6 +165,12 @@ export default function AdminUser() {
   // }
 
   const { data, refetch, isFetching } = useAdminUser(searchParams)
+  useEffect(() => {
+    if (pageParams?.search) {
+      setPageParams({ ...pageParams, search: '', page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,

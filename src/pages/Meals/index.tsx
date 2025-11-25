@@ -44,7 +44,12 @@ export default function Meals() {
     setCreateOpen(true)
   }
   const { data, isFetching } = useMeals(searchParams)
-
+  useEffect(() => {
+    if (pageParams?.search) {
+      setPageParams({ ...pageParams, search: '', page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   useEffect(() => {
     setColumns(
       getMealsColumns((row: any) => {

@@ -50,6 +50,12 @@ export default function WorkoutMain() {
 
   const { data, refetch, isFetching } = useWorkoutList(searchParams)
   useEffect(() => {
+    if (pageParams?.search) {
+      setPageParams({ ...pageParams, search: '', page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
     const totalPages = data?.meta?.total_pages
     if (typeof totalPages === 'number' && totalPages > 0) {
       if ((pageParams?.page ?? 1) > totalPages) {
