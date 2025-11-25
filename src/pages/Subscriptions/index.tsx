@@ -82,7 +82,12 @@ export default function Subscriptions() {
     ordering: ordering,
     ...filters,
   }
-
+  useEffect(() => {
+    if (pageParams?.search) {
+      setPageParams({ ...pageParams, search: '', page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   // Reset all filters once on initial mount (after a full refresh)
   const didInitRef = useRef(false)
   useEffect(() => {

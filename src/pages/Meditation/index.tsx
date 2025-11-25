@@ -51,6 +51,12 @@ export default function MeditationMain() {
 
   const { data, refetch, isFetching } = useMeditationList(searchParams)
   useEffect(() => {
+    if (pageParams?.search) {
+      setPageParams({ ...pageParams, search: '', page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
     const totalPages = data?.meta?.total_pages
     if (typeof totalPages === 'number' && totalPages > 0) {
       if ((pageParams?.page ?? 1) > totalPages) {
@@ -226,25 +232,7 @@ export default function MeditationMain() {
               data={data?.meditations ?? []}
               dataRowKey="id"
               toolbar={true}
-              toolbarExtra={
-                <div className="flex items-end gap-3">
-                  {/* <div className="flex flex-col gap-1 ">
-                    <label className="text-xs text-gray-600">Intensity</label>
-                    <select
-                      className="textfield w-44 "
-                      value={currentIntensity}
-                      onChange={(e) => onIntensityChange(e.target.value)}
-                    >
-                      <option value="">All</option>
-                      {intensityOptions.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
-                  </div> */}
-                </div>
-              }
+              toolbarExtra={<div className="flex items-end gap-3"></div>}
               height={
                 (data?.meditations?.length ?? 0) === 0
                   ? calcWindowHeight(218)

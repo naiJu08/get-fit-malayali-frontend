@@ -26,7 +26,12 @@ export default function Subscriptions() {
     ordering: ordering,
     ...filters,
   }
-
+  useEffect(() => {
+    if (pageParams?.search) {
+      setPageParams({ ...pageParams, search: '', page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const didInitRef = useRef(false)
   useEffect(() => {
     if (!didInitRef.current) {
