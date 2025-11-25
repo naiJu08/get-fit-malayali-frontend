@@ -68,18 +68,32 @@ export default function DietPlanIndex({
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.meal_name ?? '' }),
+      renderCell: (row: any) => {
+        const items = (row?.items as any[]) || []
+        const label =
+          items.length > 0
+            ? items
+                .map((it: any) => {
+                  const name = it?.meal_name ?? ''
+                  const qty = it?.quantity ?? 0
+                  return qty ? `${name}` : name
+                })
+                .filter(Boolean)
+                .join(', ')
+            : (row?.meal_name ?? '')
+        return { cell: label }
+      },
       sortKey: 'meal_name',
     },
     {
       title: 'Calories',
-      field: 'calories',
+      field: 'effective_total_calories',
       // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.calories ?? '' }),
-      sortKey: 'calories',
+      renderCell: (row: any) => ({ cell: row?.effective_total_calories ?? '' }),
+      sortKey: 'effective_total_calories',
     },
     // {
     //   title: 'Created At',

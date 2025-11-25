@@ -75,6 +75,34 @@ export default function DietPlanForm({
     ? allMeals.filter((m: any) => m?.meal_time === selectedMealTime)
     : allMeals
 
+  const mealsFormValues = (watch('meals') as any[]) ?? []
+  const totalCaloriesFromMeals = mealsFormValues.reduce((sum, m) => {
+    const meal = filteredMeals.find(
+      (fm: any) => String(fm.id) === String(m.meal_id)
+    )
+    const count = Number(m?.count || 1)
+
+    if (!meal) return sum
+
+    const perServingProtein = Number(
+      meal?.per_serving?.protein ?? meal?.calories_breakdown?.protein ?? 0
+    )
+    const perServingCarbs = Number(
+      meal?.per_serving?.carbs ?? meal?.calories_breakdown?.carbs ?? 0
+    )
+    const perServingFat = Number(
+      meal?.per_serving?.fat ?? meal?.calories_breakdown?.fat ?? 0
+    )
+    const perServingFiber = Number(
+      meal?.per_serving?.fiber ?? meal?.calories_breakdown?.fiber ?? 0
+    )
+
+    const perServingTotal =
+      perServingProtein + perServingCarbs + perServingFat + perServingFiber
+
+    return sum + perServingTotal * count
+  }, 0)
+
   // const mealNameOptions = filteredMeals.map((m: any) => ({
   //   id: m.id,
   //   name: m.name,
@@ -124,11 +152,11 @@ export default function DietPlanForm({
   }, [isOpen, planId, rowData, reset, appendMeal])
 
   const onSubmit = (values: DietPlanSchema) => {
-    const mealsPayload = (values.meals || [])
+    const itemsPayload = (values.meals || [])
       .filter((m: any) => m.meal_id && m.count)
       .map((m: any) => ({
         meal_id: Number(m.meal_id),
-        count: Number(m.count),
+        quantity: Number(m.count),
       }))
 
     const payload: any = {
@@ -142,8 +170,8 @@ export default function DietPlanForm({
       },
     }
 
-    if (mealsPayload.length > 0) {
-      payload.diet_plan.meals = mealsPayload
+    if (itemsPayload.length > 0) {
+      payload.items = itemsPayload
     }
     if (edit && rowData?.id) {
       updateMutate(
@@ -156,11 +184,13 @@ export default function DietPlanForm({
   }
 
   const mealTimeOptions = [
+    { id: 'Morning drink', name: 'Morning drink', value: 'Morning drink' },
     { id: 'Breakfast', name: 'Breakfast', value: 'Breakfast' },
-    { id: 'Snack', name: 'Snack', value: 'Snack' },
+    { id: 'Mid day meal', name: 'Mid day meal', value: 'Mid day meal' },
     { id: 'Lunch', name: 'Lunch', value: 'Lunch' },
-    { id: 'Evening Snack', name: 'Evening Snack', value: 'Evening Snack' },
-    { id: 'Dinner', name: 'Dinner', value: 'Dinner' },
+    { id: 'Evening snack', name: 'Evening snack', value: 'Evening snack' },
+    { id: 'Dinner', name: 'Dinner', value: 'Dinner' }, // <-- add this
+    { id: 'Bed time', name: 'Bed time', value: 'Bed time' },
   ]
 
   const formFields = [
@@ -525,26 +555,35 @@ export default function DietPlanForm({
                         <label className="block text-[10px] font-medium mb-1">
                           Calories
                         </label>
-                        {/* <input
-                          type="text"
-                          className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
-                          value={
-                            (selectedMeal?.total_calories ??
-                              selectedMeal?.calories ??
-                              '') as any
-                          }
-                          readOnly
-                        /> */}
                         <input
                           type="text"
                           className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
-                          value={
-                            selectedMeal
-                              ? (selectedMeal?.total_calories ??
-                                  selectedMeal?.calories ??
-                                  '') * intakeQty
-                              : ''
-                          }
+                          value={(() => {
+                            if (!selectedMeal) return ''
+
+                            const p = Number(
+                              selectedMeal?.per_serving?.protein ??
+                                selectedMeal?.calories_breakdown?.protein ??
+                                0
+                            )
+                            const c = Number(
+                              selectedMeal?.per_serving?.carbs ??
+                                selectedMeal?.calories_breakdown?.carbs ??
+                                0
+                            )
+                            const f = Number(
+                              selectedMeal?.per_serving?.fat ??
+                                selectedMeal?.calories_breakdown?.fat ??
+                                0
+                            )
+                            const fi = Number(
+                              selectedMeal?.per_serving?.fiber ??
+                                selectedMeal?.calories_breakdown?.fiber ??
+                                0
+                            )
+                            const perServingTotal = p + c + f + fi
+                            return perServingTotal * intakeQty
+                          })()}
                           readOnly
                         />
                       </div>
@@ -568,7 +607,8 @@ export default function DietPlanForm({
                           className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
                           value={
                             selectedMeal
-                              ? (selectedMeal.calories_breakdown?.protein ??
+                              ? (selectedMeal?.per_serving?.protein ??
+                                  selectedMeal?.calories_breakdown?.protein ??
                                   0) * intakeQty
                               : ''
                           }
@@ -592,8 +632,9 @@ export default function DietPlanForm({
                           className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
                           value={
                             selectedMeal
-                              ? (selectedMeal.calories_breakdown?.carbs ?? 0) *
-                                intakeQty
+                              ? (selectedMeal?.per_serving?.carbs ??
+                                  selectedMeal?.calories_breakdown?.carbs ??
+                                  0) * intakeQty
                               : ''
                           }
                           readOnly
@@ -616,8 +657,9 @@ export default function DietPlanForm({
                           className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
                           value={
                             selectedMeal
-                              ? (selectedMeal.calories_breakdown?.fat ?? 0) *
-                                intakeQty
+                              ? (selectedMeal?.per_serving?.fat ??
+                                  selectedMeal?.calories_breakdown?.fat ??
+                                  0) * intakeQty
                               : ''
                           }
                           readOnly
@@ -640,8 +682,9 @@ export default function DietPlanForm({
                           className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
                           value={
                             selectedMeal
-                              ? (selectedMeal.calories_breakdown?.fiber ?? 0) *
-                                intakeQty
+                              ? (selectedMeal?.per_serving?.fiber ??
+                                  selectedMeal?.calories_breakdown?.fiber ??
+                                  0) * intakeQty
                               : ''
                           }
                           readOnly
@@ -652,7 +695,10 @@ export default function DietPlanForm({
                 )
               })}
 
-              <div className="mt-2 flex justify-end">
+              <div className="mt-2 flex justify-between items-center">
+                <span className="text-[11px] font-semibold">
+                  Total Calories: {totalCaloriesFromMeals || 0}
+                </span>
                 <button
                   type="button"
                   className="text-xs text-primary-500 underline"

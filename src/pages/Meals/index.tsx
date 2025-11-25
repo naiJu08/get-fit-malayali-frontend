@@ -51,8 +51,7 @@ export default function Meals() {
         navigate(`/meals/${row?.id}`)
       })
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [navigate])
   useEffect(() => {
     const totalPages = data?.meta?.total_pages
     if (typeof totalPages === 'number' && totalPages > 0) {

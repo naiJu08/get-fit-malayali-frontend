@@ -11,14 +11,11 @@ export const getMealsColumns = (onNameClick?: (row: any) => void) => {
   const createRenderCell =
     (key: string, type?: 'date' | 'boolean') => (row: any) => {
       if (type === 'date') {
+        const value = getNestedProperty(row, key)
+        const formatted = value ? moment(value).format('DD-MM-YYYY') : ''
         return {
-          cell: (
-            <>
-              {getNestedProperty(row, key)
-                ? moment(getNestedProperty(row, key)).format('DD-MM-YYYY')
-                : ''}
-            </>
-          ),
+          cell: <>{formatted}</>,
+          toolTip: formatted,
         }
       }
       if (type === 'boolean') {
@@ -52,9 +49,16 @@ export const getMealsColumns = (onNameClick?: (row: any) => void) => {
       ...defaultColumnProps,
     },
     {
-      title: 'Total Calories',
-      field: 'total_calories',
-      renderCell: createRenderCell('total_calories'),
+      title: 'Meal Category',
+      field: 'meal_category',
+      renderCell: createRenderCell('meal_category'),
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
+      title: 'Serving Unit',
+      field: 'serving_unit',
+      renderCell: createRenderCell('serving_unit'),
       customCell: true,
       ...defaultColumnProps,
     },
