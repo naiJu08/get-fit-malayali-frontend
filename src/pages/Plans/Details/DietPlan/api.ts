@@ -1,7 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { QueryParams } from '../../../../common/types'
 import apiUrl from '../../../../apis/api.url'
-import { getData, postData, updateData } from '../../../../apis/api.helpers'
+import {
+  getData,
+  postData,
+  updateData,
+  deleteData,
+} from '../../../../apis/api.helpers'
 import { parseQueryParams } from '../../../../utilities/parsers'
 
 const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
@@ -59,6 +64,20 @@ export const updateDietPlan = ({
 export const useUpdateDietPlan = () => {
   const qc = useQueryClient()
   return useMutation(updateDietPlan, {
+    onSuccess: () => {
+      qc.invalidateQueries(['diet_plans_list'])
+    },
+  })
+}
+
+// Delete diet plan
+export const deleteDietPlan = (id: string | number) => {
+  return deleteData(`${apiUrl.DIET_PLAN}/${id}`)
+}
+
+export const useDeleteDietPlan = () => {
+  const qc = useQueryClient()
+  return useMutation((id: string | number) => deleteDietPlan(id), {
     onSuccess: () => {
       qc.invalidateQueries(['diet_plans_list'])
     },

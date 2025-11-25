@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import SmartTable from '../../../../components/common/table/SmartTable'
 import Icons from '../../../../components/common/icons'
 import { TableColumns } from '../../../../common/types'
-import { useDietPlans } from './api'
+import { useDietPlans, useDeleteDietPlan } from './api'
 import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../../../utilities/parsers'
 import ListingHeader from '../../../../components/common/ListingTiles'
@@ -22,16 +22,6 @@ export default function DietPlanIndex({
   const { id: routePlanId } = useParams()
   const effectivePlanId = planId ?? routePlanId
   const [columns] = useState<TableColumns[]>([
-    // {
-    //   title: 'Plan',
-    //   field: 'plan_name',
-    //   sortable: true,
-    //   resizable: true,
-    //   isVisible: true,
-    //   customCell: true,
-    //   renderCell: (row: any) => ({ cell: row?.plan_name ?? '' }),
-    //   sortKey: 'plan_name',
-    // },
     {
       title: 'Day',
       field: 'day_number',
@@ -39,7 +29,17 @@ export default function DietPlanIndex({
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.day_number ?? '' }),
+      renderCell: (row: any) => ({
+        cell: (
+          <button
+            type="button"
+            className="text-blue-600 hover:underline"
+            onClick={() => navigate(`/diet_details/${row?.id}`)}
+          >
+            {row?.day_number ?? ''}
+          </button>
+        ),
+      }),
       sortKey: 'day_number',
     },
     {
@@ -96,19 +96,6 @@ export default function DietPlanIndex({
       renderCell: (row: any) => ({ cell: row?.effective_total_calories ?? '' }),
       sortKey: 'effective_total_calories',
     },
-    // {
-    //   title: 'Created At',
-    //   field: 'created_at',
-    //   resizable: true,
-    //   isVisible: true,
-    //   customCell: true,
-    //   renderCell: (row: any) => ({
-    //     cell: row?.created_at
-    //       ? new Date(row?.created_at).toLocaleDateString()
-    //       : '',
-    //   }),
-    //   sortKey: 'created_at',
-    // },
   ])
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
@@ -123,6 +110,8 @@ export default function DietPlanIndex({
   }
 
   const { data, isFetching } = useDietPlans(searchParams)
+
+  const { mutate: deleteDietPlan } = useDeleteDietPlan()
 
   const [formOpen, setFormOpen] = useState(false)
   const [formValues, setFormValues] = useState<any | null>(null)
@@ -209,7 +198,7 @@ export default function DietPlanIndex({
         data={data?.diet_plans ?? []}
         dataRowKey="id"
         toolbar={true}
-        title={planName || 'Diet Plans'}
+        // title={planName || 'Diet Plans'}
         // search={true}
         searchValue={String(pageParams?.search || '')}
         onSearchChange={(val) =>
@@ -262,6 +251,12 @@ export default function DietPlanIndex({
             action: (row: any) => openEdit(row),
             title: 'edit',
             toolTip: 'Edit',
+          },
+          {
+            icon: <Icons name="delete" />,
+            action: (row: any) => deleteDietPlan(row?.id),
+            title: 'delete',
+            toolTip: 'Delete',
           },
         ]}
       />

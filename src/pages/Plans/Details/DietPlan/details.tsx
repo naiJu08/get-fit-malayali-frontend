@@ -78,10 +78,6 @@ export default function DietPlanDetails() {
           <div className="mt-4 mb-6">
             <h2 className="text-lg font-semibold mb-3">Calories Summary</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* <DetailItem
-                label="Calories (Total)"
-                value={safeStr(dp?.calories_breakdown?.calories)}
-              /> */}
               <DetailItem
                 label="Protein"
                 value={safeStr(dp?.calories_breakdown?.protein)}
@@ -116,11 +112,7 @@ export default function DietPlanDetails() {
                   >
                     <div className="font-semibold mb-1">
                       {safeStr(it.meal_name)}
-                      {/* {it.quantity ? ` x${it.quantity}` : ''} */}
                     </div>
-                    {/* <div className="text-xs text-gray-500 mb-2">
-                      Meal ID: {safeStr(it.meal_id)}
-                    </div> */}
                     <div className="text-xs text-gray-500 mb-2">
                       Quantity: {safeStr(it.quantity)}
                     </div>

@@ -11,6 +11,7 @@ import FormBuilder from '../../../../../components/app/formBuilder'
 import { useCreateDietPlan, useUpdateDietPlan } from '../api'
 import { useEffect } from 'react'
 import { useMeals } from '../../../../Meals/api'
+import { usePlan } from '../../../api'
 import { AutoComplete } from 'qbs-core'
 
 type Props = {
@@ -28,6 +29,20 @@ export default function DietPlanForm({
   rowData,
   planId,
 }: Props) {
+  // Load plan to derive duration_days for day_number dropdown
+  const { data: planData } = usePlan(String(planId ?? rowData?.plan_id ?? ''))
+  const durationDays =
+    (planData as any)?.plan?.duration_days ??
+    (planData as any)?.duration_days ??
+    0
+
+  const dayOptions =
+    Number(durationDays) > 0
+      ? Array.from({ length: Number(durationDays) }, (_, i) => i + 1).map(
+          (d) => ({ id: d, name: String(d), value: d })
+        )
+      : []
+
   const methods = useForm<DietPlanSchema>({
     resolver: zodResolver(dietPlanFormSchema),
     mode: 'onChange',
@@ -78,9 +93,8 @@ export default function DietPlanForm({
   ) as any
 
   const allMeals = (mealsData as any)?.meals ?? []
-  const filteredMeals = selectedMealTime
-    ? allMeals.filter((m: any) => m?.meal_time === selectedMealTime)
-    : allMeals
+  // API is already filtered by meal_time via searchParams; use it directly
+  const filteredMeals = allMeals
 
   const mealsFormValues = (watch('meals') as any[]) ?? []
   const totalCaloriesFromMeals = mealsFormValues.reduce((sum, m) => {
@@ -110,21 +124,24 @@ export default function DietPlanForm({
     return sum + perServingTotal * count
   }, 0)
 
-  // const mealNameOptions = filteredMeals.map((m: any) => ({
-  //   id: m.id,
-  //   name: m.name,
-  //   value: m.name,
-  //   total_calories: m.total_calories ?? m.calories ?? 0,
-  //   protein: m.calories_breakdown?.protein ?? 0,
-  //   carbs: m.calories_breakdown?.carbs ?? 0,
-  //   fat: m.calories_breakdown?.fat ?? 0,
-  //   fiber: m.calories_breakdown?.fiber ?? 0,
-  // }))
+  useEffect(() => {
+    if (!selectedMealTime || edit) return
 
-  // const selectedMealName = watch('meal_name')
-  // const selectedMeal = mealNameOptions.find(
-  //   (m: any) => m.name === selectedMealName || m.value === selectedMealName
-  // )
+    const mapping: Record<string, number> = {
+      'Morning drink': 1,
+      Breakfast: 2,
+      'Mid day meal': 3,
+      Lunch: 4,
+      'Evening snack': 5,
+      Dinner: 6,
+      'Bed time': 7,
+    }
+
+    const seq = mapping[selectedMealTime as keyof typeof mapping]
+    if (seq != null) {
+      setValue('sequence_number', seq, { shouldValidate: true })
+    }
+  }, [selectedMealTime, edit, setValue])
 
   useEffect(() => {
     if (!isOpen) return
@@ -135,7 +152,7 @@ export default function DietPlanForm({
       items.length > 0
         ? items.map((it: any) => ({
             meal_id: it.meal_id ?? 0,
-            count: it.quantity ?? 1,
+            count: it.quantity ?? '',
             protein: '',
             carbs: '',
             fat: '',
@@ -147,7 +164,8 @@ export default function DietPlanForm({
     reset({
       plan_id: Number(planId ?? rowData?.plan_id ?? 0),
       day_number: Number(rowData?.day_number ?? 1),
-      sequence_number: Number(rowData?.sequence_number ?? 1),
+      // In create mode, start with empty sequence_number and let meal_time set it
+      sequence_number: edit ? Number(rowData?.sequence_number ?? 1) : 0,
       meal_time: rowData?.meal_time ?? '',
       meal_name: rowData?.meal_name ?? '',
       protein: (rowData as any)?.protein ?? '',
@@ -162,7 +180,7 @@ export default function DietPlanForm({
           : [
               {
                 meal_id: 0,
-                count: 1,
+                count: '',
                 protein: '',
                 carbs: '',
                 fat: '',
@@ -173,17 +191,21 @@ export default function DietPlanForm({
     } as any)
 
     if (mappedMeals.length > 0) {
+      // Edit mode: mirror existing items exactly
       replaceMeals(mappedMeals)
-    } else if (mealFields.length === 0) {
-      appendMeal({
-        meal_id: 0,
-        count: 1,
-        protein: '',
-        carbs: '',
-        fat: '',
-        fiber: '',
-        total_calories: '',
-      })
+    } else {
+      // Create mode: always start with exactly one empty meal row
+      replaceMeals([
+        {
+          meal_id: 0,
+          count: 1,
+          protein: '',
+          carbs: '',
+          fat: '',
+          fiber: '',
+          total_calories: '',
+        },
+      ])
     }
   }, [isOpen, planId, rowData, reset, appendMeal, replaceMeals])
 
@@ -230,14 +252,26 @@ export default function DietPlanForm({
   ]
 
   const formFields = [
-    {
-      name: 'day_number',
-      label: 'Day Number',
-      type: 'text',
-      placeholder: 'Enter day number',
-      required: true,
-      disabled: true,
-    },
+    edit
+      ? {
+          name: 'day_number',
+          label: 'Day Number',
+          type: 'text',
+          placeholder: 'Enter day number',
+          required: true,
+          disabled: true,
+        }
+      : {
+          name: 'day_number',
+          label: 'Day Number',
+          type: 'custom_search_select',
+          desc: 'name',
+          descId: 'id',
+          id: 'day_number_id',
+          placeholder: 'Select day',
+          data: dayOptions,
+          required: true,
+        },
     {
       name: 'sequence_number',
       label: 'Sequence Number',
@@ -326,7 +360,7 @@ export default function DietPlanForm({
                             const mealId = option?.id ?? option?.value ?? ''
                             setValue(
                               `meals.${index}.meal_id` as const,
-                              mealId === '' ? '' : mealId,
+                              mealId === '' ? 0 : Number(mealId),
                               { shouldValidate: true }
                             )
                             refetchMeals()
@@ -351,7 +385,7 @@ export default function DietPlanForm({
                               value={
                                 value !== undefined && value !== null
                                   ? String(value)
-                                  : '1'
+                                  : ''
                               }
                               onChange={(e: any) => {
                                 const v = e.target.value
@@ -419,18 +453,6 @@ export default function DietPlanForm({
                         <label className="block text-[10px] font-medium mb-1">
                           Protein
                         </label>
-                        {/* <input
-                          type="text"
-                          className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
-                          value={
-                            selectedMeal
-                              ? (selectedMeal?.per_serving?.protein ??
-                                selectedMeal?.calories_breakdown?.protein ??
-                                0) * intakeQty
-                              : ''
-                          }
-                          readOnly
-                        /> */}
                         <TextField
                           id={`meals.${index}.protein`}
                           name={`meals.${index}.protein`}
@@ -453,18 +475,6 @@ export default function DietPlanForm({
                         <label className="block text-[10px] font-medium mb-1">
                           Carbs
                         </label>
-                        {/* <input
-                          type="text"
-                          className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
-                          value={
-                            selectedMeal
-                              ? (selectedMeal?.per_serving?.carbs ??
-                                selectedMeal?.calories_breakdown?.carbs ??
-                                0) * intakeQty
-                              : ''
-                          }
-                          readOnly
-                        /> */}
                         <TextField
                           id={`meals.${index}.carbs`}
                           name={`meals.${index}.carbs`}
@@ -487,18 +497,6 @@ export default function DietPlanForm({
                         <label className="block text-[10px] font-medium mb-1">
                           Fat
                         </label>
-                        {/* <input
-                          type="text"
-                          className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
-                          value={
-                            selectedMeal
-                              ? (selectedMeal?.per_serving?.fat ??
-                                selectedMeal?.calories_breakdown?.fat ??
-                                0) * intakeQty
-                              : ''
-                          }
-                          readOnly
-                        /> */}
                         <TextField
                           id={`meals.${index}.fat`}
                           name={`meals.${index}.fat`}
@@ -521,18 +519,6 @@ export default function DietPlanForm({
                         <label className="block text-[10px] font-medium mb-1">
                           Fiber
                         </label>
-                        {/* <input
-                          type="text"
-                          className="w-full border rounded-sm px-3 py-2 text-sm bg-gray-100"
-                          value={
-                            selectedMeal
-                              ? (selectedMeal?.per_serving?.fiber ??
-                                selectedMeal?.calories_breakdown?.fiber ??
-                                0) * intakeQty
-                              : ''
-                          }
-                          readOnly
-                        /> */}
                         <TextField
                           id={`meals.${index}.fiber`}
                           name={`meals.${index}.fiber`}
