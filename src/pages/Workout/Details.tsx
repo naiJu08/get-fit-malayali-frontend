@@ -43,7 +43,7 @@ export default function UserDetails() {
           <button onClick={() => navigate('/workout')} aria-label="Back">
             <Icons name="left-arrow-icon" />
           </button>
-          <h1 className="text-xl font-semibold">Workout Detail</h1>
+          <h1 className="text-xl font-semibold">Workout Details</h1>
         </div>
       </div>
 

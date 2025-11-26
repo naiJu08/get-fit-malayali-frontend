@@ -28,7 +28,7 @@ function mapStatus(s: any) {
 function formatDate(d: any) {
   if (!d) return '--'
   const m = moment(d)
-  return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
+  return m.isValid() ? m.format('DD-MM-YYYY') : String(d)
 }
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'

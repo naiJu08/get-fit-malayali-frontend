@@ -11,7 +11,7 @@ import TextField from '../../components/common/inputs/TextField'
 
 import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
-import Icons from '../../components/common/icons'
+// import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
@@ -26,7 +26,7 @@ import {
   sendAdminInvitation,
   useAdminUser,
   DISABLE_NONLOGIN_APIS,
-  deleteAdmin,
+  // deleteAdmin,
   freezeUser,
   unfreezeUser,
 } from './api'
@@ -47,8 +47,8 @@ export default function Notifications() {
   const [userName, setUserName] = useState('')
   const [userId, setUserId] = useState('')
   const [openConfirm, setOpenConfirm] = useState(false)
-  const [deleteUserModal, setDeleteUserModal] = useState(false)
-  const [deleteUserId, setDeleteUserId] = useState<string>('')
+  // const [deleteUserModal, setDeleteUserModal] = useState(false)
+  // const [deleteUserId, setDeleteUserId] = useState<string>('')
   const [freezeModal, setFreezeModal] = useState(false)
   const [freezeUserId] = useState<string>('')
   const [freezeForm, setFreezeForm] = useState<{
@@ -387,65 +387,65 @@ export default function Notifications() {
     })
   }
 
-  const resolveNotificationId = (row: any) =>
-    row?.id ??
-    row?.notification_id ??
-    row?.notification?.id ??
-    row?.notification?.notification_id ??
-    row?.uuid ??
-    row?.notification_uuid ??
-    row?.notification?.uuid ??
-    null
+  // const resolveNotificationId = (row: any) =>
+  //   row?.id ??
+  //   row?.notification_id ??
+  //   row?.notification?.id ??
+  //   row?.notification?.notification_id ??
+  //   row?.uuid ??
+  //   row?.notification_uuid ??
+  //   row?.notification?.uuid ??
+  //   null
 
-  const handleOpenDeleteUser = (row: any) => {
-    const id = resolveNotificationId(row)
-    if (!id) {
-      if (!row?.id) {
-        enqueueSnackbar('Fetching notification details...', {
-          variant: 'info',
-        })
-        if (row?.notification?.id) {
-          setDeleteUserId(String(row.notification.id))
-          setDeleteUserModal(true)
-          return
-        }
-        if (row?.notification_uuid || row?.uuid) {
-          setDeleteUserId(String(row.notification_uuid || row.uuid))
-          setDeleteUserModal(true)
-          return
-        }
-        enqueueSnackbar('Unable to determine notification id for deletion', {
-          variant: 'error',
-        })
-        return
-      }
-      enqueueSnackbar('Unable to determine notification id for deletion', {
-        variant: 'error',
-      })
-      return
-    }
-    setDeleteUserId(String(id))
-    setDeleteUserModal(true)
-  }
-  const handleDeleteUser = () => {
-    setloader(true)
-    deleteAdmin(deleteUserId)
-      .then(() => {
-        enqueueSnackbar('Notification deleted successfully', {
-          variant: 'success',
-        })
-        setloader(false)
-        setDeleteUserModal(false)
-        refetch()
-      })
-      .catch((err) => {
-        setloader(false)
-        enqueueSnackbar(
-          err?.response?.data?.error?.message || err?.response?.data?.message,
-          { variant: 'error' }
-        )
-      })
-  }
+  // const handleOpenDeleteUser = (row: any) => {
+  //   const id = resolveNotificationId(row)
+  //   if (!id) {
+  //     if (!row?.id) {
+  //       enqueueSnackbar('Fetching notification details...', {
+  //         variant: 'info',
+  //       })
+  //       if (row?.notification?.id) {
+  //         setDeleteUserId(String(row.notification.id))
+  //         setDeleteUserModal(true)
+  //         return
+  //       }
+  //       if (row?.notification_uuid || row?.uuid) {
+  //         setDeleteUserId(String(row.notification_uuid || row.uuid))
+  //         setDeleteUserModal(true)
+  //         return
+  //       }
+  //       enqueueSnackbar('Unable to determine notification id for deletion', {
+  //         variant: 'error',
+  //       })
+  //       return
+  //     }
+  //     enqueueSnackbar('Unable to determine notification id for deletion', {
+  //       variant: 'error',
+  //     })
+  //     return
+  //   }
+  //   setDeleteUserId(String(id))
+  //   setDeleteUserModal(true)
+  // }
+  // const handleDeleteUser = () => {
+  //   setloader(true)
+  //   deleteAdmin(deleteUserId)
+  //     .then(() => {
+  //       enqueueSnackbar('Notification deleted successfully', {
+  //         variant: 'success',
+  //       })
+  //       setloader(false)
+  //       setDeleteUserModal(false)
+  //       refetch()
+  //     })
+  //     .catch((err) => {
+  //       setloader(false)
+  //       enqueueSnackbar(
+  //         err?.response?.data?.error?.message || err?.response?.data?.message,
+  //         { variant: 'error' }
+  //       )
+  //     })
+  // }
   return (
     <div>
       {DISABLE_NONLOGIN_APIS ? (
@@ -587,45 +587,46 @@ export default function Notifications() {
                 ),
                 dropOptions: [10, 20, 30, 50, 100],
               }}
-              actionProps={[
-                // {
-                //   icon: <Icons name="eye" />,
-                //   action: (row) => navigate(`/subscriptions/${row?.id}`),
-                //   title: 'view',
-                //   toolTip: 'View Details',
-                // },
-                // {
-                //   title: 'Freeze/Unfreeze',
-                //   action: (row) => {
-                //     setToggleFreezeRow(row)
-                //     setToggleFreezeOpen(true)
-                //   },
-                //   icon: <Icons name="lock-icon" />,
-                //   toolTip: 'Toggle Freeze',
-                // },
-                // {
-                //   title: 'Deactivate',
-                //   action: (rowData) =>
-                //     handleDeleteModel(
-                //       rowData?.id,
-                //       rowData?.email,
-                //       rowData?.status
-                //     ),
-                //   icon: <Icons name="deactivate-icon" />,
-                //   toolTip: 'Deactivate',
-                //   hide: (rowData: any) =>
-                //     String(rowData?.status ?? '').toLowerCase() === 'active'
-                //       ? false
-                //       : true,
-                // },
-
-                {
-                  title: 'Delete',
-                  action: (rowData) => handleOpenDeleteUser(rowData),
-                  icon: <Icons name="delete" />,
-                  toolTip: 'Delete',
-                },
-              ]}
+              actionProps={
+                [
+                  // {
+                  //   icon: <Icons name="eye" />,
+                  //   action: (row) => navigate(`/subscriptions/${row?.id}`),
+                  //   title: 'view',
+                  //   toolTip: 'View Details',
+                  // },
+                  // {
+                  //   title: 'Freeze/Unfreeze',
+                  //   action: (row) => {
+                  //     setToggleFreezeRow(row)
+                  //     setToggleFreezeOpen(true)
+                  //   },
+                  //   icon: <Icons name="lock-icon" />,
+                  //   toolTip: 'Toggle Freeze',
+                  // },
+                  // {
+                  //   title: 'Deactivate',
+                  //   action: (rowData) =>
+                  //     handleDeleteModel(
+                  //       rowData?.id,
+                  //       rowData?.email,
+                  //       rowData?.status
+                  //     ),
+                  //   icon: <Icons name="deactivate-icon" />,
+                  //   toolTip: 'Deactivate',
+                  //   hide: (rowData: any) =>
+                  //     String(rowData?.status ?? '').toLowerCase() === 'active'
+                  //       ? false
+                  //       : true,
+                  // },
+                  // {
+                  //   title: 'Delete',
+                  //   action: (rowData) => handleOpenDeleteUser(rowData),
+                  //   icon: <Icons name="delete" />,
+                  //   toolTip: 'Delete',
+                  // },
+                ]
+              }
               columnToggle
               externalActions={true}
             />
@@ -814,7 +815,7 @@ export default function Notifications() {
               </>
             }
           />
-          <ConfirmDeleteModal
+          {/* <ConfirmDeleteModal
             isOpen={deleteUserModal}
             onClose={() => setDeleteUserModal(false)}
             onConfirm={() => handleDeleteUser()}
@@ -825,7 +826,7 @@ export default function Notifications() {
             }
             confirmLabel="Delete"
             cancelLabel="Cancel"
-          />
+          /> */}
           <ResetPassword
             changePassword={changePassword}
             setChangePassword={setChangePassword}

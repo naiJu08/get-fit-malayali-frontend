@@ -401,10 +401,10 @@ export default function Plans() {
                         toolTip: 'Edit',
                       },
                       {
-                        title: 'Deactivate',
+                        title: 'deactivate',
                         action: (row: any) => handleToggleStatus(row),
                         icon: <Icons name="deactivate-icon" />,
-                        toolTip: 'Deactivate',
+                        toolTip: 'deactivate',
                         hide: (row: any) => {
                           const v = row?.active
                           const isActive =

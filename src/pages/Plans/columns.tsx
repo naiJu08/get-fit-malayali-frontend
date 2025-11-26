@@ -128,7 +128,7 @@ export const getColumns = ({
     },
 
     {
-      title: 'Active',
+      title: 'Status',
       field: 'active',
       renderCell: createRenderCell('active', 'boolean'),
       ...defaultColumnProps,

@@ -5,8 +5,10 @@ export const recipeFormSchema = z.object({
   description: z.string().min(1, 'Required'),
   category: z.string().min(1, 'Required'),
   calories: z
-    .preprocess((v) => (typeof v === 'string' ? Number(v) : v), z.number())
-    .refine((v) => !Number.isNaN(v), 'Invalid number'),
+    .string()
+    .min(1, 'Required')
+    .refine((v) => !Number.isNaN(Number(v)), 'Invalid number'),
+
   portion_size: z.string().min(1, 'Required'),
   image: z
     .union([

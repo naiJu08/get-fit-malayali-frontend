@@ -76,7 +76,7 @@ export default function CreateRecipe({
         name: rowData?.name ?? '',
         description: rowData?.description ?? '',
         category: rowData?.category ?? '',
-        calories: rowData?.calories ?? ('' as unknown as number),
+        calories: rowData?.calories != null ? String(rowData.calories) : '',
         portion_size: rowData?.portion_size ?? '',
         image: rowData?.image_url ?? '',
       })
@@ -85,7 +85,7 @@ export default function CreateRecipe({
         name: '',
         description: '',
         category: '',
-        calories: '' as unknown as number,
+        calories: '',
         portion_size: '',
         image: '',
       })

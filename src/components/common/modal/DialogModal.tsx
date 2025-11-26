@@ -118,7 +118,6 @@ const DialogModal: React.FC<DialogModalProps> = ({
               lg:h-auto
               md:h-auto
               shadow-popupShadow
-             max-h-[calc(100vh-80px)]
               overflow-visible
                rounded-xl
               relative

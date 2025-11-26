@@ -83,12 +83,10 @@ const CustomDatePicker = (props: Props) => {
   return (
     <div className="flex flex-col">
       {label && (
-        <div className=" ">
-          <label className={`labels label-text`}>
-            {label}
-            {required ? <span className="text-error"> *</span> : <></>}
-          </label>
-        </div>
+        <label className={`labels label-text`}>
+          {label}
+          {required ? <span className="text-error"> *</span> : <></>}
+        </label>
       )}
       <div className="relative">
         {disabled ? (
@@ -132,7 +130,7 @@ const CustomDatePicker = (props: Props) => {
               <Icons name="close" className="w-4 h-4 fill-[#757575]" />
             </button>
           )}
-          <span className="   text-[#757575] block">
+          <span className="text-[#757575] block mb-1">
             <svg
               className="w-4 h-4 fill-[#757575]"
               focusable="false"
