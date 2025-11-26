@@ -144,7 +144,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
   }
 
   const header = (
-    <thead className="sticky top-0 z-10 bg-white/80 supports-[backdrop-filter]:bg-white/60 backdrop-blur border-b border-gray-200 shadow-sm">
+    <thead className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
       <tr>
         {renderedColumns.map((col) => (
           <th
@@ -188,7 +188,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
           </th>
         ))}
         {!!actionProps.length && (
-          <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider text-center">
+          <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider text-left">
             Actions
           </th>
         )}

@@ -42,7 +42,7 @@ const RecipeDetail: React.FC = () => {
           <button onClick={() => navigate('/recipe')} aria-label="Back">
             <Icons name="left-arrow-icon" />
           </button>
-          <h1 className="text-xl font-semibold">Recipe Detail</h1>
+          <h1 className="text-xl font-semibold">Recipe Details</h1>
         </div>
       </div>
 

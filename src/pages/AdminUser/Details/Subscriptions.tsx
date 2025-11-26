@@ -573,10 +573,10 @@ export default function Subscriptions({
                               {m.cells.map((c: any) => (
                                 <div
                                   key={c.key}
-                                  className={`relative h-28 border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)} ${c?.inRange && !c?.meta?.freeze ? 'cursor-pointer' : ''}`}
+                                  className={`relative h-44 border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)} ${c?.inRange && !c?.meta?.freeze ? 'cursor-pointer' : ''}`}
                                   title={
                                     c?.meta?.date
-                                      ? `${c.meta.date}  •  Diet: ${c?.meta?.diet_summary?.total_items ?? 0}  •  Workout: ${c?.meta?.workout_summary?.total_exercises ?? 0}`
+                                      ? `${c.meta.date}  •  Diet: ${c?.meta?.diet_summary?.total_items ?? 0}  •  Workout: ${c?.meta?.workout_summary?.total_exercises ?? 0}  •  Yoga: ${c?.meta?.yoga_summary?.total_exercises ?? 0}  •  Meditation: ${c?.meta?.meditation_summary?.total_items ?? 0}`
                                       : ''
                                   }
                                   role={
@@ -618,6 +618,20 @@ export default function Subscriptions({
                                           <span className="font-medium">
                                             {c?.meta?.workout_summary
                                               ?.total_exercises ?? 0}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center justify-between border rounded-[5px] bg-green-200 text-black px-2 py-1 mt-2">
+                                          <span>Yoga</span>
+                                          <span className="font-medium">
+                                            {c?.meta?.yoga_summary
+                                              ?.total_exercises ?? 0}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center justify-between border rounded-[5px] bg-blue-200 text-black px-2 py-1 mt-2">
+                                          <span>Meditation</span>
+                                          <span className="font-medium">
+                                            {c?.meta?.meditation_summary
+                                              ?.total_items ?? 0}
                                           </span>
                                         </div>
                                       </div>

@@ -42,7 +42,7 @@ export default function DietPlanDetails() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate(`/plans/${dp?.plan_id}`)}
+            onClick={() => navigate(`/plans/${dp?.plan_id}/dietplan`)}
             aria-label="Back"
           >
             <Icons name="left-arrow-icon" />
