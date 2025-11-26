@@ -15,6 +15,41 @@ export const dietPlanFormSchema = z.object({
     ),
   meal_time: z.string().min(1, 'Meal time is required'),
   meal_name: z.string().optional().or(z.literal('')),
+  protein: z
+    .union([z.number(), z.string()])
+    .transform((v) =>
+      v === '' || v === null || v === undefined ? '' : Number(v)
+    )
+    .optional()
+    .or(z.literal('')),
+  carbs: z
+    .union([z.number(), z.string()])
+    .transform((v) =>
+      v === '' || v === null || v === undefined ? '' : Number(v)
+    )
+    .optional()
+    .or(z.literal('')),
+  fat: z
+    .union([z.number(), z.string()])
+    .transform((v) =>
+      v === '' || v === null || v === undefined ? '' : Number(v)
+    )
+    .optional()
+    .or(z.literal('')),
+  fiber: z
+    .union([z.number(), z.string()])
+    .transform((v) =>
+      v === '' || v === null || v === undefined ? '' : Number(v)
+    )
+    .optional()
+    .or(z.literal('')),
+  total_calories: z
+    .union([z.number(), z.string()])
+    .transform((v) =>
+      v === '' || v === null || v === undefined ? '' : Number(v)
+    )
+    .optional()
+    .or(z.literal('')),
   calories: z
     .union([z.number(), z.string()])
     .transform((v) =>
@@ -22,6 +57,53 @@ export const dietPlanFormSchema = z.object({
     )
     .optional()
     .or(z.literal('')),
+  meals: z
+    .array(
+      z.object({
+        meal_id: z.union([z.number(), z.string()]).transform((v) => Number(v)),
+        count: z
+          .union([z.number(), z.string()])
+          .transform((v) => Number(v))
+          .refine((v) => Number.isFinite(v) && v >= 1, 'Count must be 3 1'),
+        protein: z
+          .union([z.number(), z.string()])
+          .transform((v) =>
+            v === '' || v === null || v === undefined ? '' : Number(v)
+          )
+          .optional()
+          .or(z.literal('')),
+        carbs: z
+          .union([z.number(), z.string()])
+          .transform((v) =>
+            v === '' || v === null || v === undefined ? '' : Number(v)
+          )
+          .optional()
+          .or(z.literal('')),
+        fat: z
+          .union([z.number(), z.string()])
+          .transform((v) =>
+            v === '' || v === null || v === undefined ? '' : Number(v)
+          )
+          .optional()
+          .or(z.literal('')),
+        fiber: z
+          .union([z.number(), z.string()])
+          .transform((v) =>
+            v === '' || v === null || v === undefined ? '' : Number(v)
+          )
+          .optional()
+          .or(z.literal('')),
+        total_calories: z
+          .union([z.number(), z.string()])
+          .transform((v) =>
+            v === '' || v === null || v === undefined ? '' : Number(v)
+          )
+          .optional()
+          .or(z.literal('')),
+      })
+    )
+    .optional()
+    .default([]),
 })
 
 export type DietPlanSchema = z.infer<typeof dietPlanFormSchema>

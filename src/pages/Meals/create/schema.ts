@@ -12,6 +12,12 @@ const numberFromText = z.preprocess(
     .number({ invalid_type_error: 'Must be a number' })
     .nonnegative({ message: 'Cannot be negative' })
 )
+const numberFromSelect = z.preprocess((val) => {
+  if (val && typeof val === 'object' && 'id' in (val as any)) {
+    return (val as any).id
+  }
+  return val
+}, numberFromText)
 
 export const mealFormSchema = z.object({
   name: z
@@ -44,11 +50,21 @@ export const mealFormSchema = z.object({
   //   total_calories: z
   //     .number({ invalid_type_error: 'Total calories must be a number' })
   //     .nonnegative({ message: 'Total calories cannot be negative' }),
-  protein: numberFromText,
-  carbs: numberFromText,
-  fat: numberFromText,
-  fiber: numberFromText,
-  total_calories: numberFromText,
+  // protein: numberFromText,
+  // carbs: numberFromText,
+  // fat: numberFromText,
+  // fiber: numberFromText,
+  // total_calories: numberFromText,
+  meal_category: z.string().optional(),
+  meal_category_id: numberFromSelect,
+  serving_unit: z.string().min(1, { message: 'Serving unit is required' }),
+  default_serving_quantity: numberFromText,
+
+  per_serving_calories: numberFromText,
+  per_serving_protein: numberFromText,
+  per_serving_carbs: numberFromText,
+  per_serving_fat: numberFromText,
+  per_serving_fiber: numberFromText,
 })
 
 export type MealSchema = z.infer<typeof mealFormSchema>
