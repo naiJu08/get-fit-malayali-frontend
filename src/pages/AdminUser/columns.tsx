@@ -73,6 +73,24 @@ export const getColumns = ({
           cell: convertUTCtoBrowserTimeZone(propertyValue),
           toolTip: getNestedProperty(row, key) ?? '',
         }
+      } else if (isCustom === 'status-colored') {
+        const propertyValue = getNestedProperty(row, key)
+        const raw = typeof propertyValue === 'string' ? propertyValue : ''
+        const lower = raw.toLowerCase()
+        const display = raw
+          ? raw.replace(
+              /\w\S*/g,
+              (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+            )
+          : ''
+        const isActive = lower === 'active'
+        const pillClass = `inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+          isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        }`
+        return {
+          cell: <span className={pillClass}>{display}</span>,
+          toolTip: display,
+        }
       } else {
         return {
           cell: getNestedProperty(row, key),
@@ -148,7 +166,7 @@ export const getColumns = ({
   column.push({
     title: 'Status',
     field: 'status',
-    renderCell: createRenderCell('status', 'capitalize'),
+    renderCell: createRenderCell('status', 'status-colored'),
     ...defaultColumnProps,
     customCell: true,
   })

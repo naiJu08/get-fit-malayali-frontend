@@ -242,7 +242,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                   </label>
                   <div className="relative ">
                     <input
-                      id={'password'}
+                      id={field.name}
                       type={showPassword ? 'text' : 'password'}
                       required={field.required}
                       className={`${passwordEndAdorement} textfield`}
@@ -250,6 +250,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                       //   errors[field.name] ? 'textfield-error' : ''
                       // }`}
                       placeholder={field.placeholder}
+                      autoComplete="new-password"
                       value={value ?? field.value}
                       onChange={(e) => handleTextChange(onChange, e, field)}
                     />

@@ -287,6 +287,7 @@ export default function CreatePlan({
     { ...textField('category', 'Category', 'Enter category', true) },
     {
       ...textField('fees', 'Fees', 'Enter fees', true),
+      type: 'number',
     },
 
     {
@@ -296,6 +297,7 @@ export default function CreatePlan({
         'Enter duration in days',
         true
       ),
+      type: 'number',
     },
     {
       ...textField(

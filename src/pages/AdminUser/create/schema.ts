@@ -42,13 +42,24 @@ export const formSchema = z
       )
       .refine((val) => !val || val.length >= 8, { message: passerror }),
     password_confirmation: z.string().optional(),
-    phone: z
-      .string()
-      .min(10, { message: 'Phone number must be at least 10 digits.' })
-      .max(15, { message: 'Phone number must be at most 15 digits.' })
-      .regex(/^[0-9]+$/, { message: 'Only digits are allowed.' }),
+    phone: z.preprocess(
+      (val: unknown) => {
+        if (val === null || val === undefined) return ''
+        if (typeof val === 'number') return String(val)
+        return val
+      },
+      z
+        .string()
+        .min(10, { message: 'Phone number must be at least 10 digits.' })
+        .max(10, { message: 'Phone number must be at most 10 digits.' })
+        .regex(/^[0-9]+$/, { message: 'Only digits are allowed.' })
+    ),
     role: z.any(),
-    gender: z.any(),
+    gender: z
+      .any()
+      .refine((val) => val !== null && val !== undefined && val !== '', {
+        message: 'Required.',
+      }),
     date_of_birth: z.union([
       z.string().min(1, { message: 'Required.' }),
       z.date({ invalid_type_error: 'Required.' }),
@@ -138,13 +149,24 @@ export const formSchemaNutritionist = z
     password_confirmation: z
       .string({ required_error: 'Required.' })
       .min(1, { message: 'Required.' }),
-    phone: z
-      .string()
-      .min(10, { message: 'Phone number must be at least 10 digits.' })
-      .max(15, { message: 'Phone number must be at most 15 digits.' })
-      .regex(/^[0-9]+$/, { message: 'Only digits are allowed.' }),
+    phone: z.preprocess(
+      (val: unknown) => {
+        if (val === null || val === undefined) return ''
+        if (typeof val === 'number') return String(val)
+        return val
+      },
+      z
+        .string()
+        .min(10, { message: 'Phone number must be at least 10 digits.' })
+        .max(15, { message: 'Phone number must be at most 15 digits.' })
+        .regex(/^[0-9]+$/, { message: 'Only digits are allowed.' })
+    ),
     role: z.any(),
-    gender: z.any(),
+    gender: z
+      .any()
+      .refine((val) => val !== null && val !== undefined && val !== '', {
+        message: 'Required.',
+      }),
     date_of_birth: z.union([
       z.string().min(1, { message: 'Required.' }),
       z.date({ invalid_type_error: 'Required.' }),

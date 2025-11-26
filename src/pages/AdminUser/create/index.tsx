@@ -99,7 +99,7 @@ export default function CreateAdmin({
       ...textField('email', 'Email', 'Enter email', true),
       type: 'email',
       toLowercase: true,
-      // disabled: edit,
+      disabled: edit,
     },
     {
       ...textField('password', 'Password', 'Enter password', !edit),
@@ -116,7 +116,11 @@ export default function CreateAdmin({
       type: 'password',
       hidden: edit || viewMode ? true : false,
     },
-    { ...textField('phone', 'Phone Number', 'Enter phone number', true) },
+    {
+      ...textField('phone', 'Phone Number', 'Enter phone number', true),
+      type: 'number',
+      allowPositiveOnly: true,
+    },
 
     {
       name: 'role',
@@ -514,9 +518,42 @@ export default function CreateAdmin({
     }
 
     if (rowData?.user?.id) {
-      updateMutation({ id: rowData?.user?.id, data: payload })
+      updateMutation(
+        { id: rowData?.user?.id, data: payload },
+        {
+          onError: (error: any) => {
+            const apiData = error?.response?.data as any
+            const msg =
+              apiData?.errors?.[0] ||
+              (Array.isArray(apiData?.error)
+                ? apiData?.error?.[0]
+                : apiData?.error)
+            if (msg) {
+              ;(methods as any).setError?.('email', {
+                type: 'server',
+                message: msg,
+              })
+            }
+          },
+        }
+      )
     } else {
-      mutate(payload)
+      mutate(payload, {
+        onError: (error: any) => {
+          const apiData = error?.response?.data as any
+          const msg =
+            apiData?.errors?.[0] ||
+            (Array.isArray(apiData?.error)
+              ? apiData?.error?.[0]
+              : apiData?.error)
+          if (msg) {
+            ;(methods as any).setError?.('email', {
+              type: 'server',
+              message: msg,
+            })
+          }
+        },
+      })
     }
   }
 

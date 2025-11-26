@@ -457,23 +457,23 @@ export default function AdminUser() {
                 }}
                 actionProps={[
                   {
+                    icon: <Icons name="eye" />,
+                    action: (row) => {
+                      const base =
+                        activeRole === 'nutritionist'
+                          ? '/nutritionist'
+                          : '/users'
+                      navigate(`${base}/${row?.id}`)
+                    },
+                    title: 'view',
+                    toolTip: 'View Details',
+                  },
+                  {
                     icon: <Icons name="edit" />,
                     action: (row) => handleEdit(row),
                     title: 'edit',
                     toolTip: 'Edit',
                   },
-                  // {
-                  //   icon: <Icons name="eye" />,
-                  //   action: (row) => {
-                  //     const base =
-                  //       activeRole === 'nutritionist'
-                  //         ? '/nutritionist'
-                  //         : '/users'
-                  //     navigate(`${base}/${row?.id}`)
-                  //   },
-                  //   title: 'view',
-                  //   toolTip: 'View Details',
-                  // },
                   // {
                   //   title: 'Freeze',
                   //   action: (row) => handleOpenFreeze(row),
@@ -515,10 +515,10 @@ export default function AdminUser() {
                       rowData?.status == 'Inactive' ? false : true,
                   },
                   {
-                    title: 'Delete User',
+                    title: 'Delete user',
                     action: (rowData) => handleOpenDeleteUser(rowData?.id),
                     icon: <Icons name="delete" />,
-                    toolTip: 'Delete User',
+                    toolTip: 'Delete user',
                   },
                 ]}
                 searchValue={pageParams?.search}

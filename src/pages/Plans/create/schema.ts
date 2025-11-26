@@ -132,9 +132,20 @@ export const planFormSchema = z.object({
       invalid_type_error: 'Duration must be a number',
     })
     .positive('Duration must be greater than 0'),
-  fees: z.coerce
-    .number({ invalid_type_error: 'Fees must be a number' })
-    .min(0, 'Fees cannot be negative'),
+  fees: z.preprocess(
+    (val: unknown) => {
+      // Treat empty input as missing so we can show a proper required message
+      if (val === '' || val === null || val === undefined) return undefined
+      return val
+    },
+    z.coerce
+      .number({
+        required_error: 'Fees is required',
+        invalid_type_error: 'Fees must be a number',
+      })
+      .min(0, 'Fees cannot be negative')
+      .positive('Fees must be greater than 0')
+  ),
   yoga_included: z.boolean().default(false),
   meditation_included: z.boolean().default(false),
   thumbnail: z.any().optional(),
