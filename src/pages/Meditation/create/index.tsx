@@ -94,10 +94,6 @@ export default function CreateAdmin({
   const formBuilderProps = [
     { ...textField('title', 'Title', 'Enter meditation title', true) },
     { ...textField('description', 'Description', 'Enter description', true) },
-    {
-      ...textField('duration_minutes', 'Duration', 'Enter duration', true),
-      type: 'number',
-    },
     // { ...textField('video_url', 'Video URL', 'https://...', true) },
     {
       name: 'video_file',
@@ -108,8 +104,8 @@ export default function CreateAdmin({
       required: false,
       accept: 'video/*',
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
-      acceptedFiles: 'MP4, MOV, AVI (Max 50 MB)',
-      fileSize: 50,
+      acceptedFiles: 'MP4, MOV, AVI',
+      fileSize: 5,
     },
   ]
 
@@ -123,7 +119,6 @@ export default function CreateAdmin({
     methods.reset({
       title: '',
       description: '',
-      duration_minutes: '',
       video_url: '',
       video_file: '',
     } as any)
@@ -135,7 +130,6 @@ export default function CreateAdmin({
     methods.reset({
       title: '',
       description: '',
-      duration_minutes: '',
       video_url: '',
       video_file: '',
     } as any)
@@ -149,7 +143,6 @@ export default function CreateAdmin({
       methods.reset({
         title: rowData?.title ?? '',
         description: rowData?.description ?? '',
-        duration_minutes: rowData?.duration_minutes ?? '',
         video_url: rowData?.video_url ?? '',
         video_file: rowData?.video_file ?? '',
       } as any)

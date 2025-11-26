@@ -13,9 +13,6 @@ export const formSchema = z.object({
   description: z
     .string({ invalid_type_error: 'Required.' })
     .min(1, { message: 'Required.' }),
-  duration_minutes: z
-    .number({ invalid_type_error: 'Required.' })
-    .min(1, { message: 'Required.' }),
   // video_url: z
   //   .string({ invalid_type_error: 'Required.' })
   //   .min(1, { message: 'Required.' })

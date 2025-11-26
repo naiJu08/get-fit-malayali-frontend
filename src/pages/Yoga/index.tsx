@@ -43,7 +43,7 @@ export default function YogaMain() {
   const { page, per_page, search, ordering, filters } = pageParams
   const searchParams = {
     page: page,
-    per_page: per_page,
+    per_page: per_page || 10,
     search: search,
     ordering: ordering,
     ...filters,
@@ -74,6 +74,7 @@ export default function YogaMain() {
     refetch()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, per_page, search, ordering, JSON.stringify(filters)])
+
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,
@@ -281,13 +282,15 @@ export default function YogaMain() {
                   typeof data?.meta?.current_page === 'number'
                     ? (data?.meta?.current_page as number)
                     : (pageParams?.page ?? 1),
-                rowsPerPage: Number(pageParams?.per_page ?? 10),
+                rowsPerPage: Number(
+                  pageParams?.per_page ?? data?.meta?.per_page ?? 10
+                ),
                 onRowsPerPage: onChangeRowsPerPage,
                 totalPages: Math.max(
                   1,
                   Math.ceil(
                     (Number(data?.meta?.total_count ?? 0) || 0) /
-                      Number(pageParams?.per_page ?? 10)
+                      Number(pageParams?.per_page ?? data?.meta?.per_page ?? 10)
                   )
                 ),
                 dropOptions: [10, 20, 30, 50, 100],

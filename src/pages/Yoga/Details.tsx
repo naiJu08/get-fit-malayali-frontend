@@ -43,7 +43,7 @@ export default function YogaDetails() {
           <button onClick={() => navigate('/yoga')} aria-label="Back">
             <Icons name="left-arrow-icon" />
           </button>
-          <h1 className="text-xl font-semibold">Yoga Detail</h1>
+          <h1 className="text-xl font-semibold">Yoga Details</h1>
         </div>
       </div>
 
