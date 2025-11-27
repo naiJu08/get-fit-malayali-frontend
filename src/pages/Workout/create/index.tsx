@@ -91,6 +91,16 @@ export default function CreateAdmin({
     //   })
   }
 
+  // Used to show existing video file in edit mode (based on video_url from API)
+  const existingVideoFile = rowData?.video_url
+    ? {
+        name:
+          String(rowData.video_url).split('/').pop() ||
+          String(rowData.video_url),
+        link: rowData.video_url,
+      }
+    : undefined
+
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter workout name', true) },
     { ...textField('description', 'Description', 'Enter description', true) },
@@ -130,7 +140,7 @@ export default function CreateAdmin({
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
       acceptedFiles: 'MP4, MOV, AVI',
       fileSize: 5,
-      selectedFiles: rowData?.video_file,
+      selectedFiles: existingVideoFile,
       subName: 'video_file',
     },
   ]
@@ -173,7 +183,8 @@ export default function CreateAdmin({
         description: rowData?.description ?? '',
         intensity_level: rowData?.intensity_level ?? '',
         video_url: rowData?.video_url ?? '',
-        video_file: rowData?.video_file ?? '',
+        // seed video_file with existing URL so validation passes when no new file is chosen
+        video_file: rowData?.video_url ?? '',
       } as any)
     }
   }, [isDrawerOpen, edit, viewMode, rowData])
@@ -189,7 +200,7 @@ export default function CreateAdmin({
     mode: 'onChange',
     reValidateMode: 'onChange',
   })
-  const { handleSubmit, watch } = methods
+  const { handleSubmit, watch, setError, clearErrors } = methods
 
   const watchedVideoFile = watch('video_file')
 
@@ -225,6 +236,13 @@ export default function CreateAdmin({
     }
   }, [watchedVideoFile])
   const onSubmit = (details: any) => {
+    // Ensure a video file is always present (for both create and edit)
+    if (!details?.video_file && !rowData?.video_url) {
+      setError('video_file', { type: 'manual', message: 'Required.' })
+      return
+    }
+    clearErrors('video_file')
+
     const fd = new FormData()
     fd.append('workout[name]', details?.name ?? '')
     fd.append('workout[description]', details?.description ?? '')

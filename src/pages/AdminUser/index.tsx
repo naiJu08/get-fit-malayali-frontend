@@ -93,7 +93,7 @@ export default function AdminUser() {
   // Sync activeRole with URL path
   useEffect(() => {
     const path = location.pathname || ''
-    if (path.startsWith('/nutrionist')) {
+    if (path.startsWith('/users/nutritionist')) {
       setActiveRole('nutritionist')
     } else if (path.startsWith('/users')) {
       setActiveRole('user')
@@ -199,7 +199,7 @@ export default function AdminUser() {
         onViewAction: onViewAction,
         onNameClick: (row: any) => {
           const base =
-            activeRole === 'nutritionist' ? '/nutritionist' : '/users'
+            activeRole === 'nutritionist' ? '/users/nutritionist' : '/users'
           navigate(`${base}/${row?.id}`)
         },
         activeRole,
@@ -399,7 +399,7 @@ export default function AdminUser() {
                         ? 'border-b-2 border-blue-600 text-blue-600'
                         : 'text-gray-600'
                     }`}
-                    onClick={() => navigate('/nutrionist')}
+                    onClick={() => navigate('/users/nutritionist')}
                   >
                     Nutritionist
                   </button>
@@ -461,7 +461,7 @@ export default function AdminUser() {
                     action: (row) => {
                       const base =
                         activeRole === 'nutritionist'
-                          ? '/nutritionist'
+                          ? '/users/nutritionist'
                           : '/users'
                       navigate(`${base}/${row?.id}`)
                     },
@@ -515,10 +515,10 @@ export default function AdminUser() {
                       rowData?.status == 'Inactive' ? false : true,
                   },
                   {
-                    title: 'Delete user',
+                    title: 'delete user',
                     action: (rowData) => handleOpenDeleteUser(rowData?.id),
                     icon: <Icons name="delete" />,
-                    toolTip: 'Delete user',
+                    toolTip: 'delete user',
                   },
                 ]}
                 searchValue={pageParams?.search}

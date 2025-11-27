@@ -34,10 +34,10 @@ export default function YogaPlanForm({
     defaultValues: {
       plan_id: Number(planId ?? rowData?.plan_id ?? 0),
       day_number: Number(rowData?.day_number ?? 1),
-      sequence_number: Number(rowData?.sequence_number ?? 1),
+      // sequence_number: Number(rowData?.sequence_number ?? 1),
       title: rowData?.title ?? '',
       description: rowData?.description ?? '',
-      duration_minutes: Number(rowData?.duration_minutes ?? 0),
+      // duration_minutes: Number(rowData?.duration_minutes ?? 0),
     },
   })
 
@@ -50,10 +50,10 @@ export default function YogaPlanForm({
       reset({
         plan_id: Number(planId ?? rowData?.plan_id ?? 0),
         day_number: Number(rowData?.day_number ?? 1),
-        sequence_number: Number(rowData?.sequence_number ?? 1),
+        // sequence_number: Number(rowData?.sequence_number ?? 1),
         title: rowData?.title ?? '',
         description: rowData?.description ?? '',
-        duration_minutes: Number(rowData?.duration_minutes ?? 0),
+        // duration_minutes: Number(rowData?.duration_minutes ?? 0),
       })
     }
   }, [isOpen, planId, rowData, reset])
@@ -63,10 +63,10 @@ export default function YogaPlanForm({
       yoga_plan: {
         plan_id: Number(values.plan_id ?? planId),
         day_number: Number(values.day_number),
-        sequence_number: Number(values.sequence_number),
+        // sequence_number: Number(values.sequence_number),
         title: values.title,
         description: values.description || '',
-        duration_minutes: Number(values.duration_minutes ?? 0),
+        // duration_minutes: Number(values.duration_minutes ?? 0),
       },
     }
     if (edit && rowData?.id) {
@@ -86,14 +86,15 @@ export default function YogaPlanForm({
       type: 'text',
       placeholder: 'Enter day number',
       required: true,
+      disabled: edit,
     },
-    {
-      name: 'sequence_number',
-      label: 'Sequence Number',
-      type: 'text',
-      placeholder: 'Enter sequence number',
-      required: true,
-    },
+    // {
+    //   name: 'sequence_number',
+    //   label: 'Sequence Number',
+    //   type: 'number',
+    //   placeholder: 'Enter sequence number',
+    //   required: true,
+    // },
     {
       name: 'title',
       label: 'Title',
@@ -107,12 +108,12 @@ export default function YogaPlanForm({
       type: 'textarea',
       placeholder: 'Enter description',
     },
-    {
-      name: 'duration_minutes',
-      label: 'Duration (minutes)',
-      type: 'text',
-      placeholder: 'Enter duration in minutes',
-    },
+    // {
+    //   name: 'duration_minutes',
+    //   label: 'Duration (minutes)',
+    //   type: 'number',
+    //   placeholder: 'Enter duration in minutes',
+    // },
   ]
 
   return (

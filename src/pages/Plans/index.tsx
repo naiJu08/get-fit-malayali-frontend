@@ -416,10 +416,10 @@ export default function Plans() {
                         },
                       },
                       {
-                        title: 'Activate',
+                        title: 'activate',
                         action: (row: any) => handleToggleStatus(row),
                         icon: <Icons name="activate-icon" />,
-                        toolTip: 'Activate',
+                        toolTip: 'activate',
                         hide: (row: any) => {
                           const v = row?.active
                           const isActive =
@@ -434,7 +434,7 @@ export default function Plans() {
                         icon: <Icons name="delete" />,
                         action: (row: any) => handleDeletePlan(row),
                         title: 'delete',
-                        toolTip: 'Delete',
+                        toolTip: 'delete',
                       },
                     ]
               }

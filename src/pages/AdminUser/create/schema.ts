@@ -98,6 +98,7 @@ export const formSchema = z
     medical_conditions: z.string().optional(),
     food_allergies: z.string().optional(),
     ethnicity: z.string().optional(),
+    status: z.union([z.number(), z.string()]).optional(),
   })
   .refine(
     (data) => {
@@ -158,7 +159,7 @@ export const formSchemaNutritionist = z
       z
         .string()
         .min(10, { message: 'Phone number must be at least 10 digits.' })
-        .max(15, { message: 'Phone number must be at most 15 digits.' })
+        .max(10, { message: 'Phone number must be at most 10 digits.' })
         .regex(/^[0-9]+$/, { message: 'Only digits are allowed.' })
     ),
     role: z.any(),

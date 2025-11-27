@@ -162,6 +162,22 @@ export default function CreateAdmin({
       type: 'date',
       required: true,
     },
+    {
+      name: 'status',
+      label: 'Status',
+      id: 'status',
+      desc: 'name',
+      descId: 'id',
+      data: [
+        { id: 0, name: 'Active' },
+        { id: 1, name: 'Inactive' },
+      ],
+      type: 'custom_select',
+      placeholder: 'Select Status',
+      async: false,
+      initialLoad: true,
+      hidden: !edit,
+    },
     ...(!isNutritionistTab
       ? [
           {
@@ -284,6 +300,7 @@ export default function CreateAdmin({
       medical_conditions: '',
       food_allergies: '',
       ethnicity: '',
+      status: '',
     } as any)
     handleClose()
   }
@@ -306,6 +323,7 @@ export default function CreateAdmin({
       food_preferences: '',
       medical_conditions: '',
       ethnicity: '',
+      status: '',
     } as any)
 
     handleRefresh?.()
@@ -339,6 +357,12 @@ export default function CreateAdmin({
           medical_conditions: rowData?.user?.medical_conditions ?? '',
           food_allergies: rowData?.user?.food_allergies ?? '',
           ethnicity: rowData?.user?.ethnicity ?? '',
+          status:
+            rowData?.user?.status === 'Inactive' ||
+            rowData?.user?.status === 1 ||
+            rowData?.user?.status === '1'
+              ? 'Inactive'
+              : 'Active',
         } as any)
       }
     }
@@ -475,6 +499,23 @@ export default function CreateAdmin({
       return pickId(v, 0)
     })()
 
+    const statusValueRaw = details?.status
+    const statusValue = (() => {
+      if (statusValueRaw === null || statusValueRaw === undefined)
+        return undefined
+      const v =
+        typeof statusValueRaw === 'object'
+          ? (statusValueRaw?.id ??
+            statusValueRaw?.value ??
+            statusValueRaw?.name)
+          : statusValueRaw
+      if (v === 'Active' || v === 'active') return 0
+      if (v === 'Inactive' || v === 'inactive') return 1
+      if (v === 0 || v === '0') return 0
+      if (v === 1 || v === '1') return 1
+      return undefined
+    })()
+
     const payload = {
       user: {
         name: details?.name ?? '',
@@ -514,6 +555,7 @@ export default function CreateAdmin({
               '')
             : (details?.food_allergies ?? ''),
         ethnicity: details?.ethnicity ?? '',
+        ...(statusValue !== undefined ? { status: statusValue } : {}),
       },
     }
 
