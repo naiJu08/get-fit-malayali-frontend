@@ -1,4 +1,5 @@
 import SmartTable from '../../components/common/table/SmartTable'
+// import Button from '../../components/common/buttons/Button'
 import { AutoComplete } from 'qbs-core'
 import { useEffect, useState } from 'react'
 // import { useNavigate } from 'react-router-dom'
@@ -587,6 +588,14 @@ export default function Notifications() {
                 ),
                 dropOptions: [10, 20, 30, 50, 100],
               }}
+              // createButton={
+              //   <Button
+              //     className="bg-primaryGreen"
+              //     label="Create Notification"
+              //     icon="plus"
+              //     onClick={openDrawer}
+              //   />
+              // }
               actionProps={
                 [
                   // {
