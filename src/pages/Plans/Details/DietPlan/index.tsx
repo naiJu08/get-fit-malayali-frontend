@@ -132,6 +132,8 @@ export default function DietPlanIndex({
 
   const openEdit = (row: any) => {
     setEditMode(true)
+    console.log('EDIT ROW', row)
+
     setFormValues({
       id: row?.id,
       plan_id: row?.plan_id ?? effectivePlanId,
@@ -188,7 +190,7 @@ export default function DietPlanIndex({
     <div className="">
       <div className="mb-3">
         <ListingHeader
-          data={{ title: planName || 'Diet Plans', icon: 'meal-icon' }}
+          data={{ title: planName || 'Diet Plans' }}
           actionProps={headerProps}
           onActionClick={openCreate}
           checkPermission={checkPermissions('Employee', 'create')}
