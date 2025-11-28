@@ -77,11 +77,11 @@ export default function DetailsInfo({
           </div>
 
           {/* <DetailItem label="Yoga" value={plan?.yoga_included} /> */}
-          <div className="border rounded-lg p-3 bg-white">
+          <div className="border rounded-lg p-3 bg-white max-h-[150px]">
             <div className="text-xs text-gray-500 mb-1">Thumbnail</div>
             <div className="text-sm">
               {plan?.thumbnail_url ? (
-                <div className="w-[160px] h-[160px] overflow-hidden rounded-md border">
+                <div className="w-[100px] h-[100px] overflow-hidden rounded-md border">
                   <img
                     className="w-full h-full object-cover"
                     src={plan.thumbnail_url}

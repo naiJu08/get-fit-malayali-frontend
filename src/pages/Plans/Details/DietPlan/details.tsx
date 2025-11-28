@@ -110,7 +110,7 @@ export default function DietPlanDetails() {
                     key={it.id}
                     className="border rounded-lg p-3 bg-white text-sm"
                   >
-                    <div className="font-semibold mb-1">
+                    <div className="font-semibold mb-1 text-[16px]">
                       {safeStr(it.meal_name)}
                     </div>
                     <div className="text-xs text-gray-500 mb-2">
