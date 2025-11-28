@@ -52,43 +52,52 @@ export default function BodyComposition({ user }: { user: any }) {
                   <div className="text-gray-400 text-lg">—</div>
                 )}
               </div>
-
-              <div className="border rounded-lg p-3 bg-rose-50">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                  <Icons name="fat-icon" />
-                  <span>Fat %</span>
+              {row?.fat_percentage != null && (
+                <div className="border rounded-lg p-3 bg-rose-50">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                    <Icons name="fat-icon" />
+                    <span>Fat %</span>
+                  </div>
+                  <div className="mt-1 text-gray-800 font-semibold text-center">
+                    {row?.fat_percentage != null
+                      ? `${row.fat_percentage}%`
+                      : '—'}
+                  </div>
                 </div>
-                <div className="mt-1 text-gray-800 font-semibold text-center">
-                  {row?.fat_percentage != null ? `${row.fat_percentage}%` : '—'}
+              )}
+              {row?.muscle_mass != null && (
+                <div className="border rounded-lg p-3 bg-blue-50">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                    <Icons name="muscle-mass-icon" />
+                    <span>Muscle Mass</span>
+                  </div>
+                  <div className="mt-1 text-gray-800 font-semibold text-center">
+                    {row?.muscle_mass != null ? `${row.muscle_mass} kg` : '—'}
+                  </div>
                 </div>
-              </div>
-              <div className="border rounded-lg p-3 bg-blue-50">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                  <Icons name="muscle-mass-icon" />
-                  <span>Muscle Mass</span>
+              )}
+              {row?.hydration != null && (
+                <div className="border rounded-lg p-3 bg-amber-50">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                    <Icons name="water-bottle-icon" />
+                    <span>Hydration</span>
+                  </div>
+                  <div className="mt-1 text-gray-800 font-semibold text-center">
+                    {row?.hydration != null ? `${row.hydration}%` : '—'}
+                  </div>
                 </div>
-                <div className="mt-1 text-gray-800 font-semibold text-center">
-                  {row?.muscle_mass != null ? `${row.muscle_mass} kg` : '—'}
+              )}
+              {row?.bone_mass != null && (
+                <div className="border rounded-lg p-3 bg-indigo-50">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                    <Icons name="bone-icon" />
+                    <span>Bone Mass</span>
+                  </div>
+                  <div className="mt-1 text-gray-800 font-semibold text-center">
+                    {row?.bone_mass != null ? `${row.bone_mass} kg` : '—'}
+                  </div>
                 </div>
-              </div>
-              <div className="border rounded-lg p-3 bg-amber-50">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                  <Icons name="water-bottle-icon" />
-                  <span>Hydration</span>
-                </div>
-                <div className="mt-1 text-gray-800 font-semibold text-center">
-                  {row?.hydration != null ? `${row.hydration}%` : '—'}
-                </div>
-              </div>
-              <div className="border rounded-lg p-3 bg-indigo-50">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                  <Icons name="bone-icon" />
-                  <span>Bone Mass</span>
-                </div>
-                <div className="mt-1 text-gray-800 font-semibold text-center">
-                  {row?.bone_mass != null ? `${row.bone_mass} kg` : '—'}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         ))}

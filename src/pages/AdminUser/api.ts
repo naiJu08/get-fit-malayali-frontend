@@ -101,9 +101,25 @@ export const createAdmin = (input: any) => {
 export const useCreateAdmin = (handleSubmission: (data: any) => void) => {
   const { enqueueSnackbar } = useSnackbarManager()
   return useMutation(createAdmin, {
-    onSuccess: (res: any) => {
+    onSuccess: (res: any, variables: any) => {
       handleSubmission(res.data)
-      enqueueSnackbar('Admin created successfully', { variant: 'success' })
+
+      // Try to detect role from request payload first, then from response
+      const roleFromPayload = variables?.user?.role
+      const roleFromResponse =
+        res?.data?.user?.role ?? res?.data?.user?.group?.id ?? res?.data?.role
+      const role = roleFromPayload ?? roleFromResponse
+
+      const isNutritionist =
+        role === 2 ||
+        role === '2' ||
+        (typeof role === 'string' && role.toLowerCase() === 'nutritionist')
+
+      const message = isNutritionist
+        ? 'Nutritionist created successfully'
+        : 'Client created successfully'
+
+      enqueueSnackbar(message, { variant: 'success' })
     },
 
     onError: (error: any) => {

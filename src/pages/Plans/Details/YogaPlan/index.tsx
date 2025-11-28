@@ -99,13 +99,20 @@ export default function YogaPlanIndex({
   const [formValues, setFormValues] = useState<any | null>(null)
   const openEdit = (row: any) => {
     setFormValues({
+      // ensure we always have the basic identifiers
       id: row?.id,
       plan_id: row?.plan_id ?? effectivePlanId,
       day_number: row?.day_number ?? '',
+      // include fields used by YogaPlanForm so the modal can prefill them
+      title: row?.title ?? '',
+      description: row?.description ?? '',
+      // keep any other fields you might rely on elsewhere
       sequence_number: row?.sequence_number ?? '',
       meal_time: row?.meal_time ?? '',
       meal_name: row?.meal_name ?? '',
       calories: row?.calories ?? '',
+      total_duration: row?.total_duration ?? 0,
+      exercises_count: row?.exercises_count ?? 0,
     })
     setFormOpen(true)
   }

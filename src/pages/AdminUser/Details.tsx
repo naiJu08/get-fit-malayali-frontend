@@ -53,8 +53,8 @@ export default function UserDetails() {
   })()
 
   const pathBase = useMemo(() => {
-    return location.pathname.startsWith('/nutritionist')
-      ? '/nutritionist'
+    return location.pathname.startsWith('/users/nutritionist')
+      ? '/users/nutritionist'
       : '/users'
   }, [location.pathname])
 
@@ -77,8 +77,8 @@ export default function UserDetails() {
   useEffect(() => {
     if (location.pathname === `/users/${id}`) {
       navigate(`/users/${id}/details`, { replace: true })
-    } else if (location.pathname === `/nutritionist/${id}`) {
-      navigate(`/nutritionist/${id}/details`, { replace: true })
+    } else if (location.pathname === `/users/nutritionist/${id}`) {
+      navigate(`/users/nutritionist/${id}/details`, { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, id, navigate])
@@ -111,7 +111,11 @@ export default function UserDetails() {
         <div className="flex items-center gap-2">
           <button
             onClick={() =>
-              navigate(pathBase === '/nutritionist' ? '/nutrionist' : '/users')
+              navigate(
+                pathBase === '/users/nutritionist'
+                  ? '/users/nutritionist'
+                  : '/users'
+              )
             }
             aria-label="Back"
           >

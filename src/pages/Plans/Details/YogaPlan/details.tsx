@@ -345,7 +345,6 @@ export default function YogaPlanDetails() {
           <button
             className="px-3 py-1.5 text-sm border rounded btn-primary"
             onClick={() => {
-              setSearchParams({ tab: 'assign' })
               setAssignOpen(true)
               setWpPage(1)
             }}
@@ -381,7 +380,12 @@ export default function YogaPlanDetails() {
 
       <CustomDrawer
         open={assignOpen}
-        handleClose={() => setSearchParams({})}
+        handleClose={() => {
+          setAssignOpen(false)
+          setSelectedWorkouts([])
+          setWpSearch('')
+          setWpPage(1)
+        }}
         title={'Assign Yoga'}
         handleSubmit={handleNext}
         disableSubmit={selectedWorkouts.length === 0}

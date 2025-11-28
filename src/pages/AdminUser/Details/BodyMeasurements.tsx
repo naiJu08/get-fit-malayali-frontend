@@ -54,61 +54,72 @@ export default function BodyMeasurements({ user }: { user: any }) {
                       <div className="text-gray-400 text-lg">—</div>
                     )}
                   </div>
-
-                  <div className="border rounded-lg p-3 bg-rose-50">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                      <Icons name="chest-icon" />
-                      <span>Chest</span>
+                  {row?.chest != null && (
+                    <div className="border rounded-lg p-3 bg-rose-50">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                        <Icons name="chest-icon" />
+                        <span>Chest</span>
+                      </div>
+                      <div className="mt-1 text-gray-800 font-semibold text-center">
+                        {row?.chest ?? '—'}
+                      </div>
                     </div>
-                    <div className="mt-1 text-gray-800 font-semibold text-center">
-                      {row?.chest ?? '—'}
+                  )}
+                  {row?.waist != null && (
+                    <div className="border rounded-lg p-3 bg-blue-50">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                        <Icons name="waist-icon" />
+                        <span>Waist</span>
+                      </div>
+                      <div className="mt-1 text-gray-800 font-semibold text-center">
+                        {row?.waist ?? '—'}
+                      </div>
                     </div>
-                  </div>
-                  <div className="border rounded-lg p-3 bg-blue-50">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                      <Icons name="waist-icon" />
-                      <span>Waist</span>
+                  )}
+                  {row?.hip != null && (
+                    <div className="border rounded-lg p-3 bg-amber-50">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                        <Icons name="hip-icon" />
+                        <span>Hip</span>
+                      </div>
+                      <div className="mt-1 text-gray-800 font-semibold text-center">
+                        {row?.hip ?? '—'}
+                      </div>
                     </div>
-                    <div className="mt-1 text-gray-800 font-semibold text-center">
-                      {row?.waist ?? '—'}
+                  )}
+                  {row?.arm != null && (
+                    <div className="border rounded-lg p-3 bg-indigo-50">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                        <Icons name="arm-icon" />
+                        <span>Arm</span>
+                      </div>
+                      <div className="mt-1 text-gray-800 font-semibold text-center">
+                        {row?.arm ?? '—'}
+                      </div>
                     </div>
-                  </div>
-                  <div className="border rounded-lg p-3 bg-amber-50">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                      <Icons name="hip-icon" />
-                      <span>Hip</span>
+                  )}
+                  {row?.thigh != null && (
+                    <div className="border rounded-lg p-3 bg-sky-50">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                        <Icons name="thigh-icon" />
+                        <span>Thigh</span>
+                      </div>
+                      <div className="mt-1 text-gray-800 font-semibold text-center">
+                        {row?.thigh ?? '—'}
+                      </div>
                     </div>
-                    <div className="mt-1 text-gray-800 font-semibold text-center">
-                      {row?.hip ?? '—'}
+                  )}
+                  {row?.neck != null && (
+                    <div className="border rounded-lg p-3 bg-emerald-50">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                        <Icons name="neck-icon" />
+                        <span>Neck</span>
+                      </div>
+                      <div className="mt-1 text-gray-800 font-semibold text-center">
+                        {row?.neck ?? '—'}
+                      </div>
                     </div>
-                  </div>
-                  <div className="border rounded-lg p-3 bg-indigo-50">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                      <Icons name="arm-icon" />
-                      <span>Arm</span>
-                    </div>
-                    <div className="mt-1 text-gray-800 font-semibold text-center">
-                      {row?.arm ?? '—'}
-                    </div>
-                  </div>
-                  <div className="border rounded-lg p-3 bg-sky-50">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                      <Icons name="thigh-icon" />
-                      <span>Thigh</span>
-                    </div>
-                    <div className="mt-1 text-gray-800 font-semibold text-center">
-                      {row?.thigh ?? '—'}
-                    </div>
-                  </div>
-                  <div className="border rounded-lg p-3 bg-emerald-50">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                      <Icons name="neck-icon" />
-                      <span>Neck</span>
-                    </div>
-                    <div className="mt-1 text-gray-800 font-semibold text-center">
-                      {row?.neck ?? '—'}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             ))}
