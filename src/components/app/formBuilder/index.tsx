@@ -480,7 +480,8 @@ const FormBuilder: React.FC<Props> = (props) => {
                 actionLabel={field.actionLabel}
                 handleAction={field.handleAction}
                 placeholder={field.placeholder}
-                disabled={isEditable()}
+                // disabled={isEditable()}
+                disabled={field.disabled ? true : isEditable()}
                 required={field.required}
                 initialLoad={field.initialLoad}
               />

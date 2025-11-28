@@ -8,7 +8,7 @@ import {
 import { dietPlanFormSchema, DietPlanSchema } from './schema'
 import { DialogModal, TextField } from '../../../../../components/common'
 import FormBuilder from '../../../../../components/app/formBuilder'
-import { useCreateDietPlan, useUpdateDietPlan } from '../api'
+import { useCreateDietPlan, useDietPlanDetail, useUpdateDietPlan } from '../api'
 import { useEffect } from 'react'
 import { useMeals } from '../../../../Meals/api'
 import { usePlan } from '../../../api'
@@ -29,6 +29,9 @@ export default function DietPlanForm({
   rowData,
   planId,
 }: Props) {
+  console.log('DietPlanForm edit:', edit, 'rowData:', rowData)
+  const { data: detailData } = useDietPlanDetail(edit ? rowData?.id : undefined)
+
   // Load plan to derive duration_days for day_number dropdown
   const { data: planData } = usePlan(String(planId ?? rowData?.plan_id ?? ''))
   const durationDays =
@@ -79,7 +82,8 @@ export default function DietPlanForm({
   // Selected meal time from the form
   const selectedMealTime = watch('meal_time')
 
-  // Call meals API with per_page=999 and re-fetch whenever meal_time changes
+  // Call meals API with per_page=999.
+  // For both create and edit, filter by the currently selected meal_time
   const searchParams = {
     page: 1,
     per_page: 999,
@@ -143,16 +147,123 @@ export default function DietPlanForm({
     }
   }, [selectedMealTime, edit, setValue])
 
+  // In edit mode, whenever meal_time is changed/cleared while the dialog is open,
+  // re-call the Meals API (with meal_time undefined so it loads all meals)
+  useEffect(() => {
+    if (!edit) return
+    if (!isOpen) return
+
+    refetchMeals()
+  }, [edit, isOpen, selectedMealTime, refetchMeals])
+
+  //   useEffect(() => {
+  //     if (!isOpen) return
+
+  //     // // Map existing items (edit mode) into meals array so the section is prefilled
+  //     // const items = Array.isArray(rowData?.items) ? rowData.items : []
+  //     // const mappedMeals =
+  //     //   items.length > 0
+  //     //     ? items.map((it: any) => ({
+  //     //         meal_id: it.meal_id ?? 0,
+  //     //         count: it.quantity ?? '',
+  //     //         protein: '',
+  //     //         carbs: '',
+  //     //         fat: '',
+  //     //         fiber: '',
+  //     //         total_calories: '',
+  //     //       }))
+  //     //     : []
+  //  // Prefer detailData when in edit mode
+  //   const itemsSource =
+  //     edit && Array.isArray((detailData as any)?.items)
+  //       ? (detailData as any).items
+  //       : Array.isArray(rowData?.items)
+  //       ? rowData.items
+  //       : []
+
+  //   const mappedMeals =
+  //     itemsSource.length > 0
+  //       ? itemsSource.map((it: any) => ({
+  //           meal_id: it.meal_id ?? it.id ?? 0,    // depending on API shape
+  //           count: it.quantity ?? it.default_serving_quantity ?? 1,
+  //           protein: '',
+  //           carbs: '',
+  //           fat: '',
+  //           fiber: '',
+  //           total_calories: '',
+  //         }))
+  //       : []
+  //     reset({
+  //       plan_id: Number(planId ?? rowData?.plan_id ?? 0),
+  //       day_number: Number(rowData?.day_number ?? 1),
+  //       // In create mode, start with empty sequence_number and let meal_time set it
+  //       sequence_number: edit ? Number(rowData?.sequence_number ?? 1) : 0,
+  //       meal_time: rowData?.meal_time ?? '',
+  //       meal_name: rowData?.meal_name ?? '',
+  //       protein: (rowData as any)?.protein ?? '',
+  //       carbs: (rowData as any)?.carbs ?? '',
+  //       fat: (rowData as any)?.fat ?? '',
+  //       fiber: (rowData as any)?.fiber ?? '',
+  //       total_calories: (rowData as any)?.total_calories ?? '',
+  //       calories: rowData?.calories ?? '',
+  //       meals:
+  //         mappedMeals.length > 0
+  //           ? mappedMeals
+  //           : [
+  //               {
+  //                 meal_id: 0,
+  //                 count: '',
+  //                 protein: '',
+  //                 carbs: '',
+  //                 fat: '',
+  //                 fiber: '',
+  //                 total_calories: '',
+  //               },
+  //             ],
+  //     } as any)
+
+  //     if (mappedMeals.length > 0) {
+  //       // Edit mode: mirror existing items exactly
+  //       replaceMeals(mappedMeals)
+  //     } else {
+  //       // Create mode: always start with exactly one empty meal row
+  //       replaceMeals([
+  //         {
+  //           meal_id: 0,
+  //           count: 1,
+  //           protein: '',
+  //           carbs: '',
+  //           fat: '',
+  //           fiber: '',
+  //           total_calories: '',
+  //         },
+  //       ])
+  //     }
+  //   }, [isOpen, planId, rowData, reset, appendMeal, replaceMeals])
   useEffect(() => {
     if (!isOpen) return
 
-    // Map existing items (edit mode) into meals array so the section is prefilled
-    const items = Array.isArray(rowData?.items) ? rowData.items : []
+    // Prefer API detail in edit mode; otherwise fall back to rowData from table
+    const source: any =
+      edit && detailData
+        ? ((detailData as any).diet_plan ?? detailData)
+        : rowData || {}
+
+    // For meals: in detail response it's "meals", in table row it's "items"
+    const itemsSource =
+      edit && Array.isArray((detailData as any)?.meals)
+        ? (detailData as any).meals
+        : Array.isArray(source?.items)
+          ? source.items
+          : []
+
     const mappedMeals =
-      items.length > 0
-        ? items.map((it: any) => ({
-            meal_id: it.meal_id ?? 0,
-            count: it.quantity ?? '',
+      itemsSource.length > 0
+        ? itemsSource.map((it: any) => ({
+            // id from meals list: either meal_id or id
+            meal_id: it.meal_id ?? it.id ?? 0,
+            // quantity from detail: quantity or default_serving_quantity
+            count: it.quantity ?? it.default_serving_quantity ?? 1,
             protein: '',
             carbs: '',
             fat: '',
@@ -162,25 +273,26 @@ export default function DietPlanForm({
         : []
 
     reset({
-      plan_id: Number(planId ?? rowData?.plan_id ?? 0),
-      day_number: Number(rowData?.day_number ?? 1),
-      // In create mode, start with empty sequence_number and let meal_time set it
-      sequence_number: edit ? Number(rowData?.sequence_number ?? 1) : 0,
-      meal_time: rowData?.meal_time ?? '',
-      meal_name: rowData?.meal_name ?? '',
-      protein: (rowData as any)?.protein ?? '',
-      carbs: (rowData as any)?.carbs ?? '',
-      fat: (rowData as any)?.fat ?? '',
-      fiber: (rowData as any)?.fiber ?? '',
-      total_calories: (rowData as any)?.total_calories ?? '',
-      calories: rowData?.calories ?? '',
+      plan_id: Number(planId ?? source?.plan_id ?? 0),
+      day_number: Number(source?.day_number ?? 1),
+      // In create mode, start with 0 and let meal_time mapping set sequence_number
+      sequence_number: edit ? Number(source?.sequence_number ?? 1) : 0,
+      meal_time: source?.meal_time ?? '',
+      meal_name: source?.meal_name ?? '',
+      protein: (source as any)?.protein ?? '',
+      carbs: (source as any)?.carbs ?? '',
+      fat: (source as any)?.fat ?? '',
+      fiber: (source as any)?.fiber ?? '',
+      total_calories: (source as any)?.total_calories ?? '',
+      calories: source?.calories ?? '',
       meals:
         mappedMeals.length > 0
           ? mappedMeals
           : [
               {
                 meal_id: 0,
-                count: '',
+                // use 0 so the controller renders it as an empty string in the input
+                count: 0,
                 protein: '',
                 carbs: '',
                 fat: '',
@@ -191,14 +303,14 @@ export default function DietPlanForm({
     } as any)
 
     if (mappedMeals.length > 0) {
-      // Edit mode: mirror existing items exactly
+      // Edit mode: mirror existing meals exactly
       replaceMeals(mappedMeals)
     } else {
       // Create mode: always start with exactly one empty meal row
       replaceMeals([
         {
           meal_id: 0,
-          count: 1,
+          count: 0,
           protein: '',
           carbs: '',
           fat: '',
@@ -207,7 +319,7 @@ export default function DietPlanForm({
         },
       ])
     }
-  }, [isOpen, planId, rowData, reset, appendMeal, replaceMeals])
+  }, [isOpen, planId, edit, rowData, detailData, reset, replaceMeals])
 
   const onSubmit = (values: DietPlanSchema) => {
     const itemsPayload = (values.meals || [])
@@ -292,8 +404,11 @@ export default function DietPlanForm({
       initialLoad: rowData?.meal_time ?? '',
       data: mealTimeOptions,
       required: true,
+      // In edit mode, keep meal time fixed to avoid clearing and 'no data found'
+      disabled: !!edit,
     },
   ]
+  const showMealsSection = edit || !!selectedMealTime
   return (
     <DialogModal
       isOpen={isOpen}
@@ -309,263 +424,286 @@ export default function DietPlanForm({
         <FormProvider {...methods}>
           <>
             <FormBuilder data={formFields} edit={true} spacing />
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold">Meals</h3>
-              </div>
+            {showMealsSection && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold">Meals</h3>
+                </div>
 
-              {mealFields.map((field, index) => {
-                const selectedId = watch(`meals.${index}.meal_id` as const)
-                const selectedMeal = filteredMeals.find(
-                  (m: any) => String(m.id) === String(selectedId)
-                )
-                const intakeQty = Number(
-                  watch(`meals.${index}.count` as const) || 1
-                )
+                {mealFields.map((field, index) => {
+                  const selectedId = watch(`meals.${index}.meal_id` as const)
+                  const selectedMeal = filteredMeals.find(
+                    (m: any) => String(m.id) === String(selectedId)
+                  )
+                  const intakeQty = Number(
+                    watch(`meals.${index}.count` as const) || 1
+                  )
 
-                return (
-                  <div
-                    key={field.id}
-                    className="mb-3 rounded border p-2 text-[11px]"
+                  return (
+                    <div
+                      key={field.id}
+                      className="mb-3 rounded border p-2 text-[11px]"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium">Meal {index + 1}</span>
+                        {mealFields.length > 1 && index > 0 && (
+                          <button
+                            type="button"
+                            className="text-[10px] text-red-500"
+                            onClick={() => removeMeal(index)}
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+                        <div className="col-span-2 md:col-span-1">
+                          <label className="block text-[10px] font-medium mb-1">
+                            Meal Name <span className="text-error">*</span>
+                          </label>
+                          <AutoComplete
+                            name={`meals.${index}.meal_id`}
+                            type="custom_search_select"
+                            desc="name"
+                            descId="id"
+                            placeholder="Select meal"
+                            data={filteredMeals}
+                            // show meal NAME in the input, while storing numeric id in form state
+                            value={selectedMeal ? selectedMeal.name : ''}
+                            className="w-full"
+                            onChange={(option: any) => {
+                              const mealId = option?.id ?? option?.value ?? ''
+                              setValue(
+                                `meals.${index}.meal_id` as const,
+                                mealId === '' ? 0 : Number(mealId),
+                                { shouldValidate: true }
+                              )
+                              refetchMeals()
+                            }}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-medium mb-1">
+                            Intake quantity{' '}
+                            <span className="text-error">*</span>
+                          </label>
+                          <Controller
+                            name={`meals.${index}.count` as const}
+                            control={control}
+                            render={({ field: { onChange, value } }) => (
+                              <TextField
+                                id={`meals.${index}.count`}
+                                name={`meals.${index}.count`}
+                                type="text"
+                                label={undefined} // label already above
+                                placeholder=""
+                                value={
+                                  value === undefined ||
+                                  value === null ||
+                                  value === 0
+                                    ? ''
+                                    : String(value)
+                                }
+                                onChange={(e: any) => {
+                                  const v = e.target.value
+                                  // store as number in RHF, but pass as string to TextField
+                                  onChange(v === '' ? 0 : Number(v))
+                                }}
+                                allowPositiveOnly
+                                // optional: disabled / readOnly if you want it non-editable
+                                // disabled={true}
+                              />
+                            )}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-medium mb-1">
+                            Serving unit<span className="text-error">*</span>
+                          </label>
+                          <TextField
+                            id={`meals.${index}.serving_unit`}
+                            name={`meals.${index}.serving_unit`}
+                            type="text"
+                            label={undefined}
+                            placeholder=""
+                            value={selectedMeal?.serving_unit ?? ''}
+                            disabled
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-medium mb-1">
+                            Total Calorie<span className="text-error">*</span>
+                          </label>
+                          <TextField
+                            id={`meals.${index}.total_calories`}
+                            name={`meals.${index}.total_calories`}
+                            type="text"
+                            label={undefined}
+                            placeholder=""
+                            value={
+                              !selectedMeal
+                                ? ''
+                                : String(
+                                    (() => {
+                                      const p = Number(
+                                        selectedMeal?.per_serving?.protein ??
+                                          selectedMeal?.calories_breakdown
+                                            ?.protein ??
+                                          0
+                                      )
+                                      const c = Number(
+                                        selectedMeal?.per_serving?.carbs ??
+                                          selectedMeal?.calories_breakdown
+                                            ?.carbs ??
+                                          0
+                                      )
+                                      const f = Number(
+                                        selectedMeal?.per_serving?.fat ??
+                                          selectedMeal?.calories_breakdown
+                                            ?.fat ??
+                                          0
+                                      )
+                                      const fi = Number(
+                                        selectedMeal?.per_serving?.fiber ??
+                                          selectedMeal?.calories_breakdown
+                                            ?.fiber ??
+                                          0
+                                      )
+                                      const perServingTotal = p + c + f + fi
+                                      return perServingTotal * intakeQty
+                                    })()
+                                  )
+                            }
+                            disabled
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-medium mb-1">
+                            Protein<span className="text-error">*</span>
+                          </label>
+                          <TextField
+                            id={`meals.${index}.protein`}
+                            name={`meals.${index}.protein`}
+                            type="text"
+                            label={undefined}
+                            placeholder=""
+                            value={
+                              selectedMeal
+                                ? String(
+                                    (selectedMeal?.per_serving?.protein ??
+                                      selectedMeal?.calories_breakdown
+                                        ?.protein ??
+                                      0) * intakeQty
+                                  )
+                                : ''
+                            }
+                            disabled
+                          />{' '}
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium mb-1">
+                            Carbs<span className="text-error">*</span>
+                          </label>
+                          <TextField
+                            id={`meals.${index}.carbs`}
+                            name={`meals.${index}.carbs`}
+                            type="text"
+                            label={undefined}
+                            placeholder=""
+                            value={
+                              selectedMeal
+                                ? String(
+                                    (selectedMeal?.per_serving?.carbs ??
+                                      selectedMeal?.calories_breakdown?.carbs ??
+                                      0) * intakeQty
+                                  )
+                                : ''
+                            }
+                            disabled
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium mb-1">
+                            Fat<span className="text-error">*</span>
+                          </label>
+                          <TextField
+                            id={`meals.${index}.fat`}
+                            name={`meals.${index}.fat`}
+                            type="text"
+                            label={undefined}
+                            placeholder=""
+                            value={
+                              selectedMeal
+                                ? String(
+                                    (selectedMeal?.per_serving?.fat ??
+                                      selectedMeal?.calories_breakdown?.fat ??
+                                      0) * intakeQty
+                                  )
+                                : ''
+                            }
+                            disabled
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-medium mb-1">
+                            Fiber<span className="text-error">*</span>
+                          </label>
+                          <TextField
+                            id={`meals.${index}.fiber`}
+                            name={`meals.${index}.fiber`}
+                            type="text"
+                            label={undefined}
+                            placeholder=""
+                            value={
+                              selectedMeal
+                                ? String(
+                                    (selectedMeal?.per_serving?.fiber ??
+                                      selectedMeal?.calories_breakdown?.fiber ??
+                                      0) * intakeQty
+                                  )
+                                : ''
+                            }
+                            disabled
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                <div className="mt-2 flex justify-between items-center">
+                  <span className="text-[11px] font-semibold">
+                    Total Calories: {totalCaloriesFromMeals || 0}
+                  </span>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-full bg-blue-500 px-2.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                    onClick={() =>
+                      appendMeal({
+                        meal_id: 0,
+                        // Use 0 as initial numeric value; render as empty in the input
+                        count: 0,
+                        protein: '',
+                        carbs: '',
+                        fat: '',
+                        fiber: '',
+                        total_calories: '',
+                      })
+                    }
+                    aria-label="Add meal row"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-medium">Meal {index + 1}</span>
-                      {mealFields.length > 1 && index > 0 && (
-                        <button
-                          type="button"
-                          className="text-[10px] text-red-500"
-                          onClick={() => removeMeal(index)}
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-2">
-                      <div className="col-span-2 md:col-span-1">
-                        <label className="block text-[10px] font-medium mb-1">
-                          Meal Name
-                        </label>
-                        <AutoComplete
-                          name={`meals.${index}.meal_id`}
-                          type="custom_search_select"
-                          desc="name"
-                          descId="id"
-                          placeholder="Select meal"
-                          data={filteredMeals}
-                          // show meal NAME in the input, while storing numeric id in form state
-                          value={selectedMeal ? selectedMeal.name : ''}
-                          className="w-full"
-                          onChange={(option: any) => {
-                            const mealId = option?.id ?? option?.value ?? ''
-                            setValue(
-                              `meals.${index}.meal_id` as const,
-                              mealId === '' ? 0 : Number(mealId),
-                              { shouldValidate: true }
-                            )
-                            refetchMeals()
-                          }}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-medium mb-1">
-                          Intake quantity
-                        </label>
-                        <Controller
-                          name={`meals.${index}.count` as const}
-                          control={control}
-                          render={({ field: { onChange, value } }) => (
-                            <TextField
-                              id={`meals.${index}.count`}
-                              name={`meals.${index}.count`}
-                              type="text"
-                              label={undefined} // label already above
-                              placeholder=""
-                              value={
-                                value !== undefined && value !== null
-                                  ? String(value)
-                                  : ''
-                              }
-                              onChange={(e: any) => {
-                                const v = e.target.value
-                                // store as number in RHF, but pass as string to TextField
-                                onChange(v === '' ? '' : Number(v))
-                              }}
-                              allowPositiveOnly
-                              // optional: disabled / readOnly if you want it non-editable
-                              // disabled={true}
-                            />
-                          )}
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-medium mb-1">
-                          Total Calorie
-                        </label>
-                        <TextField
-                          id={`meals.${index}.total_calories`}
-                          name={`meals.${index}.total_calories`}
-                          type="text"
-                          label={undefined}
-                          placeholder=""
-                          value={
-                            !selectedMeal
-                              ? ''
-                              : String(
-                                  (() => {
-                                    const p = Number(
-                                      selectedMeal?.per_serving?.protein ??
-                                        selectedMeal?.calories_breakdown
-                                          ?.protein ??
-                                        0
-                                    )
-                                    const c = Number(
-                                      selectedMeal?.per_serving?.carbs ??
-                                        selectedMeal?.calories_breakdown
-                                          ?.carbs ??
-                                        0
-                                    )
-                                    const f = Number(
-                                      selectedMeal?.per_serving?.fat ??
-                                        selectedMeal?.calories_breakdown?.fat ??
-                                        0
-                                    )
-                                    const fi = Number(
-                                      selectedMeal?.per_serving?.fiber ??
-                                        selectedMeal?.calories_breakdown
-                                          ?.fiber ??
-                                        0
-                                    )
-                                    const perServingTotal = p + c + f + fi
-                                    return perServingTotal * intakeQty
-                                  })()
-                                )
-                          }
-                          disabled
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                      <div>
-                        <label className="block text-[10px] font-medium mb-1">
-                          Protein
-                        </label>
-                        <TextField
-                          id={`meals.${index}.protein`}
-                          name={`meals.${index}.protein`}
-                          type="text"
-                          label={undefined}
-                          placeholder=""
-                          value={
-                            selectedMeal
-                              ? String(
-                                  (selectedMeal?.per_serving?.protein ??
-                                    selectedMeal?.calories_breakdown?.protein ??
-                                    0) * intakeQty
-                                )
-                              : ''
-                          }
-                          disabled
-                        />{' '}
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-medium mb-1">
-                          Carbs
-                        </label>
-                        <TextField
-                          id={`meals.${index}.carbs`}
-                          name={`meals.${index}.carbs`}
-                          type="text"
-                          label={undefined}
-                          placeholder=""
-                          value={
-                            selectedMeal
-                              ? String(
-                                  (selectedMeal?.per_serving?.carbs ??
-                                    selectedMeal?.calories_breakdown?.carbs ??
-                                    0) * intakeQty
-                                )
-                              : ''
-                          }
-                          disabled
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-medium mb-1">
-                          Fat
-                        </label>
-                        <TextField
-                          id={`meals.${index}.fat`}
-                          name={`meals.${index}.fat`}
-                          type="text"
-                          label={undefined}
-                          placeholder=""
-                          value={
-                            selectedMeal
-                              ? String(
-                                  (selectedMeal?.per_serving?.fat ??
-                                    selectedMeal?.calories_breakdown?.fat ??
-                                    0) * intakeQty
-                                )
-                              : ''
-                          }
-                          disabled
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-medium mb-1">
-                          Fiber
-                        </label>
-                        <TextField
-                          id={`meals.${index}.fiber`}
-                          name={`meals.${index}.fiber`}
-                          type="text"
-                          label={undefined}
-                          placeholder=""
-                          value={
-                            selectedMeal
-                              ? String(
-                                  (selectedMeal?.per_serving?.fiber ??
-                                    selectedMeal?.calories_breakdown?.fiber ??
-                                    0) * intakeQty
-                                )
-                              : ''
-                          }
-                          disabled
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-
-              <div className="mt-2 flex justify-between items-center">
-                <span className="text-[11px] font-semibold">
-                  Total Calories: {totalCaloriesFromMeals || 0}
-                </span>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-full bg-blue-500 px-2.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                  onClick={() =>
-                    appendMeal({
-                      meal_id: 0,
-                      count: 1,
-                      protein: '',
-                      carbs: '',
-                      fat: '',
-                      fiber: '',
-                      total_calories: '',
-                    })
-                  }
-                  aria-label="Add meal row"
-                >
-                  +
-                </button>
+                    +
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </>
         </FormProvider>
       }
