@@ -5,11 +5,11 @@ import { TableColumns } from '../../../../common/types'
 import { useDietPlans, useDeleteDietPlan } from './api'
 import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../../../utilities/parsers'
-import ListingHeader from '../../../../components/common/ListingTiles'
 import { useNavigate, useParams } from 'react-router-dom'
 import DietPlanForm from './create'
 import { calcWindowHeight } from '../../../../utilities/calcHeight'
 import { checkPermissions } from '../../../../layout/store'
+import Button from '../../../../components/common/buttons/Button'
 
 export default function DietPlanIndex({
   planName,
@@ -184,23 +184,13 @@ export default function DietPlanIndex({
     })
   }
 
-  const headerProps = { actionTitle: 'Create Diet Plan' }
-
   return (
     <div className="">
-      <div className="mb-3">
-        <ListingHeader
-          data={{ title: planName || 'Diet Plans' }}
-          actionProps={headerProps}
-          onActionClick={openCreate}
-          checkPermission={checkPermissions('Employee', 'create')}
-        />
-      </div>
       <SmartTable
         data={data?.diet_plans ?? []}
         dataRowKey="id"
         toolbar={true}
-        // title={planName || 'Diet Plans'}
+        title={planName || 'Diet Plans'}
         // search={true}
         searchValue={String(pageParams?.search || '')}
         onSearchChange={(val) =>
@@ -219,6 +209,16 @@ export default function DietPlanIndex({
         sortColumn={pageParams.sortColumn}
         handleColumnSort={handleSort}
         emptyTitle="No records to display"
+        createButton={
+          checkPermissions('Employee', 'create') && (
+            <Button
+              className="bg-primaryGreen"
+              label="Create Diet Plan"
+              icon="plus"
+              onClick={openCreate}
+            />
+          )
+        }
         paginationProps={{
           onPagination: onChangePage,
           total: data?.meta?.total_count ?? 0,

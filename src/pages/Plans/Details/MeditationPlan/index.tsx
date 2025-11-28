@@ -228,9 +228,6 @@ export default function MeditationPlanIndex({ planName }: Props) {
                         <div className="px-1 pt-1 text-xs font-medium line-clamp-1">
                           {i + 1}. {m?.name || m?.title || 'Untitled'}
                         </div>
-                        <div className="px-1 pb-1 text-xxs text-gray-500 break-all line-clamp-1">
-                          {url || '--'}
-                        </div>
                         {embed ? (
                           <div className="w-full h-32 rounded overflow-hidden bg-black/5">
                             <iframe
@@ -323,9 +320,6 @@ function AssignedMeditationsSection({
                 >
                   <div className="px-1 pt-1 text-xs font-medium line-clamp-1">
                     {i + 1}. {title}
-                  </div>
-                  <div className="px-1 pb-1 text-xxs text-gray-500 break-all line-clamp-1">
-                    {url || '--'}
                   </div>
                   {embed ? (
                     <div className="w-full h-24 rounded overflow-hidden bg-black/5">

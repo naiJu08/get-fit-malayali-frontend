@@ -49,6 +49,7 @@ type SmartTableProps = {
   externalActions?: boolean
   toolbarExtra?: React.ReactNode
   searchPlaceholder?: string
+  createButton?: React.ReactNode
 }
 
 const SmartTable: React.FC<SmartTableProps> = ({
@@ -75,6 +76,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
   externalActions = false,
   toolbarExtra,
   searchPlaceholder,
+  createButton,
 }) => {
   const [visibleColumns, setVisibleColumns] = useState<TableColumns[]>(columns)
   const [showColumnMenu, setShowColumnMenu] = useState(false)
@@ -357,60 +359,63 @@ const SmartTable: React.FC<SmartTableProps> = ({
             )}
           </div>
 
-          {columnToggle && (
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <span
-                  role="button"
-                  aria-label="Toggle columns"
-                  tabIndex={0}
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 hover:shadow-sm transition-all cursor-pointer"
-                  onClick={() => setShowColumnMenu((s) => !s)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ')
-                      setShowColumnMenu((s) => !s)
-                  }}
-                >
-                  <ColumnIcon
-                    size={16}
-                    className="text-primaryBlue group-hover:text-primaryPink"
-                  />
-                </span>
-                {showColumnMenu && (
-                  <div className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white shadow-xl z-20 p-3 animate-fadeIn">
-                    <div className="text-sm font-medium text-gray-700 mb-2">
-                      Visible Columns
-                    </div>
-                    {columns.map((c) => (
-                      <label
-                        key={c.field}
-                        className="flex items-center gap-3 py-2 px-3 hover:bg-gray-50 rounded-lg transition-colors duration-150 cursor-pointer group"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={
-                            (visibleColumns.find((v) => v.field === c.field)
-                              ?.isVisible ?? true) !== false
-                          }
-                          onChange={() => toggleColumn(c.field)}
-                          className="rounded text-blue-500 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700 group-hover:text-gray-900 flex-1">
-                          {c.title}
-                        </span>
-                        {handleColumnSort && c.sortable && (
-                          <Icons
-                            name="qbs-sort-icon"
-                            className="w-3 h-3 text-gray-400"
+          <div className="flex items-center gap-3">
+            {createButton && <div>{createButton}</div>}
+            {columnToggle && (
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <span
+                    role="button"
+                    aria-label="Toggle columns"
+                    tabIndex={0}
+                    className="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 hover:shadow-sm transition-all cursor-pointer"
+                    onClick={() => setShowColumnMenu((s) => !s)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ')
+                        setShowColumnMenu((s) => !s)
+                    }}
+                  >
+                    <ColumnIcon
+                      size={16}
+                      className="text-primaryBlue group-hover:text-primaryPink"
+                    />
+                  </span>
+                  {showColumnMenu && (
+                    <div className="absolute right-0 mt-2 w-64 rounded-xl border border-gray-200 bg-white shadow-xl z-20 p-3 animate-fadeIn">
+                      <div className="text-sm font-medium text-gray-700 mb-2">
+                        Visible Columns
+                      </div>
+                      {columns.map((c) => (
+                        <label
+                          key={c.field}
+                          className="flex items-center gap-3 py-2 px-3 hover:bg-gray-50 rounded-lg transition-colors duration-150 cursor-pointer group"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={
+                              (visibleColumns.find((v) => v.field === c.field)
+                                ?.isVisible ?? true) !== false
+                            }
+                            onChange={() => toggleColumn(c.field)}
+                            className="rounded text-blue-500 focus:ring-blue-500"
                           />
-                        )}
-                      </label>
-                    ))}
-                  </div>
-                )}
+                          <span className="text-sm text-gray-700 group-hover:text-gray-900 flex-1">
+                            {c.title}
+                          </span>
+                          {handleColumnSort && c.sortable && (
+                            <Icons
+                              name="qbs-sort-icon"
+                              className="w-3 h-3 text-gray-400"
+                            />
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       )}
 
