@@ -43,51 +43,67 @@ export default function Vitals({ user }: { user: any }) {
                 )}
               </div>
 
-              <div className="border rounded-lg p-3 bg-rose-50">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                  <Icons name="heart-rate-icon" />
-                  <span>Heart Rate</span>
+              {row?.heart_rate != null && (
+                <div className="border rounded-lg p-3 bg-rose-50">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                    <Icons name="heart-rate-icon" />
+                    <span>Heart Rate</span>
+                  </div>
+                  <div className="mt-1 text-gray-800 font-semibold text-center">
+                    {`${row.heart_rate} bpm`}
+                  </div>
                 </div>
-                <div className="mt-1 text-gray-800 font-semibold text-center">
-                  {row?.heart_rate != null ? `${row.heart_rate} bpm` : '—'}
+              )}
+
+              {row?.blood_pressure !== undefined &&
+                row?.blood_pressure !== null &&
+                row?.blood_pressure !== '' && (
+                  <div className="border rounded-lg p-3 bg-blue-50">
+                    <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                      <Icons name="blood-pressure-icon" />
+                      <span>Blood Pressure</span>
+                    </div>
+                    <div className="mt-1 text-gray-800 font-semibold text-center">
+                      {row?.blood_pressure}
+                    </div>
+                  </div>
+                )}
+
+              {row?.sugar_level != null && (
+                <div className="border rounded-lg p-3 bg-amber-50">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                    <Icons name="sugar-level-icon" />
+                    <span>Sugar Level</span>
+                  </div>
+                  <div className="mt-1 text-gray-800 font-semibold text-center">
+                    {`${row.sugar_level} mg/dL`}
+                  </div>
                 </div>
-              </div>
-              <div className="border rounded-lg p-3 bg-blue-50">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                  <Icons name="blood-pressure-icon" />
-                  <span>Blood Pressure</span>
+              )}
+
+              {row?.sleep_hours != null && (
+                <div className="border rounded-lg p-3 bg-indigo-50">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                    <Icons name="sleep-time-icon" />
+                    <span>Sleep</span>
+                  </div>
+                  <div className="mt-1 text-gray-800 font-semibold text-center">
+                    {`${row.sleep_hours} hrs`}
+                  </div>
                 </div>
-                <div className="mt-1 text-gray-800 font-semibold text-center">
-                  {row?.blood_pressure ?? '—'}
+              )}
+
+              {row?.water_intake != null && (
+                <div className="border rounded-lg p-3 bg-sky-50">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                    <Icons name="water-intake-icon" />
+                    <span>Water Intake</span>
+                  </div>
+                  <div className="mt-1 text-gray-800 font-semibold text-center">
+                    {`${row.water_intake} L`}
+                  </div>
                 </div>
-              </div>
-              <div className="border rounded-lg p-3 bg-amber-50">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                  <Icons name="sugar-level-icon" />
-                  <span>Sugar Level</span>
-                </div>
-                <div className="mt-1 text-gray-800 font-semibold text-center">
-                  {row?.sugar_level != null ? `${row.sugar_level} mg/dL` : '—'}
-                </div>
-              </div>
-              <div className="border rounded-lg p-3 bg-indigo-50">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                  <Icons name="sleep-time-icon" />
-                  <span>Sleep</span>
-                </div>
-                <div className="mt-1 text-gray-800 font-semibold text-center">
-                  {row?.sleep_hours != null ? `${row.sleep_hours} hrs` : '—'}
-                </div>
-              </div>
-              <div className="border rounded-lg p-3 bg-sky-50">
-                <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                  <Icons name="water-intake-icon" />
-                  <span>Water Intake</span>
-                </div>
-                <div className="mt-1 text-gray-800 font-semibold text-center">
-                  {row?.water_intake != null ? `${row.water_intake} L` : '—'}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         ))}

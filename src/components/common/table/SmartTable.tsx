@@ -190,7 +190,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
           </th>
         ))}
         {!!actionProps.length && (
-          <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider text-left">
+          <th className="px-6 py-4 text-[11px] font-semibold text-gray-600 uppercase tracking-wider text-left">
             Actions
           </th>
         )}

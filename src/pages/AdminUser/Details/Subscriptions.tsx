@@ -415,8 +415,9 @@ export default function Subscriptions({
       )}
       {!loading && !error && (
         <div className="flex flex-col gap-4">
-          {loginRole !== 'nutritionist' &&
-            !(hasPlanOverview || subscribedPlan) && (
+          {
+            loginRole !== 'nutritionist' && (
+              // !(hasPlanOverview || subscribedPlan) && (
               <div className="flex justify-end">
                 <Button
                   className="primaryButton"
@@ -424,7 +425,9 @@ export default function Subscriptions({
                   onClick={() => openSubscriptionDrawer()}
                 />
               </div>
-            )}
+            )
+            // )
+          }
           <div
             className={`relative border rounded-lg p-4 pt-6 ${subscribedPlan ? 'mt-4' : ''}`}
           >
@@ -879,106 +882,229 @@ export default function Subscriptions({
             )}
             {!dayDetailLoading && dayDetail && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="border rounded p-3 bg-white">
-                    <div className="text-sm font-medium mb-2">Diet Plans</div>
-                    {Array.isArray(dayDetail?.diet_plans) &&
-                    dayDetail.diet_plans.length > 0 ? (
-                      <div className="flex flex-col gap-2 text-xs">
-                        {dayDetail.diet_plans.map((d: any) => (
-                          <div
-                            key={`${d?.id}-${d?.sequence_number}`}
-                            className="flex items-center justify-between border rounded px-3 py-2"
-                          >
-                            <div className="flex flex-col">
-                              <span className="font-medium">
-                                {d?.meal_time || '--'}
-                              </span>
-                              <span className="text-gray-600">
-                                {d?.meal_name || '—'}
-                              </span>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-gray-500">Calories</div>
-                              <div className="font-medium">
-                                {d?.calories ?? '--'}
+                <div className="max-h-[700px] overflow-y-auto">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="border rounded p-3 bg-white">
+                      <div className="text-sm font-semibold mb-2">
+                        Diet Plans
+                      </div>
+                      {Array.isArray(dayDetail?.diet_plans) &&
+                      dayDetail.diet_plans.length > 0 ? (
+                        <div className="flex flex-col gap-2 text-xs">
+                          {dayDetail.diet_plans.map((d: any) => (
+                            <div
+                              key={`${d?.id}-${d?.sequence_number}`}
+                              className="flex items-center justify-between border rounded px-3 py-2"
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {d?.meal_time || '--'}
+                                </span>
+                                <span className="text-gray-600">
+                                  {d?.meal_name || '—'}
+                                </span>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-gray-500">Calories</div>
+                                <div className="font-medium">
+                                  {d?.calories ?? '--'}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500">
+                          No diet items.
+                        </div>
+                      )}
+                    </div>
+                    <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
+                      <div className="text-sm font-semibold mb-2">
+                        Workout Plan
                       </div>
-                    ) : (
-                      <div className="text-xs text-gray-500">
-                        No diet items.
-                      </div>
-                    )}
-                  </div>
-                  <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
-                    <div className="text-sm font-medium mb-2">Workout Plan</div>
-                    {dayDetail?.workout_plan ? (
-                      <div className="flex flex-col gap-2 text-xs">
-                        <div className="mb-1">
-                          <div className="font-medium">
-                            {dayDetail?.workout_plan?.title || 'Workout'}
+                      {dayDetail?.workout_plan ? (
+                        <div className="flex flex-col gap-2 text-xs">
+                          <div className="mb-1">
+                            <div className="font-medium">
+                              {dayDetail?.workout_plan?.title || 'Workout'}
+                            </div>
+                            {dayDetail?.workout_plan?.description && (
+                              <div className="text-gray-600">
+                                {dayDetail.workout_plan.description}
+                              </div>
+                            )}
                           </div>
-                          {dayDetail?.workout_plan?.description && (
-                            <div className="text-gray-600">
-                              {dayDetail.workout_plan.description}
+                          {Array.isArray(dayDetail?.workout_plan?.exercises) &&
+                          dayDetail.workout_plan.exercises.length > 0 ? (
+                            <div className="flex flex-col gap-2">
+                              {dayDetail.workout_plan.exercises.map(
+                                (ex: any, idx: number) => (
+                                  <div
+                                    key={`${ex?.id}-${idx}`}
+                                    className="flex items-center justify-between border rounded px-3 py-2"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">
+                                        {ex?.workout_name || '--'}
+                                      </span>
+                                      {ex?.video_url && (
+                                        <a
+                                          className="text-primaryBlue underline"
+                                          href={ex.video_url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          Video
+                                        </a>
+                                      )}
+                                    </div>
+                                    <div className="text-right text-gray-600">
+                                      {ex?.reps ? (
+                                        <div>Reps: {ex.reps}</div>
+                                      ) : null}
+                                      {ex?.sets ? (
+                                        <div>Sets: {ex.sets}</div>
+                                      ) : null}
+                                      {ex?.duration_minutes ? (
+                                        <div>
+                                          Duration: {ex.duration_minutes}m
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-500">
+                              No exercises.
                             </div>
                           )}
                         </div>
-                        {Array.isArray(dayDetail?.workout_plan?.exercises) &&
-                        dayDetail.workout_plan.exercises.length > 0 ? (
-                          <div className="flex flex-col gap-2">
-                            {dayDetail.workout_plan.exercises.map(
-                              (ex: any, idx: number) => (
-                                <div
-                                  key={`${ex?.id}-${idx}`}
-                                  className="flex items-center justify-between border rounded px-3 py-2"
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">
-                                      {ex?.workout_name || '--'}
-                                    </span>
-                                    {ex?.video_url && (
-                                      <a
-                                        className="text-primaryBlue underline"
-                                        href={ex.video_url}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                      >
-                                        Video
-                                      </a>
-                                    )}
-                                  </div>
-                                  <div className="text-right text-gray-600">
-                                    {ex?.reps ? (
-                                      <div>Reps: {ex.reps}</div>
-                                    ) : null}
-                                    {ex?.sets ? (
-                                      <div>Sets: {ex.sets}</div>
-                                    ) : null}
-                                    {ex?.duration_minutes ? (
-                                      <div>
-                                        Duration: {ex.duration_minutes}m
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                </div>
-                              )
+                      ) : (
+                        <div className="text-xs text-gray-500">
+                          No workout plan.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
+                    <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
+                      <div className="text-sm font-semibold mb-2">
+                        Yoga Plan
+                      </div>
+                      {dayDetail?.yoga_plan ? (
+                        <div className="flex flex-col gap-2 text-xs">
+                          <div className="mb-1">
+                            <div className="font-medium">
+                              {dayDetail?.yoga_plan?.title || 'Yoga Plan'}
+                            </div>
+                            {dayDetail?.yoga_plan?.description && (
+                              <div className="text-gray-600">
+                                {dayDetail.yoga_plan.description}
+                              </div>
                             )}
                           </div>
-                        ) : (
-                          <div className="text-xs text-gray-500">
-                            No exercises.
-                          </div>
-                        )}
+                          {Array.isArray(dayDetail?.yoga_plan?.exercises) &&
+                          dayDetail.yoga_plan.exercises.length > 0 ? (
+                            <div className="flex flex-col gap-2">
+                              {dayDetail.yoga_plan.exercises.map(
+                                (ex: any, idx: number) => (
+                                  <div
+                                    key={`${ex?.id}-${idx}`}
+                                    className="flex items-center justify-between border rounded px-3 py-2"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">
+                                        {ex?.yoga_name || '--'}
+                                      </span>
+                                      {ex?.video_url && (
+                                        <a
+                                          className="text-primaryBlue underline"
+                                          href={ex.video_url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          Video
+                                        </a>
+                                      )}
+                                    </div>
+                                    <div className="text-right text-gray-600">
+                                      {ex?.yoga_duration_minutes ? (
+                                        <div>
+                                          Duration: {ex.yoga_duration_minutes}m
+                                        </div>
+                                      ) : ex?.duration_minutes ? (
+                                        <div>
+                                          Duration: {ex.duration_minutes}m
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                )
+                              )}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-500">
+                              No yoga exercises.
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500">
+                          No yoga plan.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
+                      <div className="text-sm font-semibold mb-2">
+                        Meditation
                       </div>
-                    ) : (
-                      <div className="text-xs text-gray-500">
-                        No workout plan.
-                      </div>
-                    )}
+                      {Array.isArray(dayDetail?.meditations) &&
+                      dayDetail.meditations.length > 0 ? (
+                        <div className="flex flex-col gap-2 text-xs">
+                          {dayDetail.meditations.map((m: any, idx: number) => (
+                            <div
+                              key={`${m?.id}-${idx}`}
+                              className="flex items-center justify-between border rounded px-3 py-2"
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-medium">
+                                  {m?.title || '--'}
+                                </span>
+                                {m?.description && (
+                                  <span className="text-gray-600">
+                                    {m.description}
+                                  </span>
+                                )}
+                                {m?.video_url && (
+                                  <a
+                                    className="text-primaryBlue underline mt-1"
+                                    href={m.video_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    Video
+                                  </a>
+                                )}
+                              </div>
+                              <div className="text-right text-gray-600">
+                                {m?.duration_minutes ? (
+                                  <div>Duration: {m.duration_minutes}m</div>
+                                ) : null}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500">
+                          No meditation items.
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </>
