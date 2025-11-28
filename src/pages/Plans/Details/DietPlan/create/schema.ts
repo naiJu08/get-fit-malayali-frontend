@@ -60,11 +60,17 @@ export const dietPlanFormSchema = z.object({
   meals: z
     .array(
       z.object({
-        meal_id: z.union([z.number(), z.string()]).transform((v) => Number(v)),
+        meal_id: z
+          .union([z.number(), z.string()])
+          .transform((v) => Number(v))
+          .refine((v) => Number.isFinite(v) && v > 0, 'Meal name is required'),
         count: z
           .union([z.number(), z.string()])
           .transform((v) => Number(v))
-          .refine((v) => Number.isFinite(v) && v >= 1, 'Count must be 3 1'),
+          .refine(
+            (v) => Number.isFinite(v) && v >= 1,
+            'Intake quantity must be at least 1'
+          ),
         protein: z
           .union([z.number(), z.string()])
           .transform((v) =>

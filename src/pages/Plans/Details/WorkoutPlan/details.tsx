@@ -149,9 +149,6 @@ function AssignTabContent({
                       <div className="px-3 py-2 text-sm font-medium">
                         {i + 1}. {w?.name || 'Untitled'}
                       </div>
-                      <div className="px-3 pb-2 text-xxs text-gray-500 break-all">
-                        {url || '--'}
-                      </div>
                       {embed ? (
                         <div className="aspect-video w-full">
                           <iframe
@@ -523,9 +520,6 @@ export default function WorkoutPlanDetails() {
                         <div className="px-1 pt-1 text-xs font-medium line-clamp-1">
                           {i + 1}. {w?.name || 'Untitled'}
                         </div>
-                        <div className="px-1 pb-1 text-xxs text-gray-500 break-all line-clamp-1">
-                          {url || '--'}
-                        </div>
                         {embed ? (
                           <div className="w-full h-32 rounded overflow-hidden bg-black/5">
                             <iframe
@@ -607,9 +601,6 @@ export default function WorkoutPlanDetails() {
                           Assign
                         </button>
                       </div> */}
-                      <div className="px-1 pb-1 text-xxs text-gray-500 break-all line-clamp-1">
-                        {url || '--'}
-                      </div>
                       {embed ? (
                         <div className="w-full h-24 rounded overflow-hidden bg-black/5">
                           <iframe
