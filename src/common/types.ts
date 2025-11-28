@@ -172,6 +172,7 @@ export interface QueryParams {
   page: number
   search?: string
   page_size?: number | string
+  per_page?: number | string
   ordering?: string
   type?: string
   currentDomain?: string

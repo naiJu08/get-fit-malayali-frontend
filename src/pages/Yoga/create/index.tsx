@@ -127,8 +127,8 @@ export default function CreateAdmin({
       required: true,
       accept: 'video/*',
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
-      acceptedFiles: 'MP4, MOV, AVI (Max 50 MB)',
-      fileSize: 50,
+      acceptedFiles: 'MP4, MOV, AVI (Max 5 MB)',
+      fileSize: 5,
       selectedFiles: existingVideoFile,
     },
   ]

@@ -61,24 +61,34 @@ const MealDetail: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <DetailItem label="Name" value={meal?.name} />
             <DetailItem label="Meal Time" value={meal?.meal_time} />
+            <DetailItem label="Meal Category" value={meal?.meal_category} />
+            <DetailItem label="Serving Unit" value={meal?.serving_unit} />
+            <DetailItem
+              label="Default Serving Quantity"
+              value={meal?.default_serving_quantity}
+            />
+            <DetailItem
+              label="Per Serving Calories"
+              value={meal?.per_serving?.calories}
+            />
+            <DetailItem
+              label="Per Serving Protein"
+              value={meal?.per_serving?.protein}
+            />
+            <DetailItem
+              label="Per Serving Carbs"
+              value={meal?.per_serving?.carbs}
+            />
+            <DetailItem
+              label="Per Serving Fat"
+              value={meal?.per_serving?.fat}
+            />
+            <DetailItem
+              label="Per Serving Fiber"
+              value={meal?.per_serving?.fiber}
+            />
+            {/* <DetailItem label="Total Calories" value={meal?.total_calories} /> */}
             <DetailItem label="Notes" value={meal?.notes} />
-            <DetailItem
-              label="Protein (kcal)"
-              value={meal?.calories_breakdown?.protein}
-            />
-            <DetailItem
-              label="Carbs (kcal)"
-              value={meal?.calories_breakdown?.carbs}
-            />
-            <DetailItem
-              label="Fat (kcal)"
-              value={meal?.calories_breakdown?.fat}
-            />
-            <DetailItem
-              label="Fiber (kcal)"
-              value={meal?.calories_breakdown?.fiber}
-            />
-            <DetailItem label="Total Calories" value={meal?.total_calories} />
           </div>
         </>
       )}

@@ -5,7 +5,12 @@ import { useEffect } from 'react'
 import { DialogModal } from '../../../components/common'
 import FormBuilder from '../../../components/app/formBuilder'
 import { mealFormSchema, MealSchema } from './schema'
-import { useCreateMeal, useUpdateMeal } from '../api'
+import {
+  useCreateMeal,
+  useMealCategories,
+  useServingUnits,
+  useUpdateMeal,
+} from '../api'
 import { useQueryClient } from '@tanstack/react-query'
 
 type Props = {
@@ -30,12 +35,31 @@ export default function CreateMeal({
   })
   const { handleSubmit, reset } = methods
   // Watch macro fields
-  const protein = methods.watch('protein')
-  const carbs = methods.watch('carbs')
-  const fat = methods.watch('fat')
-  const fiber = methods.watch('fiber')
+  // const protein = methods.watch('protein')
+  // const carbs = methods.watch('carbs')
+  // const fat = methods.watch('fat')
+  // const fiber = methods.watch('fiber')
 
   // Auto-calculate total_calories when macros change
+  // useEffect(() => {
+  //   const toNumber = (v: any) => {
+  //     const n = Number(v)
+  //     return Number.isNaN(n) ? 0 : n
+  //   }
+
+  //   // const total =
+  //   //   toNumber(protein) + toNumber(carbs) + toNumber(fat) + toNumber(fiber)
+
+  //   // methods.setValue('total_calories', total as any, {
+  //   //   shouldValidate: true,
+  //   //   shouldDirty: true,
+  //   // })
+  // }, [methods])
+  const perServingProtein = methods.watch('per_serving_protein')
+  const perServingCarbs = methods.watch('per_serving_carbs')
+  const perServingFat = methods.watch('per_serving_fat')
+  const perServingFiber = methods.watch('per_serving_fiber')
+
   useEffect(() => {
     const toNumber = (v: any) => {
       const n = Number(v)
@@ -43,33 +67,86 @@ export default function CreateMeal({
     }
 
     const total =
-      toNumber(protein) + toNumber(carbs) + toNumber(fat) + toNumber(fiber)
+      toNumber(perServingProtein) +
+      toNumber(perServingCarbs) +
+      toNumber(perServingFat) +
+      toNumber(perServingFiber)
 
-    methods.setValue('total_calories', total as any, {
+    methods.setValue('per_serving_calories', total as any, {
       shouldValidate: true,
       shouldDirty: true,
     })
-  }, [protein, carbs, fat, fiber, methods])
+  }, [
+    perServingProtein,
+    perServingCarbs,
+    perServingFat,
+    perServingFiber,
+    methods,
+  ])
   const { mutate: createMealMutate } = useCreateMeal()
   const { mutate: updateMealMutate } = useUpdateMeal()
   const queryClient = useQueryClient()
+  const { data: mealCategoriesData } = useMealCategories()
 
+  const rawMealCategories =
+    (mealCategoriesData as any)?.meal_categories ?? (mealCategoriesData as any)
+  const mealCategoryList = Array.isArray(rawMealCategories)
+    ? rawMealCategories
+    : []
+  const mealCategoryOptions = mealCategoryList.map((c: any) => ({
+    id: c.id,
+    name: c.name,
+  }))
+
+  const selectedMealCategoryId = methods.watch('meal_category_id') as
+    | number
+    | undefined
+
+  const { data: servingUnitsData } = useServingUnits(selectedMealCategoryId)
+
+  const rawServingUnits =
+    (servingUnitsData as any)?.serving_units ?? (servingUnitsData as any)
+  const servingUnitList = Array.isArray(rawServingUnits) ? rawServingUnits : []
+  const servingUnitOptions = servingUnitList.map((u: any) =>
+    typeof u === 'string' ? { id: u, name: u } : { id: u.id, name: u.name }
+  )
+  useEffect(() => {
+    // When meal category changes, reset serving_unit so user selects a unit for that category
+    methods.setValue('serving_unit', '' as any, {
+      shouldValidate: true,
+      shouldDirty: true,
+    })
+  }, [selectedMealCategoryId, methods])
   const onSubmit = (values: MealSchema) => {
+    // const payload = {
+    //   meal: {
+    //     name: values.name,
+    //     meal_time: values.meal_time,
+    //     notes: values.notes ?? '',
+    //     calories_breakdown: {
+    //       protein: values.protein,
+    //       carbs: values.carbs,
+    //       fat: values.fat,
+    //       fiber: values.fiber,
+    //     },
+    //     total_calories: values.total_calories,
+    //   },
+    // }
     const payload = {
       meal: {
         name: values.name,
         meal_time: values.meal_time,
+        meal_category_id: values.meal_category_id,
+        serving_unit: values.serving_unit,
+        default_serving_quantity: values.default_serving_quantity,
+        per_serving_calories: values.per_serving_calories,
+        per_serving_protein: values.per_serving_protein,
+        per_serving_carbs: values.per_serving_carbs,
+        per_serving_fat: values.per_serving_fat,
+        per_serving_fiber: values.per_serving_fiber,
         notes: values.notes ?? '',
-        calories_breakdown: {
-          protein: values.protein,
-          carbs: values.carbs,
-          fat: values.fat,
-          fiber: values.fiber,
-        },
-        total_calories: values.total_calories,
       },
     }
-
     if (edit && rowData?.id) {
       updateMealMutate(
         { id: rowData.id, payload },
@@ -97,23 +174,36 @@ export default function CreateMeal({
       reset({
         name: rowData?.name ?? '',
         meal_time: rowData?.meal_time ?? '',
+        meal_category: rowData?.meal_category ?? '',
+        meal_category_id: rowData?.meal_category_id ?? undefined,
+        serving_unit: rowData?.serving_unit ?? '',
+        default_serving_quantity: rowData?.default_serving_quantity ?? 1,
+        per_serving_calories:
+          rowData?.per_serving?.calories ?? rowData?.per_serving_calories ?? 0,
+        per_serving_protein:
+          rowData?.per_serving?.protein ?? rowData?.per_serving_protein ?? 0,
+        per_serving_carbs:
+          rowData?.per_serving?.carbs ?? rowData?.per_serving_carbs ?? 0,
+        per_serving_fat:
+          rowData?.per_serving?.fat ?? rowData?.per_serving_fat ?? 0,
+        per_serving_fiber:
+          rowData?.per_serving?.fiber ?? rowData?.per_serving_fiber ?? 0,
         notes: rowData?.notes ?? '',
-        protein: rowData?.calories_breakdown?.protein ?? 0,
-        carbs: rowData?.calories_breakdown?.carbs ?? 0,
-        fat: rowData?.calories_breakdown?.fat ?? 0,
-        fiber: rowData?.calories_breakdown?.fiber ?? 0,
-        total_calories: rowData?.total_calories ?? 0,
       })
     } else if (isDrawerOpen && !edit) {
       reset({
         name: '',
         meal_time: '',
+        meal_category: '',
+        meal_category_id: undefined,
+        serving_unit: '',
+        default_serving_quantity: 1,
+        per_serving_calories: 0,
+        per_serving_protein: 0,
+        per_serving_carbs: 0,
+        per_serving_fat: 0,
+        per_serving_fiber: 0,
         notes: '',
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-        fiber: 0,
-        total_calories: 0,
       })
     }
   }, [isDrawerOpen, edit, rowData, reset])
@@ -136,62 +226,26 @@ export default function CreateMeal({
       desc: 'name',
       descId: 'id',
       data: [
+        { id: 'Morning drink', name: 'Morning drink' },
         { id: 'Breakfast', name: 'Breakfast' },
+        { id: 'Mid day meal', name: 'Mid day meal' },
         { id: 'Lunch', name: 'Lunch' },
+        { id: 'Evening snack', name: 'Evening snack' },
         { id: 'Dinner', name: 'Dinner' },
-        { id: 'Snack', name: 'Snack' },
-        { id: 'Dessert', name: 'Dessert' },
-        { id: 'Beverage', name: 'Beverage' },
+        { id: 'Bed time', name: 'Bed time' },
       ],
     },
+    // Removed old macro fields (protein, carbs, fat, fiber) and total_calories in favor of per_serving_* fields
     {
-      name: 'protein',
-      label: 'Protein (kcal)',
-      type: 'text',
-      placeholder: 'Protein calories',
+      name: 'meal_category',
+      label: 'Meal Category',
+      type: 'custom_search_select',
+      placeholder: 'Select meal category',
       required: true,
-      allowPositiveOnly: true,
-    },
-    {
-      name: 'carbs',
-      label: 'Carbs (kcal)',
-      type: 'text',
-      placeholder: 'Carb calories',
-      required: true,
-      allowPositiveOnly: true,
-    },
-    {
-      name: 'fat',
-      label: 'Fat (kcal)',
-      type: 'text',
-      placeholder: 'Fat calories',
-      required: true,
-      allowPositiveOnly: true,
-    },
-    {
-      name: 'fiber',
-      label: 'Fiber (kcal)',
-      type: 'text',
-      placeholder: 'Fiber calories',
-      required: true,
-      allowPositiveOnly: true,
-    },
-    // {
-    //   name: 'total_calories',
-    //   label: 'Total Calories',
-    //   type: 'text',
-    //   placeholder: 'Total calories',
-    //   required: true,
-    //   allowPositiveOnly: true,
-    // },
-    {
-      name: 'total_calories',
-      label: 'Total Calories',
-      type: 'text',
-      placeholder: 'Total calories',
-      required: true,
-      allowPositiveOnly: true,
-      disabled: true, // FormBuilder supports this (like in other forms)
+      desc: 'name',
+      descId: 'id',
+      id: 'meal_category_id',
+      data: mealCategoryOptions,
     },
     {
       name: 'notes',
@@ -199,6 +253,62 @@ export default function CreateMeal({
       type: 'textarea',
       placeholder: 'Add notes (optional)',
       required: false,
+    },
+
+    {
+      name: 'serving_unit',
+      label: 'Serving Unit',
+      type: 'custom_search_select',
+      placeholder: 'Select serving unit',
+      required: true,
+      desc: 'name',
+      descId: 'id',
+      id: 'serving_unit',
+      data: servingUnitOptions,
+    },
+    {
+      name: 'default_serving_quantity',
+      label: 'Serving Quantity',
+      type: 'text',
+      placeholder: 'e.g. 2',
+      required: true,
+      allowPositiveOnly: true,
+    },
+    {
+      name: 'per_serving_protein',
+      label: 'Protein',
+      type: 'text',
+      required: true,
+      allowPositiveOnly: true,
+    },
+    {
+      name: 'per_serving_carbs',
+      label: 'Carbs',
+      type: 'text',
+      required: true,
+      allowPositiveOnly: true,
+    },
+    {
+      name: 'per_serving_fat',
+      label: 'Fat',
+      type: 'text',
+      required: true,
+      allowPositiveOnly: true,
+    },
+    {
+      name: 'per_serving_fiber',
+      label: 'Fiber',
+      type: 'text',
+      required: true,
+      allowPositiveOnly: true,
+    },
+    {
+      name: 'per_serving_calories',
+      label: 'TotalCalories',
+      type: 'text',
+      required: true,
+      allowPositiveOnly: true,
+      disabled: true,
     },
   ]
 

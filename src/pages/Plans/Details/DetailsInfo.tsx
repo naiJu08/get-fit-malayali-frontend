@@ -60,9 +60,22 @@ export default function DetailsInfo({
             value={safeStr(plan?.diet_plans_count)}
           />
           <DetailItem
-            label="Subscribers"
-            value={safeStr(plan?.subscribers_count)}
+            label="Yoga Plans"
+            value={safeStr(plan?.yoga_plans_count)}
           />
+          <div className="min-h-[200px]">
+            <DetailItem
+              label="Meditation Plans"
+              value={safeStr(plan?.meditations_count)}
+            />
+          </div>
+          <div className="min-h-[200px]">
+            <DetailItem
+              label="Subscribers"
+              value={safeStr(plan?.subscribers_count)}
+            />
+          </div>
+
           {/* <DetailItem label="Yoga" value={plan?.yoga_included} /> */}
           <div className="border rounded-lg p-3 bg-white">
             <div className="text-xs text-gray-500 mb-1">Thumbnail</div>

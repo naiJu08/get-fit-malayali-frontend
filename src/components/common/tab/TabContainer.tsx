@@ -75,7 +75,7 @@ const TabContainer: React.FC<TabProps> = ({
             {!tab.hide && (
               <div
                 key={tab.id}
-                className={` transition-all relative z-20 duration-100 text-sm font-medium p-2.5 ${generateClassName(
+                className={` transition-all relative z-10 duration-100 text-sm font-medium p-2.5 ${generateClassName(
                   tab
                 )} border-b-2 `}
                 onClick={() => {

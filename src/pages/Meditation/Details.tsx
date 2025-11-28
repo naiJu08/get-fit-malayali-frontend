@@ -43,7 +43,7 @@ export default function MeditationDetails() {
           <button onClick={() => navigate('/meditation')} aria-label="Back">
             <Icons name="left-arrow-icon" />
           </button>
-          <h1 className="text-xl font-semibold">Meditation Detail</h1>
+          <h1 className="text-xl font-semibold">Meditation Details</h1>
         </div>
       </div>
 

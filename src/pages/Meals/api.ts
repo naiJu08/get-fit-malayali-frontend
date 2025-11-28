@@ -94,3 +94,31 @@ export const getMealDetails = async (id: string | number) => {
   const response = await getData(`${apiUrl.MEALS}/${id}`)
   return response
 }
+const fetchMealCategories = async () => {
+  const response = await getData(apiUrl.MEAL_CATEGORIES)
+  return response
+}
+
+export const useMealCategories = () => {
+  return useQuery(['meal_categories'], fetchMealCategories)
+}
+
+const fetchServingUnits = async (mealCategoryId?: number) => {
+  const url =
+    mealCategoryId != null
+      ? `${apiUrl.SERVING_UNITS}?meal_category_id=${mealCategoryId}`
+      : apiUrl.SERVING_UNITS
+
+  const response = await getData(url)
+  return response
+}
+
+export const useServingUnits = (mealCategoryId?: number) => {
+  return useQuery(
+    ['serving_units', mealCategoryId],
+    () => fetchServingUnits(mealCategoryId),
+    {
+      enabled: mealCategoryId != null,
+    }
+  )
+}

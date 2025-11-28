@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import SmartTable from '../../../../components/common/table/SmartTable'
 import Icons from '../../../../components/common/icons'
 import { TableColumns } from '../../../../common/types'
-import { useDietPlans } from './api'
+import { useDietPlans, useDeleteDietPlan } from './api'
 import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../../../utilities/parsers'
-// import ListingHeader from '../../../../components/common/ListingTiles'
+import ListingHeader from '../../../../components/common/ListingTiles'
 import { useNavigate, useParams } from 'react-router-dom'
 import DietPlanForm from './create'
 import { calcWindowHeight } from '../../../../utilities/calcHeight'
+import { checkPermissions } from '../../../../layout/store'
 
 export default function DietPlanIndex({
   planName,
@@ -21,16 +22,6 @@ export default function DietPlanIndex({
   const { id: routePlanId } = useParams()
   const effectivePlanId = planId ?? routePlanId
   const [columns] = useState<TableColumns[]>([
-    // {
-    //   title: 'Plan',
-    //   field: 'plan_name',
-    //   sortable: true,
-    //   resizable: true,
-    //   isVisible: true,
-    //   customCell: true,
-    //   renderCell: (row: any) => ({ cell: row?.plan_name ?? '' }),
-    //   sortKey: 'plan_name',
-    // },
     {
       title: 'Day',
       field: 'day_number',
@@ -38,7 +29,17 @@ export default function DietPlanIndex({
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.day_number ?? '' }),
+      renderCell: (row: any) => ({
+        cell: (
+          <button
+            type="button"
+            className="text-blue-600 hover:underline"
+            onClick={() => navigate(`/diet_details/${row?.id}`)}
+          >
+            {row?.day_number ?? ''}
+          </button>
+        ),
+      }),
       sortKey: 'day_number',
     },
     {
@@ -68,32 +69,33 @@ export default function DietPlanIndex({
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.meal_name ?? '' }),
+      renderCell: (row: any) => {
+        const items = (row?.items as any[]) || []
+        const label =
+          items.length > 0
+            ? items
+                .map((it: any) => {
+                  const name = it?.meal_name ?? ''
+                  const qty = it?.quantity ?? 0
+                  return qty ? `${name}` : name
+                })
+                .filter(Boolean)
+                .join(', ')
+            : (row?.meal_name ?? '')
+        return { cell: label }
+      },
       sortKey: 'meal_name',
     },
     {
       title: 'Calories',
-      field: 'calories',
+      field: 'effective_total_calories',
       // sortable: true,
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.calories ?? '' }),
-      sortKey: 'calories',
+      renderCell: (row: any) => ({ cell: row?.effective_total_calories ?? '' }),
+      sortKey: 'effective_total_calories',
     },
-    // {
-    //   title: 'Created At',
-    //   field: 'created_at',
-    //   resizable: true,
-    //   isVisible: true,
-    //   customCell: true,
-    //   renderCell: (row: any) => ({
-    //     cell: row?.created_at
-    //       ? new Date(row?.created_at).toLocaleDateString()
-    //       : '',
-    //   }),
-    //   sortKey: 'created_at',
-    // },
   ])
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
@@ -109,9 +111,29 @@ export default function DietPlanIndex({
 
   const { data, isFetching } = useDietPlans(searchParams)
 
+  const { mutate: deleteDietPlan } = useDeleteDietPlan()
+
   const [formOpen, setFormOpen] = useState(false)
   const [formValues, setFormValues] = useState<any | null>(null)
+  const [editMode, setEditMode] = useState(false)
+
+  const openCreate = () => {
+    setEditMode(false)
+    setFormValues({
+      plan_id: effectivePlanId,
+      day_number: 1,
+      sequence_number: 1,
+      meal_time: '',
+      meal_name: '',
+      calories: '',
+    })
+    setFormOpen(true)
+  }
+
   const openEdit = (row: any) => {
+    setEditMode(true)
+    console.log('EDIT ROW', row)
+
     setFormValues({
       id: row?.id,
       plan_id: row?.plan_id ?? effectivePlanId,
@@ -120,10 +142,16 @@ export default function DietPlanIndex({
       meal_time: row?.meal_time ?? '',
       meal_name: row?.meal_name ?? '',
       calories: row?.calories ?? '',
+      // pass existing items so the form can prefill meals in edit mode
+      items: Array.isArray(row?.items) ? row.items : [],
     })
     setFormOpen(true)
   }
-  const handleClose = () => setFormOpen(false)
+  const handleClose = () => {
+    setFormOpen(false)
+    setEditMode(false)
+    setFormValues(null)
+  }
 
   useEffect(() => {
     if (typeof pageParams?.page !== 'number' || pageParams.page !== 1) {
@@ -156,21 +184,23 @@ export default function DietPlanIndex({
     })
   }
 
-  // const headerProps = { actionTitle: '' }
+  const headerProps = { actionTitle: 'Create Diet Plan' }
 
   return (
     <div className="">
-      {/* <div className="mb-3">
+      <div className="mb-3">
         <ListingHeader
-          data={{ title: planName || 'Diet Plans', icon: 'user' }}
+          data={{ title: planName || 'Diet Plans' }}
           actionProps={headerProps}
+          onActionClick={openCreate}
+          checkPermission={checkPermissions('Employee', 'create')}
         />
-      </div> */}
+      </div>
       <SmartTable
         data={data?.diet_plans ?? []}
         dataRowKey="id"
         toolbar={true}
-        title={planName || 'Diet Plans'}
+        // title={planName || 'Diet Plans'}
         // search={true}
         searchValue={String(pageParams?.search || '')}
         onSearchChange={(val) =>
@@ -224,14 +254,20 @@ export default function DietPlanIndex({
             title: 'edit',
             toolTip: 'Edit',
           },
+          {
+            icon: <Icons name="delete" />,
+            action: (row: any) => deleteDietPlan(row?.id),
+            title: 'delete',
+            toolTip: 'Delete',
+          },
         ]}
       />
       <DietPlanForm
         isOpen={formOpen}
         handleClose={handleClose}
-        edit={true}
+        edit={editMode}
         rowData={formValues ?? undefined}
-        planId={planId}
+        planId={effectivePlanId}
       />
     </div>
   )

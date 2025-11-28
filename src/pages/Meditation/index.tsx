@@ -43,7 +43,7 @@ export default function MeditationMain() {
   const { page, per_page, search, ordering, filters } = pageParams
   const searchParams = {
     page: page,
-    per_page: per_page,
+    per_page: per_page || 10,
     search: search,
     ordering: ordering,
     ...filters,

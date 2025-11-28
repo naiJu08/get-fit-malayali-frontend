@@ -29,7 +29,19 @@ export default function YogaPlanIndex({
       resizable: true,
       isVisible: true,
       customCell: true,
-      renderCell: (row: any) => ({ cell: row?.day_number ?? '' }),
+      renderCell: (row: any) => ({
+        cell: (
+          <button
+            type="button"
+            className="text-blue-600 hover:underline"
+            onClick={() =>
+              navigate(`/plans/${row?.plan_id}/yoga_details/${row?.id}`)
+            }
+          >
+            {row?.day_number ?? ''}
+          </button>
+        ),
+      }),
       sortKey: 'day_number',
     },
     {
@@ -68,19 +80,6 @@ export default function YogaPlanIndex({
       renderCell: (row: any) => ({ cell: row?.total_duration ?? 0 }),
       sortKey: 'total_duration',
     },
-    // {
-    //   title: 'Created At',
-    //   field: 'created_at',
-    //   resizable: true,
-    //   isVisible: true,
-    //   customCell: true,
-    //   renderCell: (row: any) => ({
-    //     cell: row?.created_at
-    //       ? new Date(row?.created_at).toLocaleDateString()
-    //       : '',
-    //   }),
-    //   sortKey: 'created_at',
-    // },
   ])
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
