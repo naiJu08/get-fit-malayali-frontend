@@ -90,6 +90,14 @@ export default function CreateAdmin({
     //     )
     //   })
   }
+  const existingVideoFile = rowData?.video_url
+    ? {
+        name:
+          String(rowData.video_url).split('/').pop() ||
+          String(rowData.video_url),
+        link: rowData.video_url,
+      }
+    : undefined
 
   const formBuilderProps = [
     { ...textField('title', 'Title', 'Enter meditation title', true) },
@@ -110,6 +118,7 @@ export default function CreateAdmin({
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
       acceptedFiles: 'MP4, MOV, AVI (Max 50 MB)',
       fileSize: 50,
+      selectedFiles: existingVideoFile,
     },
   ]
 
