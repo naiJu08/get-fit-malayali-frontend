@@ -159,7 +159,7 @@ const NOTIFICATIONS: RouterMenuProps = {
   id: 30,
   path: '/notifications',
   parent_id: null,
-  label: 'Notifications',
+  label: 'Broadcast',
   key: 'notifications',
   icon: 'notification',
   permission_slugs: ['superadmin'],

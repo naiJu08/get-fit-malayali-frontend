@@ -1,8 +1,7 @@
 import SmartTable from '../../components/common/table/SmartTable'
-// import Button from '../../components/common/buttons/Button'
 import { AutoComplete } from 'qbs-core'
 import { useEffect, useState } from 'react'
-// import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -12,7 +11,6 @@ import TextField from '../../components/common/inputs/TextField'
 
 import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
-// import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
@@ -27,7 +25,6 @@ import {
   sendAdminInvitation,
   useAdminUser,
   DISABLE_NONLOGIN_APIS,
-  // deleteAdmin,
   freezeUser,
   unfreezeUser,
 } from './api'
@@ -36,7 +33,8 @@ import { useCreateNotification } from './api'
 import { checkPermissions } from '../../layout/store'
 
 export default function Notifications() {
-  // const navigate = useNavigate()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
   const [deleteItem] = useState('')
@@ -48,8 +46,6 @@ export default function Notifications() {
   const [userName, setUserName] = useState('')
   const [userId, setUserId] = useState('')
   const [openConfirm, setOpenConfirm] = useState(false)
-  // const [deleteUserModal, setDeleteUserModal] = useState(false)
-  // const [deleteUserId, setDeleteUserId] = useState<string>('')
   const [freezeModal, setFreezeModal] = useState(false)
   const [freezeUserId] = useState<string>('')
   const [freezeForm, setFreezeForm] = useState<{
@@ -67,8 +63,10 @@ export default function Notifications() {
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
   const [loader, setloader] = useState(false)
+  const [activeTab, setActiveTab] = useState<'current' | 'history'>(() =>
+    pathname.includes('/notifications/history') ? 'history' : 'current'
+  )
 
-  // Create Notification form state
   const [createForm, setCreateForm] = useState({
     selectedUsers: [] as any[],
     title: '',
@@ -82,6 +80,12 @@ export default function Notifications() {
     setCreateForm((prev) => ({ ...prev, [name]: value }))
   }
 
+  useEffect(() => {
+    setActiveTab(
+      pathname.includes('/notifications/history') ? 'history' : 'current'
+    )
+  }, [pathname])
+
   const clearCreateForm = () => {
     setCreateForm({
       selectedUsers: [],
@@ -93,7 +97,6 @@ export default function Notifications() {
     })
   }
 
-  // Create notification hook
   const { mutate: createNotificationMutate, isLoading: isCreating } =
     useCreateNotification(() => {
       clearCreateForm()
@@ -102,12 +105,10 @@ export default function Notifications() {
     })
 
   const handleCreateSubmit = () => {
-    // Collect selected user IDs
     const ids = (createForm.selectedUsers || [])
       .map((u: any) => Number(u?.id))
       .filter((n: number) => !Number.isNaN(n))
 
-    // Basic required field validation
     if (!ids.length) {
       enqueueSnackbar('Please select at least one user', { variant: 'error' })
       return
@@ -373,7 +374,7 @@ export default function Notifications() {
     }
   }
   const basicData = {
-    title: 'Notifications',
+    title: 'Broadcast',
     icon: 'notification',
   }
   const headerProps = { actionTitle: 'Create Notification' }
@@ -388,65 +389,6 @@ export default function Notifications() {
     })
   }
 
-  // const resolveNotificationId = (row: any) =>
-  //   row?.id ??
-  //   row?.notification_id ??
-  //   row?.notification?.id ??
-  //   row?.notification?.notification_id ??
-  //   row?.uuid ??
-  //   row?.notification_uuid ??
-  //   row?.notification?.uuid ??
-  //   null
-
-  // const handleOpenDeleteUser = (row: any) => {
-  //   const id = resolveNotificationId(row)
-  //   if (!id) {
-  //     if (!row?.id) {
-  //       enqueueSnackbar('Fetching notification details...', {
-  //         variant: 'info',
-  //       })
-  //       if (row?.notification?.id) {
-  //         setDeleteUserId(String(row.notification.id))
-  //         setDeleteUserModal(true)
-  //         return
-  //       }
-  //       if (row?.notification_uuid || row?.uuid) {
-  //         setDeleteUserId(String(row.notification_uuid || row.uuid))
-  //         setDeleteUserModal(true)
-  //         return
-  //       }
-  //       enqueueSnackbar('Unable to determine notification id for deletion', {
-  //         variant: 'error',
-  //       })
-  //       return
-  //     }
-  //     enqueueSnackbar('Unable to determine notification id for deletion', {
-  //       variant: 'error',
-  //     })
-  //     return
-  //   }
-  //   setDeleteUserId(String(id))
-  //   setDeleteUserModal(true)
-  // }
-  // const handleDeleteUser = () => {
-  //   setloader(true)
-  //   deleteAdmin(deleteUserId)
-  //     .then(() => {
-  //       enqueueSnackbar('Notification deleted successfully', {
-  //         variant: 'success',
-  //       })
-  //       setloader(false)
-  //       setDeleteUserModal(false)
-  //       refetch()
-  //     })
-  //     .catch((err) => {
-  //       setloader(false)
-  //       enqueueSnackbar(
-  //         err?.response?.data?.error?.message || err?.response?.data?.message,
-  //         { variant: 'error' }
-  //       )
-  //     })
-  // }
   return (
     <div>
       {DISABLE_NONLOGIN_APIS ? (
@@ -455,15 +397,6 @@ export default function Notifications() {
         </div>
       ) : (
         <>
-          {/* <ListingHeader data={basicData} checkPermission={false} />
-          <div className="px-4 mt-2 flex justify-end">
-            <button
-              className="px-3 py-2 bg-primaryGreen text-white rounded"
-              onClick={() => setCreateOpen(true)}
-            >
-              Create
-            </button>
-          </div> */}
           <ListingHeader
             data={basicData}
             onActionClick={openDrawer}
@@ -548,97 +481,96 @@ export default function Notifications() {
             }
           />
           <div className=" p-4">
-            <SmartTable
-              data={data?.items ?? []}
-              dataRowKey="id"
-              toolbar={true}
-              height={
-                data?.items?.length === 0
-                  ? calcWindowHeight(218)
-                  : calcWindowHeight(150)
-              }
-              // search={true}
-              searchValue={pageParams.search || ''}
-              onSearchChange={(val) => {
-                setPageParams({ ...pageParams, search: val, page: 1 })
-                if (searchDebounce) clearTimeout(searchDebounce)
-                const t = setTimeout(() => refetch(), 300)
-                setSearchDebounce(t)
-              }}
-              onSearch={() => refetch()}
-              isLoading={isFetching}
-              sortType={pageParams.sortType}
-              sortColumn={pageParams.sortColumn}
-              handleColumnSort={handleSort}
-              emptyTitle="No records to display"
-              emptySubTitle={''}
-              columns={columns}
-              pagination={true}
-              paginationProps={{
-                onPagination: onChangePage,
-                total: data?.total ?? 0,
-                currentPage: pageParams?.page ?? 1,
-                rowsPerPage: Number(pageParams?.page_size ?? 10),
-                onRowsPerPage: onChangeRowsPerPage,
-                totalPages: Math.max(
-                  1,
-                  Math.ceil(
-                    (data?.total ?? 0) / Number(pageParams?.page_size ?? 10)
-                  )
-                ),
-                dropOptions: [10, 20, 30, 50, 100],
-              }}
-              // createButton={
-              //   <Button
-              //     className="bg-primaryGreen"
-              //     label="Create Notification"
-              //     icon="plus"
-              //     onClick={openDrawer}
-              //   />
-              // }
-              actionProps={
-                [
-                  // {
-                  //   icon: <Icons name="eye" />,
-                  //   action: (row) => navigate(`/subscriptions/${row?.id}`),
-                  //   title: 'view',
-                  //   toolTip: 'View Details',
-                  // },
-                  // {
-                  //   title: 'Freeze/Unfreeze',
-                  //   action: (row) => {
-                  //     setToggleFreezeRow(row)
-                  //     setToggleFreezeOpen(true)
-                  //   },
-                  //   icon: <Icons name="lock-icon" />,
-                  //   toolTip: 'Toggle Freeze',
-                  // },
-                  // {
-                  //   title: 'Deactivate',
-                  //   action: (rowData) =>
-                  //     handleDeleteModel(
-                  //       rowData?.id,
-                  //       rowData?.email,
-                  //       rowData?.status
-                  //     ),
-                  //   icon: <Icons name="deactivate-icon" />,
-                  //   toolTip: 'Deactivate',
-                  //   hide: (rowData: any) =>
-                  //     String(rowData?.status ?? '').toLowerCase() === 'active'
-                  //       ? false
-                  //       : true,
-                  // },
-                  // {
-                  //   title: 'Delete',
-                  //   action: (rowData) => handleOpenDeleteUser(rowData),
-                  //   icon: <Icons name="delete" />,
-                  //   toolTip: 'Delete',
-                  // },
-                ]
-              }
-              columnToggle
-              externalActions={true}
-            />
+            <div className="mb-4 border-b border-gray-200">
+              <nav className="flex gap-4" aria-label="Broadcast tabs">
+                <button
+                  type="button"
+                  className={`py-2 px-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'history'
+                      ? 'border-primaryBlue text-primaryBlue'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                  onClick={() => {
+                    setActiveTab('history')
+                    navigate('/notifications/history')
+                  }}
+                >
+                  Batch
+                </button>
+                <button
+                  type="button"
+                  className={`py-2 px-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'current'
+                      ? 'border-primaryBlue text-primaryBlue'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                  onClick={() => {
+                    setActiveTab('current')
+                    navigate('/notifications')
+                  }}
+                >
+                  Notifications
+                </button>
+              </nav>
+            </div>
+
+            {activeTab === 'current' && (
+              <SmartTable
+                data={data?.items ?? []}
+                dataRowKey="id"
+                toolbar={true}
+                height={
+                  data?.items?.length === 0
+                    ? calcWindowHeight(218)
+                    : calcWindowHeight(150)
+                }
+                // search={true}
+                searchValue={pageParams.search || ''}
+                onSearchChange={(val) => {
+                  setPageParams({ ...pageParams, search: val, page: 1 })
+                  if (searchDebounce) clearTimeout(searchDebounce)
+                  const t = setTimeout(() => refetch(), 300)
+                  setSearchDebounce(t)
+                }}
+                onSearch={() => refetch()}
+                isLoading={isFetching}
+                sortType={pageParams.sortType}
+                sortColumn={pageParams.sortColumn}
+                handleColumnSort={handleSort}
+                emptyTitle="No records to display"
+                emptySubTitle={''}
+                columns={columns}
+                pagination={true}
+                paginationProps={{
+                  onPagination: onChangePage,
+                  total: data?.total ?? 0,
+                  currentPage: pageParams?.page ?? 1,
+                  rowsPerPage: Number(pageParams?.page_size ?? 10),
+                  onRowsPerPage: onChangeRowsPerPage,
+                  totalPages: Math.max(
+                    1,
+                    Math.ceil(
+                      (data?.total ?? 0) / Number(pageParams?.page_size ?? 10)
+                    )
+                  ),
+                  dropOptions: [10, 20, 30, 50, 100],
+                }}
+                actionProps={[]}
+                columnToggle
+                externalActions={true}
+              />
+            )}
+
+            {activeTab === 'history' && (
+              <div className="p-6 bg-white rounded-xl border border-gray-200 text-center text-gray-600">
+                <h2 className="text-lg font-semibold mb-2">
+                  Broadcast History
+                </h2>
+                <p className="text-sm">
+                  History view is under construction. No data is shown here yet.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Create Notification Modal */}

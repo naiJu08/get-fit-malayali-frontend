@@ -333,6 +333,14 @@ export default function MainRoutes() {
         }
         path="/notifications"
       />
+      <Route
+        element={
+          <UserRoute slug_key="NOTIFICATIONS">
+            <Notifications />
+          </UserRoute>
+        }
+        path="/notifications/history"
+      />
     </Routes>
   )
 }
