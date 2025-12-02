@@ -31,8 +31,6 @@ export const recipeFormSchema = z.object({
 
   // Meal category & serving unit (fetched from APIs)
   meal_category: z.string().min(1, 'Required'),
-  // ID from custom_search_select; allow optional so edit works even if user
-  // does not re-select the category (we fall back to rowData in onSubmit).
   meal_category_id: numberFromSelect.optional(),
   serving_unit: z.string().min(1, 'Required'),
 

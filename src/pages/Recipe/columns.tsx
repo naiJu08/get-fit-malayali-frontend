@@ -76,39 +76,33 @@ export const getRecipeColumns = (onNameClick?: (row: any) => void) => {
     },
     {
       title: 'Portion Size',
-      field: 'portion_size',
-      renderCell: createRenderCell('portion_size'),
+      field: 'serving_unit',
+      renderCell: createRenderCell('serving_unit'),
       customCell: true,
       ...defaultColumnProps,
     },
     {
-      title: 'Low Calorie',
-      field: 'low_calorie',
-      renderCell: createRenderCell('low_calorie', 'boolean'),
+      title: 'Image',
+      field: 'image_url', // or whatever field your API returns
       customCell: true,
       ...defaultColumnProps,
+      renderCell: (row: any) => {
+        const url = getNestedProperty(row, 'image_url') // adjust key if needed
+        return {
+          cell: url ? (
+            <div className="w-14 h-14 rounded-md overflow-hidden border bg-gray-50">
+              <img
+                src={url}
+                alt="Thumbnail"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ) : (
+            '--'
+          ),
+          toolTip: url || '',
+        }
+      },
     },
-    // {
-    //   title: 'Image URL',
-    //   field: 'image_url',
-    //   renderCell: createRenderCell('image_url', 'link'),
-    //   customCell: true,
-    //   ...defaultColumnProps,
-    // },
-
-    // {
-    //   title: 'Created By',
-    //   field: 'created_by',
-    //   renderCell: createRenderCell('created_by'),
-    //   customCell: true,
-    //   ...defaultColumnProps,
-    // },
-    // {
-    //   title: 'Created At',
-    //   field: 'created_at',
-    //   renderCell: createRenderCell('created_at', 'date'),
-    //   customCell: true,
-    //   ...defaultColumnProps,
-    // },
   ]
 }

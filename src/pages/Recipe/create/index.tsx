@@ -129,8 +129,6 @@ export default function CreateRecipe({
   )
 
   useEffect(() => {
-    // When meal category changes in CREATE mode, reset serving_unit so user selects
-    // a unit for that category. In EDIT mode, keep serving_unit as is.
     if (!edit) {
       methods.setValue('serving_unit', '' as any, {
         shouldValidate: false,
@@ -156,10 +154,25 @@ export default function CreateRecipe({
       'recipe[preparation_notes]',
       (values as any)?.preparation_notes ?? ''
     )
-    // Ensure meal_category_id is always present, especially in edit mode
-    const mealCategoryId =
-      (values as any)?.meal_category_id ?? rowData?.meal_category_id ?? ''
-    fd.append('recipe[meal_category_id]', String(mealCategoryId))
+    // Ensure meal_category_id is always present
+    const formMealCategoryId = (values as any)?.meal_category_id
+    const rowMealCategoryId = rowData?.meal_category_id
+    const formMealCategoryName = (values as any)?.meal_category
+    const rowMealCategoryName = rowData?.meal_category
+    const optionByName = mealCategoryOptions.find(
+      (c: any) =>
+        c?.name === formMealCategoryName || c?.name === rowMealCategoryName
+    )
+    const resolvedMealCategoryId =
+      formMealCategoryId ?? rowMealCategoryId ?? optionByName?.id
+
+    if (!resolvedMealCategoryId) {
+      console.warn(
+        'Missing meal_category_id: cannot submit without category id'
+      )
+      return
+    }
+    fd.append('recipe[meal_category_id]', String(resolvedMealCategoryId))
     fd.append('recipe[serving_unit]', (values as any)?.serving_unit ?? '')
     fd.append('recipe[default_serving_quantity]', '')
     // Nutrition fields
@@ -211,65 +224,6 @@ export default function CreateRecipe({
       })
     }
   }
-  // useEffect(() => {
-  //   if (isDrawerOpen && edit && rowData) {
-  //     // Resolve a stable label for the meal category to show in the select
-  //     const categoryLabel =
-  //       rowData?.meal_category ??
-  //       mealCategoryOptions.find((c: any) => c.id === rowData?.meal_category_id)
-  //         ?.name ??
-  //       ''
-  //     reset({
-  //       name: rowData?.name ?? '',
-  //       description: rowData?.description ?? '',
-  //       preparation_notes: rowData?.preparation_notes ?? '',
-  //       meal_category: categoryLabel,
-  //       meal_category_id: rowData?.meal_category_id ?? undefined,
-  //       serving_unit: rowData?.serving_unit ?? '',
-  //       calories:
-  //         rowData?.nutrition?.calories ?? rowData?.calories ?? 0,
-  //       protein: rowData?.nutrition?.protein ?? 0,
-  //       carbs: rowData?.nutrition?.carbs ?? 0,
-  //       fat: rowData?.nutrition?.fat ?? 0,
-  //       fiber: rowData?.nutrition?.fiber ?? 0,
-  //       ingredients: Array.isArray(rowData?.ingredients)
-  //         ? rowData.ingredients.map((ing: any) => ({
-  //           name: ing?.name ?? '',
-  //           quantity: ing?.quantity ?? 0,
-  //           unit: ing?.unit ?? '',
-  //         }))
-  //         : [],
-  //       image: rowData?.image_url ?? '',
-  //     })
-  //   } else if (isDrawerOpen && !edit) {
-  //     reset({
-  //       name: '',
-  //       description: '',
-  //       preparation_notes: '',
-  //       meal_category: '',
-  //       meal_category_id: undefined as any,
-  //       serving_unit: '',
-  //       calories: 0 as any,
-  //       protein: 0 as any,
-  //       carbs: 0 as any,
-  //       fat: 0 as any,
-  //       fiber: 0 as any,
-  //       // Show one default ingredient row when creating a recipe
-  //       ingredients: [
-  //         {
-  //           name: '',
-  //           quantity: 0,
-  //           unit: '',
-  //         },
-  //       ],
-  //       image: '',
-  //     })
-  //   }
-  // }, [isDrawerOpen, edit, rowData, reset, mealCategoryOptions])
-
-  // Auto-calculate total calories as sum of protein, carbs, fat, and fiber
-
-  // Removed reset-on-open useEffect; we will remount the form with defaultValues
   useEffect(() => {
     const toNumber = (v: any) => {
       const n = Number(v)
