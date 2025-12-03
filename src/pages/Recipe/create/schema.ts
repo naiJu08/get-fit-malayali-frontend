@@ -1,24 +1,59 @@
 import { z } from 'zod'
 
+const numberFromText = z.preprocess(
+  (val) => {
+    if (typeof val === 'number') return val
+    if (typeof val === 'string') {
+      const n = Number(val)
+      return Number.isNaN(n) ? undefined : n
+    }
+    return val
+  },
+  z
+    .number({ invalid_type_error: 'Must be a number' })
+    .nonnegative({ message: 'Cannot be negative' })
+)
+
+const numberFromSelect = z.preprocess((val) => {
+  if (val && typeof val === 'object' && 'id' in (val as any)) {
+    return (val as any).id
+  }
+  return val
+}, numberFromText)
+
 export const recipeFormSchema = z.object({
   name: z.string().min(1, 'Required'),
-  description: z.string().min(1, 'Required'),
-  category: z.string().min(1, 'Required'),
-  calories: z
-    .string()
-    .min(1, 'Required')
-    .refine((v) => !Number.isNaN(Number(v)), 'Invalid number'),
+  // Make description non-mandatory
+  description: z.string().optional(),
 
-  portion_size: z.string().min(1, 'Required'),
+  // Optional preparation notes for the recipe
+  preparation_notes: z.string().optional(),
+
+  // Meal category & serving unit (fetched from APIs)
+  meal_category: z.string().min(1, 'Required'),
+  meal_category_id: numberFromSelect.optional(),
+  serving_unit: z.string().min(1, 'Required'),
+
+  // Nutrition fields
+  calories: numberFromText,
+  protein: numberFromText,
+  carbs: numberFromText,
+  fat: numberFromText,
+  fiber: numberFromText,
+
+  // Optional ingredients list
+  ingredients: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Required'),
+        quantity: numberFromText,
+        unit: z.string().min(1, 'Required'),
+      })
+    )
+    .optional(),
+
   image: z
-    .union([
-      // When editing, this may be a pre-existing URL string
-      z.string().url('Invalid URL'),
-      // When uploading, this will be a File
-      z.instanceof(File),
-      // Or left empty
-      z.literal(''),
-    ])
+    .union([z.string().url('Invalid URL'), z.instanceof(File), z.literal('')])
     .optional(),
 })
 

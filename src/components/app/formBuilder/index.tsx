@@ -177,13 +177,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                   key={`${updatekey}${field.name}`}
                   id={field.name}
                   onChange={(e) => handleTextChange(onChange, e, field)}
-                  value={
-                    value !== undefined || value !== '' || value !== null
-                      ? value
-                      : field.type === 'number'
-                        ? null
-                        : ''
-                  }
+                  value={value ?? (field.type === 'number' ? null : '')}
                   name={field.name}
                   type={field.type}
                   allowPositiveOnly={field.allowPositiveOnly}

@@ -17,6 +17,7 @@ export default function Recipe() {
   const [createOpen, setCreateOpen] = useState(false)
   const [edit, setEdit] = useState(false)
   const [rowData, setRowData] = useState<any>()
+  const [formKey, setFormKey] = useState<string>('')
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const navigate = useNavigate()
 
@@ -29,7 +30,10 @@ export default function Recipe() {
   }
 
   const headerProps = { actionTitle: 'Create Recipe' }
-  const openDrawer = () => setCreateOpen(true)
+  const openDrawer = () => {
+    setFormKey(`create-${Date.now()}`)
+    setCreateOpen(true)
+  }
   const handleRefresh = () => {
     setPageParams({ ...pageParams, page: 1 })
   }
@@ -37,6 +41,7 @@ export default function Recipe() {
   const openEdit = (row: any) => {
     setRowData(row)
     setEdit(true)
+    setFormKey(`edit-${row?.id ?? 'x'}-${Date.now()}`)
     setCreateOpen(true)
   }
 
@@ -147,15 +152,18 @@ export default function Recipe() {
         />
       </div>
       <CreateRecipe
+        key={formKey}
         isDrawerOpen={createOpen}
         handleClose={() => {
           setCreateOpen(false)
           setEdit(false)
           setRowData(undefined)
+          setFormKey('')
         }}
         handleRefresh={handleRefresh}
         edit={edit}
         rowData={rowData}
+        formKey={formKey}
       />
     </div>
   )
