@@ -8,6 +8,7 @@ import {
 import { dietPlanFormSchema, DietPlanSchema } from './schema'
 import { DialogModal, TextField } from '../../../../../components/common'
 import FormBuilder from '../../../../../components/app/formBuilder'
+import ToggleSwitch from '../../../../../components/common/inputs/ToggleSwitch'
 import { useCreateDietPlan, useDietPlanDetail, useUpdateDietPlan } from '../api'
 import { useEffect } from 'react'
 import { useMeals } from '../../../../Meals/api'
@@ -156,90 +157,6 @@ export default function DietPlanForm({
     refetchMeals()
   }, [edit, isOpen, selectedMealTime, refetchMeals])
 
-  //   useEffect(() => {
-  //     if (!isOpen) return
-
-  //     // // Map existing items (edit mode) into meals array so the section is prefilled
-  //     // const items = Array.isArray(rowData?.items) ? rowData.items : []
-  //     // const mappedMeals =
-  //     //   items.length > 0
-  //     //     ? items.map((it: any) => ({
-  //     //         meal_id: it.meal_id ?? 0,
-  //     //         count: it.quantity ?? '',
-  //     //         protein: '',
-  //     //         carbs: '',
-  //     //         fat: '',
-  //     //         fiber: '',
-  //     //         total_calories: '',
-  //     //       }))
-  //     //     : []
-  //  // Prefer detailData when in edit mode
-  //   const itemsSource =
-  //     edit && Array.isArray((detailData as any)?.items)
-  //       ? (detailData as any).items
-  //       : Array.isArray(rowData?.items)
-  //       ? rowData.items
-  //       : []
-
-  //   const mappedMeals =
-  //     itemsSource.length > 0
-  //       ? itemsSource.map((it: any) => ({
-  //           meal_id: it.meal_id ?? it.id ?? 0,    // depending on API shape
-  //           count: it.quantity ?? it.default_serving_quantity ?? 1,
-  //           protein: '',
-  //           carbs: '',
-  //           fat: '',
-  //           fiber: '',
-  //           total_calories: '',
-  //         }))
-  //       : []
-  //     reset({
-  //       plan_id: Number(planId ?? rowData?.plan_id ?? 0),
-  //       day_number: Number(rowData?.day_number ?? 1),
-  //       // In create mode, start with empty sequence_number and let meal_time set it
-  //       sequence_number: edit ? Number(rowData?.sequence_number ?? 1) : 0,
-  //       meal_time: rowData?.meal_time ?? '',
-  //       meal_name: rowData?.meal_name ?? '',
-  //       protein: (rowData as any)?.protein ?? '',
-  //       carbs: (rowData as any)?.carbs ?? '',
-  //       fat: (rowData as any)?.fat ?? '',
-  //       fiber: (rowData as any)?.fiber ?? '',
-  //       total_calories: (rowData as any)?.total_calories ?? '',
-  //       calories: rowData?.calories ?? '',
-  //       meals:
-  //         mappedMeals.length > 0
-  //           ? mappedMeals
-  //           : [
-  //               {
-  //                 meal_id: 0,
-  //                 count: '',
-  //                 protein: '',
-  //                 carbs: '',
-  //                 fat: '',
-  //                 fiber: '',
-  //                 total_calories: '',
-  //               },
-  //             ],
-  //     } as any)
-
-  //     if (mappedMeals.length > 0) {
-  //       // Edit mode: mirror existing items exactly
-  //       replaceMeals(mappedMeals)
-  //     } else {
-  //       // Create mode: always start with exactly one empty meal row
-  //       replaceMeals([
-  //         {
-  //           meal_id: 0,
-  //           count: 1,
-  //           protein: '',
-  //           carbs: '',
-  //           fat: '',
-  //           fiber: '',
-  //           total_calories: '',
-  //         },
-  //       ])
-  //     }
-  //   }, [isOpen, planId, rowData, reset, appendMeal, replaceMeals])
   useEffect(() => {
     if (!isOpen) return
 
@@ -259,17 +176,25 @@ export default function DietPlanForm({
 
     const mappedMeals =
       itemsSource.length > 0
-        ? itemsSource.map((it: any) => ({
-            // id from meals list: either meal_id or id
-            meal_id: it.meal_id ?? it.id ?? 0,
-            // quantity from detail: quantity or default_serving_quantity
-            count: it.quantity ?? it.default_serving_quantity ?? 1,
-            protein: '',
-            carbs: '',
-            fat: '',
-            fiber: '',
-            total_calories: '',
-          }))
+        ? itemsSource.map((it: any) => {
+            const rawReq = it.requirement ?? it.key_requirement
+            const normalizedReq =
+              String(rawReq ?? 'Optional').toLowerCase() === 'mandatory'
+                ? 'Mandatory'
+                : 'Optional'
+            return {
+              // id from meals list: either meal_id or id
+              meal_id: it.meal_id ?? it.id ?? 0,
+              // quantity from detail: quantity or default_serving_quantity
+              count: it.quantity ?? it.default_serving_quantity ?? 1,
+              requirement: normalizedReq,
+              protein: '',
+              carbs: '',
+              fat: '',
+              fiber: '',
+              total_calories: '',
+            }
+          })
         : []
 
     reset({
@@ -293,6 +218,7 @@ export default function DietPlanForm({
                 meal_id: 0,
                 // use 0 so the controller renders it as an empty string in the input
                 count: 0,
+                requirement: 'Optional',
                 protein: '',
                 carbs: '',
                 fat: '',
@@ -311,6 +237,7 @@ export default function DietPlanForm({
         {
           meal_id: 0,
           count: 0,
+          requirement: 'Optional',
           protein: '',
           carbs: '',
           fat: '',
@@ -327,6 +254,9 @@ export default function DietPlanForm({
       .map((m: any) => ({
         meal_id: m.meal_id as number,
         quantity: Number(m.count),
+        requirement: (m.requirement === 'Mandatory'
+          ? 'mandatory'
+          : 'optional') as 'mandatory' | 'optional',
       }))
 
     const payload: any = {
@@ -421,291 +351,323 @@ export default function DietPlanForm({
       secondaryActionLabel="Cancel"
       small={false}
       body={
-        <FormProvider {...methods}>
-          <>
-            <FormBuilder data={formFields} edit={true} spacing />
-            {showMealsSection && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold">Meals</h3>
-                </div>
+        <div className="max-h-[70vh] overflow-y-auto pr-1">
+          <FormProvider {...methods}>
+            <>
+              <FormBuilder data={formFields} edit={true} spacing />
+              {showMealsSection && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-semibold">Meals</h3>
+                  </div>
 
-                {mealFields.map((field, index) => {
-                  const selectedId = watch(`meals.${index}.meal_id` as const)
-                  const selectedMeal = filteredMeals.find(
-                    (m: any) => String(m.id) === String(selectedId)
-                  )
-                  const intakeQty = Number(
-                    watch(`meals.${index}.count` as const) || 1
-                  )
+                  {mealFields.map((field, index) => {
+                    const selectedId = watch(`meals.${index}.meal_id` as const)
+                    const selectedMeal = filteredMeals.find(
+                      (m: any) => String(m.id) === String(selectedId)
+                    )
+                    const intakeQty = Number(
+                      watch(`meals.${index}.count` as const) || 1
+                    )
 
-                  return (
-                    <div
-                      key={field.id}
-                      className="mb-3 rounded border p-2 text-[11px]"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium">Meal {index + 1}</span>
-                        {mealFields.length > 1 && index > 0 && (
-                          <button
-                            type="button"
-                            className="text-[10px] text-red-500"
-                            onClick={() => removeMeal(index)}
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-                        <div className="col-span-2 md:col-span-1">
-                          <label className="block text-[10px] font-medium mb-1">
-                            Meal Name <span className="text-error">*</span>
-                          </label>
-                          <AutoComplete
-                            name={`meals.${index}.meal_id`}
-                            type="custom_search_select"
-                            desc="name"
-                            descId="id"
-                            placeholder="Select meal"
-                            data={filteredMeals}
-                            // show meal NAME in the input, while storing numeric id in form state
-                            value={selectedMeal ? selectedMeal.name : ''}
-                            className="w-full"
-                            onChange={(option: any) => {
-                              const mealId = option?.id ?? option?.value ?? ''
-                              setValue(
-                                `meals.${index}.meal_id` as const,
-                                mealId === '' ? 0 : Number(mealId),
-                                { shouldValidate: true }
-                              )
-                              refetchMeals()
-                            }}
-                          />
+                    return (
+                      <div
+                        key={field.id}
+                        className="mb-3 rounded border p-2 text-[11px]"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium">Meal {index + 1}</span>
                         </div>
 
-                        <div>
-                          <label className="block text-[10px] font-medium mb-1">
-                            Intake quantity{' '}
-                            <span className="text-error">*</span>
-                          </label>
+                        {/* Requirement toggle row above Meal Name */}
+                        <div className="mb-2 flex items-center justify-end">
                           <Controller
-                            name={`meals.${index}.count` as const}
+                            name={`meals.${index}.requirement` as const}
                             control={control}
-                            render={({ field: { onChange, value } }) => (
-                              <TextField
-                                id={`meals.${index}.count`}
-                                name={`meals.${index}.count`}
-                                type="text"
-                                label={undefined} // label already above
-                                placeholder=""
-                                value={
-                                  value === undefined ||
-                                  value === null ||
-                                  value === 0
-                                    ? ''
-                                    : String(value)
-                                }
-                                onChange={(e: any) => {
-                                  const v = e.target.value
-                                  // store as number in RHF, but pass as string to TextField
-                                  onChange(v === '' ? 0 : Number(v))
-                                }}
-                                allowPositiveOnly
-                                // optional: disabled / readOnly if you want it non-editable
-                                // disabled={true}
-                              />
+                            render={({ field: { value, onChange } }) => (
+                              <div className="flex items-center gap-2">
+                                <ToggleSwitch
+                                  id={`meals-${index}-requirement`}
+                                  checked={value === 'Mandatory'}
+                                  onChange={(checked: boolean) =>
+                                    onChange(checked ? 'Mandatory' : 'Optional')
+                                  }
+                                />
+                                <span className="text-xxs">
+                                  {value === 'Mandatory'
+                                    ? 'Mandatory'
+                                    : 'Optional'}
+                                </span>
+                              </div>
                             )}
                           />
                         </div>
 
-                        <div>
-                          <label className="block text-[10px] font-medium mb-1">
-                            Serving unit<span className="text-error">*</span>
-                          </label>
-                          <TextField
-                            id={`meals.${index}.serving_unit`}
-                            name={`meals.${index}.serving_unit`}
-                            type="text"
-                            label={undefined}
-                            placeholder=""
-                            value={selectedMeal?.serving_unit ?? ''}
-                            disabled
-                          />
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+                          <div className="col-span-2 md:col-span-1">
+                            <label className="block text-[10px] font-medium mb-1">
+                              Meal Name <span className="text-error">*</span>
+                            </label>
+                            <AutoComplete
+                              name={`meals.${index}.meal_id`}
+                              type="custom_search_select"
+                              desc="name"
+                              descId="id"
+                              placeholder="Select meal"
+                              data={filteredMeals}
+                              // show meal NAME in the input, while storing numeric id in form state
+                              value={selectedMeal ? selectedMeal.name : ''}
+                              className="w-full"
+                              onChange={(option: any) => {
+                                const mealId = option?.id ?? option?.value ?? ''
+                                setValue(
+                                  `meals.${index}.meal_id` as const,
+                                  mealId === '' ? 0 : Number(mealId),
+                                  { shouldValidate: true }
+                                )
+                                refetchMeals()
+                              }}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-medium mb-1">
+                              Intake quantity{' '}
+                              <span className="text-error">*</span>
+                            </label>
+                            <Controller
+                              name={`meals.${index}.count` as const}
+                              control={control}
+                              render={({ field: { onChange, value } }) => (
+                                <TextField
+                                  id={`meals.${index}.count`}
+                                  name={`meals.${index}.count`}
+                                  type="text"
+                                  label={undefined} // label already above
+                                  placeholder=""
+                                  value={
+                                    value === undefined ||
+                                    value === null ||
+                                    value === 0
+                                      ? ''
+                                      : String(value)
+                                  }
+                                  onChange={(e: any) => {
+                                    const v = e.target.value
+                                    // store as number in RHF, but pass as string to TextField
+                                    onChange(v === '' ? 0 : Number(v))
+                                  }}
+                                  allowPositiveOnly
+                                  // optional: disabled / readOnly if you want it non-editable
+                                  // disabled={true}
+                                />
+                              )}
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-medium mb-1">
+                              Serving unit<span className="text-error">*</span>
+                            </label>
+                            <TextField
+                              id={`meals.${index}.serving_unit`}
+                              name={`meals.${index}.serving_unit`}
+                              type="text"
+                              label={undefined}
+                              placeholder=""
+                              value={selectedMeal?.serving_unit ?? ''}
+                              disabled
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[10px] font-medium mb-1">
+                              Total Calorie<span className="text-error">*</span>
+                            </label>
+                            <TextField
+                              id={`meals.${index}.total_calories`}
+                              name={`meals.${index}.total_calories`}
+                              type="text"
+                              label={undefined}
+                              placeholder=""
+                              value={
+                                !selectedMeal
+                                  ? ''
+                                  : String(
+                                      (() => {
+                                        const p = Number(
+                                          selectedMeal?.per_serving?.protein ??
+                                            selectedMeal?.calories_breakdown
+                                              ?.protein ??
+                                            0
+                                        )
+                                        const c = Number(
+                                          selectedMeal?.per_serving?.carbs ??
+                                            selectedMeal?.calories_breakdown
+                                              ?.carbs ??
+                                            0
+                                        )
+                                        const f = Number(
+                                          selectedMeal?.per_serving?.fat ??
+                                            selectedMeal?.calories_breakdown
+                                              ?.fat ??
+                                            0
+                                        )
+                                        const fi = Number(
+                                          selectedMeal?.per_serving?.fiber ??
+                                            selectedMeal?.calories_breakdown
+                                              ?.fiber ??
+                                            0
+                                        )
+                                        const perServingTotal = p + c + f + fi
+                                        return perServingTotal * intakeQty
+                                      })()
+                                    )
+                              }
+                              disabled
+                            />
+                          </div>
                         </div>
 
-                        <div>
-                          <label className="block text-[10px] font-medium mb-1">
-                            Total Calorie<span className="text-error">*</span>
-                          </label>
-                          <TextField
-                            id={`meals.${index}.total_calories`}
-                            name={`meals.${index}.total_calories`}
-                            type="text"
-                            label={undefined}
-                            placeholder=""
-                            value={
-                              !selectedMeal
-                                ? ''
-                                : String(
-                                    (() => {
-                                      const p = Number(
-                                        selectedMeal?.per_serving?.protein ??
-                                          selectedMeal?.calories_breakdown
-                                            ?.protein ??
-                                          0
-                                      )
-                                      const c = Number(
-                                        selectedMeal?.per_serving?.carbs ??
-                                          selectedMeal?.calories_breakdown
-                                            ?.carbs ??
-                                          0
-                                      )
-                                      const f = Number(
-                                        selectedMeal?.per_serving?.fat ??
-                                          selectedMeal?.calories_breakdown
-                                            ?.fat ??
-                                          0
-                                      )
-                                      const fi = Number(
-                                        selectedMeal?.per_serving?.fiber ??
-                                          selectedMeal?.calories_breakdown
-                                            ?.fiber ??
-                                          0
-                                      )
-                                      const perServingTotal = p + c + f + fi
-                                      return perServingTotal * intakeQty
-                                    })()
-                                  )
-                            }
-                            disabled
-                          />
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          <div>
+                            <label className="block text-[10px] font-medium mb-1">
+                              Protein<span className="text-error">*</span>
+                            </label>
+                            <TextField
+                              id={`meals.${index}.protein`}
+                              name={`meals.${index}.protein`}
+                              type="text"
+                              label={undefined}
+                              placeholder=""
+                              value={
+                                selectedMeal
+                                  ? String(
+                                      (selectedMeal?.per_serving?.protein ??
+                                        selectedMeal?.calories_breakdown
+                                          ?.protein ??
+                                        0) * intakeQty
+                                    )
+                                  : ''
+                              }
+                              disabled
+                            />{' '}
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-medium mb-1">
+                              Carbs<span className="text-error">*</span>
+                            </label>
+                            <TextField
+                              id={`meals.${index}.carbs`}
+                              name={`meals.${index}.carbs`}
+                              type="text"
+                              label={undefined}
+                              placeholder=""
+                              value={
+                                selectedMeal
+                                  ? String(
+                                      (selectedMeal?.per_serving?.carbs ??
+                                        selectedMeal?.calories_breakdown
+                                          ?.carbs ??
+                                        0) * intakeQty
+                                    )
+                                  : ''
+                              }
+                              disabled
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-medium mb-1">
+                              Fat<span className="text-error">*</span>
+                            </label>
+                            <TextField
+                              id={`meals.${index}.fat`}
+                              name={`meals.${index}.fat`}
+                              type="text"
+                              label={undefined}
+                              placeholder=""
+                              value={
+                                selectedMeal
+                                  ? String(
+                                      (selectedMeal?.per_serving?.fat ??
+                                        selectedMeal?.calories_breakdown?.fat ??
+                                        0) * intakeQty
+                                    )
+                                  : ''
+                              }
+                              disabled
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-medium mb-1">
+                              Fiber<span className="text-error">*</span>
+                            </label>
+                            <TextField
+                              id={`meals.${index}.fiber`}
+                              name={`meals.${index}.fiber`}
+                              type="text"
+                              label={undefined}
+                              placeholder=""
+                              value={
+                                selectedMeal
+                                  ? String(
+                                      (selectedMeal?.per_serving?.fiber ??
+                                        selectedMeal?.calories_breakdown
+                                          ?.fiber ??
+                                        0) * intakeQty
+                                    )
+                                  : ''
+                              }
+                              disabled
+                            />
+                          </div>
                         </div>
+                        {/* Remove button row (right below) */}
+                        {mealFields.length > 1 && index > 0 && (
+                          <div className="mb-2 mt-2 flex items-center justify-end">
+                            <button
+                              type="button"
+                              className="text-[10px] text-red-500"
+                              onClick={() => removeMeal(index)}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        )}
                       </div>
+                    )
+                  })}
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                        <div>
-                          <label className="block text-[10px] font-medium mb-1">
-                            Protein<span className="text-error">*</span>
-                          </label>
-                          <TextField
-                            id={`meals.${index}.protein`}
-                            name={`meals.${index}.protein`}
-                            type="text"
-                            label={undefined}
-                            placeholder=""
-                            value={
-                              selectedMeal
-                                ? String(
-                                    (selectedMeal?.per_serving?.protein ??
-                                      selectedMeal?.calories_breakdown
-                                        ?.protein ??
-                                      0) * intakeQty
-                                  )
-                                : ''
-                            }
-                            disabled
-                          />{' '}
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-medium mb-1">
-                            Carbs<span className="text-error">*</span>
-                          </label>
-                          <TextField
-                            id={`meals.${index}.carbs`}
-                            name={`meals.${index}.carbs`}
-                            type="text"
-                            label={undefined}
-                            placeholder=""
-                            value={
-                              selectedMeal
-                                ? String(
-                                    (selectedMeal?.per_serving?.carbs ??
-                                      selectedMeal?.calories_breakdown?.carbs ??
-                                      0) * intakeQty
-                                  )
-                                : ''
-                            }
-                            disabled
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-medium mb-1">
-                            Fat<span className="text-error">*</span>
-                          </label>
-                          <TextField
-                            id={`meals.${index}.fat`}
-                            name={`meals.${index}.fat`}
-                            type="text"
-                            label={undefined}
-                            placeholder=""
-                            value={
-                              selectedMeal
-                                ? String(
-                                    (selectedMeal?.per_serving?.fat ??
-                                      selectedMeal?.calories_breakdown?.fat ??
-                                      0) * intakeQty
-                                  )
-                                : ''
-                            }
-                            disabled
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-medium mb-1">
-                            Fiber<span className="text-error">*</span>
-                          </label>
-                          <TextField
-                            id={`meals.${index}.fiber`}
-                            name={`meals.${index}.fiber`}
-                            type="text"
-                            label={undefined}
-                            placeholder=""
-                            value={
-                              selectedMeal
-                                ? String(
-                                    (selectedMeal?.per_serving?.fiber ??
-                                      selectedMeal?.calories_breakdown?.fiber ??
-                                      0) * intakeQty
-                                  )
-                                : ''
-                            }
-                            disabled
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-
-                <div className="mt-2 flex justify-between items-center">
-                  <span className="text-[11px] font-semibold">
-                    Total Calories: {totalCaloriesFromMeals || 0}
-                  </span>
-                  <button
-                    type="button"
-                    className="inline-flex items-center justify-center rounded-full bg-blue-500 px-2.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                    onClick={() =>
-                      appendMeal({
-                        meal_id: 0,
-                        // Use 0 as initial numeric value; render as empty in the input
-                        count: 0,
-                        protein: '',
-                        carbs: '',
-                        fat: '',
-                        fiber: '',
-                        total_calories: '',
-                      })
-                    }
-                    aria-label="Add meal row"
-                  >
-                    +
-                  </button>
+                  <div className="mt-2 flex justify-between items-center">
+                    <span className="text-[11px] font-semibold">
+                      Total Calories: {totalCaloriesFromMeals || 0}
+                    </span>
+                    <button
+                      type="button"
+                      className="inline-flex items-center justify-center rounded-full bg-blue-500 px-2.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                      onClick={() =>
+                        appendMeal({
+                          meal_id: 0,
+                          // Use 0 as initial numeric value; render as empty in the input
+                          count: 0,
+                          requirement: 'Optional',
+                          protein: '',
+                          carbs: '',
+                          fat: '',
+                          fiber: '',
+                          total_calories: '',
+                        })
+                      }
+                      aria-label="Add meal row"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </>
-        </FormProvider>
+              )}
+            </>
+          </FormProvider>
+        </div>
       }
     />
   )
