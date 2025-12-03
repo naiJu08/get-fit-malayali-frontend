@@ -70,18 +70,72 @@ export default function DietPlanIndex({
       isVisible: true,
       customCell: true,
       renderCell: (row: any) => {
-        const items = (row?.items as any[]) || []
-        const label =
-          items.length > 0
-            ? items
-                .map((it: any) => {
-                  const name = it?.meal_name ?? ''
-                  const qty = it?.quantity ?? 0
-                  return qty ? `${name}` : name
-                })
-                .filter(Boolean)
-                .join(', ')
-            : (row?.meal_name ?? '')
+        const items = Array.isArray(row?.items) ? (row.items as any[]) : []
+        let label: any = row?.meal_name ?? ''
+        if (items.length > 0) {
+          const parsed = items
+            .map((it: any) => {
+              const name = it?.meal_name ?? ''
+              const reqRaw = (it?.requirement ?? it?.key_requirement ?? '')
+                .toString()
+                .toLowerCase()
+              const req =
+                reqRaw === 'mandatory'
+                  ? 'mandatory'
+                  : reqRaw === 'optional'
+                    ? 'optional'
+                    : ''
+              return { name, req }
+            })
+            .filter((p: any) => Boolean(p.name))
+
+          const mandatory = parsed
+            .filter((p: any) => p.req === 'mandatory')
+            .map((p: any) => p.name)
+          const optional = parsed
+            .filter((p: any) => p.req === 'optional')
+            .map((p: any) => p.name)
+
+          const nodes: Array<string | JSX.Element> = []
+          if (mandatory.length) {
+            mandatory.forEach((name: string, idx: number) => {
+              if (idx > 0)
+                nodes.push(
+                  <span
+                    className="text-green-600 font-semibold"
+                    key={`m-sep-${idx}`}
+                  >
+                    {' '}
+                    +{' '}
+                  </span>
+                )
+              nodes.push(<span key={`m-${idx}`}>{name}</span>)
+            })
+          }
+          if (optional.length) {
+            if (nodes.length)
+              nodes.push(
+                <span className="font-semibold" key={`comma-sep`}>
+                  {', '}
+                </span>
+              )
+            optional.forEach((name: string, idx: number) => {
+              if (idx > 0)
+                nodes.push(
+                  <span
+                    className="text-orange-600 font-semibold"
+                    key={`o-sep-${idx}`}
+                  >
+                    {' '}
+                    or{' '}
+                  </span>
+                )
+              nodes.push(<span key={`o-${idx}`}>{name}</span>)
+            })
+          }
+
+          label = <span>{nodes}</span>
+        }
         return { cell: label }
       },
       sortKey: 'meal_name',

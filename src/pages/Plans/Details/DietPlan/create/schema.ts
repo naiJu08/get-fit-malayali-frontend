@@ -71,6 +71,8 @@ export const dietPlanFormSchema = z.object({
             (v) => Number.isFinite(v) && v >= 1,
             'Intake quantity must be at least 1'
           ),
+        // New field: key requirement toggle per meal
+        requirement: z.enum(['Optional', 'Mandatory']).default('Optional'),
         protein: z
           .union([z.number(), z.string()])
           .transform((v) =>

@@ -110,32 +110,78 @@ export default function DietPlanDetails() {
                     key={it.id}
                     className="border rounded-lg p-3 bg-white text-sm"
                   >
-                    <div className="font-semibold mb-1 text-[16px]">
-                      {safeStr(it.meal_name)}
+                    <div className="mb-1 text-[16px] flex items-center justify-between">
+                      <div className="font-semibold">
+                        {safeStr(it.meal_name)}
+                      </div>
+                      <span
+                        className={((): string => {
+                          const reqRaw = (
+                            it?.requirement ??
+                            it?.key_requirement ??
+                            ''
+                          )
+                            .toString()
+                            .toLowerCase()
+                          const isMandatory = reqRaw === 'mandatory'
+                          const isOptional = reqRaw === 'optional'
+                          const color = isMandatory
+                            ? 'text-red-600'
+                            : isOptional
+                              ? 'text-green-600'
+                              : 'text-gray-400'
+                          return `${color} font-semibold text-sm`
+                        })()}
+                      >
+                        {(() => {
+                          const reqRaw = (
+                            it?.requirement ??
+                            it?.key_requirement ??
+                            ''
+                          )
+                            .toString()
+                            .toLowerCase()
+                          if (reqRaw === 'mandatory') return 'Mandatory'
+                          if (reqRaw === 'optional') return 'Optional'
+                          return '--'
+                        })()}
+                      </span>
                     </div>
-                    <div className="text-xs text-gray-500 mb-2">
-                      Quantity: {safeStr(it.quantity)}
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                      <div>
+                        <div className="text-gray-500">Quantity</div>
+                        <div>{safeStr(it.quantity)}</div>
+                      </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <div className="text-gray-500">Total Calories</div>
-                        <div>{safeStr(it?.per_serving?.calories)}</div>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                        Nutrition
                       </div>
-                      <div>
-                        <div className="text-gray-500">Protein</div>
-                        <div>{safeStr(it?.per_serving?.protein)}</div>
-                      </div>
-                      <div>
-                        <div className="text-gray-500">Carbs</div>
-                        <div>{safeStr(it?.per_serving?.carbs)}</div>
-                      </div>
-                      <div>
-                        <div className="text-gray-500">Fat</div>
-                        <div>{safeStr(it?.per_serving?.fat)}</div>
-                      </div>
-                      <div>
-                        <div className="text-gray-500">Fiber</div>
-                        <div>{safeStr(it?.per_serving?.fiber)}</div>
+                      <div className="bg-gray-50 rounded-md p-3">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <div className="text-gray-500">Protein</div>
+                            <div>{safeStr(it?.per_serving?.protein)}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Carbs</div>
+                            <div>{safeStr(it?.per_serving?.carbs)}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Fat</div>
+                            <div>{safeStr(it?.per_serving?.fat)}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Fiber</div>
+                            <div>{safeStr(it?.per_serving?.fiber)}</div>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex items-center gap-4 text-sm">
+                          <div className="font-semibold">Total Calories :</div>
+                          <div className="font-semibold">
+                            {safeStr(it?.per_serving?.calories)}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
