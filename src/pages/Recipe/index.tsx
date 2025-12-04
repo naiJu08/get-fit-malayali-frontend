@@ -6,7 +6,7 @@ import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../utilities/parsers'
 import { useRecipes } from './api'
 import { getRecipeColumns } from './columns'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import CreateRecipe from './create'
 import { checkPermissions } from '../../layout/store'
 import SmartTable from '../../components/common/table/SmartTable'
@@ -20,7 +20,7 @@ export default function Recipe() {
   const [formKey, setFormKey] = useState<string>('')
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const navigate = useNavigate()
-
+  const location = useLocation()
   const { page, per_page, search, ordering } = pageParams
   const searchParams = {
     page,
@@ -54,7 +54,14 @@ export default function Recipe() {
       })
     )
   }, [])
-
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
   // Clamp page to valid range when meta changes
   useEffect(() => {
     const totalPages = data?.meta?.total_pages
