@@ -351,7 +351,13 @@ export default function DietPlanForm({
       secondaryActionLabel="Cancel"
       small={false}
       body={
-        <div className="max-h-[70vh] overflow-y-auto pr-1">
+        <div
+          className={
+            edit
+              ? 'max-h-[70vh] pr-1 overflow-y-auto'
+              : 'max-h-[70vh] pr-1 overflow-visible'
+          }
+        >
           <FormProvider {...methods}>
             <>
               <FormBuilder data={formFields} edit={true} spacing />
@@ -369,6 +375,29 @@ export default function DietPlanForm({
                     const intakeQty = Number(
                       watch(`meals.${index}.count` as const) || 1
                     )
+                    // Build options for this row: exclude meals already chosen in other rows
+                    const selectedIdsAll: number[] = (mealsFormValues || [])
+                      .map((m: any) => Number(m?.meal_id || 0))
+                      .filter((v: number) => Number.isFinite(v) && v > 0)
+                    const selectedIdsExceptCurrent = selectedIdsAll.filter(
+                      (id) => String(id) !== String(selectedId ?? '')
+                    )
+                    let availableMealsForRow = filteredMeals.filter(
+                      (m: any) =>
+                        !selectedIdsExceptCurrent.includes(Number(m?.id || 0))
+                    )
+                    // Ensure the currently selected option remains visible in its own row
+                    if (
+                      selectedMeal &&
+                      !availableMealsForRow.some(
+                        (m: any) => String(m.id) === String(selectedMeal.id)
+                      )
+                    ) {
+                      availableMealsForRow = [
+                        selectedMeal,
+                        ...availableMealsForRow,
+                      ]
+                    }
 
                     return (
                       <div
@@ -414,7 +443,7 @@ export default function DietPlanForm({
                               desc="name"
                               descId="id"
                               placeholder="Select meal"
-                              data={filteredMeals}
+                              data={availableMealsForRow}
                               // show meal NAME in the input, while storing numeric id in form state
                               value={selectedMeal ? selectedMeal.name : ''}
                               className="w-full"
