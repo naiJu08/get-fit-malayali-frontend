@@ -61,7 +61,7 @@ function AssignTabContent({
   wp,
   loading,
   error,
-  selectedWorkouts,
+  // selectedWorkouts,
   getEmbedUrl,
 }: any) {
   return (
@@ -135,7 +135,7 @@ function AssignTabContent({
             <div className="text-sm text-gray-600">No exercises assigned.</div>
           )}
 
-          {selectedWorkouts.length > 0 && (
+          {/* {selectedWorkouts.length > 0 && (
             <div className="mt-6">
               <div className="text-sm font-semibold mb-3">
                 Selected Workouts Preview
@@ -171,7 +171,7 @@ function AssignTabContent({
                 })}
               </div>
             </div>
-          )}
+          )} */}
         </>
       )}
     </>

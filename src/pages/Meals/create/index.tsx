@@ -113,8 +113,9 @@ export default function CreateMeal({
   useEffect(() => {
     // When meal category changes, reset serving_unit so user selects a unit for that category
     methods.setValue('serving_unit', '' as any, {
-      shouldValidate: true,
-      shouldDirty: true,
+      shouldValidate: false,
+      shouldDirty: false,
+      shouldTouch: false,
     })
   }, [selectedMealCategoryId, methods])
   const onSubmit = (values: MealSchema) => {
