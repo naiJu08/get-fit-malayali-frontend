@@ -161,25 +161,60 @@ export default function DietPlanDetails() {
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           <div>
                             <div className="text-gray-500">Protein</div>
-                            <div>{safeStr(it?.per_serving?.protein)}</div>
+                            <div>
+                              {(() => {
+                                const qty = Number(it?.quantity) || 1
+                                const v = Number(it?.per_serving?.protein) || 0
+                                return (v * qty).toFixed(2)
+                              })()}
+                            </div>
                           </div>
                           <div>
                             <div className="text-gray-500">Carbs</div>
-                            <div>{safeStr(it?.per_serving?.carbs)}</div>
+                            <div>
+                              {(() => {
+                                const qty = Number(it?.quantity) || 1
+                                const v = Number(it?.per_serving?.carbs) || 0
+                                return (v * qty).toFixed(2)
+                              })()}
+                            </div>
                           </div>
                           <div>
                             <div className="text-gray-500">Fat</div>
-                            <div>{safeStr(it?.per_serving?.fat)}</div>
+                            <div>
+                              {(() => {
+                                const qty = Number(it?.quantity) || 1
+                                const v = Number(it?.per_serving?.fat) || 0
+                                return (v * qty).toFixed(2)
+                              })()}
+                            </div>
                           </div>
                           <div>
                             <div className="text-gray-500">Fiber</div>
-                            <div>{safeStr(it?.per_serving?.fiber)}</div>
+                            <div>
+                              {(() => {
+                                const qty = Number(it?.quantity) || 1
+                                const v = Number(it?.per_serving?.fiber) || 0
+                                return (v * qty).toFixed(2)
+                              })()}
+                            </div>
                           </div>
                         </div>
                         <div className="mt-3 flex items-center gap-4 text-sm">
                           <div className="font-semibold">Total Calories :</div>
                           <div className="font-semibold">
-                            {safeStr(it?.per_serving?.calories)}
+                            {(() => {
+                              const qty = Number(it?.quantity) || 1
+                              const calPer = Number(it?.per_serving?.calories)
+                              if (!isNaN(calPer))
+                                return (calPer * qty).toFixed(2)
+                              const p = Number(it?.per_serving?.protein) || 0
+                              const c = Number(it?.per_serving?.carbs) || 0
+                              const f = Number(it?.per_serving?.fat) || 0
+                              const fi = Number(it?.per_serving?.fiber) || 0
+                              const cal = p * 4 + c * 4 + f * 9 + fi * 2
+                              return (cal * qty).toFixed(2)
+                            })()}
                           </div>
                         </div>
                       </div>

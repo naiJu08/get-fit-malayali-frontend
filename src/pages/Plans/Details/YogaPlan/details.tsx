@@ -9,6 +9,7 @@ import { TabContainer } from '../../../../components/common'
 import Tab from '../../../../components/common/tab/Tab'
 import { TabItemProps } from '../../../../common/types'
 import { useYogaList } from '../../../Yoga/api'
+import { useSnackbarManager } from '../../../../components/common/snackbar'
 
 function DetailsTabContent({
   yp,
@@ -57,7 +58,7 @@ function AssignTabContent({
   yp,
   loading,
   error,
-  selectedWorkouts,
+  // selectedWorkouts,
   getEmbedUrl,
 }: any) {
   return (
@@ -134,7 +135,7 @@ function AssignTabContent({
             <div className="text-sm text-gray-600">No exercises assigned.</div>
           )}
 
-          {selectedWorkouts?.length > 0 && (
+          {/* {selectedWorkouts?.length > 0 && (
             <div className="mt-6">
               <div className="text-sm font-semibold mb-3">
                 Selected Yoga Preview
@@ -173,7 +174,7 @@ function AssignTabContent({
                 })}
               </div>
             </div>
-          )}
+          )} */}
         </>
       )}
     </>
@@ -199,6 +200,7 @@ export default function YogaPlanDetails() {
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const { mutateAsync: addYogaExerciseAsync } = useAddYogaExercise()
+  const { enqueueSnackbar } = useSnackbarManager()
 
   useEffect(() => {
     let mounted = true
@@ -285,7 +287,7 @@ export default function YogaPlanDetails() {
     if (!yp?.id || selectedWorkouts.length === 0) return
     setAssigning(true)
     try {
-      await Promise.all(
+      const results = await Promise.all(
         selectedWorkouts.map((w, idx) =>
           addYogaExerciseAsync({
             id: yp.id,
@@ -301,6 +303,15 @@ export default function YogaPlanDetails() {
       await refreshDetails()
       setReviewOpen(false)
       setSearchParams({})
+      const successMsg =
+        (Array.isArray(results) &&
+          (results[results.length - 1] as any)?.message) ||
+        'Yoga added successfully'
+      enqueueSnackbar(successMsg, { variant: 'success' })
+    } catch (e: any) {
+      enqueueSnackbar(e?.response?.data?.message || 'Failed to add yoga', {
+        variant: 'error',
+      })
     } finally {
       setAssigning(false)
     }
