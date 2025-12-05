@@ -295,6 +295,46 @@ export default function MainRoutes() {
       />
       <Route
         element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/subscriptions"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/body"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/body-composition"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/vitals"
+      />
+      <Route
+        element={
           <UserRoute slug_key="DISCOUNT_SAMPLE">
             <Discount />
           </UserRoute>

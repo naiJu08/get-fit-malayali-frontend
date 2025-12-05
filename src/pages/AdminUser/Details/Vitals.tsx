@@ -1,10 +1,43 @@
 import moment from 'moment'
 import { useVitals } from '../api'
 import Icons from '../../../components/common/icons'
+import { useEffect, useState } from 'react'
 
-export default function Vitals({ user }: { user: any }) {
-  const { data, isFetching } = useVitals({ user_id: user?.id } as any)
-  const items = data?.items || []
+export default function Vitals({
+  user,
+  subscriptionId,
+}: {
+  user: any
+  subscriptionId?: string | number | null
+}) {
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(10)
+  const [allItems, setAllItems] = useState<any[]>([])
+
+  const { data, isFetching } = useVitals({
+    user_id: user?.id,
+    subscription_id: subscriptionId as any,
+    page,
+    per_page: pageSize,
+  } as any)
+
+  const items = allItems
+  const totalPages = data?.total_pages ?? 1
+
+  useEffect(() => {
+    if (!data?.items) return
+
+    setAllItems((prev) => {
+      // on first page, reset; on subsequent pages, append
+      if (page === 1) {
+        return data.items
+      }
+
+      const existingIds = new Set(prev.map((i: any) => i.id))
+      const newItems = data.items.filter((i: any) => !existingIds.has(i.id))
+      return [...prev, ...newItems]
+    })
+  }, [data?.items, page])
 
   return (
     <div className="flex flex-col gap-4">
@@ -108,6 +141,22 @@ export default function Vitals({ user }: { user: any }) {
           </div>
         ))}
       </div>
+
+      {items.length > 0 && page < totalPages && (
+        <div className="flex justify-center mt-2">
+          <button
+            className="px-4 py-2 border rounded text-sm disabled:opacity-50"
+            disabled={isFetching}
+            onClick={() => {
+              if (page < totalPages && !isFetching) {
+                setPage((p) => p + 1)
+              }
+            }}
+          >
+            {isFetching ? 'Loading more...' : 'View more'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

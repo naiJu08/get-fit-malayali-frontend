@@ -1,6 +1,6 @@
 import SmartTable from '../../components/common/table/SmartTable'
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -38,6 +38,7 @@ export default function YogaMain() {
   const { roleData } = useAuthStore()
   const isNutritionist = roleData?.name === 'nutritionist'
   const params = useParams()
+  const location = useLocation()
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const { page, per_page, search, ordering, filters } = pageParams
@@ -109,14 +110,14 @@ export default function YogaMain() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isNutritionist])
 
-  // const handleSeach = (key?: string) => {
-  //   setPageParams({
-  //     ...pageParams,
-  //     search: key as string,
-  //     page: 1,
-  //   })
-  // }
-
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
   const handleEdit = async (rowData: any) => {
     if (rowData?.id) {
       const data = await getYogaDetails(String(rowData?.id))

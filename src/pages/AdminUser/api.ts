@@ -331,3 +331,21 @@ export const createClientReport = (payload: {
 }) => {
   return postData(`${apiUrl.CLIENT_REPORTS}`, payload)
 }
+
+// Subscription-level report
+export const getSubscriptionReport = (subscriptionId: string | number) => {
+  return getData(`${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/report`)
+}
+
+export const useSubscriptionReport = (
+  subscriptionId?: string | number | null,
+  options?: { enabled?: boolean }
+) => {
+  return useQuery(
+    ['subscription_report', subscriptionId],
+    () => getSubscriptionReport(subscriptionId as string | number),
+    {
+      enabled: !!subscriptionId && (options?.enabled ?? true),
+    }
+  )
+}

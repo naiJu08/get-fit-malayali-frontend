@@ -101,6 +101,16 @@ export default function AdminUser() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
 
+  // Reset pagination when route/section changes so we always start from page 1
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
+
   // const handleFreezeChange = ({
   //   name,
   //   value,

@@ -1,25 +1,23 @@
-// import { useState } from 'react'
 import moment from 'moment'
 import { useEffect, useState } from 'react'
-import { useBodyCompositions } from '../api'
+import { useBodyCompositions } from '../../AdminUser/api'
 import Icons from '../../../components/common/icons'
 
-export default function BodyComposition({
-  user,
-  subscriptionId,
+export default function SubscriptionBodyCompositionTab({
+  subscription,
 }: {
-  user: any
-  subscriptionId?: string | number | null
+  subscription: any
 }) {
-  //   const [page, setPage] = useState(1)
-  //   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(10)
   const [allItems, setAllItems] = useState<any[]>([])
 
+  const userId = subscription?.user_id
+  const subscriptionId = subscription?.id
+
   const { data, isFetching } = useBodyCompositions({
-    user_id: user?.id,
-    subscription_id: subscriptionId as any,
+    user_id: userId,
+    subscription_id: subscriptionId,
     page,
     per_page: pageSize,
   } as any)
@@ -129,44 +127,6 @@ export default function BodyComposition({
           </div>
         ))}
       </div>
-
-      {/* Pagination */}
-      {/* <div className="flex items-center justify-between mt-2">
-        <div className="text-xs text-gray-500">
-          Page {data?.current_page ?? page} of {totalPages} • {total} records
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            className="px-3 py-1 border rounded text-sm disabled:opacity-50"
-            onClick={() => setPage(Math.max(1, (data?.current_page ?? page) - 1))}
-            disabled={(data?.current_page ?? page) <= 1 || isFetching}
-          >
-            Prev
-          </button>
-          <button
-            className="px-3 py-1 border rounded text-sm disabled:opacity-50"
-            onClick={() => setPage(Math.min(totalPages, (data?.current_page ?? page) + 1))}
-            disabled={(data?.current_page ?? page) >= totalPages || isFetching}
-          >
-            Next
-          </button>
-          <select
-            className="ml-2 border rounded px-2 py-1 text-sm"
-            value={pageSize}
-            onChange={(e) => {
-              const n = Number(e.target.value)
-              setPageSize(n)
-              setPage(1)
-            }}
-          >
-            {[10, 20, 30, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n} / page
-              </option>
-            ))}
-          </select>
-        </div>
-      </div> */}
 
       {items.length > 0 && page < totalPages && (
         <div className="flex justify-center mt-2">

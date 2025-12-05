@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 
 import Icons from '../../components/common/icons'
-import { getAdminDetails } from './api'
+import { getAdminDetails, getActivePlanOverview } from './api'
 import { Tab, TabContainer } from '../../components/common/tab'
 import DetailsInfo from './Details/DetailsInfo'
 import Subscriptions from './Details/Subscriptions'
@@ -21,6 +21,9 @@ export default function UserDetails() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
+  const [subscriptionId, setSubscriptionId] = useState<string | number | null>(
+    null
+  )
 
   useEffect(() => {
     let mounted = true
@@ -51,6 +54,32 @@ export default function UserDetails() {
     const s = String(r || '').toLowerCase()
     return s === 'nutritionist'
   })()
+
+  useEffect(() => {
+    let mounted = true
+
+    const run = async () => {
+      if (!user?.id || isNutritionist) return
+      if (!user?.subscribed_plan) return
+      try {
+        const overview = await getActivePlanOverview(user.id)
+        if (!mounted) return
+        const subId = overview?.subscription?.id
+        setSubscriptionId(subId ?? null)
+      } catch (e) {
+        if (!mounted) return
+        // On error (e.g. 404 for no active subscription), still use empty string
+        // so subscription_id is present in the downstream requests.
+        setSubscriptionId('')
+      }
+    }
+
+    run()
+
+    return () => {
+      mounted = false
+    }
+  }, [user?.id, isNutritionist])
 
   const pathBase = useMemo(() => {
     return location.pathname.startsWith('/users/nutritionist')
@@ -153,22 +182,22 @@ export default function UserDetails() {
         )}
         {!isNutritionist && (
           <Tab id="body">
-            <BodyMeasurements user={user} />
+            <BodyMeasurements user={user} subscriptionId={subscriptionId} />
           </Tab>
         )}
         {!isNutritionist && (
           <Tab id="body-composition">
-            <BodyComposition user={user} />
+            <BodyComposition user={user} subscriptionId={subscriptionId} />
           </Tab>
         )}
         {!isNutritionist && (
           <Tab id="vitals">
-            <Vitals user={user} />
+            <Vitals user={user} subscriptionId={subscriptionId} />
           </Tab>
         )}
         {!isNutritionist && loginRole !== 'nutritionist' && (
           <Tab id="reports">
-            <Reports user={user} />
+            <Reports user={user} subscriptionId={subscriptionId} />
           </Tab>
         )}
         {isNutritionist && (

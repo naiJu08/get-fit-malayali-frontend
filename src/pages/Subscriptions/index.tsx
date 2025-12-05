@@ -1,6 +1,6 @@
 import SmartTable from '../../components/common/table/SmartTable'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -65,7 +65,7 @@ export default function Subscriptions() {
   const [planLabel, setPlanLabel] = useState<string>('All Plans')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [plansCache, setPlansCache] = useState<Record<string, string>>({})
-
+  const location = useLocation()
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
   const [loader, setloader] = useState(false)
@@ -119,7 +119,14 @@ export default function Subscriptions() {
       setPlanLabel('All Plans')
     }
   }, [filters])
-
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
   const resolvePlanLabel = async (id?: number | string) => {
     if (!id) {
       setPlanLabel('All Plans')

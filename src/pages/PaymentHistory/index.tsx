@@ -12,11 +12,13 @@ import { getData } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import { useAdminUser, DISABLE_NONLOGIN_APIS } from './api'
 import { getColumns } from './columns'
+import { useLocation } from 'react-router-dom'
 export default function Subscriptions() {
   const [columns, setColumns] = useState<TableColumns[]>([])
   const [planIdFilter, setPlanIdFilter] = useState<string>('')
   const [planLabel, setPlanLabel] = useState<string>('All Plans')
   const [plansCache, setPlansCache] = useState<Record<string, string>>({})
+  const location = useLocation()
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const { page, page_size, search, ordering, filters } = pageParams
   const searchParams = {
@@ -56,7 +58,14 @@ export default function Subscriptions() {
       setPlanLabel('All Plans')
     }
   }, [filters])
-
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
   const resolvePlanLabel = async (id?: number | string) => {
     if (!id) {
       setPlanLabel('All Plans')
