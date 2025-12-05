@@ -18,9 +18,8 @@ export default function BodyMeasurements({
   const [allItems, setAllItems] = useState<any[]>([])
 
   const { data: bodyData, isFetching: bodyLoading } = useBodyMeasurements({
-    user_id: subscriptionId != null ? user?.id : undefined,
-    subscription_id:
-      subscriptionId != null ? (subscriptionId as any) : undefined,
+    user_id: user?.id,
+    subscription_id: subscriptionId ?? undefined,
     page,
     per_page: pageSize,
   } as any)
