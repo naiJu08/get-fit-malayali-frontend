@@ -1,25 +1,23 @@
-// import { useState } from 'react'
 import moment from 'moment'
 import { useEffect, useState } from 'react'
-import { useBodyCompositions } from '../api'
+import { useVitals } from '../../AdminUser/api'
 import Icons from '../../../components/common/icons'
 
-export default function BodyComposition({
-  user,
-  subscriptionId,
+export default function SubscriptionVitalsTab({
+  subscription,
 }: {
-  user: any
-  subscriptionId?: string | number | null
+  subscription: any
 }) {
-  //   const [page, setPage] = useState(1)
-  //   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(10)
   const [allItems, setAllItems] = useState<any[]>([])
 
-  const { data, isFetching } = useBodyCompositions({
-    user_id: user?.id,
-    subscription_id: subscriptionId as any,
+  const userId = subscription?.user_id
+  const subscriptionId = subscription?.id
+
+  const { data, isFetching } = useVitals({
+    user_id: userId,
+    subscription_id: subscriptionId,
     page,
     per_page: pageSize,
   } as any)
@@ -45,23 +43,22 @@ export default function BodyComposition({
   return (
     <div className="flex flex-col gap-4">
       {isFetching && (
-        <div className="p-6 text-sm text-gray-600">
-          Loading body composition...
-        </div>
+        <div className="p-6 text-sm text-gray-600">Loading vitals...</div>
       )}
       {!isFetching && items.length === 0 && (
         <div className="p-10 min-h-[60vh] flex flex-col items-center justify-center text-gray-500">
           <Icons name="no-data-icon" />
-          <div className="mt-3 text-sm">No body composition to display</div>
+          <div className="mt-3 text-sm">No vitals to display</div>
         </div>
       )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
         {items.map((row: any) => (
           <div
             key={row.id}
             className="border rounded-xl bg-disabledText p-4 shadow-sm hover:shadow-md transition-shadow duration-150"
           >
-            <div className="grid grid-cols-5 gap-3 text-sm">
+            <div className="grid grid-cols-6 gap-3 text-sm">
               <div className="rounded-lg p-3 bg-transparent h-full flex flex-col items-center justify-center text-center">
                 {row?.recorded_at ? (
                   <>
@@ -79,49 +76,65 @@ export default function BodyComposition({
                   <div className="text-gray-400 text-lg">—</div>
                 )}
               </div>
-              {row?.fat_percentage != null && (
+
+              {row?.heart_rate != null && (
                 <div className="border rounded-lg p-3 bg-rose-50">
                   <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                    <Icons name="fat-icon" />
-                    <span>Fat %</span>
+                    <Icons name="heart-rate-icon" />
+                    <span>Heart Rate</span>
                   </div>
                   <div className="mt-1 text-gray-800 font-semibold text-center">
-                    {row?.fat_percentage != null
-                      ? `${row.fat_percentage}%`
-                      : '—'}
+                    {`${row.heart_rate} bpm`}
                   </div>
                 </div>
               )}
-              {row?.muscle_mass != null && (
-                <div className="border rounded-lg p-3 bg-blue-50">
-                  <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                    <Icons name="muscle-mass-icon" />
-                    <span>Muscle Mass</span>
+
+              {row?.blood_pressure !== undefined &&
+                row?.blood_pressure !== null &&
+                row?.blood_pressure !== '' && (
+                  <div className="border rounded-lg p-3 bg-blue-50">
+                    <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                      <Icons name="blood-pressure-icon" />
+                      <span>Blood Pressure</span>
+                    </div>
+                    <div className="mt-1 text-gray-800 font-semibold text-center">
+                      {row?.blood_pressure}
+                    </div>
                   </div>
-                  <div className="mt-1 text-gray-800 font-semibold text-center">
-                    {row?.muscle_mass != null ? `${row.muscle_mass} kg` : '—'}
-                  </div>
-                </div>
-              )}
-              {row?.hydration != null && (
+                )}
+
+              {row?.sugar_level != null && (
                 <div className="border rounded-lg p-3 bg-amber-50">
                   <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                    <Icons name="water-bottle-icon" />
-                    <span>Hydration</span>
+                    <Icons name="sugar-level-icon" />
+                    <span>Sugar Level</span>
                   </div>
                   <div className="mt-1 text-gray-800 font-semibold text-center">
-                    {row?.hydration != null ? `${row.hydration}%` : '—'}
+                    {`${row.sugar_level} mg/dL`}
                   </div>
                 </div>
               )}
-              {row?.bone_mass != null && (
+
+              {row?.sleep_hours != null && (
                 <div className="border rounded-lg p-3 bg-indigo-50">
                   <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
-                    <Icons name="bone-icon" />
-                    <span>Bone Mass</span>
+                    <Icons name="sleep-time-icon" />
+                    <span>Sleep</span>
                   </div>
                   <div className="mt-1 text-gray-800 font-semibold text-center">
-                    {row?.bone_mass != null ? `${row.bone_mass} kg` : '—'}
+                    {`${row.sleep_hours} hrs`}
+                  </div>
+                </div>
+              )}
+
+              {row?.water_intake != null && (
+                <div className="border rounded-lg p-3 bg-sky-50">
+                  <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                    <Icons name="water-intake-icon" />
+                    <span>Water Intake</span>
+                  </div>
+                  <div className="mt-1 text-gray-800 font-semibold text-center">
+                    {`${row.water_intake} L`}
                   </div>
                 </div>
               )}
@@ -129,44 +142,6 @@ export default function BodyComposition({
           </div>
         ))}
       </div>
-
-      {/* Pagination */}
-      {/* <div className="flex items-center justify-between mt-2">
-        <div className="text-xs text-gray-500">
-          Page {data?.current_page ?? page} of {totalPages} • {total} records
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            className="px-3 py-1 border rounded text-sm disabled:opacity-50"
-            onClick={() => setPage(Math.max(1, (data?.current_page ?? page) - 1))}
-            disabled={(data?.current_page ?? page) <= 1 || isFetching}
-          >
-            Prev
-          </button>
-          <button
-            className="px-3 py-1 border rounded text-sm disabled:opacity-50"
-            onClick={() => setPage(Math.min(totalPages, (data?.current_page ?? page) + 1))}
-            disabled={(data?.current_page ?? page) >= totalPages || isFetching}
-          >
-            Next
-          </button>
-          <select
-            className="ml-2 border rounded px-2 py-1 text-sm"
-            value={pageSize}
-            onChange={(e) => {
-              const n = Number(e.target.value)
-              setPageSize(n)
-              setPage(1)
-            }}
-          >
-            {[10, 20, 30, 50, 100].map((n) => (
-              <option key={n} value={n}>
-                {n} / page
-              </option>
-            ))}
-          </select>
-        </div>
-      </div> */}
 
       {items.length > 0 && page < totalPages && (
         <div className="flex justify-center mt-2">

@@ -118,5 +118,26 @@ export const useUpdateAdmin = (handleSubmission: (data: any) => void) => {
 export const getRoles = () => Promise.resolve({ items: [], total: 0 })
 export const updatePassword = (id: string, data: string) =>
   updateFromData(`${apiUrl.SUBSCRIPTIONS}/${id}/change_password`, data)
+
+// Subscription plan overview (calendar) for a specific user/subscription
+export const getSubscriptionPlanOverview = (
+  userId: string | number,
+  subscriptionId: string | number
+) =>
+  getData(
+    `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/subscriptions/${subscriptionId}/plan_overview`
+  )
+
+// Subscription plan day details for a specific user/subscription/date
+export const getSubscriptionPlanDay = (
+  userId: string | number,
+  subscriptionId: string | number,
+  date: string
+) =>
+  getData(
+    `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/subscriptions/${subscriptionId}/plan_day?date=${encodeURIComponent(
+      date
+    )}`
+  )
 export const sendAdminInvitation = (id?: string) =>
   postData(`${apiUrl.SUBSCRIPTIONS}/${id}/invite`, {})

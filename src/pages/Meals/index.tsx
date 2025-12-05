@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { TableColumns } from '../../common/types'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
@@ -20,7 +20,7 @@ export default function Meals() {
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const navigate = useNavigate()
   const deleteMealMutation = useDeleteMeal()
-
+  const location = useLocation()
   const { page, per_page, search, ordering } = pageParams
   const searchParams = {
     page,
@@ -102,7 +102,14 @@ export default function Meals() {
       ordering: getSortedColumnName(orderColumn, orderDirection),
     })
   }
-
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
   const handleDelete = (row: any) => {
     if (!row?.id) return
     if (window.confirm('Are you sure you want to delete this meal?')) {

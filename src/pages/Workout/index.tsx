@@ -22,9 +22,11 @@ import {
 } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
+import { useLocation } from 'react-router-dom'
 
 export default function WorkoutMain() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { enqueueSnackbar } = useSnackbarManager()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
@@ -128,7 +130,14 @@ export default function WorkoutMain() {
       })
     )
   }, [isNutritionist])
-
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
   // const handleSeach = (key?: string) => {
   //   setPageParams({
   //     ...pageParams,

@@ -27,7 +27,7 @@ import {
 } from './api'
 import { getColumns } from './columns'
 import CreatePlan from './create'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 export default function Plans() {
   const [columns, setColumns] = useState<TableColumns[]>([])
@@ -58,6 +58,7 @@ export default function Plans() {
   const [deletePlanModal, setDeletePlanModal] = useState(false)
   const [deletingPlan, setDeletingPlan] = useState(false)
   const [planToDelete, setPlanToDelete] = useState<any>(null)
+  const location = useLocation()
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
@@ -67,6 +68,16 @@ export default function Plans() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Reset pagination when route/section changes so we always start from page 1
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
   const { page, per_page, search, ordering } = pageParams
   const searchParams = {
     page,

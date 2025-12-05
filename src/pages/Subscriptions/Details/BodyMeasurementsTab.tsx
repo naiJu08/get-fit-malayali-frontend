@@ -1,25 +1,23 @@
-// import { useState } from 'react'
 import moment from 'moment'
-import { useBodyMeasurements } from '../api'
-import Icons from '../../../components/common/icons'
 import { useEffect, useState } from 'react'
+import { useBodyMeasurements } from '../../AdminUser/api'
+import Icons from '../../../components/common/icons'
 
-export default function BodyMeasurements({
-  user,
-  subscriptionId,
+export default function SubscriptionBodyMeasurementsTab({
+  subscription,
 }: {
-  user: any
-  subscriptionId?: string | number | null
+  subscription: any
 }) {
-  // const [bodyPage, setBodyPage] = useState(1)
-  // const [bodyPageSize, setBodyPageSize] = useState(10)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(10)
   const [allItems, setAllItems] = useState<any[]>([])
 
+  const userId = subscription?.user_id
+  const subscriptionId = subscription?.id
+
   const { data: bodyData, isFetching: bodyLoading } = useBodyMeasurements({
-    user_id: user?.id,
-    subscription_id: subscriptionId ?? undefined,
+    user_id: userId,
+    subscription_id: subscriptionId,
     page,
     per_page: pageSize,
   } as any)
