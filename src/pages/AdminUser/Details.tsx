@@ -7,7 +7,7 @@ import { Tab, TabContainer } from '../../components/common/tab'
 import DetailsInfo from './Details/DetailsInfo'
 import Subscriptions from './Details/Subscriptions'
 import BodyMeasurements from './Details/BodyMeasurements'
-import BodyComposition from './Details/BodyComposition'
+// import BodyComposition from './Details/BodyComposition'
 import Vitals from './Details/Vitals'
 import Clients from './Details/Clients'
 import Reports from './Details/Reports'
@@ -120,7 +120,7 @@ export default function UserDetails() {
         : [
             { id: 'subscriptions', label: 'Subscriptions' },
             { id: 'body', label: 'Body measurements' },
-            { id: 'body-composition', label: 'Body composition' },
+            // { id: 'body-composition', label: 'Body composition' },
             { id: 'vitals', label: 'Vitals' },
             ...(loginRole !== 'nutritionist'
               ? [{ id: 'reports', label: 'Reports' }]
@@ -185,11 +185,11 @@ export default function UserDetails() {
             <BodyMeasurements user={user} subscriptionId={subscriptionId} />
           </Tab>
         )}
-        {!isNutritionist && (
+        {/* {!isNutritionist && (
           <Tab id="body-composition">
             <BodyComposition user={user} subscriptionId={subscriptionId} />
           </Tab>
-        )}
+        )} */}
         {!isNutritionist && (
           <Tab id="vitals">
             <Vitals user={user} subscriptionId={subscriptionId} />
