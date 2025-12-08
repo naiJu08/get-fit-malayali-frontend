@@ -5,7 +5,7 @@ import { getSubscriptionDetails } from '../api'
 import { Tab, TabContainer } from '../../../components/common/tab'
 import SubscriptionUserSubscriptionsTab from './SubscriptionsTab'
 import SubscriptionBodyMeasurementsTab from './BodyMeasurementsTab'
-import SubscriptionBodyCompositionTab from './BodyCompositionTab'
+// import SubscriptionBodyCompositionTab from './BodyCompositionTab'
 import SubscriptionVitalsTab from './VitalsTab'
 
 export default function SubscriptionDetailsMain() {
@@ -57,7 +57,7 @@ export default function SubscriptionDetailsMain() {
     { id: 'details', label: 'Details' },
     { id: 'subscriptions', label: 'Subscriptions' },
     { id: 'body', label: 'Body measurements' },
-    { id: 'body-composition', label: 'Body composition' },
+    // { id: 'body-composition', label: 'Body composition' },
     { id: 'vitals', label: 'Vitals' },
   ] as const
 
@@ -480,9 +480,9 @@ export default function SubscriptionDetailsMain() {
           <SubscriptionBodyMeasurementsTab subscription={subscription} />
         </Tab>
 
-        <Tab id="body-composition">
+        {/* <Tab id="body-composition">
           <SubscriptionBodyCompositionTab subscription={subscription} />
-        </Tab>
+        </Tab> */}
 
         <Tab id="vitals">
           <SubscriptionVitalsTab subscription={subscription} />

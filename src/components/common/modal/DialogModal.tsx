@@ -114,11 +114,9 @@ const DialogModal: React.FC<DialogModalProps> = ({
             <div
               className="
               translate
-              h-full
-              lg:h-auto
-              md:h-auto
+              max-h-[90vh]
               shadow-popupShadow
-              overflow-visible
+              overflow-y-auto
                rounded-xl
               relative
               flex
