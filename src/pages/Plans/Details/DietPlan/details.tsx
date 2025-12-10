@@ -75,31 +75,33 @@ export default function DietPlanDetails() {
             <DetailItem label="Notes" value={safeStr(dp?.notes)} />
           </div>
 
-          <div className="mt-4 mb-6">
-            <h2 className="text-lg font-semibold mb-3">Calories Summary</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <DetailItem
-                label="Protein"
-                value={safeStr(dp?.calories_breakdown?.protein)}
-              />
-              <DetailItem
-                label="Carbs"
-                value={safeStr(dp?.calories_breakdown?.carbs)}
-              />
-              <DetailItem
-                label="Fat"
-                value={safeStr(dp?.calories_breakdown?.fat)}
-              />
-              <DetailItem
-                label="Fiber"
-                value={safeStr(dp?.calories_breakdown?.fiber)}
-              />
-              <DetailItem
-                label="Effective Total Calories"
-                value={safeStr(dp?.effective_total_calories)}
-              />
+          {dp?.calories_breakdown && (
+            <div className="mt-4 mb-6">
+              <h2 className="text-lg font-semibold mb-3">Calories Summary</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <DetailItem
+                  label="Protein"
+                  value={safeStr(dp?.calories_breakdown?.protein)}
+                />
+                <DetailItem
+                  label="Carbs"
+                  value={safeStr(dp?.calories_breakdown?.carbs)}
+                />
+                <DetailItem
+                  label="Fat"
+                  value={safeStr(dp?.calories_breakdown?.fat)}
+                />
+                <DetailItem
+                  label="Fiber"
+                  value={safeStr(dp?.calories_breakdown?.fiber)}
+                />
+                <DetailItem
+                  label="Effective Total Calories"
+                  value={safeStr(dp?.effective_total_calories)}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {Array.isArray(dp?.items) && dp.items.length > 0 && (
             <div className="mt-4">

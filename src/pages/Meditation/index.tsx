@@ -108,13 +108,11 @@ export default function MeditationMain() {
     setColumns(
       getColumns({
         onViewAction: onViewAction,
-        onNameClick: !isNutritionist
-          ? (row: any) => navigate(`/meditation/${row?.id}`)
-          : undefined,
+        onNameClick: (row: any) => navigate(`/meditation/${row?.id}`),
       })
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNutritionist])
+  }, [])
 
   // const handleSeach = (key?: string) => {
   //   setPageParams({

@@ -9,6 +9,7 @@ import { getSortedColumnName } from '../../../../utilities/parsers'
 import WorkoutPlanForm from './create'
 import { useNavigate, useParams } from 'react-router-dom'
 import { calcWindowHeight } from '../../../../utilities/calcHeight'
+import { useAuthStore } from '../../../../store/authStore'
 
 export default function WorkoutPlanIndex({
   planName,
@@ -20,6 +21,8 @@ export default function WorkoutPlanIndex({
   const navigate = useNavigate()
   const { id: routePlanId } = useParams()
   const effectivePlanId = planId ?? routePlanId
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
 
   const [columns] = useState<TableColumns[]>([
     {
@@ -207,21 +210,27 @@ export default function WorkoutPlanIndex({
         }}
         columnToggle
         externalActions={true}
-        actionProps={[
-          {
-            icon: <Icons name="eye" />,
-            action: (row: any) =>
-              navigate(`/plans/${row?.plan_id}/workout_details/${row?.id}`),
-            title: 'view',
-            toolTip: 'View',
-          },
-          {
-            icon: <Icons name="edit" />,
-            action: (row: any) => openEdit(row),
-            title: 'edit',
-            toolTip: 'Edit',
-          },
-        ]}
+        actionProps={
+          isNutritionist
+            ? []
+            : [
+                {
+                  icon: <Icons name="eye" />,
+                  action: (row: any) =>
+                    navigate(
+                      `/plans/${row?.plan_id}/workout_details/${row?.id}`
+                    ),
+                  title: 'view',
+                  toolTip: 'View',
+                },
+                {
+                  icon: <Icons name="edit" />,
+                  action: (row: any) => openEdit(row),
+                  title: 'edit',
+                  toolTip: 'Edit',
+                },
+              ]
+        }
       />
 
       <WorkoutPlanForm

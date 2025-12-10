@@ -11,6 +11,7 @@ import CustomDrawer from '../../../../components/common/drawer'
 import Tab from '../../../../components/common/tab/Tab'
 import { TabItemProps } from '../../../../common/types'
 import { useWorkoutList } from '../../../Workout/api'
+import { useAuthStore } from '../../../../store/authStore'
 import { useAddExercise } from './api'
 import { TabContainer } from '../../../../components/common'
 
@@ -68,6 +69,8 @@ function AssignTabContent({
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<any[]>([])
   const [removedExerciseIds, setRemovedExerciseIds] = useState<any[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
 
   const toggleSelectedExercise = (workoutId: any) => {
     if (!workoutId) return
@@ -125,15 +128,16 @@ function AssignTabContent({
         <>
           <div className="flex items-center justify-between mb-3">
             <div className="text-md font-semibold">Exercises</div>
-            {exercises.length > 0 && (
-              <button
-                className="px-3 py-1 text-xs border rounded  btn-primary"
-                disabled={selectedExerciseIds.length === 0}
-                onClick={handleRemoveSelected}
-              >
-                Remove Exercise
-              </button>
-            )}
+            {!isNutritionist &&
+              exercises.length > 0 &&
+              selectedExerciseIds.length > 0 && (
+                <button
+                  className="px-3 py-1 text-xs border rounded  btn-primary"
+                  onClick={handleRemoveSelected}
+                >
+                  Remove Exercise
+                </button>
+              )}
           </div>
           {exercises.length > 0 ? (
             <div className="grid grid-cols-4 gap-3 place-items-start">
@@ -178,12 +182,16 @@ function AssignTabContent({
                       <div className="font-medium line-clamp-1">
                         {ex?.workout_name || 'Untitled'}
                       </div>
-                      <input
-                        type="checkbox"
-                        className="shrink-0"
-                        checked={checked}
-                        onChange={() => toggleSelectedExercise(workoutIdForEx)}
-                      />
+                      {!isNutritionist && (
+                        <input
+                          type="checkbox"
+                          className="shrink-0"
+                          checked={checked}
+                          onChange={() =>
+                            toggleSelectedExercise(workoutIdForEx)
+                          }
+                        />
+                      )}
                     </div>
                   </div>
                 )
@@ -255,6 +263,8 @@ export default function WorkoutPlanDetails() {
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const { mutateAsync: addExerciseAsync } = useAddExercise()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
 
   const refreshDetails = async () => {
     try {
@@ -422,7 +432,7 @@ export default function WorkoutPlanDetails() {
             Workout Plan Details - {wp?.plan_name}
           </h1>
         </div>
-        {currentTab === 'assign' && (
+        {currentTab === 'assign' && !isNutritionist && (
           <div>
             <button
               className="px-3 py-1 text-sm border rounded btn-primary"

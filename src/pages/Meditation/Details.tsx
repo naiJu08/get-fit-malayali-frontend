@@ -64,7 +64,9 @@ export default function MeditationDetails() {
             label="Description"
             value={meditation?.description || meditation?.description}
           />
-          <DetailItem label="Duration" value={meditation?.duration_minutes} />
+          <div className="min-h-[200px]">
+            <DetailItem label="Duration" value={meditation?.duration_minutes} />
+          </div>
           {!loading &&
             !error &&
             (() => {
