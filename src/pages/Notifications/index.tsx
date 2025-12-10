@@ -67,6 +67,12 @@ export default function Notifications() {
   const [activeTab, setActiveTab] = useState<'current' | 'history'>(() =>
     pathname.includes('/notifications/history') ? 'history' : 'current'
   )
+  // const formatHistoryDate = (value?: string) => {
+  //   if (!value) return '-'
+  //   const date = new Date(value)
+  //   if (Number.isNaN(date.getTime())) return '-'
+  //   return date.toLocaleString()
+  // }
   const [historyTable, setHistoryTable] = useState({
     items: [] as any[],
     total: 0,
@@ -99,16 +105,49 @@ export default function Notifications() {
     },
     {
       title: 'Users',
-      field: 'user_count',
+      field: 'users_count',
+      renderCell: (row: any) => {
+        const count =
+          row?.users_count ??
+          row?.user_count ??
+          (Array.isArray(row?.user_ids) ? row.user_ids.length : 0)
+        return {
+          cell: count,
+          toolTip: String(count ?? 0),
+        }
+      },
+      customCell: true,
+      sortable: false,
+      resizable: true,
+      isVisible: true,
+    },
+    {
+      title: 'Created By',
+      field: 'created_by',
       renderCell: (row: any) => ({
-        cell: row?.user_ids?.length ?? 0,
-        toolTip: String(row?.user_ids?.length ?? 0),
+        cell: row?.created_by ?? '-',
+        toolTip: row?.created_by ?? '',
       }),
       customCell: true,
       sortable: false,
       resizable: true,
       isVisible: true,
     },
+    // {
+    //   title: 'Created At',
+    //   field: 'created_at',
+    //   renderCell: (row: any) => {
+    //     const value = formatHistoryDate(row?.created_at)
+    //     return {
+    //       cell: value,
+    //       toolTip: value,
+    //     }
+    //   },
+    //   customCell: true,
+    //   sortable: false,
+    //   resizable: true,
+    //   isVisible: true,
+    // },
   ])
   const [isCreateBatchOpen, setIsCreateBatchOpen] = useState(false)
   const [historySearch, setHistorySearch] = useState('')
@@ -177,20 +216,17 @@ export default function Notifications() {
       if (search) params.set('search', search)
       const url = `${apiUrl.USER_BATCHES}?${params.toString()}`
       const response: any = await getData(url)
-      const items =
-        Array.isArray(response?.items) || Array.isArray(response)
-          ? (response?.items ?? response)
-          : (response?.data?.items ?? [])
+      const rawItems =
+        response?.user_batches ??
+        response?.items ??
+        (Array.isArray(response) ? response : (response?.data?.items ?? []))
+      const items = Array.isArray(rawItems) ? rawItems : []
       const total =
+        response?.meta?.total_count ??
         response?.total ??
         response?.count ??
-        response?.meta?.total_count ??
         items.length
-      setHistoryTable({
-        items: items ?? [],
-        total: total ?? 0,
-        isLoading: false,
-      })
+      setHistoryTable({ items, total: total ?? 0, isLoading: false })
     } catch (err) {
       setHistoryTable((prev) => ({ ...prev, isLoading: false }))
       enqueueSnackbar('Failed to load batches', { variant: 'error' })
@@ -213,7 +249,6 @@ export default function Notifications() {
     historySearch,
   ])
 
-  const handleOpenCreateBatch = () => setIsCreateBatchOpen(true)
   const handleCloseCreateBatch = () => {
     setIsCreateBatchOpen(false)
     setBatchForm({ selectedUsers: [], name: '', description: '' })
@@ -574,8 +609,15 @@ export default function Notifications() {
     title: 'Broadcast',
     icon: 'notification',
   }
-  const headerProps = { actionTitle: 'Create Notification' }
+  const headerProps =
+    activeTab === 'current'
+      ? { actionTitle: 'Create Notification' }
+      : { actionTitle: 'Create Batch' }
   const openDrawer = () => setCreateOpen(true)
+  const openBatchDialog = () => setIsCreateBatchOpen(true)
+  const canCreateNotification =
+    activeTab === 'current' && checkPermissions('Employee', 'create')
+  const canCreateBatch = activeTab === 'history'
 
   const handleSort = (orderColumn: any, orderDirection: any) => {
     setPageParams({
@@ -596,9 +638,19 @@ export default function Notifications() {
         <>
           <ListingHeader
             data={basicData}
-            onActionClick={openDrawer}
-            actionProps={headerProps}
-            checkPermission={checkPermissions('Employee', 'create')}
+            onActionClick={
+              activeTab === 'current'
+                ? canCreateNotification
+                  ? openDrawer
+                  : undefined
+                : openBatchDialog
+            }
+            actionProps={{
+              actionTitle: headerProps.actionTitle,
+            }}
+            checkPermission={
+              activeTab === 'current' ? canCreateNotification : canCreateBatch
+            }
           />
 
           <DialogModal
@@ -760,15 +812,6 @@ export default function Notifications() {
 
             {activeTab === 'history' && (
               <div className="flex flex-col gap-4">
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={handleOpenCreateBatch}
-                    className="px-4 py-2 rounded-md bg-primaryBlue text-white text-sm font-medium hover:bg-primaryBlue/90"
-                  >
-                    Create Batch
-                  </button>
-                </div>
                 <SmartTable
                   data={historyTable.items}
                   dataRowKey="id"
