@@ -10,6 +10,7 @@ import DietPlanForm from './create'
 import { calcWindowHeight } from '../../../../utilities/calcHeight'
 import { checkPermissions } from '../../../../layout/store'
 import Button from '../../../../components/common/buttons/Button'
+import { useAuthStore } from '../../../../store/authStore'
 
 export default function DietPlanIndex({
   planName,
@@ -21,6 +22,8 @@ export default function DietPlanIndex({
   const navigate = useNavigate()
   const { id: routePlanId } = useParams()
   const effectivePlanId = planId ?? routePlanId
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
   const [columns] = useState<TableColumns[]>([
     {
       title: 'Day',
@@ -264,6 +267,7 @@ export default function DietPlanIndex({
         handleColumnSort={handleSort}
         emptyTitle="No records to display"
         createButton={
+          !isNutritionist &&
           checkPermissions('Employee', 'create') && (
             <Button
               className="bg-primaryGreen"
@@ -295,27 +299,35 @@ export default function DietPlanIndex({
         }}
         columnToggle
         externalActions={true}
-        actionProps={[
-          {
-            icon: <Icons name="eye" />,
-            action: (row: any) => navigate(`/diet_details/${row?.id}`),
-            title: 'view',
-            toolTip: 'View',
-          },
-          {
-            icon: <Icons name="edit" />,
-            action: (row: any) => openEdit(row),
-            title: 'edit',
-            toolTip: 'Edit',
-          },
-          {
-            icon: <Icons name="delete" />,
-            action: (row: any) => deleteDietPlan(row?.id),
-            title: 'delete',
-            toolTip: 'Delete',
-          },
-        ]}
+        actionProps={
+          isNutritionist
+            ? []
+            : [
+                {
+                  icon: <Icons name="eye" />,
+                  action: (row: any) =>
+                    navigate(
+                      `/plans/${row?.plan_id}/dietplan_details/${row?.id}`
+                    ),
+                  title: 'view',
+                  toolTip: 'View',
+                },
+                {
+                  icon: <Icons name="edit" />,
+                  action: (row: any) => openEdit(row),
+                  title: 'edit',
+                  toolTip: 'Edit',
+                },
+                {
+                  icon: <Icons name="delete" />,
+                  action: (row: any) => deleteDietPlan(row?.id),
+                  title: 'delete',
+                  toolTip: 'Delete',
+                },
+              ]
+        }
       />
+
       <DietPlanForm
         isOpen={formOpen}
         handleClose={handleClose}

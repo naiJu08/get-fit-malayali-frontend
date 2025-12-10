@@ -14,6 +14,7 @@ import Tab from '../../../../components/common/tab/Tab'
 import { TabItemProps } from '../../../../common/types'
 import { useYogaList } from '../../../Yoga/api'
 import { useSnackbarManager } from '../../../../components/common/snackbar'
+import { useAuthStore } from '../../../../store/authStore'
 
 function DetailsTabContent({
   yp,
@@ -68,6 +69,8 @@ function AssignTabContent({
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<any[]>([])
   const [removedExerciseIds, setRemovedExerciseIds] = useState<any[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
 
   const toggleSelectedExercise = (yogaId: any) => {
     if (!yogaId) return
@@ -123,15 +126,16 @@ function AssignTabContent({
         <>
           <div className="flex items-center justify-between mb-3">
             <div className="text-md font-semibold">Exercises</div>
-            {exercises.length > 0 && (
-              <button
-                className="px-3 py-1 text-xs border rounded btn-primary"
-                disabled={selectedExerciseIds.length === 0}
-                onClick={handleRemoveSelected}
-              >
-                Remove Exercise
-              </button>
-            )}
+            {!isNutritionist &&
+              exercises.length > 0 &&
+              selectedExerciseIds.length > 0 && (
+                <button
+                  className="px-3 py-1 text-xs border rounded btn-primary"
+                  onClick={handleRemoveSelected}
+                >
+                  Remove Exercise
+                </button>
+              )}
           </div>
           {exercises.length > 0 ? (
             <div className="grid grid-cols-4 gap-3 place-items-start">
@@ -179,12 +183,14 @@ function AssignTabContent({
                           ex?.yoga_name ||
                           'Untitled'}
                       </div>
-                      <input
-                        type="checkbox"
-                        className="shrink-0"
-                        checked={checked}
-                        onChange={() => toggleSelectedExercise(yogaIdForEx)}
-                      />
+                      {!isNutritionist && (
+                        <input
+                          type="checkbox"
+                          className="shrink-0"
+                          checked={checked}
+                          onChange={() => toggleSelectedExercise(yogaIdForEx)}
+                        />
+                      )}
                     </div>
                   </div>
                 )
@@ -260,6 +266,8 @@ export default function YogaPlanDetails() {
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const { mutateAsync: addYogaExerciseAsync } = useAddYogaExercise()
   const { enqueueSnackbar } = useSnackbarManager()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
 
   useEffect(() => {
     let mounted = true
@@ -422,7 +430,7 @@ export default function YogaPlanDetails() {
             Yoga Plan Details - {yp?.plan_name}
           </h1>
         </div>
-        {currentTab === 'assign' && (
+        {currentTab === 'assign' && !isNutritionist && (
           <div>
             <button
               className="px-3 py-1 text-sm border rounded btn-primary"

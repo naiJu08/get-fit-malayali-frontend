@@ -11,6 +11,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useYogaPlans } from './api'
 import YogaPlanForm from './create'
 import { calcWindowHeight } from '../../../../utilities/calcHeight'
+import { useAuthStore } from '../../../../store/authStore'
 
 export default function YogaPlanIndex({
   planName,
@@ -22,6 +23,8 @@ export default function YogaPlanIndex({
   const navigate = useNavigate()
   const { id: routePlanId } = useParams()
   const effectivePlanId = planId ?? routePlanId
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
   const [columns] = useState<TableColumns[]>([
     {
       title: 'Day',
@@ -204,21 +207,25 @@ export default function YogaPlanIndex({
         }}
         columnToggle
         externalActions={true}
-        actionProps={[
-          {
-            icon: <Icons name="eye" />,
-            action: (row: any) =>
-              navigate(`/plans/${row?.plan_id}/yoga_details/${row?.id}`),
-            title: 'view',
-            toolTip: 'View',
-          },
-          {
-            icon: <Icons name="edit" />,
-            action: (row: any) => openEdit(row),
-            title: 'edit',
-            toolTip: 'Edit',
-          },
-        ]}
+        actionProps={
+          isNutritionist
+            ? []
+            : [
+                {
+                  icon: <Icons name="eye" />,
+                  action: (row: any) =>
+                    navigate(`/plans/${row?.plan_id}/yoga_details/${row?.id}`),
+                  title: 'view',
+                  toolTip: 'View',
+                },
+                {
+                  icon: <Icons name="edit" />,
+                  action: (row: any) => openEdit(row),
+                  title: 'edit',
+                  toolTip: 'Edit',
+                },
+              ]
+        }
       />
 
       <YogaPlanForm

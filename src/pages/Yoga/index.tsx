@@ -102,13 +102,11 @@ export default function YogaMain() {
     setColumns(
       getColumns({
         onViewAction: onViewAction,
-        onNameClick: !isNutritionist
-          ? (row: any) => navigate(`/yoga/${row?.id}`)
-          : undefined,
+        onNameClick: (row: any) => navigate(`/yoga/${row?.id}`),
       })
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isNutritionist])
+  }, [])
 
   useEffect(() => {
     setPageParams({
