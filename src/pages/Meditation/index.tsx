@@ -1,6 +1,6 @@
 import SmartTable from '../../components/common/table/SmartTable'
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -48,7 +48,7 @@ export default function MeditationMain() {
     ordering: ordering,
     ...filters,
   }
-
+  const location = useLocation()
   const { data, refetch, isFetching } = useMeditationList(searchParams)
   useEffect(() => {
     if (pageParams?.search) {
@@ -87,6 +87,14 @@ export default function MeditationMain() {
       page: 1,
     })
   }
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
   const onViewAction = async (row: any) => {
     setViewIndicator(true)
     if (row?.id) {

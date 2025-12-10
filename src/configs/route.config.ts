@@ -152,7 +152,7 @@ const SUBSCRIPTIONS: RouterMenuProps = {
   label: 'Subscriptions',
   key: 'subscriptions',
   icon: 'subscription',
-  permission_slugs: ['superadmin'],
+  permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
 const NOTIFICATIONS: RouterMenuProps = {

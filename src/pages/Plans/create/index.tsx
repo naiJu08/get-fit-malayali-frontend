@@ -206,8 +206,14 @@ export default function CreatePlan({
     // const payload = { plan: { ...values } }
     const fd = new FormData()
 
+    const catVal: any = values.category
+    const categoryStr =
+      typeof catVal === 'object'
+        ? (catVal?.name ?? catVal?.id ?? '')
+        : (catVal ?? '')
+
     fd.append('plan[name]', values.name ?? '')
-    fd.append('plan[category]', values.category ?? '')
+    fd.append('plan[category]', categoryStr)
     fd.append('plan[description]', values.description ?? '')
     fd.append('plan[duration_days]', String(values.duration_days ?? ''))
     fd.append('plan[fees]', String(values.fees ?? ''))
@@ -284,7 +290,25 @@ export default function CreatePlan({
 
   const formBuilderProps = [
     { ...textField('name', 'Plan Name', 'Enter plan name', true) },
-    { ...textField('category', 'Category', 'Enter category', true) },
+    {
+      name: 'category',
+      label: 'Category',
+      id: 'category',
+      desc: 'name',
+      descId: 'id',
+      data: [
+        { id: 'Weight Loss', name: 'Weight Loss' },
+        { id: 'Weight Gain', name: 'Weight Gain' },
+        { id: 'Muscle Gain', name: 'Muscle Gain' },
+        { id: 'Wellness', name: 'Wellness' },
+        { id: 'Disease Management', name: 'Disease Management' },
+      ],
+      type: 'custom_select',
+      placeholder: 'Select category',
+      async: false,
+      initialLoad: true,
+      required: true,
+    },
     {
       ...textField('fees', 'Fees', 'Enter fees', true),
       type: 'number',

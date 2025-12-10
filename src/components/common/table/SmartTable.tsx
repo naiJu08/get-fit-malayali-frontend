@@ -190,7 +190,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
           </th>
         ))}
         {!!actionProps.length && (
-          <th className="px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider text-left">
+          <th className="px-6 py-4 text-[11px] font-semibold text-gray-600 uppercase tracking-wider text-left">
             Actions
           </th>
         )}
@@ -257,25 +257,83 @@ const SmartTable: React.FC<SmartTableProps> = ({
                 </button>
 
                 <div className="mx-2 flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    const pageNum = i + 1
-                    return (
-                      <button
-                        key={pageNum}
-                        className={`w-8 h-8 text-sm rounded-lg transition-all ${
-                          page === pageNum
-                            ? 'bg-blue-500 text-white shadow-md'
-                            : 'border border-gray-300 hover:bg-white hover:shadow-sm'
-                        }`}
-                        onClick={() => paginationProps.onPagination(pageNum)}
-                      >
-                        {pageNum}
-                      </button>
+                  {(() => {
+                    const maxButtons = 5
+                    const windowSize = Math.min(maxButtons, totalPages)
+
+                    // Determine sliding window start/end around current page
+                    let startPage = Math.max(
+                      1,
+                      page - Math.floor(windowSize / 2)
                     )
-                  })}
-                  {totalPages > 5 && (
-                    <span className="px-2 text-gray-400">...</span>
-                  )}
+                    let endPage = startPage + windowSize - 1
+
+                    if (endPage > totalPages) {
+                      endPage = totalPages
+                      startPage = Math.max(1, endPage - windowSize + 1)
+                    }
+
+                    const pages: number[] = []
+                    for (let p = startPage; p <= endPage; p++) pages.push(p)
+
+                    return (
+                      <>
+                        {startPage > 1 && (
+                          <>
+                            <button
+                              className={`w-8 h-8 text-sm rounded-lg transition-all ${
+                                page === 1
+                                  ? 'bg-blue-500 text-white shadow-md'
+                                  : 'border border-gray-300 hover:bg-white hover:shadow-sm'
+                              }`}
+                              onClick={() => paginationProps.onPagination(1)}
+                            >
+                              1
+                            </button>
+                            {startPage > 2 && (
+                              <span className="px-2 text-gray-400">...</span>
+                            )}
+                          </>
+                        )}
+
+                        {pages.map((pageNum) => (
+                          <button
+                            key={pageNum}
+                            className={`w-8 h-8 text-sm rounded-lg transition-all ${
+                              page === pageNum
+                                ? 'bg-blue-500 text-white shadow-md'
+                                : 'border border-gray-300 hover:bg-white hover:shadow-sm'
+                            }`}
+                            onClick={() =>
+                              paginationProps.onPagination(pageNum)
+                            }
+                          >
+                            {pageNum}
+                          </button>
+                        ))}
+
+                        {endPage < totalPages && (
+                          <>
+                            {endPage < totalPages - 1 && (
+                              <span className="px-2 text-gray-400">...</span>
+                            )}
+                            <button
+                              className={`w-8 h-8 text-sm rounded-lg transition-all ${
+                                page === totalPages
+                                  ? 'bg-blue-500 text-white shadow-md'
+                                  : 'border border-gray-300 hover:bg-white hover:shadow-sm'
+                              }`}
+                              onClick={() =>
+                                paginationProps.onPagination(totalPages)
+                              }
+                            >
+                              {totalPages}
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )
+                  })()}
                 </div>
 
                 <button

@@ -186,7 +186,7 @@ export default function MainRoutes() {
             <AdminUser />
           </UserRoute>
         }
-        path="/nutrionist"
+        path="/users/nutritionist"
       />
       <Route
         element={
@@ -202,7 +202,7 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
-        path="/nutritionist/:id"
+        path="/users/nutritionist/:id"
       />
       <Route
         element={
@@ -218,7 +218,7 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
-        path="/nutritionist/:id/details"
+        path="/users/nutritionist/:id/details"
       />
       <Route
         element={
@@ -274,7 +274,7 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
-        path="/nutritionist/:id/clients"
+        path="/users/nutritionist/:id/clients"
       />
 
       <Route
@@ -292,6 +292,46 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/subscriptions/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/subscriptions"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/body"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/body-composition"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/vitals"
       />
       <Route
         element={

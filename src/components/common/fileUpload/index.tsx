@@ -101,6 +101,13 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file])
+
+  // keep internal state in sync with external value for single-file mode
+  useEffect(() => {
+    if (!isMultiple) {
+      setFile(value)
+    }
+  }, [isMultiple, value])
   const handleDeleteConfirmation = () => {
     handleDeleteFile?.(item)
     setFile('')

@@ -36,6 +36,8 @@ module.exports = {
         white: '#ffffff',
         black: '#000000',
         danger: '#E25A5A',
+        pieGreen: '#22c55e',
+        pieYellow: '#facc15',
         dangerLight: '#FFF8F8',
         disabledText: '#D7D6D6',
         dangerBorder: '#E764581A',

@@ -1,27 +1,25 @@
-// import { useState } from 'react'
 import moment from 'moment'
 import { useEffect, useState } from 'react'
 import { jsPDF } from 'jspdf'
-import { useBodyMeasurements } from '../api'
+import { useBodyMeasurements } from '../../AdminUser/api'
 import Icons from '../../../components/common/icons'
 import Button from '../../../components/common/buttons/Button'
 
-export default function BodyMeasurements({
-  user,
-  subscriptionId,
+export default function SubscriptionBodyMeasurementsTab({
+  subscription,
 }: {
-  user: any
-  subscriptionId?: string | number | null
+  subscription: any
 }) {
-  // const [bodyPage, setBodyPage] = useState(1)
-  // const [bodyPageSize, setBodyPageSize] = useState(10)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(10)
   const [allItems, setAllItems] = useState<any[]>([])
 
+  const userId = subscription?.user_id
+  const subscriptionId = subscription?.id
+
   const { data: bodyData, isFetching: bodyLoading } = useBodyMeasurements({
-    user_id: user?.id,
-    subscription_id: subscriptionId ?? undefined,
+    user_id: userId,
+    subscription_id: subscriptionId,
     page,
     per_page: pageSize,
   } as any)
@@ -75,17 +73,13 @@ export default function BodyMeasurements({
     pdf.text('Body Measurements Report', pageWidth / 2, y, { align: 'center' })
     y += 8
 
-    // Subtitle (generated time)
+    // Subtitle (subscription context + generated time)
     pdf.setFontSize(10)
     pdf.setTextColor(120, 120, 120)
-    pdf.text(
-      `Generated on ${moment().format('DD MMM YYYY, HH:mm')}`,
-      pageWidth / 2,
-      y,
-      {
-        align: 'center',
-      }
-    )
+    const subtitle = `Subscription #${subscriptionId ?? '-'} · Generated on ${moment().format(
+      'DD MMM YYYY, HH:mm'
+    )}`
+    pdf.text(subtitle, pageWidth / 2, y, { align: 'center' })
     y += 8
 
     const drawHeader = () => {
@@ -124,14 +118,10 @@ export default function BodyMeasurements({
 
       pdf.setFontSize(10)
       pdf.setTextColor(120, 120, 120)
-      pdf.text(
-        `Generated on ${moment().format('DD MMM YYYY, HH:mm')}`,
-        pageWidth / 2,
-        y,
-        {
-          align: 'center',
-        }
-      )
+      const subtitleContinued = `Subscription #${subscriptionId ?? '-'} · Generated on ${moment().format(
+        'DD MMM YYYY, HH:mm'
+      )}`
+      pdf.text(subtitleContinued, pageWidth / 2, y, { align: 'center' })
       y += 8
 
       drawHeader()
@@ -139,7 +129,7 @@ export default function BodyMeasurements({
 
     drawHeader()
 
-    items.forEach((row: any) => {
+    items.forEach((row: any, index: number) => {
       if (y + rowHeight > topMargin + usableHeight) {
         addNewPage()
       }
@@ -161,12 +151,12 @@ export default function BodyMeasurements({
       pdf.setFontSize(9)
       pdf.setTextColor(31, 41, 55) // gray-800
 
-      values.forEach((val, index) => {
-        const w = colWidths[index]
+      values.forEach((val, colIndex) => {
+        const w = colWidths[colIndex]
 
         // Row background (simple zebra effect)
-        if (index === 0) {
-          const isEvenRow = Math.floor((y - topMargin) / rowHeight) % 2 === 0
+        if (colIndex === 0) {
+          const isEvenRow = index % 2 === 0
           if (isEvenRow) {
             pdf.setFillColor(248, 250, 252) // very light gray/blue
           } else {
@@ -184,7 +174,7 @@ export default function BodyMeasurements({
       y += rowHeight
     })
 
-    pdf.save('body-measurements.pdf')
+    pdf.save('subscription-body-measurements.pdf')
   }
 
   return (
@@ -212,7 +202,7 @@ export default function BodyMeasurements({
             {items.map((row: any) => (
               <div
                 key={row.id}
-                className="measurement-card border rounded-xl bg-disabledText p-4 shadow-sm hover:shadow-md transition-shadow duration-150"
+                className="border rounded-xl bg-disabledText p-4 shadow-sm hover:shadow-md transition-shadow duration-150"
               >
                 <div className="grid grid-cols-7 gap-3 text-sm">
                   <div className="rounded-lg p-3 bg-transparent h-full flex flex-col items-center justify-center text-center">

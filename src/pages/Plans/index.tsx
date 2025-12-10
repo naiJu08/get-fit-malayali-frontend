@@ -5,6 +5,7 @@ import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
 import { DialogModal, TextField } from '../../components/common'
+import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 // import SearchInput from '../../components/common/inputs/SearchInput'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
@@ -26,7 +27,7 @@ import {
 } from './api'
 import { getColumns } from './columns'
 import CreatePlan from './create'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 export default function Plans() {
   const [columns, setColumns] = useState<TableColumns[]>([])
@@ -54,6 +55,10 @@ export default function Plans() {
   const [viewIndicator, setViewIndicator] = useState(false)
   const [loader, setloader] = useState(false)
   const navigate = useNavigate()
+  const [deletePlanModal, setDeletePlanModal] = useState(false)
+  const [deletingPlan, setDeletingPlan] = useState(false)
+  const [planToDelete, setPlanToDelete] = useState<any>(null)
+  const location = useLocation()
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
@@ -63,6 +68,16 @@ export default function Plans() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Reset pagination when route/section changes so we always start from page 1
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
   const { page, per_page, search, ordering } = pageParams
   const searchParams = {
     page,
@@ -85,13 +100,18 @@ export default function Plans() {
 
   const handleDeletePlan = async (row: any) => {
     try {
+      setDeletingPlan(true)
       await deletePlan(row?.id)
       enqueueSnackbar('Plan deleted successfully', { variant: 'success' })
       queryClient.invalidateQueries(['plans_list'])
+      setDeletePlanModal(false)
+      setPlanToDelete(null)
     } catch (err: any) {
       enqueueSnackbar(err?.response?.data?.message || 'Failed to delete plan', {
         variant: 'error',
       })
+    } finally {
+      setDeletingPlan(false)
     }
   }
   const getPlanId = (row: any) =>
@@ -156,15 +176,13 @@ export default function Plans() {
   useEffect(() => {
     setColumns(
       getColumns({
-        onNameClick: !isNutritionist
-          ? (row: any) => {
-              navigate(`/plans/${row?.id}`)
-            }
-          : undefined,
-        disableNameLink: isNutritionist,
+        onNameClick: (row: any) => {
+          navigate(`/plans/${row?.id}`)
+        },
+        disableNameLink: false,
       })
     )
-  }, [isNutritionist])
+  }, [navigate])
 
   const handleSeach = (key?: string) => {
     setPageParams({
@@ -416,10 +434,10 @@ export default function Plans() {
                         },
                       },
                       {
-                        title: 'Activate',
+                        title: 'activate',
                         action: (row: any) => handleToggleStatus(row),
                         icon: <Icons name="activate-icon" />,
-                        toolTip: 'Activate',
+                        toolTip: 'activate',
                         hide: (row: any) => {
                           const v = row?.active
                           const isActive =
@@ -432,9 +450,12 @@ export default function Plans() {
                       },
                       {
                         icon: <Icons name="delete" />,
-                        action: (row: any) => handleDeletePlan(row),
+                        action: (row: any) => {
+                          setPlanToDelete(row)
+                          setDeletePlanModal(true)
+                        },
                         title: 'delete',
-                        toolTip: 'Delete',
+                        toolTip: 'delete',
                       },
                     ]
               }
@@ -442,6 +463,24 @@ export default function Plans() {
               externalActions={true}
             />
           </div>
+
+          <ConfirmDeleteModal
+            isOpen={deletePlanModal}
+            onClose={() => {
+              if (!deletingPlan) {
+                setDeletePlanModal(false)
+                setPlanToDelete(null)
+              }
+            }}
+            onConfirm={() => planToDelete && handleDeletePlan(planToDelete)}
+            loading={deletingPlan}
+            title={'Are you sure?'}
+            subTitle={
+              'Do you really want to delete this plan? This process cannot be undone.'
+            }
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+          />
 
           <DialogModal
             isOpen={deleteModal}

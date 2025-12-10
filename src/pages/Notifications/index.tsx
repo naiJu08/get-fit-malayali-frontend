@@ -31,6 +31,7 @@ import {
 import { getColumns } from './columns'
 import { useCreateNotification } from './api'
 import { checkPermissions } from '../../layout/store'
+import { useLocation } from 'react-router-dom'
 
 export default function Notifications() {
   const navigate = useNavigate()
@@ -59,7 +60,7 @@ export default function Notifications() {
   })
   const [unfreezeConfirm, setUnfreezeConfirm] = useState(false)
   const [searchDebounce, setSearchDebounce] = useState<any>(null)
-
+  const location = useLocation()
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
   const [loader, setloader] = useState(false)
@@ -313,7 +314,14 @@ export default function Notifications() {
   //   setUserName(username)
   //   setStatus(status)
   // }
-
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
   const handleSendInvitation = () => {
     setloader(true)
     sendAdminInvitation(deleteItem ?? '')

@@ -6,6 +6,7 @@ import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
+import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 import { checkPermissions } from '../../layout/store'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { useAuthStore } from '../../store/authStore'
@@ -21,9 +22,11 @@ import {
 } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
+import { useLocation } from 'react-router-dom'
 
 export default function WorkoutMain() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { enqueueSnackbar } = useSnackbarManager()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
@@ -35,6 +38,9 @@ export default function WorkoutMain() {
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
   const [searchDebounce, setSearchDebounce] = useState<any>(null)
+  const [deleteWorkoutModal, setDeleteWorkoutModal] = useState(false)
+  const [deletingWorkout, setDeletingWorkout] = useState(false)
+  const [workoutToDelete, setWorkoutToDelete] = useState<any>(null)
 
   const params = useParams()
 
@@ -99,14 +105,19 @@ export default function WorkoutMain() {
   const handleDelete = async (rowData: any) => {
     if (!rowData?.id) return
     try {
+      setDeletingWorkout(true)
       await deleteWorkout(String(rowData.id))
       enqueueSnackbar('Workout deleted successfully', { variant: 'success' })
+      setDeleteWorkoutModal(false)
+      setWorkoutToDelete(null)
       refetch()
     } catch (err: any) {
       enqueueSnackbar(
         err?.response?.data?.message || 'Failed to delete workout',
         { variant: 'error' }
       )
+    } finally {
+      setDeletingWorkout(false)
     }
   }
   useEffect(() => {
@@ -119,7 +130,14 @@ export default function WorkoutMain() {
       })
     )
   }, [isNutritionist])
-
+  useEffect(() => {
+    setPageParams({
+      ...pageParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, setPageParams])
   // const handleSeach = (key?: string) => {
   //   setPageParams({
   //     ...pageParams,
@@ -282,7 +300,10 @@ export default function WorkoutMain() {
                       },
                       {
                         icon: <Icons name="delete" />,
-                        action: (row) => handleDelete(row),
+                        action: (row) => {
+                          setWorkoutToDelete(row)
+                          setDeleteWorkoutModal(true)
+                        },
                         title: 'delete',
                         toolTip: 'Delete',
                       },
@@ -292,6 +313,23 @@ export default function WorkoutMain() {
               externalActions={true}
             />
           </div>
+          <ConfirmDeleteModal
+            isOpen={deleteWorkoutModal}
+            onClose={() => {
+              if (!deletingWorkout) {
+                setDeleteWorkoutModal(false)
+                setWorkoutToDelete(null)
+              }
+            }}
+            onConfirm={() => workoutToDelete && handleDelete(workoutToDelete)}
+            loading={deletingWorkout}
+            title={'Are you sure?'}
+            subTitle={
+              'Do you really want to delete this workout? This process cannot be undone.'
+            }
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+          />
           <CreateAdmin
             isDrawerOpen={createOpen}
             rowData={rowData}

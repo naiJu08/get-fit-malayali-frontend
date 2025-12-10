@@ -175,6 +175,7 @@ import YogaIcon from './YogaIcon'
 import YogaWhiteIcon from './YogaWhiteIcon'
 import Meditation from './Meditation'
 import Meals from './Meals'
+import StepsIcon from './steps'
 
 const Icons: React.FC<IconsProps> = ({
   name,
@@ -531,6 +532,8 @@ const Icons: React.FC<IconsProps> = ({
         return <Meditation />
       case 'meal-icon':
         return <Meals />
+      case 'steps-icon':
+        return <StepsIcon />
 
       default:
         return <></>

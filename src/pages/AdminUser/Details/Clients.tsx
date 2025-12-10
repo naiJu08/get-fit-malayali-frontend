@@ -192,7 +192,7 @@ export default function Clients({ user }: { user: any }) {
               </label>
               <AutoComplete
                 name="assign_user_id"
-                type="custom_select"
+                type="custom_search_select"
                 desc="name"
                 descId="id"
                 data={userOptions}

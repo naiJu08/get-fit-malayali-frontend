@@ -1,24 +1,25 @@
 import moment from 'moment'
-import { useVitals } from '../api'
-import Icons from '../../../components/common/icons'
 import { useEffect, useState } from 'react'
 import { jsPDF } from 'jspdf'
+import { useVitals } from '../../AdminUser/api'
+import Icons from '../../../components/common/icons'
 import Button from '../../../components/common/buttons/Button'
 
-export default function Vitals({
-  user,
-  subscriptionId,
+export default function SubscriptionVitalsTab({
+  subscription,
 }: {
-  user: any
-  subscriptionId?: string | number | null
+  subscription: any
 }) {
   const [page, setPage] = useState(1)
   const [pageSize] = useState(10)
   const [allItems, setAllItems] = useState<any[]>([])
 
+  const userId = subscription?.user_id
+  const subscriptionId = subscription?.id
+
   const { data, isFetching } = useVitals({
-    user_id: user?.id,
-    subscription_id: subscriptionId as any,
+    user_id: userId,
+    subscription_id: subscriptionId,
     page,
     per_page: pageSize,
   } as any)
@@ -67,9 +68,8 @@ export default function Vitals({
       'Steps',
     ]
 
-    // Distribute columns across available width
     const tableWidth = pageWidth - leftMargin - rightMargin
-    const baseColWidths = [0.18, 0.13, 0.17, 0.14, 0.12, 0.12, 0.14] // percentages
+    const baseColWidths = [0.18, 0.13, 0.17, 0.14, 0.12, 0.12, 0.14]
     const colWidths = baseColWidths.map((p) => p * tableWidth)
 
     let y = topMargin
@@ -80,30 +80,26 @@ export default function Vitals({
     pdf.text('Vitals Report', pageWidth / 2, y, { align: 'center' })
     y += 8
 
-    // Subtitle (optional date range / generated time)
+    // Subtitle with subscription context
     pdf.setFontSize(10)
     pdf.setTextColor(120, 120, 120)
-    pdf.text(
-      `Generated on ${moment().format('DD MMM YYYY, HH:mm')}`,
-      pageWidth / 2,
-      y,
-      {
-        align: 'center',
-      }
-    )
+    const subtitle = `Subscription #${subscriptionId ?? '-'} · Generated on ${moment().format(
+      'DD MMM YYYY, HH:mm'
+    )}`
+    pdf.text(subtitle, pageWidth / 2, y, { align: 'center' })
     y += 8
 
     const drawHeader = () => {
       let x = leftMargin
 
-      // Header background band across the full table width
-      pdf.setFillColor(219, 234, 254) // light blue
-      pdf.setDrawColor(148, 163, 184) // slate-400 border
+      // Header background band
+      pdf.setFillColor(219, 234, 254)
+      pdf.setDrawColor(148, 163, 184)
       pdf.setLineWidth(0.2)
       pdf.rect(leftMargin, y, tableWidth, headerHeight, 'FD')
 
       // Header text
-      pdf.setTextColor(30, 64, 175) // blue-800
+      pdf.setTextColor(30, 64, 175)
       pdf.setFontSize(10)
 
       columns.forEach((col, index) => {
@@ -119,7 +115,6 @@ export default function Vitals({
       pdf.addPage()
       y = topMargin
 
-      // Repeat title & subtitle on new pages
       pdf.setFontSize(16)
       pdf.setTextColor(40, 40, 40)
       pdf.text('Vitals Report', pageWidth / 2, y, { align: 'center' })
@@ -127,14 +122,10 @@ export default function Vitals({
 
       pdf.setFontSize(10)
       pdf.setTextColor(120, 120, 120)
-      pdf.text(
-        `Generated on ${moment().format('DD MMM YYYY, HH:mm')}`,
-        pageWidth / 2,
-        y,
-        {
-          align: 'center',
-        }
-      )
+      const subtitleContinued = `Subscription #${subscriptionId ?? '-'} · Generated on ${moment().format(
+        'DD MMM YYYY, HH:mm'
+      )}`
+      pdf.text(subtitleContinued, pageWidth / 2, y, { align: 'center' })
       y += 8
 
       drawHeader()
@@ -142,7 +133,7 @@ export default function Vitals({
 
     drawHeader()
 
-    items.forEach((row: any) => {
+    items.forEach((row: any, index: number) => {
       if (y + rowHeight > topMargin + usableHeight) {
         addNewPage()
       }
@@ -170,15 +161,19 @@ export default function Vitals({
       ]
 
       pdf.setFontSize(9)
-      pdf.setTextColor(31, 41, 55) // gray-800
+      pdf.setTextColor(31, 41, 55)
 
-      values.forEach((val, index) => {
-        const w = colWidths[index]
+      values.forEach((val, colIndex) => {
+        const w = colWidths[colIndex]
 
-        // Row background (alternating for zebra effect)
-        if (index === 0) {
-          pdf.setFillColor(y % (rowHeight * 2) === 0 ? 248 : 241, 250, 252) // light blues
-          pdf.rect(x, y, tableWidth, rowHeight, 'F')
+        if (colIndex === 0) {
+          const isEvenRow = index % 2 === 0
+          if (isEvenRow) {
+            pdf.setFillColor(248, 250, 252)
+          } else {
+            pdf.setFillColor(239, 246, 255)
+          }
+          pdf.rect(leftMargin, y, tableWidth, rowHeight, 'F')
           pdf.setDrawColor(226, 232, 240)
           pdf.rect(leftMargin, y, tableWidth, rowHeight)
         }
@@ -190,7 +185,7 @@ export default function Vitals({
       y += rowHeight
     })
 
-    pdf.save('vitals.pdf')
+    pdf.save('subscription-vitals.pdf')
   }
 
   return (
@@ -204,24 +199,21 @@ export default function Vitals({
           <div className="mt-3 text-sm">No vitals to display</div>
         </div>
       )}
-
       {!isFetching && items.length > 0 && (
-        <>
-          <div className="flex justify-end">
-            <Button
-              className="text-xs"
-              label="Generate PDF"
-              onClick={handleDownloadVitalsPdf}
-            />
-          </div>
-        </>
+        <div className="flex justify-end">
+          <Button
+            className="text-xs"
+            label="Generate PDF"
+            onClick={handleDownloadVitalsPdf}
+          />
+        </div>
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-4">
         {items.map((row: any) => (
           <div
             key={row.id}
-            className="vitals-card border rounded-xl bg-disabledText p-4 shadow-sm hover:shadow-md transition-shadow duration-150"
+            className="border rounded-xl bg-disabledText p-4 shadow-sm hover:shadow-md transition-shadow duration-150"
           >
             <div className="grid grid-cols-7 gap-2 text-sm">
               <div className="rounded-lg p-3 bg-transparent h-full flex flex-col items-center justify-center text-center">

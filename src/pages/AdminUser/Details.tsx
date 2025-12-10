@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 
 import Icons from '../../components/common/icons'
-import { getAdminDetails } from './api'
+import { getAdminDetails, getActivePlanOverview } from './api'
 import { Tab, TabContainer } from '../../components/common/tab'
 import DetailsInfo from './Details/DetailsInfo'
 import Subscriptions from './Details/Subscriptions'
 import BodyMeasurements from './Details/BodyMeasurements'
-import BodyComposition from './Details/BodyComposition'
+// import BodyComposition from './Details/BodyComposition'
 import Vitals from './Details/Vitals'
 import Clients from './Details/Clients'
 import Reports from './Details/Reports'
@@ -21,6 +21,9 @@ export default function UserDetails() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
+  const [subscriptionId, setSubscriptionId] = useState<string | number | null>(
+    null
+  )
 
   useEffect(() => {
     let mounted = true
@@ -52,9 +55,35 @@ export default function UserDetails() {
     return s === 'nutritionist'
   })()
 
+  useEffect(() => {
+    let mounted = true
+
+    const run = async () => {
+      if (!user?.id || isNutritionist) return
+      if (!user?.subscribed_plan) return
+      try {
+        const overview = await getActivePlanOverview(user.id)
+        if (!mounted) return
+        const subId = overview?.subscription?.id
+        setSubscriptionId(subId ?? null)
+      } catch (e) {
+        if (!mounted) return
+        // On error (e.g. 404 for no active subscription), still use empty string
+        // so subscription_id is present in the downstream requests.
+        setSubscriptionId('')
+      }
+    }
+
+    run()
+
+    return () => {
+      mounted = false
+    }
+  }, [user?.id, isNutritionist])
+
   const pathBase = useMemo(() => {
-    return location.pathname.startsWith('/nutritionist')
-      ? '/nutritionist'
+    return location.pathname.startsWith('/users/nutritionist')
+      ? '/users/nutritionist'
       : '/users'
   }, [location.pathname])
 
@@ -77,8 +106,8 @@ export default function UserDetails() {
   useEffect(() => {
     if (location.pathname === `/users/${id}`) {
       navigate(`/users/${id}/details`, { replace: true })
-    } else if (location.pathname === `/nutritionist/${id}`) {
-      navigate(`/nutritionist/${id}/details`, { replace: true })
+    } else if (location.pathname === `/users/nutritionist/${id}`) {
+      navigate(`/users/nutritionist/${id}/details`, { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, id, navigate])
@@ -91,7 +120,7 @@ export default function UserDetails() {
         : [
             { id: 'subscriptions', label: 'Subscriptions' },
             { id: 'body', label: 'Body measurements' },
-            { id: 'body-composition', label: 'Body composition' },
+            // { id: 'body-composition', label: 'Body composition' },
             { id: 'vitals', label: 'Vitals' },
             ...(loginRole !== 'nutritionist'
               ? [{ id: 'reports', label: 'Reports' }]
@@ -111,7 +140,11 @@ export default function UserDetails() {
         <div className="flex items-center gap-2">
           <button
             onClick={() =>
-              navigate(pathBase === '/nutritionist' ? '/nutrionist' : '/users')
+              navigate(
+                pathBase === '/users/nutritionist'
+                  ? '/users/nutritionist'
+                  : '/users'
+              )
             }
             aria-label="Back"
           >
@@ -149,22 +182,22 @@ export default function UserDetails() {
         )}
         {!isNutritionist && (
           <Tab id="body">
-            <BodyMeasurements user={user} />
+            <BodyMeasurements user={user} subscriptionId={subscriptionId} />
           </Tab>
         )}
-        {!isNutritionist && (
+        {/* {!isNutritionist && (
           <Tab id="body-composition">
-            <BodyComposition user={user} />
+            <BodyComposition user={user} subscriptionId={subscriptionId} />
           </Tab>
-        )}
+        )} */}
         {!isNutritionist && (
           <Tab id="vitals">
-            <Vitals user={user} />
+            <Vitals user={user} subscriptionId={subscriptionId} />
           </Tab>
         )}
         {!isNutritionist && loginRole !== 'nutritionist' && (
           <Tab id="reports">
-            <Reports user={user} />
+            <Reports user={user} subscriptionId={subscriptionId} />
           </Tab>
         )}
         {isNutritionist && (

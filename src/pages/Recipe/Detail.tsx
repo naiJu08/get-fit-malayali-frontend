@@ -61,15 +61,19 @@ const RecipeDetail: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <DetailItem label="Name" value={recipe?.name} />
             <DetailItem label="Description" value={recipe?.description} />
-            <DetailItem label="Category" value={recipe?.category} />
-            <DetailItem label="Calories" value={recipe?.calories} />
-            <DetailItem label="Portion Size" value={recipe?.portion_size} />
             <DetailItem
-              label="Low Calorie"
-              value={recipe?.low_calorie ? 'Yes' : 'No'}
+              label="Preparation Notes"
+              value={recipe?.preparation_notes}
             />
+            <DetailItem label="Category" value={recipe?.meal_category} />
+            <DetailItem label="Serving Unit" value={recipe?.serving_unit} />
+            <DetailItem
+              label=" Total Calories"
+              value={recipe?.nutrition?.calories ?? recipe?.calories}
+            />
+
             <div className="border rounded-lg p-3 bg-white">
-              <div className="text-xs text-gray-500 mb-1">Image</div>
+              <div className="text-xs text-gray-500 mb-2">Image</div>
               <div className="text-sm">
                 {recipe?.image_url ? (
                   <div className="w-[160px] h-[160px] overflow-hidden rounded-md border">
@@ -84,6 +88,61 @@ const RecipeDetail: React.FC = () => {
                 )}
               </div>
             </div>
+
+            <div className="border rounded-lg p-3 bg-white">
+              <div className="text-xs text-gray-500 mb-2">Nutrition</div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-gray-500">Protein: </span>
+                  {safeStr(recipe?.nutrition?.protein)}
+                </div>
+                <div>
+                  <span className="text-gray-500">Carbs: </span>
+                  {safeStr(recipe?.nutrition?.carbs)}
+                </div>
+                <div>
+                  <span className="text-gray-500">Fat: </span>
+                  {safeStr(recipe?.nutrition?.fat)}
+                </div>
+                <div>
+                  <span className="text-gray-500">Fiber: </span>
+                  {safeStr(recipe?.nutrition?.fiber)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Ingredients */}
+          <div className="mt-4 border rounded-lg p-3 bg-white">
+            <div className="text-xs text-gray-500 mb-2">Ingredients</div>
+            {Array.isArray(recipe?.ingredients) &&
+            recipe.ingredients.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-500">
+                      <th className="py-1 pr-4">Name</th>
+                      <th className="py-1 pr-4">Quantity</th>
+                      <th className="py-1 pr-4">Unit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recipe.ingredients.map((ing: any) => (
+                      <tr
+                        key={ing?.id ?? `${ing?.name}-${ing?.unit}`}
+                        className="border-t"
+                      >
+                        <td className="py-1 pr-4">{safeStr(ing?.name)}</td>
+                        <td className="py-1 pr-4">{safeStr(ing?.quantity)}</td>
+                        <td className="py-1 pr-4">{safeStr(ing?.unit)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-sm">--</div>
+            )}
           </div>
         </>
       )}

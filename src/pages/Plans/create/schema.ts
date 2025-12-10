@@ -125,7 +125,15 @@ export const planFormSchema = z.object({
     .string()
     .min(2, 'Plan name is required')
     .max(100, 'Plan name must be under 100 characters'),
-  category: z.string().min(2, 'Category is required'),
+  category: z.preprocess(
+    (val) => {
+      if (val && typeof val === 'object') {
+        return (val as any).name ?? (val as any).id ?? ''
+      }
+      return val
+    },
+    z.string().min(2, 'Category is required')
+  ),
   description: z.string().min(5, 'Description is required'),
   duration_days: z.coerce
     .number({
