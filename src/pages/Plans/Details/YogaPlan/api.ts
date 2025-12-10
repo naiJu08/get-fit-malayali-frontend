@@ -31,11 +31,12 @@ export const getYogaPlanDetails = (id: string | number) => {
 }
 
 export const useYogaPlanDetail = (id?: string | number) => {
+  const keyId = id != null ? String(id) : undefined
   return useQuery(
-    ['yoga_plan_detail', id],
-    () => getYogaPlanDetails(String(id)),
+    ['yoga_plan_detail', keyId],
+    () => getYogaPlanDetails(String(keyId)),
     {
-      enabled: !!id,
+      enabled: !!keyId,
     }
   )
 }
@@ -66,8 +67,12 @@ export const updateYogaPlan = ({
 export const useUpdateYogaPlan = () => {
   const qc = useQueryClient()
   return useMutation(updateYogaPlan, {
-    onSuccess: () => {
+    onSuccess: (_data: any, vars: { id: string | number; payload: any }) => {
+      // Refresh list and the specific detail record so edit forms see latest data
       qc.invalidateQueries(['yoga_plans_list'])
+      if (vars?.id) {
+        qc.invalidateQueries(['yoga_plan_detail', String(vars.id)])
+      }
     },
   })
 }
