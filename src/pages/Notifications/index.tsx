@@ -1,18 +1,18 @@
 import SmartTable from '../../components/common/table/SmartTable'
-// import Button from '../../components/common/buttons/Button'
 import { AutoComplete } from 'qbs-core'
 import { useEffect, useState } from 'react'
-// import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import Icons from '../../components/common/icons'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
 import DialogModal from '../../components/common/modal/DialogModal'
+import CreateBatchDialog from './components/CreateBatchDialog'
 import TextField from '../../components/common/inputs/TextField'
 
 import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
-// import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
@@ -27,17 +27,22 @@ import {
   sendAdminInvitation,
   useAdminUser,
   DISABLE_NONLOGIN_APIS,
-  // deleteAdmin,
   freezeUser,
   unfreezeUser,
 } from './api'
 import { getColumns } from './columns'
-import { useCreateNotification } from './api'
+import {
+  useCreateNotification,
+  useCreateUserBatch,
+  useDeleteUserBatch,
+  useUpdateUserBatch,
+  getUserBatchDetail,
+} from './api'
 import { checkPermissions } from '../../layout/store'
-import { useLocation } from 'react-router-dom'
 
 export default function Notifications() {
-  // const navigate = useNavigate()
+  const navigate = useNavigate()
+  const { pathname } = useLocation()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
   const [deleteItem] = useState('')
@@ -49,8 +54,6 @@ export default function Notifications() {
   const [userName, setUserName] = useState('')
   const [userId, setUserId] = useState('')
   const [openConfirm, setOpenConfirm] = useState(false)
-  // const [deleteUserModal, setDeleteUserModal] = useState(false)
-  // const [deleteUserId, setDeleteUserId] = useState<string>('')
   const [freezeModal, setFreezeModal] = useState(false)
   const [freezeUserId] = useState<string>('')
   const [freezeForm, setFreezeForm] = useState<{
@@ -68,8 +71,170 @@ export default function Notifications() {
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
   const [loader, setloader] = useState(false)
+  const [activeTab, setActiveTab] = useState<'current' | 'history'>(() =>
+    pathname.includes('/notifications/history') ? 'history' : 'current'
+  )
+  // const formatHistoryDate = (value?: string) => {
+  //   if (!value) return '-'
+  //   const date = new Date(value)
+  //   if (Number.isNaN(date.getTime())) return '-'
+  //   return date.toLocaleString()
+  // }
+  const [historyTable, setHistoryTable] = useState({
+    items: [] as any[],
+    total: 0,
+    isLoading: false,
+  })
+  const [historyColumns] = useState<TableColumns[]>([
+    {
+      title: 'Batch Name',
+      field: 'name',
+      renderCell: (row: any) => ({
+        cell: row?.name ?? '-',
+        toolTip: row?.name ?? '',
+      }),
+      customCell: true,
+      sortable: false,
+      resizable: true,
+      isVisible: true,
+    },
+    {
+      title: 'Description',
+      field: 'description',
+      renderCell: (row: any) => ({
+        cell: row?.description ?? '-',
+        toolTip: row?.description ?? '',
+      }),
+      customCell: true,
+      sortable: false,
+      resizable: true,
+      isVisible: true,
+    },
+    {
+      title: 'Users',
+      field: 'users_count',
+      renderCell: (row: any) => {
+        const count =
+          row?.users_count ??
+          row?.user_count ??
+          (Array.isArray(row?.user_ids) ? row.user_ids.length : 0)
+        return {
+          cell: count,
+          toolTip: String(count ?? 0),
+        }
+      },
+      customCell: true,
+      sortable: false,
+      resizable: true,
+      isVisible: true,
+    },
+    {
+      title: 'Created By',
+      field: 'created_by',
+      renderCell: (row: any) => ({
+        cell: row?.created_by ?? '-',
+        toolTip: row?.created_by ?? '',
+      }),
+      customCell: true,
+      sortable: false,
+      resizable: true,
+      isVisible: true,
+    },
+    // {
+    //   title: 'Created At',
+    //   field: 'created_at',
+    //   renderCell: (row: any) => {
+    //     const value = formatHistoryDate(row?.created_at)
+    //     return {
+    //       cell: value,
+    //       toolTip: value,
+    //     }
+    //   },
+    //   customCell: true,
+    //   sortable: false,
+    //   resizable: true,
+    //   isVisible: true,
+    // },
+  ])
+  const [isCreateBatchOpen, setIsCreateBatchOpen] = useState(false)
+  const [historySearch, setHistorySearch] = useState('')
+  const [historyDebounce, setHistoryDebounce] = useState<any>(null)
+  const [historyPagination, setHistoryPagination] = useState({
+    page: 1,
+    per_page: 10,
+  })
+  const createBatchFormDefaults = () => ({
+    selectedUsers: [] as any[],
+    name: '',
+    description: '',
+  })
+  const filterNonNull = <T,>(item: T | null | undefined): item is T =>
+    item !== null && item !== undefined
+  const buildUserOption = (user: any, fallbackId?: any) => {
+    if (!user && fallbackId === undefined) return null
+    const base = user || {}
+    const nested = base?.user || {}
+    const resolvedId =
+      base?.id ??
+      base?.user_id ??
+      base?.userId ??
+      base?.uuid ??
+      base?.user_uuid ??
+      nested?.id ??
+      nested?.user_id ??
+      fallbackId
+    if (resolvedId === undefined || resolvedId === null) {
+      return null
+    }
+    const firstName = base?.first_name ?? nested?.first_name ?? ''
+    const lastName = base?.last_name ?? nested?.last_name ?? ''
+    const fullName =
+      base?.full_name ??
+      nested?.full_name ??
+      [firstName, lastName].filter(Boolean).join(' ')
+    const label =
+      base?.name ??
+      fullName ??
+      base?.username ??
+      nested?.username ??
+      base?.email ??
+      nested?.email ??
+      `User ${resolvedId}`
+    return { id: resolvedId, value: label }
+  }
+  const resolveBatchUserOptions = (batchData: any) => {
+    if (!batchData) return []
+    const selectedFromUsers = Array.isArray(batchData?.users)
+      ? batchData.users
+          .map((u: any) => buildUserOption(u))
+          .filter(filterNonNull)
+      : []
+    const selectedFromMembers =
+      !selectedFromUsers.length && Array.isArray(batchData?.user_batch_members)
+        ? batchData.user_batch_members
+            .map((member: any) => buildUserOption(member?.user ?? member))
+            .filter(filterNonNull)
+        : []
+    const selectedFromIds =
+      !selectedFromUsers.length &&
+      !selectedFromMembers.length &&
+      Array.isArray(batchData?.user_ids)
+        ? batchData.user_ids
+            .map((uid: any) => buildUserOption(null, uid))
+            .filter(filterNonNull)
+        : []
+    return selectedFromUsers.length
+      ? selectedFromUsers
+      : selectedFromMembers.length
+        ? selectedFromMembers
+        : selectedFromIds
+  }
+  const [batchForm, setBatchForm] = useState(createBatchFormDefaults)
+  const [editingBatchId, setEditingBatchId] = useState<string | null>(null)
+  const [isBatchDetailLoading, setIsBatchDetailLoading] = useState(false)
+  const [deleteBatchId, setDeleteBatchId] = useState<string | null>(null)
+  const [isDeleteBatchOpen, setIsDeleteBatchOpen] = useState(false)
 
-  // Create Notification form state
   const [createForm, setCreateForm] = useState({
     selectedUsers: [] as any[],
     title: '',
@@ -83,6 +248,12 @@ export default function Notifications() {
     setCreateForm((prev) => ({ ...prev, [name]: value }))
   }
 
+  useEffect(() => {
+    setActiveTab(
+      pathname.includes('/notifications/history') ? 'history' : 'current'
+    )
+  }, [pathname])
+
   const clearCreateForm = () => {
     setCreateForm({
       selectedUsers: [],
@@ -94,7 +265,6 @@ export default function Notifications() {
     })
   }
 
-  // Create notification hook
   const { mutate: createNotificationMutate, isLoading: isCreating } =
     useCreateNotification(() => {
       clearCreateForm()
@@ -102,13 +272,239 @@ export default function Notifications() {
       refetch()
     })
 
+  const fetchHistory = async ({
+    page,
+    per_page,
+    search,
+  }: {
+    page: number
+    per_page: number
+    search?: string
+  }) => {
+    try {
+      setHistoryTable((prev) => ({ ...prev, isLoading: true }))
+      const params = new URLSearchParams()
+      params.set('page', String(page))
+      params.set('per_page', String(per_page))
+      if (search) params.set('search', search)
+      const url = `${apiUrl.USER_BATCHES}?${params.toString()}`
+      const response: any = await getData(url)
+      const rawItems =
+        response?.user_batches ??
+        response?.items ??
+        (Array.isArray(response) ? response : (response?.data?.items ?? []))
+      const items = Array.isArray(rawItems) ? rawItems : []
+      const total =
+        response?.meta?.total_count ??
+        response?.total ??
+        response?.count ??
+        items.length
+      setHistoryTable({ items, total: total ?? 0, isLoading: false })
+    } catch (err) {
+      setHistoryTable((prev) => ({ ...prev, isLoading: false }))
+      enqueueSnackbar('Failed to load batches', { variant: 'error' })
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      fetchHistory({
+        page: historyPagination.page,
+        per_page: historyPagination.per_page,
+        search: historySearch,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activeTab,
+    historyPagination.page,
+    historyPagination.per_page,
+    historySearch,
+  ])
+
+  const handleCloseCreateBatch = () => {
+    setIsCreateBatchOpen(false)
+    setEditingBatchId(null)
+    setIsBatchDetailLoading(false)
+    setBatchForm(createBatchFormDefaults())
+  }
+
+  const handleBatchFormChange = (
+    field: 'selectedUsers' | 'name' | 'description',
+    value: any
+  ) => {
+    setBatchForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const getUserOptions = async (key?: string, nextBlock?: number) => {
+    const params = new URLSearchParams()
+    if (key) params.set('search', key)
+    params.set('per_page', '10')
+    if (nextBlock) params.set('page', String(nextBlock))
+    const url = `${apiUrl.ADMIN_USER}?${params.toString()}`
+    const res: any = await getData(url)
+    const items: any[] = Array.isArray(res)
+      ? res
+      : res?.items ||
+        res?.users ||
+        res?.results ||
+        res?.data?.items ||
+        res?.data?.users ||
+        []
+    return items.map((u: any) => buildUserOption(u)).filter(filterNonNull)
+  }
+
+  const { mutate: createUserBatchMutate, isLoading: isBatchCreating } =
+    useCreateUserBatch(() => {
+      handleCloseCreateBatch()
+      fetchHistory({
+        page: historyPagination.page,
+        per_page: historyPagination.per_page,
+        search: historySearch,
+      })
+    })
+
+  const { mutate: updateUserBatchMutate, isLoading: isBatchUpdating } =
+    useUpdateUserBatch(() => {
+      handleCloseCreateBatch()
+      fetchHistory({
+        page: historyPagination.page,
+        per_page: historyPagination.per_page,
+        search: historySearch,
+      })
+    })
+
+  const { mutate: deleteUserBatchMutate, isLoading: isBatchDeleting } =
+    useDeleteUserBatch(() => {
+      setIsDeleteBatchOpen(false)
+      setDeleteBatchId(null)
+      fetchHistory({
+        page: historyPagination.page,
+        per_page: historyPagination.per_page,
+        search: historySearch,
+      })
+    })
+
+  const handleCreateBatch = () => {
+    if (isBatchDetailLoading) {
+      return
+    }
+    const ids = (batchForm.selectedUsers || [])
+      .map((u: any) => Number(u?.id))
+      .filter((n: number) => !Number.isNaN(n))
+    if (!batchForm.name.trim()) {
+      enqueueSnackbar('Please enter a batch name', { variant: 'error' })
+      return
+    }
+    if (!ids.length) {
+      enqueueSnackbar('Please select at least one user', { variant: 'error' })
+      return
+    }
+    const payload = {
+      user_batch: {
+        name: batchForm.name.trim(),
+        description: batchForm.description.trim(),
+        user_ids: ids,
+      },
+    }
+    if (editingBatchId) {
+      updateUserBatchMutate({ id: editingBatchId, payload })
+    } else {
+      createUserBatchMutate(payload)
+    }
+  }
+
+  const handleEditBatch = async (row: any) => {
+    const targetId = row?.id
+    if (!targetId) return
+    const id = String(targetId)
+    setEditingBatchId(id)
+    setBatchForm(createBatchFormDefaults())
+    setIsCreateBatchOpen(true)
+    setIsBatchDetailLoading(true)
+    try {
+      const detail = await getUserBatchDetail(id)
+      const batchData = detail?.user_batch ?? detail ?? {}
+      const selectedUsers = resolveBatchUserOptions(batchData)
+      setBatchForm({
+        name: batchData?.name ?? '',
+        description: batchData?.description ?? '',
+        selectedUsers,
+      })
+    } catch (error) {
+      enqueueSnackbar('Failed to load batch details', { variant: 'error' })
+      handleCloseCreateBatch()
+    } finally {
+      setIsBatchDetailLoading(false)
+    }
+  }
+
+  const handleViewBatch = (row: any) => {
+    const targetId = row?.id
+    if (!targetId) return
+    navigate(`/notifications/history/${targetId}`)
+  }
+
+  const handleDeleteBatch = (row: any) => {
+    const targetId = row?.id
+    if (!targetId) return
+    setDeleteBatchId(String(targetId))
+    setIsDeleteBatchOpen(true)
+  }
+
+  const handleConfirmDeleteBatch = () => {
+    if (!deleteBatchId) return
+    deleteUserBatchMutate(deleteBatchId)
+  }
+
+  const canCreateNotification =
+    activeTab === 'current' && checkPermissions('Employee', 'create')
+  const canCreateBatch =
+    activeTab === 'history' && checkPermissions('Employee', 'create')
+  const canEditBatchPermission = checkPermissions('Employee', 'edit')
+  const canDeleteBatchPermission = checkPermissions('Employee', 'delete')
+
+  const historyActions = [
+    {
+      icon: <Icons name="eye" />,
+      action: (row: any) => {
+        handleViewBatch(row)
+      },
+      title: 'view',
+      toolTip: 'View Details',
+    },
+    ...(canEditBatchPermission
+      ? [
+          {
+            icon: <Icons name="edit" />,
+            action: (row: any) => {
+              handleEditBatch(row)
+            },
+            title: 'edit',
+            toolTip: 'Edit',
+          },
+        ]
+      : []),
+    ...(canDeleteBatchPermission
+      ? [
+          {
+            icon: <Icons name="delete" />,
+            action: (row: any) => {
+              handleDeleteBatch(row)
+            },
+            title: 'delete',
+            toolTip: 'Delete',
+            variant: 'danger' as const,
+          },
+        ]
+      : []),
+  ]
+
   const handleCreateSubmit = () => {
-    // Collect selected user IDs
     const ids = (createForm.selectedUsers || [])
       .map((u: any) => Number(u?.id))
       .filter((n: number) => !Number.isNaN(n))
 
-    // Basic required field validation
     if (!ids.length) {
       enqueueSnackbar('Please select at least one user', { variant: 'error' })
       return
@@ -381,11 +777,20 @@ export default function Notifications() {
     }
   }
   const basicData = {
-    title: 'Notifications',
+    title: 'Broadcast',
     icon: 'notification',
   }
-  const headerProps = { actionTitle: 'Create Notification' }
+  const headerProps =
+    activeTab === 'current'
+      ? { actionTitle: 'Create Notification' }
+      : { actionTitle: 'Create Batch' }
   const openDrawer = () => setCreateOpen(true)
+  const openBatchDialog = () => {
+    setEditingBatchId(null)
+    setIsBatchDetailLoading(false)
+    setBatchForm(createBatchFormDefaults())
+    setIsCreateBatchOpen(true)
+  }
 
   const handleSort = (orderColumn: any, orderDirection: any) => {
     setPageParams({
@@ -396,65 +801,6 @@ export default function Notifications() {
     })
   }
 
-  // const resolveNotificationId = (row: any) =>
-  //   row?.id ??
-  //   row?.notification_id ??
-  //   row?.notification?.id ??
-  //   row?.notification?.notification_id ??
-  //   row?.uuid ??
-  //   row?.notification_uuid ??
-  //   row?.notification?.uuid ??
-  //   null
-
-  // const handleOpenDeleteUser = (row: any) => {
-  //   const id = resolveNotificationId(row)
-  //   if (!id) {
-  //     if (!row?.id) {
-  //       enqueueSnackbar('Fetching notification details...', {
-  //         variant: 'info',
-  //       })
-  //       if (row?.notification?.id) {
-  //         setDeleteUserId(String(row.notification.id))
-  //         setDeleteUserModal(true)
-  //         return
-  //       }
-  //       if (row?.notification_uuid || row?.uuid) {
-  //         setDeleteUserId(String(row.notification_uuid || row.uuid))
-  //         setDeleteUserModal(true)
-  //         return
-  //       }
-  //       enqueueSnackbar('Unable to determine notification id for deletion', {
-  //         variant: 'error',
-  //       })
-  //       return
-  //     }
-  //     enqueueSnackbar('Unable to determine notification id for deletion', {
-  //       variant: 'error',
-  //     })
-  //     return
-  //   }
-  //   setDeleteUserId(String(id))
-  //   setDeleteUserModal(true)
-  // }
-  // const handleDeleteUser = () => {
-  //   setloader(true)
-  //   deleteAdmin(deleteUserId)
-  //     .then(() => {
-  //       enqueueSnackbar('Notification deleted successfully', {
-  //         variant: 'success',
-  //       })
-  //       setloader(false)
-  //       setDeleteUserModal(false)
-  //       refetch()
-  //     })
-  //     .catch((err) => {
-  //       setloader(false)
-  //       enqueueSnackbar(
-  //         err?.response?.data?.error?.message || err?.response?.data?.message,
-  //         { variant: 'error' }
-  //       )
-  //     })
-  // }
   return (
     <div>
       {DISABLE_NONLOGIN_APIS ? (
@@ -463,20 +809,21 @@ export default function Notifications() {
         </div>
       ) : (
         <>
-          {/* <ListingHeader data={basicData} checkPermission={false} />
-          <div className="px-4 mt-2 flex justify-end">
-            <button
-              className="px-3 py-2 bg-primaryGreen text-white rounded"
-              onClick={() => setCreateOpen(true)}
-            >
-              Create
-            </button>
-          </div> */}
           <ListingHeader
             data={basicData}
-            onActionClick={openDrawer}
-            actionProps={headerProps}
-            checkPermission={checkPermissions('Employee', 'create')}
+            onActionClick={
+              activeTab === 'current'
+                ? canCreateNotification
+                  ? openDrawer
+                  : undefined
+                : openBatchDialog
+            }
+            actionProps={{
+              actionTitle: headerProps.actionTitle,
+            }}
+            checkPermission={
+              activeTab === 'current' ? canCreateNotification : canCreateBatch
+            }
           />
 
           <DialogModal
@@ -556,97 +903,138 @@ export default function Notifications() {
             }
           />
           <div className=" p-4">
-            <SmartTable
-              data={data?.items ?? []}
-              dataRowKey="id"
-              toolbar={true}
-              height={
-                data?.items?.length === 0
-                  ? calcWindowHeight(218)
-                  : calcWindowHeight(150)
-              }
-              // search={true}
-              searchValue={pageParams.search || ''}
-              onSearchChange={(val) => {
-                setPageParams({ ...pageParams, search: val, page: 1 })
-                if (searchDebounce) clearTimeout(searchDebounce)
-                const t = setTimeout(() => refetch(), 300)
-                setSearchDebounce(t)
-              }}
-              onSearch={() => refetch()}
-              isLoading={isFetching}
-              sortType={pageParams.sortType}
-              sortColumn={pageParams.sortColumn}
-              handleColumnSort={handleSort}
-              emptyTitle="No records to display"
-              emptySubTitle={''}
-              columns={columns}
-              pagination={true}
-              paginationProps={{
-                onPagination: onChangePage,
-                total: data?.total ?? 0,
-                currentPage: pageParams?.page ?? 1,
-                rowsPerPage: Number(pageParams?.page_size ?? 10),
-                onRowsPerPage: onChangeRowsPerPage,
-                totalPages: Math.max(
-                  1,
-                  Math.ceil(
-                    (data?.total ?? 0) / Number(pageParams?.page_size ?? 10)
-                  )
-                ),
-                dropOptions: [10, 20, 30, 50, 100],
-              }}
-              // createButton={
-              //   <Button
-              //     className="bg-primaryGreen"
-              //     label="Create Notification"
-              //     icon="plus"
-              //     onClick={openDrawer}
-              //   />
-              // }
-              actionProps={
-                [
-                  // {
-                  //   icon: <Icons name="eye" />,
-                  //   action: (row) => navigate(`/subscriptions/${row?.id}`),
-                  //   title: 'view',
-                  //   toolTip: 'View Details',
-                  // },
-                  // {
-                  //   title: 'Freeze/Unfreeze',
-                  //   action: (row) => {
-                  //     setToggleFreezeRow(row)
-                  //     setToggleFreezeOpen(true)
-                  //   },
-                  //   icon: <Icons name="lock-icon" />,
-                  //   toolTip: 'Toggle Freeze',
-                  // },
-                  // {
-                  //   title: 'Deactivate',
-                  //   action: (rowData) =>
-                  //     handleDeleteModel(
-                  //       rowData?.id,
-                  //       rowData?.email,
-                  //       rowData?.status
-                  //     ),
-                  //   icon: <Icons name="deactivate-icon" />,
-                  //   toolTip: 'Deactivate',
-                  //   hide: (rowData: any) =>
-                  //     String(rowData?.status ?? '').toLowerCase() === 'active'
-                  //       ? false
-                  //       : true,
-                  // },
-                  // {
-                  //   title: 'Delete',
-                  //   action: (rowData) => handleOpenDeleteUser(rowData),
-                  //   icon: <Icons name="delete" />,
-                  //   toolTip: 'Delete',
-                  // },
-                ]
-              }
-              columnToggle
-              externalActions={true}
-            />
+            <div className="mb-4 border-b border-gray-200">
+              <nav className="flex gap-4" aria-label="Broadcast tabs">
+                <button
+                  type="button"
+                  className={`py-2 px-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'history'
+                      ? 'border-primaryBlue text-primaryBlue'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                  onClick={() => {
+                    setActiveTab('history')
+                    navigate('/notifications/history')
+                  }}
+                >
+                  Batch
+                </button>
+                <button
+                  type="button"
+                  className={`py-2 px-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === 'current'
+                      ? 'border-primaryBlue text-primaryBlue'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                  onClick={() => {
+                    setActiveTab('current')
+                    navigate('/notifications')
+                  }}
+                >
+                  Notifications
+                </button>
+              </nav>
+            </div>
+
+            {activeTab === 'current' && (
+              <SmartTable
+                data={data?.items ?? []}
+                dataRowKey="id"
+                toolbar={true}
+                height={
+                  data?.items?.length === 0
+                    ? calcWindowHeight(218)
+                    : calcWindowHeight(150)
+                }
+                // search={true}
+                searchValue={pageParams.search || ''}
+                onSearchChange={(val) => {
+                  setPageParams({ ...pageParams, search: val, page: 1 })
+                  if (searchDebounce) clearTimeout(searchDebounce)
+                  const t = setTimeout(() => refetch(), 300)
+                  setSearchDebounce(t)
+                }}
+                onSearch={() => refetch()}
+                isLoading={isFetching}
+                sortType={pageParams.sortType}
+                sortColumn={pageParams.sortColumn}
+                handleColumnSort={handleSort}
+                emptyTitle="No records to display"
+                emptySubTitle={''}
+                columns={columns}
+                pagination={true}
+                paginationProps={{
+                  onPagination: onChangePage,
+                  total: data?.total ?? 0,
+                  currentPage: pageParams?.page ?? 1,
+                  rowsPerPage: Number(pageParams?.page_size ?? 10),
+                  onRowsPerPage: onChangeRowsPerPage,
+                  totalPages: Math.max(
+                    1,
+                    Math.ceil(
+                      (data?.total ?? 0) / Number(pageParams?.page_size ?? 10)
+                    )
+                  ),
+                  dropOptions: [10, 20, 30, 50, 100],
+                }}
+                actionProps={[]}
+                columnToggle
+                externalActions={true}
+              />
+            )}
+
+            {activeTab === 'history' && (
+              <div className="flex flex-col gap-4">
+                <SmartTable
+                  data={historyTable.items}
+                  dataRowKey="id"
+                  toolbar={true}
+                  height={
+                    historyTable.items.length === 0
+                      ? calcWindowHeight(218)
+                      : calcWindowHeight(150)
+                  }
+                  searchValue={historySearch}
+                  onSearchChange={(val) => {
+                    setHistorySearch(val)
+                    if (historyDebounce) clearTimeout(historyDebounce)
+                    const t = setTimeout(() => {
+                      setHistoryPagination((prev) => ({ ...prev, page: 1 }))
+                    }, 300)
+                    setHistoryDebounce(t)
+                  }}
+                  onSearch={() =>
+                    fetchHistory({
+                      page: 1,
+                      per_page: historyPagination.per_page,
+                      search: historySearch,
+                    })
+                  }
+                  isLoading={historyTable.isLoading}
+                  columns={historyColumns}
+                  pagination={true}
+                  paginationProps={{
+                    onPagination: (page) =>
+                      setHistoryPagination((prev) => ({ ...prev, page })),
+                    total: historyTable.total,
+                    currentPage: historyPagination.page,
+                    rowsPerPage: historyPagination.per_page,
+                    onRowsPerPage: (count: number | string) =>
+                      setHistoryPagination({
+                        page: 1,
+                        per_page: Number(count),
+                      }),
+                    totalPages: Math.max(
+                      1,
+                      Math.ceil(historyTable.total / historyPagination.per_page)
+                    ),
+                    dropOptions: [10, 20, 30, 50, 100],
+                  }}
+                  actionProps={historyActions}
+                  externalActions={true}
+                />
+              </div>
+            )}
           </div>
 
           {/* Create Notification Modal */}
@@ -871,6 +1259,32 @@ export default function Notifications() {
             title={'Are you sure?'}
             subTitle={'Do you really want to unfreeze this subscription?'}
             confirmLabel="Unfreeze"
+            cancelLabel="Cancel"
+          />
+
+          <CreateBatchDialog
+            isOpen={isCreateBatchOpen}
+            loading={editingBatchId ? isBatchUpdating : isBatchCreating}
+            form={batchForm}
+            getUsers={getUserOptions}
+            onClose={handleCloseCreateBatch}
+            onSubmit={handleCreateBatch}
+            onChange={handleBatchFormChange}
+            title={editingBatchId ? 'Update Batch' : 'Create Batch'}
+            actionLabel={editingBatchId ? 'Update' : 'Create'}
+          />
+
+          <ConfirmDeleteModal
+            isOpen={isDeleteBatchOpen}
+            onClose={() => {
+              setIsDeleteBatchOpen(false)
+              setDeleteBatchId(null)
+            }}
+            onConfirm={handleConfirmDeleteBatch}
+            loading={isBatchDeleting}
+            title={'Delete Batch?'}
+            subTitle={'This action will remove the batch for all members.'}
+            confirmLabel="Delete"
             cancelLabel="Cancel"
           />
 

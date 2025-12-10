@@ -158,6 +158,7 @@ const permissions: Permissions = {
       'de-activate',
       'send-invitaion',
       'reset-password',
+      'delete',
     ],
     Assessor: [
       'view',
