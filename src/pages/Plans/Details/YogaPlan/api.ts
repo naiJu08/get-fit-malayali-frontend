@@ -6,6 +6,7 @@ import {
   postData,
   updateData,
   postFormData,
+  deleteWithBody,
 } from '../../../../apis/api.helpers'
 import { QueryParams } from '../../../../common/types'
 import { parseQueryParams } from '../../../../utilities/parsers'
@@ -92,4 +93,13 @@ export const useAddYogaExercise = () => {
       },
     }
   )
+}
+
+export const deleteYogaPlanExercise = (
+  id: string | number,
+  yogaIds: (string | number)[]
+) => {
+  return deleteWithBody(`${apiUrl.YOGA_PLAN}/${id}/remove_yoga`, {
+    yoga_ids: yogaIds,
+  })
 }

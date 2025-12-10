@@ -39,6 +39,9 @@ const Recipe = lazy(() => import('../pages/Recipe'))
 const Meals = lazy(() => import('../pages/Meals'))
 const MealsDetails = lazy(() => import('../pages/Meals/Detail'))
 const Notifications = lazy(() => import('../pages/Notifications'))
+const BatchHistoryDetail = lazy(
+  () => import('../pages/Notifications/HistoryDetail')
+)
 const RecipeDetail = lazy(() => import('../pages/Recipe/Detail'))
 const UserDetails = lazy(() => import('../pages/AdminUser/Details'))
 const WorkoutDetails = lazy(() => import('../pages/Workout/Details'))
@@ -372,6 +375,22 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/notifications"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="NOTIFICATIONS">
+            <Notifications />
+          </UserRoute>
+        }
+        path="/notifications/history"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="NOTIFICATIONS">
+            <BatchHistoryDetail />
+          </UserRoute>
+        }
+        path="/notifications/history/:id"
       />
     </Routes>
   )

@@ -4,6 +4,7 @@ import {
   postData,
   updateFromData,
   deleteData,
+  updateData,
 } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import { QueryParams } from '../../common/types'
@@ -52,6 +53,60 @@ export const useSubscriptions = (input: QueryParams) => {
     enabled: !DISABLE_NONLOGIN_APIS,
   })
 }
+
+export const updateUserBatch = ({
+  id,
+  payload,
+}: {
+  id: string
+  payload: any
+}) => updateData(`${apiUrl.USER_BATCHES}/${id}`, payload)
+
+export const deleteUserBatch = (id: string) =>
+  deleteData(`${apiUrl.USER_BATCHES}/${id}`)
+
+export const useUpdateUserBatch = (onSuccess: (res: any) => void) => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  return useMutation(updateUserBatch, {
+    onSuccess: (res: any) => {
+      enqueueSnackbar('Batch updated successfully', {
+        variant: 'success',
+      })
+      onSuccess(res)
+    },
+    onError: (error: any) => {
+      enqueueSnackbar(
+        getErrorMessage(
+          error?.response?.data?.error || error?.response?.data?.detail
+        ),
+        { variant: 'error' }
+      )
+    },
+  })
+}
+
+export const useDeleteUserBatch = (onSuccess: () => void) => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  return useMutation(deleteUserBatch, {
+    onSuccess: () => {
+      enqueueSnackbar('Batch deleted successfully', {
+        variant: 'success',
+      })
+      onSuccess()
+    },
+    onError: (error: any) => {
+      enqueueSnackbar(
+        getErrorMessage(
+          error?.response?.data?.error || error?.response?.data?.detail
+        ),
+        { variant: 'error' }
+      )
+    },
+  })
+}
+
+export const getUserBatchDetail = (id: string) =>
+  getData(`${apiUrl.USER_BATCHES}/${id}`)
 
 export const getSubscriptionDetails = (id: string) =>
   getData(`${apiUrl.SUBSCRIPTIONS}/${id}`)
@@ -126,6 +181,29 @@ export const useCreateNotification = (onSuccess: (res: any) => void) => {
   return useMutation(createNotification, {
     onSuccess: (res: any) => {
       enqueueSnackbar('Notification created successfully', {
+        variant: 'success',
+      })
+      onSuccess(res)
+    },
+    onError: (error: any) => {
+      enqueueSnackbar(
+        getErrorMessage(
+          error?.response?.data?.error || error?.response?.data?.detail
+        ),
+        { variant: 'error' }
+      )
+    },
+  })
+}
+
+export const createUserBatch = (payload: any) =>
+  postData(apiUrl.USER_BATCHES, payload)
+
+export const useCreateUserBatch = (onSuccess: (res: any) => void) => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  return useMutation(createUserBatch, {
+    onSuccess: (res: any) => {
+      enqueueSnackbar('Batch created successfully', {
         variant: 'success',
       })
       onSuccess(res)

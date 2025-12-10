@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import CustomDrawer from '../../../../components/common/drawer'
 import { useMeditationList } from '../../../Meditation/api'
 import { useAssignMeditations } from './api'
+import { useAuthStore } from '../../../../store/authStore'
 
 type Props = {
   planName?: string
@@ -18,6 +19,8 @@ export default function MeditationPlanIndex({ planName }: Props) {
   const [selectedMeditations, setSelectedMeditations] = useState<any[]>([])
   const [assigning, setAssigning] = useState(false)
   const { mutateAsync: assignMeditationsAsync } = useAssignMeditations()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
 
   useEffect(() => {
     if (!assignOpen) {
@@ -92,14 +95,16 @@ export default function MeditationPlanIndex({ planName }: Props) {
         <div className="text-lg font-semibold">
           {planName || 'Meditation Plan'}
         </div>
-        <div>
-          <button
-            className="px-3 py-1.5 text-sm border rounded btn-primary"
-            onClick={() => setAssignOpen(true)}
-          >
-            Assign
-          </button>
-        </div>
+        {!isNutritionist && (
+          <div>
+            <button
+              className="px-3 py-1.5 text-sm border rounded btn-primary"
+              onClick={() => setAssignOpen(true)}
+            >
+              Assign
+            </button>
+          </div>
+        )}
       </div>
       <AssignedMeditationsSection
         planId={planId}

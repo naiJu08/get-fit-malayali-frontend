@@ -123,10 +123,8 @@ export default function WorkoutMain() {
   useEffect(() => {
     setColumns(
       getColumns({
-        onNameClick: !isNutritionist
-          ? (row: any) => navigate(`/workout/${row?.id}`)
-          : undefined,
-        disableNameLink: isNutritionist,
+        onNameClick: (row: any) => navigate(`/workout/${row?.id}`),
+        disableNameLink: false,
       })
     )
   }, [isNutritionist])

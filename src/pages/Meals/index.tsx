@@ -11,6 +11,7 @@ import { checkPermissions } from '../../layout/store'
 import { useMeals, useDeleteMeal } from './api'
 import { getMealsColumns } from './columns'
 import CreateMeal from './create'
+import { useAuthStore } from '../../store/authStore'
 
 export default function Meals() {
   const [columns, setColumns] = useState<TableColumns[]>([])
@@ -21,6 +22,8 @@ export default function Meals() {
   const navigate = useNavigate()
   const deleteMealMutation = useDeleteMeal()
   const location = useLocation()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
   const { page, per_page, search, ordering } = pageParams
   const searchParams = {
     page,
@@ -125,9 +128,11 @@ export default function Meals() {
     <div>
       <ListingHeader
         data={{ title: 'Meals', icon: 'meal-icon' }}
-        onActionClick={openDrawer}
-        actionProps={headerProps}
-        checkPermission={checkPermissions('Employee', 'create')}
+        onActionClick={isNutritionist ? undefined : openDrawer}
+        actionProps={isNutritionist ? undefined : headerProps}
+        checkPermission={
+          !isNutritionist && checkPermissions('Employee', 'create')
+        }
       />
       <div className="p-4">
         <SmartTable
@@ -148,26 +153,30 @@ export default function Meals() {
           emptyTitle="No records to display"
           columns={columns}
           pagination
-          actionProps={[
-            {
-              icon: <Icons name="eye" />,
-              action: (row: any) => navigate(`/meals/${row?.id}`),
-              title: 'view',
-              toolTip: 'View',
-            },
-            {
-              icon: <Icons name="edit" />,
-              action: (row: any) => openEdit(row),
-              title: 'edit',
-              toolTip: 'Edit',
-            },
-            {
-              icon: <Icons name="delete" />,
-              action: (row: any) => handleDelete(row),
-              title: 'delete',
-              toolTip: 'Delete',
-            },
-          ]}
+          actionProps={
+            isNutritionist
+              ? []
+              : [
+                  {
+                    icon: <Icons name="eye" />,
+                    action: (row: any) => navigate(`/meals/${row?.id}`),
+                    title: 'view',
+                    toolTip: 'View',
+                  },
+                  {
+                    icon: <Icons name="edit" />,
+                    action: (row: any) => openEdit(row),
+                    title: 'edit',
+                    toolTip: 'Edit',
+                  },
+                  {
+                    icon: <Icons name="delete" />,
+                    action: (row: any) => handleDelete(row),
+                    title: 'delete',
+                    toolTip: 'Delete',
+                  },
+                ]
+          }
           paginationProps={{
             onPagination: onChangePage,
             total: data?.meta?.total_count ?? 0,
