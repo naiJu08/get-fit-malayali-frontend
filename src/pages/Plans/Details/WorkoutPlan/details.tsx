@@ -4,7 +4,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 
 import Icons from '../../../../components/common/icons'
 import InfoBox from '../../../../components/app/alertBox/infoBox'
-import { getWorkoutPlanDetails } from './api'
+import { useSnackbarManager } from '../../../../components/common/snackbar'
+import { getWorkoutPlanDetails, deleteWorkoutPlanExercise } from './api'
 import CustomDrawer from '../../../../components/common/drawer'
 // import TabContainer from '../../../../components/common/tab/TabContainer'
 import Tab from '../../../../components/common/tab/Tab'
@@ -64,9 +65,52 @@ function AssignTabContent({
   // selectedWorkouts,
   getEmbedUrl,
 }: any) {
+  const [selectedExerciseIds, setSelectedExerciseIds] = useState<any[]>([])
+  const [removedExerciseIds, setRemovedExerciseIds] = useState<any[]>([])
+  const { enqueueSnackbar } = useSnackbarManager()
+
+  const toggleSelectedExercise = (workoutId: any) => {
+    if (!workoutId) return
+    setSelectedExerciseIds((prev) =>
+      prev.includes(workoutId)
+        ? prev.filter((x) => x !== workoutId)
+        : [...prev, workoutId]
+    )
+  }
+
+  const handleRemoveSelected = async () => {
+    if (!wp?.id || selectedExerciseIds.length === 0) return
+    try {
+      const res: any = await deleteWorkoutPlanExercise(
+        wp.id,
+        selectedExerciseIds
+      )
+      setRemovedExerciseIds((prev) => [...prev, ...selectedExerciseIds])
+      setSelectedExerciseIds([])
+      const msg = res?.message || 'Exercises removed successfully'
+      enqueueSnackbar(msg, { variant: 'success' })
+    } catch (e: any) {
+      console.error(e)
+    }
+  }
+
+  const exercises = Array.isArray(wp?.exercises)
+    ? wp.exercises
+        .slice()
+        .sort(
+          (a: any, b: any) =>
+            (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
+        )
+        .filter(
+          (ex: any) =>
+            !removedExerciseIds.includes(
+              ex?.workout_id || ex?.workout?.id || ex?.id
+            )
+        )
+    : []
+
   return (
     <>
-      {/* Assign Content */}
       {loading && (
         <div className="p-6">
           <InfoBox content="Loading workout plan details..." />
@@ -81,55 +125,69 @@ function AssignTabContent({
         <>
           <div className="flex items-center justify-between mb-3">
             <div className="text-md font-semibold">Exercises</div>
+            {exercises.length > 0 && (
+              <button
+                className="px-3 py-1 text-xs border rounded  btn-primary"
+                disabled={selectedExerciseIds.length === 0}
+                onClick={handleRemoveSelected}
+              >
+                Remove Exercise
+              </button>
+            )}
           </div>
-          {Array.isArray(wp?.exercises) && wp.exercises.length > 0 ? (
+          {exercises.length > 0 ? (
             <div className="grid grid-cols-4 gap-3 place-items-start">
-              {wp.exercises
-                .slice()
-                .sort(
-                  (a: any, b: any) =>
-                    (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
-                )
-                .map((ex: any) => {
-                  const rawUrl =
-                    ex?.video_url ||
-                    ex?.workout_video_url ||
-                    ex?.workout?.video_url ||
-                    ''
-                  const url = String(rawUrl || '')
-                  const embed = getEmbedUrl(url)
-                  return (
-                    <div
-                      key={ex?.id}
-                      className="border rounded bg-white overflow-hidden w-56"
-                    >
-                      {embed ? (
-                        <div className="w-full h-36 bg-black/5">
-                          <iframe
-                            src={embed}
-                            title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                          />
-                        </div>
-                      ) : url ? (
-                        <video
-                          className=" h-36 object-cover"
-                          src={url}
-                          controls
+              {exercises.map((ex: any) => {
+                const rawUrl =
+                  ex?.video_url ||
+                  ex?.workout_video_url ||
+                  ex?.workout?.video_url ||
+                  ''
+                const url = String(rawUrl || '')
+                const embed = getEmbedUrl(url)
+                const workoutIdForEx =
+                  ex?.workout_id || ex?.workout?.id || ex?.id
+                const checked = selectedExerciseIds.includes(workoutIdForEx)
+                return (
+                  <div
+                    key={ex?.id}
+                    className="border rounded bg-white overflow-hidden w-80"
+                  >
+                    {embed ? (
+                      <div className="w-full h-36 bg-black/5">
+                        <iframe
+                          src={embed}
+                          title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
+                          className="w-full h-full"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
                         />
-                      ) : (
-                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                          No video
-                        </div>
-                      )}
-                      <div className="px-2 py-1 text-xs font-medium line-clamp-1">
+                      </div>
+                    ) : url ? (
+                      <video
+                        className=" h-40 w-full object-cover"
+                        src={url}
+                        controls
+                      />
+                    ) : (
+                      <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                        No video
+                      </div>
+                    )}
+                    <div className="px-2 py-1 text-xs flex items-center justify-between gap-2">
+                      <div className="font-medium line-clamp-1">
                         {ex?.workout_name || 'Untitled'}
                       </div>
+                      <input
+                        type="checkbox"
+                        className="shrink-0"
+                        checked={checked}
+                        onChange={() => toggleSelectedExercise(workoutIdForEx)}
+                      />
                     </div>
-                  )
-                })}
+                  </div>
+                )
+              })}
             </div>
           ) : (
             <div className="text-sm text-gray-600">No exercises assigned.</div>
@@ -239,7 +297,16 @@ export default function WorkoutPlanDetails() {
     per_page: wpPerPage,
     search: wpSearch,
   } as any)
-  const workouts = workoutsResp?.workouts ?? []
+  const assignedWorkoutIds = new Set(
+    Array.isArray(wp?.exercises)
+      ? wp.exercises
+          .map((ex: any) => ex?.workout_id || ex?.workout?.id || null)
+          .filter((id: any) => id !== null && id !== undefined)
+      : []
+  )
+  const workouts = (workoutsResp?.workouts ?? []).filter(
+    (w: any) => !assignedWorkoutIds.has(w?.id)
+  )
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
     if (!u) return ''
@@ -301,7 +368,7 @@ export default function WorkoutPlanDetails() {
       )
       await refreshDetails()
       setReviewOpen(false)
-      setSearchParams({})
+      setSearchParams({ tab: 'assign' })
     } finally {
       setAssigning(false)
     }
@@ -351,20 +418,25 @@ export default function WorkoutPlanDetails() {
           >
             <Icons name="left-arrow-icon" />
           </button>
-          <h1 className="text-xl font-semibold">Workout Plan Details</h1>
+          <h1 className="text-xl font-semibold">
+            Workout Plan Details - {wp?.plan_name}
+          </h1>
         </div>
-        <div>
-          <button
-            className="px-3 py-1.5 text-sm border rounded btn-primary"
-            onClick={() => {
-              setAssignOpen(true)
-              setWpPage(1)
-            }}
-          >
-            Assign
-          </button>
-        </div>
+        {currentTab === 'assign' && (
+          <div>
+            <button
+              className="px-3 py-1 text-sm border rounded btn-primary"
+              onClick={() => {
+                setAssignOpen(true)
+                setWpPage(1)
+              }}
+            >
+              Assign
+            </button>
+          </div>
+        )}
       </div>
+
       {(() => {
         const tabs: TabItemProps[] = [
           { id: 'details', label: 'Details' },

@@ -5,6 +5,7 @@ import {
   getData,
   postFormData,
   updateFromData,
+  deleteWithBody,
 } from '../../../../apis/api.helpers'
 import { parseQueryParams } from '../../../../utilities/parsers'
 
@@ -85,4 +86,33 @@ export const useAddExercise = () => {
       },
     }
   )
+}
+
+// Remove exercise from workout plan
+// export const removeExercise = (id: string | number, payload: any) => {
+//   return postFormData(
+//     `${apiUrl.WORKOUT_PLAN}/${id}/remove_exercise`,
+//     payload
+//   )
+// }
+
+// export const useRemoveExercise = () => {
+//   const qc = useQueryClient()
+//   return useMutation(
+//     ({ id, payload }: { id: string | number; payload: any }) =>
+//       removeExercise(id, payload),
+//     {
+//       onSuccess: (_res: any, vars: { id: string | number; payload: any }) => {
+//         qc.invalidateQueries(['workout_plan_detail', String(vars?.id)])
+//       },
+//     }
+//   )
+// }
+export const deleteWorkoutPlanExercise = (
+  id: string | number,
+  workoutIds: (string | number)[]
+) => {
+  return deleteWithBody(`${apiUrl.WORKOUT_PLAN}/${id}/remove_exercise`, {
+    workout_ids: workoutIds,
+  })
 }

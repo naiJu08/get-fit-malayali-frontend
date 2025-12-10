@@ -176,15 +176,13 @@ export default function Plans() {
   useEffect(() => {
     setColumns(
       getColumns({
-        onNameClick: !isNutritionist
-          ? (row: any) => {
-              navigate(`/plans/${row?.id}`)
-            }
-          : undefined,
-        disableNameLink: isNutritionist,
+        onNameClick: (row: any) => {
+          navigate(`/plans/${row?.id}`)
+        },
+        disableNameLink: false,
       })
     )
-  }, [isNutritionist])
+  }, [navigate])
 
   const handleSeach = (key?: string) => {
     setPageParams({
