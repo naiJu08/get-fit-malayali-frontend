@@ -34,6 +34,7 @@ import { getColumns } from './columns'
 import {
   useCreateNotification,
   useCreateUserBatch,
+  useDeleteUserBatch,
   useUpdateUserBatch,
   getUserBatchDetail,
 } from './api'
@@ -231,6 +232,8 @@ export default function Notifications() {
   const [batchForm, setBatchForm] = useState(createBatchFormDefaults)
   const [editingBatchId, setEditingBatchId] = useState<string | null>(null)
   const [isBatchDetailLoading, setIsBatchDetailLoading] = useState(false)
+  const [deleteBatchId, setDeleteBatchId] = useState<string | null>(null)
+  const [isDeleteBatchOpen, setIsDeleteBatchOpen] = useState(false)
 
   const [createForm, setCreateForm] = useState({
     selectedUsers: [] as any[],
@@ -371,6 +374,17 @@ export default function Notifications() {
       })
     })
 
+  const { mutate: deleteUserBatchMutate, isLoading: isBatchDeleting } =
+    useDeleteUserBatch(() => {
+      setIsDeleteBatchOpen(false)
+      setDeleteBatchId(null)
+      fetchHistory({
+        page: historyPagination.page,
+        per_page: historyPagination.per_page,
+        search: historySearch,
+      })
+    })
+
   const handleCreateBatch = () => {
     if (isBatchDetailLoading) {
       return
@@ -431,11 +445,24 @@ export default function Notifications() {
     navigate(`/notifications/history/${targetId}`)
   }
 
+  const handleDeleteBatch = (row: any) => {
+    const targetId = row?.id
+    if (!targetId) return
+    setDeleteBatchId(String(targetId))
+    setIsDeleteBatchOpen(true)
+  }
+
+  const handleConfirmDeleteBatch = () => {
+    if (!deleteBatchId) return
+    deleteUserBatchMutate(deleteBatchId)
+  }
+
   const canCreateNotification =
     activeTab === 'current' && checkPermissions('Employee', 'create')
   const canCreateBatch =
     activeTab === 'history' && checkPermissions('Employee', 'create')
   const canEditBatchPermission = checkPermissions('Employee', 'edit')
+  const canDeleteBatchPermission = checkPermissions('Employee', 'delete')
 
   const historyActions = [
     {
@@ -455,6 +482,19 @@ export default function Notifications() {
             },
             title: 'edit',
             toolTip: 'Edit',
+          },
+        ]
+      : []),
+    ...(canDeleteBatchPermission
+      ? [
+          {
+            icon: <Icons name="delete" />,
+            action: (row: any) => {
+              handleDeleteBatch(row)
+            },
+            title: 'delete',
+            toolTip: 'Delete',
+            variant: 'danger' as const,
           },
         ]
       : []),
@@ -1232,6 +1272,20 @@ export default function Notifications() {
             onChange={handleBatchFormChange}
             title={editingBatchId ? 'Update Batch' : 'Create Batch'}
             actionLabel={editingBatchId ? 'Update' : 'Create'}
+          />
+
+          <ConfirmDeleteModal
+            isOpen={isDeleteBatchOpen}
+            onClose={() => {
+              setIsDeleteBatchOpen(false)
+              setDeleteBatchId(null)
+            }}
+            onConfirm={handleConfirmDeleteBatch}
+            loading={isBatchDeleting}
+            title={'Delete Batch?'}
+            subTitle={'This action will remove the batch for all members.'}
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
           />
 
           <DialogModal

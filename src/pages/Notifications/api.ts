@@ -62,6 +62,9 @@ export const updateUserBatch = ({
   payload: any
 }) => updateData(`${apiUrl.USER_BATCHES}/${id}`, payload)
 
+export const deleteUserBatch = (id: string) =>
+  deleteData(`${apiUrl.USER_BATCHES}/${id}`)
+
 export const useUpdateUserBatch = (onSuccess: (res: any) => void) => {
   const { enqueueSnackbar } = useSnackbarManager()
   return useMutation(updateUserBatch, {
@@ -70,6 +73,26 @@ export const useUpdateUserBatch = (onSuccess: (res: any) => void) => {
         variant: 'success',
       })
       onSuccess(res)
+    },
+    onError: (error: any) => {
+      enqueueSnackbar(
+        getErrorMessage(
+          error?.response?.data?.error || error?.response?.data?.detail
+        ),
+        { variant: 'error' }
+      )
+    },
+  })
+}
+
+export const useDeleteUserBatch = (onSuccess: () => void) => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  return useMutation(deleteUserBatch, {
+    onSuccess: () => {
+      enqueueSnackbar('Batch deleted successfully', {
+        variant: 'success',
+      })
+      onSuccess()
     },
     onError: (error: any) => {
       enqueueSnackbar(
