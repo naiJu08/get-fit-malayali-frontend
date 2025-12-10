@@ -4,6 +4,7 @@ const ADMIN_USER = '/users'
 const NOTIFICATIONS = '/notifications'
 const NOTIFICATION_DETAIL = '/notifications'
 const NOTIFICATIONS_SENT = '/notifications?scope=sent&aggregate=true'
+const USER_BATCHES = '/user_batches'
 const NUTRITIONIST_USER = '/users/my_clients'
 const PLANS = 'plans'
 const RECIPES = 'recipes'
@@ -44,6 +45,7 @@ const apiUrl: { [key: string]: string } = {
   NOTIFICATIONS,
   NOTIFICATION_DETAIL,
   NOTIFICATIONS_SENT,
+  USER_BATCHES,
   PLANS,
   RECIPES,
   MEALS,

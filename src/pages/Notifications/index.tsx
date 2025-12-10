@@ -7,6 +7,7 @@ import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
 import DialogModal from '../../components/common/modal/DialogModal'
+import CreateBatchDialog from './components/CreateBatchDialog'
 import TextField from '../../components/common/inputs/TextField'
 
 import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
@@ -29,7 +30,7 @@ import {
   unfreezeUser,
 } from './api'
 import { getColumns } from './columns'
-import { useCreateNotification } from './api'
+import { useCreateNotification, useCreateUserBatch } from './api'
 import { checkPermissions } from '../../layout/store'
 
 export default function Notifications() {
@@ -66,6 +67,61 @@ export default function Notifications() {
   const [activeTab, setActiveTab] = useState<'current' | 'history'>(() =>
     pathname.includes('/notifications/history') ? 'history' : 'current'
   )
+  const [historyTable, setHistoryTable] = useState({
+    items: [] as any[],
+    total: 0,
+    isLoading: false,
+  })
+  const [historyColumns] = useState<TableColumns[]>([
+    {
+      title: 'Batch Name',
+      field: 'name',
+      renderCell: (row: any) => ({
+        cell: row?.name ?? '-',
+        toolTip: row?.name ?? '',
+      }),
+      customCell: true,
+      sortable: false,
+      resizable: true,
+      isVisible: true,
+    },
+    {
+      title: 'Description',
+      field: 'description',
+      renderCell: (row: any) => ({
+        cell: row?.description ?? '-',
+        toolTip: row?.description ?? '',
+      }),
+      customCell: true,
+      sortable: false,
+      resizable: true,
+      isVisible: true,
+    },
+    {
+      title: 'Users',
+      field: 'user_count',
+      renderCell: (row: any) => ({
+        cell: row?.user_ids?.length ?? 0,
+        toolTip: String(row?.user_ids?.length ?? 0),
+      }),
+      customCell: true,
+      sortable: false,
+      resizable: true,
+      isVisible: true,
+    },
+  ])
+  const [isCreateBatchOpen, setIsCreateBatchOpen] = useState(false)
+  const [historySearch, setHistorySearch] = useState('')
+  const [historyDebounce, setHistoryDebounce] = useState<any>(null)
+  const [historyPagination, setHistoryPagination] = useState({
+    page: 1,
+    per_page: 10,
+  })
+  const [batchForm, setBatchForm] = useState({
+    selectedUsers: [] as any[],
+    name: '',
+    description: '',
+  })
 
   const [createForm, setCreateForm] = useState({
     selectedUsers: [] as any[],
@@ -103,6 +159,140 @@ export default function Notifications() {
       setCreateOpen(false)
       refetch()
     })
+
+  const fetchHistory = async ({
+    page,
+    per_page,
+    search,
+  }: {
+    page: number
+    per_page: number
+    search?: string
+  }) => {
+    try {
+      setHistoryTable((prev) => ({ ...prev, isLoading: true }))
+      const params = new URLSearchParams()
+      params.set('page', String(page))
+      params.set('per_page', String(per_page))
+      if (search) params.set('search', search)
+      const url = `${apiUrl.USER_BATCHES}?${params.toString()}`
+      const response: any = await getData(url)
+      const items =
+        Array.isArray(response?.items) || Array.isArray(response)
+          ? (response?.items ?? response)
+          : (response?.data?.items ?? [])
+      const total =
+        response?.total ??
+        response?.count ??
+        response?.meta?.total_count ??
+        items.length
+      setHistoryTable({
+        items: items ?? [],
+        total: total ?? 0,
+        isLoading: false,
+      })
+    } catch (err) {
+      setHistoryTable((prev) => ({ ...prev, isLoading: false }))
+      enqueueSnackbar('Failed to load batches', { variant: 'error' })
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'history') {
+      fetchHistory({
+        page: historyPagination.page,
+        per_page: historyPagination.per_page,
+        search: historySearch,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    activeTab,
+    historyPagination.page,
+    historyPagination.per_page,
+    historySearch,
+  ])
+
+  const handleOpenCreateBatch = () => setIsCreateBatchOpen(true)
+  const handleCloseCreateBatch = () => {
+    setIsCreateBatchOpen(false)
+    setBatchForm({ selectedUsers: [], name: '', description: '' })
+  }
+
+  const handleBatchFormChange = (
+    field: 'selectedUsers' | 'name' | 'description',
+    value: any
+  ) => {
+    setBatchForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const getUserOptions = async (key?: string, nextBlock?: number) => {
+    const params = new URLSearchParams()
+    if (key) params.set('search', key)
+    params.set('per_page', '10')
+    if (nextBlock) params.set('page', String(nextBlock))
+    const url = `${apiUrl.ADMIN_USER}?${params.toString()}`
+    const res: any = await getData(url)
+    const items: any[] = Array.isArray(res)
+      ? res
+      : res?.items ||
+        res?.users ||
+        res?.results ||
+        res?.data?.items ||
+        res?.data?.users ||
+        []
+    return items.map((u: any) => {
+      const nested = u?.user || {}
+      const fullName =
+        u?.full_name ||
+        [u?.first_name, u?.last_name].filter(Boolean).join(' ') ||
+        nested?.full_name ||
+        [nested?.first_name, nested?.last_name].filter(Boolean).join(' ')
+      const label =
+        u?.name ||
+        fullName ||
+        u?.username ||
+        nested?.username ||
+        u?.email ||
+        nested?.email ||
+        `User ${u?.id ?? ''}`
+      return {
+        id: u?.id ?? nested?.id,
+        value: label,
+      }
+    })
+  }
+
+  const { mutate: createUserBatchMutate, isLoading: isBatchCreating } =
+    useCreateUserBatch(() => {
+      handleCloseCreateBatch()
+      fetchHistory({
+        page: historyPagination.page,
+        per_page: historyPagination.per_page,
+        search: historySearch,
+      })
+    })
+
+  const handleCreateBatch = () => {
+    const ids = (batchForm.selectedUsers || [])
+      .map((u: any) => Number(u?.id))
+      .filter((n: number) => !Number.isNaN(n))
+    if (!batchForm.name.trim()) {
+      enqueueSnackbar('Please enter a batch name', { variant: 'error' })
+      return
+    }
+    if (!ids.length) {
+      enqueueSnackbar('Please select at least one user', { variant: 'error' })
+      return
+    }
+    createUserBatchMutate({
+      user_batch: {
+        name: batchForm.name.trim(),
+        description: batchForm.description.trim(),
+        user_ids: ids,
+      },
+    })
+  }
 
   const handleCreateSubmit = () => {
     const ids = (createForm.selectedUsers || [])
@@ -569,13 +759,63 @@ export default function Notifications() {
             )}
 
             {activeTab === 'history' && (
-              <div className="p-6 bg-white rounded-xl border border-gray-200 text-center text-gray-600">
-                <h2 className="text-lg font-semibold mb-2">
-                  Broadcast History
-                </h2>
-                <p className="text-sm">
-                  History view is under construction. No data is shown here yet.
-                </p>
+              <div className="flex flex-col gap-4">
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateBatch}
+                    className="px-4 py-2 rounded-md bg-primaryBlue text-white text-sm font-medium hover:bg-primaryBlue/90"
+                  >
+                    Create Batch
+                  </button>
+                </div>
+                <SmartTable
+                  data={historyTable.items}
+                  dataRowKey="id"
+                  toolbar={true}
+                  height={
+                    historyTable.items.length === 0
+                      ? calcWindowHeight(218)
+                      : calcWindowHeight(150)
+                  }
+                  searchValue={historySearch}
+                  onSearchChange={(val) => {
+                    setHistorySearch(val)
+                    if (historyDebounce) clearTimeout(historyDebounce)
+                    const t = setTimeout(() => {
+                      setHistoryPagination((prev) => ({ ...prev, page: 1 }))
+                    }, 300)
+                    setHistoryDebounce(t)
+                  }}
+                  onSearch={() =>
+                    fetchHistory({
+                      page: 1,
+                      per_page: historyPagination.per_page,
+                      search: historySearch,
+                    })
+                  }
+                  isLoading={historyTable.isLoading}
+                  columns={historyColumns}
+                  pagination={true}
+                  paginationProps={{
+                    onPagination: (page) =>
+                      setHistoryPagination((prev) => ({ ...prev, page })),
+                    total: historyTable.total,
+                    currentPage: historyPagination.page,
+                    rowsPerPage: historyPagination.per_page,
+                    onRowsPerPage: (count: number | string) =>
+                      setHistoryPagination({
+                        page: 1,
+                        per_page: Number(count),
+                      }),
+                    totalPages: Math.max(
+                      1,
+                      Math.ceil(historyTable.total / historyPagination.per_page)
+                    ),
+                    dropOptions: [10, 20, 30, 50, 100],
+                  }}
+                  actionProps={[]}
+                />
               </div>
             )}
           </div>
@@ -803,6 +1043,16 @@ export default function Notifications() {
             subTitle={'Do you really want to unfreeze this subscription?'}
             confirmLabel="Unfreeze"
             cancelLabel="Cancel"
+          />
+
+          <CreateBatchDialog
+            isOpen={isCreateBatchOpen}
+            loading={isBatchCreating}
+            form={batchForm}
+            getUsers={getUserOptions}
+            onClose={handleCloseCreateBatch}
+            onSubmit={handleCreateBatch}
+            onChange={handleBatchFormChange}
           />
 
           <DialogModal

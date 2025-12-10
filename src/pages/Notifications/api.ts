@@ -141,6 +141,29 @@ export const useCreateNotification = (onSuccess: (res: any) => void) => {
   })
 }
 
+export const createUserBatch = (payload: any) =>
+  postData(apiUrl.USER_BATCHES, payload)
+
+export const useCreateUserBatch = (onSuccess: (res: any) => void) => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  return useMutation(createUserBatch, {
+    onSuccess: (res: any) => {
+      enqueueSnackbar('Batch created successfully', {
+        variant: 'success',
+      })
+      onSuccess(res)
+    },
+    onError: (error: any) => {
+      enqueueSnackbar(
+        getErrorMessage(
+          error?.response?.data?.error || error?.response?.data?.detail
+        ),
+        { variant: 'error' }
+      )
+    },
+  })
+}
+
 export const deleteNotification = async (id?: string) => {
   if (!id) {
     return Promise.reject(new Error('Notification id is required'))
