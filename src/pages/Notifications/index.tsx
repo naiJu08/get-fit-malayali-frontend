@@ -31,7 +31,6 @@ import {
 import { getColumns } from './columns'
 import { useCreateNotification } from './api'
 import { checkPermissions } from '../../layout/store'
-import { useLocation } from 'react-router-dom'
 
 export default function Notifications() {
   const navigate = useNavigate()
