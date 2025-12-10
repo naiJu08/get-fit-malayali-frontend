@@ -244,7 +244,7 @@ export default function DietPlanIndex({
   return (
     <div className="">
       <div className="flex justify-end mb-4">
-        {checkPermissions('Employee', 'create') && (
+        {!isNutritionist && checkPermissions('Employee', 'create') && (
           <Button
             className="bg-primaryGreen"
             label="Create Diet Plan"
@@ -276,17 +276,6 @@ export default function DietPlanIndex({
         sortColumn={pageParams.sortColumn}
         handleColumnSort={handleSort}
         emptyTitle="No records to display"
-        createButton={
-          !isNutritionist &&
-          checkPermissions('Employee', 'create') && (
-            <Button
-              className="bg-primaryGreen"
-              label="Create Diet Plan"
-              icon="plus"
-              onClick={openCreate}
-            />
-          )
-        }
         paginationProps={{
           onPagination: onChangePage,
           total: data?.meta?.total_count ?? 0,
