@@ -201,6 +201,33 @@ export default function Notifications() {
       `User ${resolvedId}`
     return { id: resolvedId, value: label }
   }
+  const resolveBatchUserOptions = (batchData: any) => {
+    if (!batchData) return []
+    const selectedFromUsers = Array.isArray(batchData?.users)
+      ? batchData.users
+          .map((u: any) => buildUserOption(u))
+          .filter(filterNonNull)
+      : []
+    const selectedFromMembers =
+      !selectedFromUsers.length && Array.isArray(batchData?.user_batch_members)
+        ? batchData.user_batch_members
+            .map((member: any) => buildUserOption(member?.user ?? member))
+            .filter(filterNonNull)
+        : []
+    const selectedFromIds =
+      !selectedFromUsers.length &&
+      !selectedFromMembers.length &&
+      Array.isArray(batchData?.user_ids)
+        ? batchData.user_ids
+            .map((uid: any) => buildUserOption(null, uid))
+            .filter(filterNonNull)
+        : []
+    return selectedFromUsers.length
+      ? selectedFromUsers
+      : selectedFromMembers.length
+        ? selectedFromMembers
+        : selectedFromIds
+  }
   const [batchForm, setBatchForm] = useState(createBatchFormDefaults)
   const [editingBatchId, setEditingBatchId] = useState<string | null>(null)
   const [isBatchDetailLoading, setIsBatchDetailLoading] = useState(false)
@@ -384,31 +411,7 @@ export default function Notifications() {
     try {
       const detail = await getUserBatchDetail(id)
       const batchData = detail?.user_batch ?? detail ?? {}
-      const selectedFromUsers = Array.isArray(batchData?.users)
-        ? batchData.users
-            .map((u: any) => buildUserOption(u))
-            .filter(filterNonNull)
-        : []
-      const selectedFromMembers =
-        !selectedFromUsers.length &&
-        Array.isArray(batchData?.user_batch_members)
-          ? batchData.user_batch_members
-              .map((member: any) => buildUserOption(member?.user ?? member))
-              .filter(filterNonNull)
-          : []
-      const selectedFromIds =
-        !selectedFromUsers.length &&
-        !selectedFromMembers.length &&
-        Array.isArray(batchData?.user_ids)
-          ? batchData.user_ids
-              .map((uid: any) => buildUserOption(null, uid))
-              .filter(filterNonNull)
-          : []
-      const selectedUsers = selectedFromUsers.length
-        ? selectedFromUsers
-        : selectedFromMembers.length
-          ? selectedFromMembers
-          : selectedFromIds
+      const selectedUsers = resolveBatchUserOptions(batchData)
       setBatchForm({
         name: batchData?.name ?? '',
         description: batchData?.description ?? '',
@@ -422,24 +425,40 @@ export default function Notifications() {
     }
   }
 
+  const handleViewBatch = (row: any) => {
+    const targetId = row?.id
+    if (!targetId) return
+    navigate(`/notifications/history/${targetId}`)
+  }
+
   const canCreateNotification =
     activeTab === 'current' && checkPermissions('Employee', 'create')
   const canCreateBatch =
     activeTab === 'history' && checkPermissions('Employee', 'create')
   const canEditBatchPermission = checkPermissions('Employee', 'edit')
 
-  const historyActions = canEditBatchPermission
-    ? [
-        {
-          icon: <Icons name="edit" />,
-          action: (row: any) => {
-            handleEditBatch(row)
+  const historyActions = [
+    {
+      icon: <Icons name="eye" />,
+      action: (row: any) => {
+        handleViewBatch(row)
+      },
+      title: 'view',
+      toolTip: 'View Details',
+    },
+    ...(canEditBatchPermission
+      ? [
+          {
+            icon: <Icons name="edit" />,
+            action: (row: any) => {
+              handleEditBatch(row)
+            },
+            title: 'edit',
+            toolTip: 'Edit',
           },
-          title: 'edit',
-          toolTip: 'Edit',
-        },
-      ]
-    : []
+        ]
+      : []),
+  ]
 
   const handleCreateSubmit = () => {
     const ids = (createForm.selectedUsers || [])
