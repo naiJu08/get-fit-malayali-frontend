@@ -7,6 +7,7 @@ import SubscriptionUserSubscriptionsTab from './SubscriptionsTab'
 import SubscriptionBodyMeasurementsTab from './BodyMeasurementsTab'
 // import SubscriptionBodyCompositionTab from './BodyCompositionTab'
 import SubscriptionVitalsTab from './VitalsTab'
+import Icons from '../../../components/common/icons'
 
 export default function SubscriptionDetailsMain() {
   const { id } = useParams()
@@ -177,7 +178,13 @@ export default function SubscriptionDetailsMain() {
       {/* Header Section */}
       <div className="mb-6">
         <div className="flex justify-between items-start">
-          <div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/subscriptions')}
+              aria-label="Back"
+            >
+              <Icons name="left-arrow-icon" />
+            </button>
             <h1 className="text-xl font-semibold">Subscription Details</h1>
           </div>
         </div>
