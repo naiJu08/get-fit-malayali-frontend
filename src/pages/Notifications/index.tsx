@@ -2,6 +2,7 @@ import SmartTable from '../../components/common/table/SmartTable'
 import { AutoComplete } from 'qbs-core'
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import Icons from '../../components/common/icons'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -30,7 +31,12 @@ import {
   unfreezeUser,
 } from './api'
 import { getColumns } from './columns'
-import { useCreateNotification, useCreateUserBatch } from './api'
+import {
+  useCreateNotification,
+  useCreateUserBatch,
+  useUpdateUserBatch,
+  getUserBatchDetail,
+} from './api'
 import { checkPermissions } from '../../layout/store'
 
 export default function Notifications() {
@@ -156,11 +162,48 @@ export default function Notifications() {
     page: 1,
     per_page: 10,
   })
-  const [batchForm, setBatchForm] = useState({
+  const createBatchFormDefaults = () => ({
     selectedUsers: [] as any[],
     name: '',
     description: '',
   })
+  const filterNonNull = <T,>(item: T | null | undefined): item is T =>
+    item !== null && item !== undefined
+  const buildUserOption = (user: any, fallbackId?: any) => {
+    if (!user && fallbackId === undefined) return null
+    const base = user || {}
+    const nested = base?.user || {}
+    const resolvedId =
+      base?.id ??
+      base?.user_id ??
+      base?.userId ??
+      base?.uuid ??
+      base?.user_uuid ??
+      nested?.id ??
+      nested?.user_id ??
+      fallbackId
+    if (resolvedId === undefined || resolvedId === null) {
+      return null
+    }
+    const firstName = base?.first_name ?? nested?.first_name ?? ''
+    const lastName = base?.last_name ?? nested?.last_name ?? ''
+    const fullName =
+      base?.full_name ??
+      nested?.full_name ??
+      [firstName, lastName].filter(Boolean).join(' ')
+    const label =
+      base?.name ??
+      fullName ??
+      base?.username ??
+      nested?.username ??
+      base?.email ??
+      nested?.email ??
+      `User ${resolvedId}`
+    return { id: resolvedId, value: label }
+  }
+  const [batchForm, setBatchForm] = useState(createBatchFormDefaults)
+  const [editingBatchId, setEditingBatchId] = useState<string | null>(null)
+  const [isBatchDetailLoading, setIsBatchDetailLoading] = useState(false)
 
   const [createForm, setCreateForm] = useState({
     selectedUsers: [] as any[],
@@ -251,7 +294,9 @@ export default function Notifications() {
 
   const handleCloseCreateBatch = () => {
     setIsCreateBatchOpen(false)
-    setBatchForm({ selectedUsers: [], name: '', description: '' })
+    setEditingBatchId(null)
+    setIsBatchDetailLoading(false)
+    setBatchForm(createBatchFormDefaults())
   }
 
   const handleBatchFormChange = (
@@ -276,26 +321,7 @@ export default function Notifications() {
         res?.data?.items ||
         res?.data?.users ||
         []
-    return items.map((u: any) => {
-      const nested = u?.user || {}
-      const fullName =
-        u?.full_name ||
-        [u?.first_name, u?.last_name].filter(Boolean).join(' ') ||
-        nested?.full_name ||
-        [nested?.first_name, nested?.last_name].filter(Boolean).join(' ')
-      const label =
-        u?.name ||
-        fullName ||
-        u?.username ||
-        nested?.username ||
-        u?.email ||
-        nested?.email ||
-        `User ${u?.id ?? ''}`
-      return {
-        id: u?.id ?? nested?.id,
-        value: label,
-      }
-    })
+    return items.map((u: any) => buildUserOption(u)).filter(filterNonNull)
   }
 
   const { mutate: createUserBatchMutate, isLoading: isBatchCreating } =
@@ -308,7 +334,20 @@ export default function Notifications() {
       })
     })
 
+  const { mutate: updateUserBatchMutate, isLoading: isBatchUpdating } =
+    useUpdateUserBatch(() => {
+      handleCloseCreateBatch()
+      fetchHistory({
+        page: historyPagination.page,
+        per_page: historyPagination.per_page,
+        search: historySearch,
+      })
+    })
+
   const handleCreateBatch = () => {
+    if (isBatchDetailLoading) {
+      return
+    }
     const ids = (batchForm.selectedUsers || [])
       .map((u: any) => Number(u?.id))
       .filter((n: number) => !Number.isNaN(n))
@@ -320,14 +359,87 @@ export default function Notifications() {
       enqueueSnackbar('Please select at least one user', { variant: 'error' })
       return
     }
-    createUserBatchMutate({
+    const payload = {
       user_batch: {
         name: batchForm.name.trim(),
         description: batchForm.description.trim(),
         user_ids: ids,
       },
-    })
+    }
+    if (editingBatchId) {
+      updateUserBatchMutate({ id: editingBatchId, payload })
+    } else {
+      createUserBatchMutate(payload)
+    }
   }
+
+  const handleEditBatch = async (row: any) => {
+    const targetId = row?.id
+    if (!targetId) return
+    const id = String(targetId)
+    setEditingBatchId(id)
+    setBatchForm(createBatchFormDefaults())
+    setIsCreateBatchOpen(true)
+    setIsBatchDetailLoading(true)
+    try {
+      const detail = await getUserBatchDetail(id)
+      const batchData = detail?.user_batch ?? detail ?? {}
+      const selectedFromUsers = Array.isArray(batchData?.users)
+        ? batchData.users
+            .map((u: any) => buildUserOption(u))
+            .filter(filterNonNull)
+        : []
+      const selectedFromMembers =
+        !selectedFromUsers.length &&
+        Array.isArray(batchData?.user_batch_members)
+          ? batchData.user_batch_members
+              .map((member: any) => buildUserOption(member?.user ?? member))
+              .filter(filterNonNull)
+          : []
+      const selectedFromIds =
+        !selectedFromUsers.length &&
+        !selectedFromMembers.length &&
+        Array.isArray(batchData?.user_ids)
+          ? batchData.user_ids
+              .map((uid: any) => buildUserOption(null, uid))
+              .filter(filterNonNull)
+          : []
+      const selectedUsers = selectedFromUsers.length
+        ? selectedFromUsers
+        : selectedFromMembers.length
+          ? selectedFromMembers
+          : selectedFromIds
+      setBatchForm({
+        name: batchData?.name ?? '',
+        description: batchData?.description ?? '',
+        selectedUsers,
+      })
+    } catch (error) {
+      enqueueSnackbar('Failed to load batch details', { variant: 'error' })
+      handleCloseCreateBatch()
+    } finally {
+      setIsBatchDetailLoading(false)
+    }
+  }
+
+  const canCreateNotification =
+    activeTab === 'current' && checkPermissions('Employee', 'create')
+  const canCreateBatch =
+    activeTab === 'history' && checkPermissions('Employee', 'create')
+  const canEditBatchPermission = checkPermissions('Employee', 'edit')
+
+  const historyActions = canEditBatchPermission
+    ? [
+        {
+          icon: <Icons name="edit" />,
+          action: (row: any) => {
+            handleEditBatch(row)
+          },
+          title: 'edit',
+          toolTip: 'Edit',
+        },
+      ]
+    : []
 
   const handleCreateSubmit = () => {
     const ids = (createForm.selectedUsers || [])
@@ -614,10 +726,12 @@ export default function Notifications() {
       ? { actionTitle: 'Create Notification' }
       : { actionTitle: 'Create Batch' }
   const openDrawer = () => setCreateOpen(true)
-  const openBatchDialog = () => setIsCreateBatchOpen(true)
-  const canCreateNotification =
-    activeTab === 'current' && checkPermissions('Employee', 'create')
-  const canCreateBatch = activeTab === 'history'
+  const openBatchDialog = () => {
+    setEditingBatchId(null)
+    setIsBatchDetailLoading(false)
+    setBatchForm(createBatchFormDefaults())
+    setIsCreateBatchOpen(true)
+  }
 
   const handleSort = (orderColumn: any, orderDirection: any) => {
     setPageParams({
@@ -857,7 +971,8 @@ export default function Notifications() {
                     ),
                     dropOptions: [10, 20, 30, 50, 100],
                   }}
-                  actionProps={[]}
+                  actionProps={historyActions}
+                  externalActions={true}
                 />
               </div>
             )}
@@ -1090,12 +1205,14 @@ export default function Notifications() {
 
           <CreateBatchDialog
             isOpen={isCreateBatchOpen}
-            loading={isBatchCreating}
+            loading={editingBatchId ? isBatchUpdating : isBatchCreating}
             form={batchForm}
             getUsers={getUserOptions}
             onClose={handleCloseCreateBatch}
             onSubmit={handleCreateBatch}
             onChange={handleBatchFormChange}
+            title={editingBatchId ? 'Update Batch' : 'Create Batch'}
+            actionLabel={editingBatchId ? 'Update' : 'Create'}
           />
 
           <DialogModal

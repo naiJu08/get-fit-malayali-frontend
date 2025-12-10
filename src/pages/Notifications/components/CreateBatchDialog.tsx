@@ -16,6 +16,8 @@ type CreateBatchDialogProps = {
   onClose: () => void
   onSubmit: () => void
   onChange: (field: keyof CreateBatchForm, value: any) => void
+  title?: string
+  actionLabel?: string
 }
 
 const CreateBatchDialog = ({
@@ -26,13 +28,15 @@ const CreateBatchDialog = ({
   onClose,
   onSubmit,
   onChange,
+  title = 'Create Batch',
+  actionLabel = 'Create',
 }: CreateBatchDialogProps) => {
   return (
     <DialogModal
       isOpen={isOpen}
       onClose={onClose}
-      title={'Create Batch'}
-      actionLabel={'Create'}
+      title={title}
+      actionLabel={actionLabel}
       actionLoader={loading}
       onSubmit={onSubmit}
       secondaryAction={onClose}

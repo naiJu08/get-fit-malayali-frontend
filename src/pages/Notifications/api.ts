@@ -4,6 +4,7 @@ import {
   postData,
   updateFromData,
   deleteData,
+  updateData,
 } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import { QueryParams } from '../../common/types'
@@ -52,6 +53,37 @@ export const useSubscriptions = (input: QueryParams) => {
     enabled: !DISABLE_NONLOGIN_APIS,
   })
 }
+
+export const updateUserBatch = ({
+  id,
+  payload,
+}: {
+  id: string
+  payload: any
+}) => updateData(`${apiUrl.USER_BATCHES}/${id}`, payload)
+
+export const useUpdateUserBatch = (onSuccess: (res: any) => void) => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  return useMutation(updateUserBatch, {
+    onSuccess: (res: any) => {
+      enqueueSnackbar('Batch updated successfully', {
+        variant: 'success',
+      })
+      onSuccess(res)
+    },
+    onError: (error: any) => {
+      enqueueSnackbar(
+        getErrorMessage(
+          error?.response?.data?.error || error?.response?.data?.detail
+        ),
+        { variant: 'error' }
+      )
+    },
+  })
+}
+
+export const getUserBatchDetail = (id: string) =>
+  getData(`${apiUrl.USER_BATCHES}/${id}`)
 
 export const getSubscriptionDetails = (id: string) =>
   getData(`${apiUrl.SUBSCRIPTIONS}/${id}`)
