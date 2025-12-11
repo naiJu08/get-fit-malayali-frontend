@@ -147,13 +147,29 @@ export const getColumns = ({
           : undefined,
       ...defaultColumnProps,
     },
-    {
-      title: 'Description',
-      field: 'description',
-      renderCell: createRenderCell('description'),
-      customCell: true,
-      ...defaultColumnProps,
-    },
+    // {
+    //   title: 'Description',
+    //   field: 'description',
+    //   renderCell: (row: any) => {
+    //     const raw = getNestedProperty(row, 'description')
+    //     const html = typeof raw === 'string' ? raw : ''
+    //     return {
+    //       cell: (
+    //         <div
+    //           className="truncate max-w-xs"
+    //           dangerouslySetInnerHTML={{ __html: html }}
+    //         />
+    //       ),
+    //       toolTip: html
+    //         .replace(/<[^>]*>/g, ' ')
+    //         .replace(/&nbsp;/gi, ' ')
+    //         .replace(/\s+/g, ' ')
+    //         .trim(),
+    //     }
+    //   },
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
     {
       title: 'Intensity Level',
       renderCell: createRenderCell('intensity_level'),
@@ -167,6 +183,8 @@ export const getColumns = ({
       renderCell: createRenderCell('duration_minutes'),
       customCell: true,
       ...defaultColumnProps,
+      sortable: true,
+      sortKey: 'duration_minutes',
     },
     // {
     //   title: 'Video URL',

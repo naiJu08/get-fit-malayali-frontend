@@ -20,11 +20,10 @@ export const formSchema = z.object({
   //   .string({ invalid_type_error: 'Required.' })
   //   .min(1, { message: 'Required.' })
   //   .url({ message: 'Enter a valid URL' }),
-  video_file: z
-    .any({ required_error: 'Required.' })
-    .refine((val) => val !== undefined && val !== null && val !== '', {
-      message: 'Required.',
-    }),
+  // video_file is validated conditionally in the component:
+  // - Required on create (no existing video_url)
+  // - Optional on edit when an existing video_url is present
+  video_file: z.any().optional(),
 })
 
 export const changePasswordSchema = z.object({
