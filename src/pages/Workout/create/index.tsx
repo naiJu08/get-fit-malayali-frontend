@@ -8,6 +8,7 @@ import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
+// import FileUpload from '../../../components/common/fileUpload'
 import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
 // import FormFieldView from '../../../components/common/inputs/FormFieldView'
@@ -101,17 +102,19 @@ export default function CreateAdmin({
       }
     : undefined
 
+  // Used to show existing thumbnail image in edit mode (based on thumbnail_url from API)
+  const existingThumbnailFile = rowData?.thumbnail_url
+    ? {
+        name:
+          String(rowData.thumbnail_url).split('/').pop() ||
+          String(rowData.thumbnail_url),
+        link: rowData.thumbnail_url,
+      }
+    : undefined
+
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter workout name', true) },
-    { ...textField('description', 'Description', 'Enter description', true) },
-    // {
-    //   ...textField(
-    //     'intensity_level',
-    //     'Intensity Level',
-    //     'e.g., Moderate',
-    //     true
-    //   ),
-    // },
+
     {
       name: 'intensity_level',
       label: 'Intensity Level',
@@ -128,7 +131,34 @@ export default function CreateAdmin({
       ],
     },
 
-    // { ...textField('video_url', 'Video URL', 'https://...', true) },
+    // second row: Description (left), Video File (right)
+    {
+      name: 'description',
+      label: 'Description',
+      id: 'description',
+      type: 'textarea',
+      placeholder: 'Enter description',
+      required: true,
+    },
+    {
+      name: 'thumbnail',
+      label: 'Thumbnail',
+      id: 'thumbnail',
+      type: 'file_upload',
+      placeholder: 'Upload thumbnail image',
+      accept: 'image/*',
+      supportedExtensions: [
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'image/webp',
+      ],
+      acceptedFiles: 'PNG, JPG, JPEG, WEBP (Max 5 MB)',
+      fileSize: 5,
+      selectedFiles: existingThumbnailFile,
+      subName: 'thumbnail',
+    },
+
     {
       name: 'video_file',
       label: 'Video File',
@@ -158,6 +188,7 @@ export default function CreateAdmin({
       intensity_level: '',
       video_url: '',
       video_file: '',
+      thumbnail: '',
     } as any)
     setVideoDurationMs(null)
     handleClose()
@@ -170,6 +201,7 @@ export default function CreateAdmin({
       intensity_level: '',
       video_url: '',
       video_file: '',
+      thumbnail: '',
     } as any)
     setVideoDurationMs(null)
 
@@ -182,9 +214,11 @@ export default function CreateAdmin({
         name: rowData?.name ?? '',
         description: rowData?.description ?? '',
         intensity_level: rowData?.intensity_level ?? '',
+        // video_url: rowData?.video_url ?? '',
+        // // seed video_file with existing URL so validation passes when no new file is chosen
+        // video_file: rowData?.video_url ?? '',
+        video_file: '',
         video_url: rowData?.video_url ?? '',
-        // seed video_file with existing URL so validation passes when no new file is chosen
-        video_file: rowData?.video_url ?? '',
       } as any)
     }
   }, [isDrawerOpen, edit, viewMode, rowData])
@@ -235,10 +269,53 @@ export default function CreateAdmin({
       setVideoDurationMs(null)
     }
   }, [watchedVideoFile])
+  // const onSubmit = (details: any) => {
+  //   // Ensure a video file is always present (for both create and edit)
+  //   if (!details?.video_file && !rowData?.video_url) {
+  //     setError('video_file', { type: 'manual', message: 'Required.' })
+  //     return
+  //   }
+  //   clearErrors('video_file')
+
+  //   const fd = new FormData()
+  //   fd.append('workout[name]', details?.name ?? '')
+  //   fd.append('workout[description]', details?.description ?? '')
+  //   fd.append('workout[intensity_level]', details?.intensity_level ?? '')
+  //   // fd.append('workout[video_url]', details?.video_url ?? '')
+  //   // if (details?.video_file) {
+  //   //   fd.append('video', details.video_file as any)
+  //   // }
+  //   if (!details?.video_file) {
+  //     fd.append('workout[video_url]', rowData?.video_url ?? '')
+  //   }
+
+  //   // Only send binary if user uploaded a new file
+  //   if (details?.video_file instanceof File) {
+  //     fd.append('video', details.video_file)
+  //   }
+  //   const thumbVal: any = details?.thumbnail
+  //   // Only append if a new File is provided (not just an existing URL/string)
+  //   if (thumbVal && typeof thumbVal !== 'string') {
+  //     fd.append('workout[thumbnail]', thumbVal as any)
+  //   }
+
+  //   if (videoDurationMs !== null) {
+  //     const durationMinutes = videoDurationMs / 60000
+  //     fd.append('workout[duration_minutes]', durationMinutes.toFixed(2))
+  //   }
+
+  //   if (rowData?.id) {
+  //     updateMutation({ id: rowData?.id, data: fd })
+  //   } else {
+  //     mutate(fd)
+  //   }
+  // }
   const onSubmit = (details: any) => {
-    // Ensure a video file is always present (for both create and edit)
-    if (!details?.video_file && !rowData?.video_url) {
-      setError('video_file', { type: 'manual', message: 'Required.' })
+    const hasNewVideoFile = details?.video_file instanceof File
+    const hasExistingVideoUrl = !!(details?.video_url || rowData?.video_url)
+
+    if (!hasNewVideoFile && !hasExistingVideoUrl) {
+      setError('video_file', { type: 'manual', message: 'Video is required.' })
       return
     }
     clearErrors('video_file')
@@ -247,18 +324,33 @@ export default function CreateAdmin({
     fd.append('workout[name]', details?.name ?? '')
     fd.append('workout[description]', details?.description ?? '')
     fd.append('workout[intensity_level]', details?.intensity_level ?? '')
-    fd.append('workout[video_url]', details?.video_url ?? '')
-    if (details?.video_file) {
-      fd.append('video', details.video_file as any)
+
+    // Send video_url only if no new file is provided
+    if (!details?.video_file) {
+      fd.append('workout[video_url]', rowData?.video_url ?? '')
     }
 
+    // Only send binary if user uploaded a new file
+    if (details?.video_file instanceof File) {
+      fd.append('video', details.video_file)
+    }
+
+    // Thumbnail logic (same as before)
+    const thumbVal = details?.thumbnail
+    if (thumbVal && typeof thumbVal !== 'string') {
+      fd.append('workout[thumbnail]', thumbVal)
+    }
+
+    // Duration
     if (videoDurationMs !== null) {
-      const durationMinutes = videoDurationMs / 60000
-      fd.append('workout[duration_minutes]', durationMinutes.toFixed(2))
+      fd.append(
+        'workout[duration_minutes]',
+        (videoDurationMs / 60000).toFixed(2)
+      )
     }
 
     if (rowData?.id) {
-      updateMutation({ id: rowData?.id, data: fd })
+      updateMutation({ id: rowData.id, data: fd })
     } else {
       mutate(fd)
     }

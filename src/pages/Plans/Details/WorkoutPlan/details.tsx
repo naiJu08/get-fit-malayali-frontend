@@ -15,6 +15,11 @@ import { useAuthStore } from '../../../../store/authStore'
 import { useAddExercise } from './api'
 import { TabContainer } from '../../../../components/common'
 
+// function stripHtml(value: any) {
+//   if (!value) return ''
+//   return String(value).replace(/<[^>]+>/g, '')
+// }
+
 function DetailsTabContent({
   wp,
   loading,
@@ -534,16 +539,19 @@ export default function WorkoutPlanDetails() {
                   </div>
                 )}
                 {workouts.map((w: any) => (
-                  <label
+                  <div
                     key={w?.id}
-                    className={`w-full flex items-start gap-2 p-2 hover:bg-gray-50 cursor-pointer ${isSelected(w?.id) ? 'bg-primary/10' : ''}`}
+                    className={`w-full flex items-start gap-2 p-2 hover:bg-gray-50 cursor-pointer ${
+                      isSelected(w?.id) ? 'bg-primary/10' : ''
+                    }`}
                     onClick={(e) => {
-                      // avoid double toggle when clicking input
+                      // avoid double toggle when clicking the checkbox itself
                       if (
                         (e.target as HTMLElement).tagName.toLowerCase() !==
                         'input'
-                      )
+                      ) {
                         toggleSelected(w)
+                      }
                     }}
                   >
                     <input
@@ -556,11 +564,14 @@ export default function WorkoutPlanDetails() {
                       <div className="font-medium text-sm">
                         {w?.name || 'Untitled'}
                       </div>
-                      <div className="text-xs text-gray-500 line-clamp-1">
-                        {w?.description || ''}
-                      </div>
+                      <div
+                        className="text-xs text-gray-500 line-clamp-1"
+                        dangerouslySetInnerHTML={{
+                          __html: w?.description || '',
+                        }}
+                      />
                     </div>
-                  </label>
+                  </div>
                 ))}
               </div>
               <div className="flex items-center justify-between pt-2 text-xs text-gray-600">
@@ -640,80 +651,75 @@ export default function WorkoutPlanDetails() {
       {/* Review Drawer */}
       <CustomDrawer
         open={reviewOpen}
-        handleClose={() => setReviewOpen(false)}
-        title={'Review & Order'}
+        handleClose={() => {
+          setReviewOpen(false)
+          setSelectedWorkouts([])
+          setDragIndex(null)
+        }}
+        title={'Review & Order Exercises'}
         handleSubmit={handleBulkAssign}
         disableSubmit={assigning || selectedWorkouts.length === 0}
         actionLoader={assigning}
         actionLabel={'Assign'}
       >
-        <div className="w-[900px] max-w-[95vw]">
-          <div className="border rounded p-3">
-            <div className="text-sm font-medium mb-2">
-              Selected Videos (Drag to Reorder)
-              <p className="mt-2">
-                Drag and drop videos to arrange the sequence
-              </p>
-            </div>
-            {selectedWorkouts.length === 0 && (
-              <div className="text-xs text-gray-500">No workouts selected.</div>
-            )}
-            {selectedWorkouts.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {selectedWorkouts.map((w, i) => {
-                  const url = w?.video_url || ''
-                  const embed = getEmbedUrl(url)
-                  return (
-                    <div
-                      key={w?.id}
-                      className="border rounded p-2 cursor-move"
-                      draggable
-                      onDragStart={() => onDragStart(i)}
-                      onDragOver={onDragOver}
-                      onDrop={() => onDrop(i)}
-                    >
-                      {/* <div className="px-1 pt-1 text-xs font-medium line-clamp-1 flex items-center justify-between gap-2">
-                        <span>
-                          {i + 1}. {w?.name || 'Untitled'}
-                        </span>
-                        <button
-                          className="text-[10px] px-2 py-1 border rounded disabled:opacity-50"
-                          disabled={assigning}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleAssignOne(w, i)
-                          }}
-                        >
-                          Assign
-                        </button>
-                      </div> */}
-                      {embed ? (
-                        <div className="w-full h-24 rounded overflow-hidden bg-black/5">
-                          <iframe
-                            src={embed}
-                            title={`Workout Video ${w?.id}`}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                          />
-                        </div>
-                      ) : url ? (
-                        <video
-                          className="w-full h-24 object-cover rounded"
-                          src={String(url)}
-                          controls
-                        />
-                      ) : (
-                        <div className="text-xs text-gray-600 px-1 pb-1">
-                          No video URL available.
-                        </div>
-                      )}
+        <div className="mt-4">
+          <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
+            <span className="text-blue-600 text-xl">🎬</span>
+            <span className="text-gray-600  bg-clip-text ">
+              Drag and drop the videos below into the order you want them to
+              appear in the workoutplan, then click{' '}
+              <span className="font-semibold">Assign</span> to save this
+              sequence.
+            </span>
+          </h2>
+          {selectedWorkouts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {selectedWorkouts.map((w, i) => {
+                const embed = getEmbedUrl(w?.video_url)
+                const url = w?.video_url || ''
+                return (
+                  <div
+                    key={w?.id}
+                    draggable
+                    onDragStart={() => onDragStart(i)}
+                    onDragOver={(e) => onDragOver(e)}
+                    onDrop={() => onDrop(i)}
+                    className="rounded-xl shadow-lg bg-white border hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing overflow-hidden"
+                  >
+                    <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
+                      <span className="line-clamp-1">
+                        {i + 1}. {w?.name}
+                      </span>
                     </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
+
+                    {/* Video preview */}
+                    {embed ? (
+                      <iframe
+                        className="w-full h-48"
+                        src={embed}
+                        allowFullScreen
+                      ></iframe>
+                    ) : (
+                      <video
+                        src={url}
+                        controls
+                        className="w-full h-48 object-cover"
+                      />
+                    )}
+
+                    {/* Footer */}
+                    <div className="px-4 py-2 text-xs text-gray-600">
+                      Hold and drag to rearrange
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500 italic">
+              No videos selected yet.
+            </div>
+          )}
         </div>
       </CustomDrawer>
     </div>

@@ -146,12 +146,12 @@ const SmartTable: React.FC<SmartTableProps> = ({
   }
 
   const header = (
-    <thead className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
+    <thead className="bg-white border-b border-gray-200 shadow-sm">
       <tr>
         {renderedColumns.map((col) => (
           <th
             key={col.field}
-            className={`px-6 py-3 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wide ${
+            className={`px-6 py-3 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wide min-w-[140px] ${
               col.align === 'right'
                 ? 'text-right'
                 : col.align === 'center'
@@ -160,7 +160,9 @@ const SmartTable: React.FC<SmartTableProps> = ({
             }`}
           >
             <div className="flex items-center gap-2 select-none">
-              <span className="text-gray-700">{col.title}</span>
+              <span className="text-gray-700 whitespace-nowrap">
+                {col.title}
+              </span>
               {handleColumnSort && col.sortable && (
                 <button
                   className="text-gray-400 hover:text-blue-500 transition-colors duration-200 p-1 rounded hover:bg-blue-50"
@@ -620,10 +622,10 @@ const SmartTable: React.FC<SmartTableProps> = ({
         <div className="border-t bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 animate-slideUp">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-medium text-gray-700 mr-2">
-              Actions for:{' '}
-              <strong className="text-blue-600">
+              Actions for Selected Row
+              {/* <strong className="text-blue-600">
                 {title ?? selectedRowKey}
-              </strong>
+              </strong> */}
             </span>
             <div className="flex flex-wrap gap-2">
               {actionProps.map((a, i) => {

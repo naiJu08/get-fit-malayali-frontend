@@ -1,3 +1,4 @@
+import React from 'react'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 
 function safeStr(v: any) {
@@ -14,8 +15,22 @@ function DetailItem({ label, value }: { label: string; value: any }) {
   return (
     <div className="border rounded-lg p-3 bg-white">
       <div className="text-xs text-gray-500 mb-1">{label}</div>
-      <div className="text-sm">{safeStr(value)}</div>
+      <div className="text-sm">
+        {React.isValidElement(value) ? value : safeStr(value)}
+      </div>
     </div>
+  )
+}
+
+function renderFees(v: any) {
+  const num = typeof v === 'number' ? v : Number(v ?? 0)
+  if (Number.isNaN(num)) return '--'
+  const formatted = num.toLocaleString('en-IN', { maximumFractionDigits: 2 })
+  const label = `₹ ${formatted}`
+  return (
+    <span style={{ fontFamily: '"Roboto Condensed", sans-serif' }}>
+      {label}
+    </span>
   )
 }
 
@@ -50,7 +65,7 @@ export default function DetailsInfo({
             value={safeStr(plan?.duration_days)}
           />
           <DetailItem label="Active" value={mapActive(plan?.active)} />
-          <DetailItem label="Fees" value={plan?.fees} />
+          <DetailItem label="Fees" value={renderFees(plan?.fees)} />
           <DetailItem
             label="Workout Plans"
             value={safeStr(plan?.workout_plans_count)}

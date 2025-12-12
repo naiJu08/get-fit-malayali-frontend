@@ -74,11 +74,6 @@ export default function WorkoutMain() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.meta?.total_pages])
-  // Refetch when filters/pagination/sort/search change (align with Notifications)
-  useEffect(() => {
-    refetch()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, per_page, search, ordering, JSON.stringify(filters)])
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,
@@ -287,13 +282,13 @@ export default function WorkoutMain() {
                       {
                         icon: <Icons name="eye" />,
                         action: (row) => navigate(`/workout/${row?.id}`),
-                        title: 'view',
+                        title: 'View',
                         toolTip: 'View Details',
                       },
                       {
                         icon: <Icons name="edit" />,
                         action: (row) => handleEdit(row),
-                        title: 'edit',
+                        title: 'Edit',
                         toolTip: 'Edit',
                       },
                       {
@@ -302,7 +297,7 @@ export default function WorkoutMain() {
                           setWorkoutToDelete(row)
                           setDeleteWorkoutModal(true)
                         },
-                        title: 'delete',
+                        title: 'Delete',
                         toolTip: 'Delete',
                       },
                     ]
