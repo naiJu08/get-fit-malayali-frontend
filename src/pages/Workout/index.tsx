@@ -74,11 +74,6 @@ export default function WorkoutMain() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.meta?.total_pages])
-  // Refetch when filters/pagination/sort/search change (align with Notifications)
-  useEffect(() => {
-    refetch()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, per_page, search, ordering, JSON.stringify(filters)])
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,

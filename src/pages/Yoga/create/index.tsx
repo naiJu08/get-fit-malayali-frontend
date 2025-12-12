@@ -101,7 +101,6 @@ export default function CreateAdmin({
 
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter yoga name', true) },
-    { ...textField('description', 'Description', 'Enter description', true) },
     {
       name: 'intensity_level',
       label: 'Intensity Level',
@@ -130,6 +129,14 @@ export default function CreateAdmin({
       acceptedFiles: 'MP4, MOV, AVI (Max 5 MB)',
       fileSize: 5,
       selectedFiles: existingVideoFile,
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      id: 'description',
+      type: 'textarea',
+      placeholder: 'Enter description',
+      required: true,
     },
   ]
 

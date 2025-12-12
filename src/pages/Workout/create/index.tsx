@@ -114,7 +114,7 @@ export default function CreateAdmin({
 
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter workout name', true) },
-    { ...textField('description', 'Description', 'Enter description', true) },
+
     // {
     //   ...textField(
     //     'intensity_level',
@@ -140,7 +140,29 @@ export default function CreateAdmin({
     },
 
     // { ...textField('video_url', 'Video URL', 'https://...', true) },
-    // file uploads are rendered in a custom row below (thumbnail + video side by side)
+    {
+      name: 'video_file',
+      label: 'Video File',
+      id: 'video_file',
+      type: 'file_upload',
+      placeholder: 'Upload video file',
+      // Required on create or when there is no existing video URL
+      required: !edit || !rowData?.video_url,
+      accept: 'video/*',
+      supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
+      acceptedFiles: 'MP4, MOV, AVI',
+      fileSize: 5,
+      selectedFiles: existingVideoFile,
+      subName: 'video_file',
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      id: 'description',
+      type: 'textarea',
+      placeholder: 'Enter description',
+      required: true,
+    },
   ]
 
   // const getAdminDetails = (name: any) => {
@@ -187,8 +209,6 @@ export default function CreateAdmin({
         // video_file: rowData?.video_url ?? '',
         video_file: '',
         video_url: rowData?.video_url ?? '',
-
-        thumbnail: rowData?.thumbnail_url ?? '',
       } as any)
     }
   }, [isDrawerOpen, edit, viewMode, rowData])

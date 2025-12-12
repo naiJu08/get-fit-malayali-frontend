@@ -55,6 +55,9 @@
 .imageContainer img {
   max-width: 100%;
 }
+.my-quill-editor .ql-editor {
+  min-height: 79px;
+}
 
 @media (max-width: 1099px) {
   .titleLarge {

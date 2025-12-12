@@ -1,6 +1,4 @@
-import { useState } from 'react'
 import { useSubscriptionReport } from '../api'
-import Button from '../../../components/common/buttons/Button'
 
 type PieSlice = {
   label: string
@@ -102,10 +100,8 @@ export default function Reports({
   user: any
   subscriptionId?: string | number | null
 }) {
-  const [shouldGenerate, setShouldGenerate] = useState(false)
-
   const { data, isFetching, error } = useSubscriptionReport(subscriptionId, {
-    enabled: !!subscriptionId && shouldGenerate,
+    enabled: !!subscriptionId,
   })
 
   const report = (data as any)?.subscription_report
@@ -114,19 +110,6 @@ export default function Reports({
     return (
       <div className="p-6 text-sm text-gray-600">
         No active subscription to show report for.
-      </div>
-    )
-  }
-
-  if (!shouldGenerate) {
-    return (
-      <div className="flex flex-col gap-3 items-end justify-center text-sm text-gray-600">
-        {/* <div>Click the button below to generate the subscription report.</div> */}
-        <Button
-          className="primaryButton"
-          label="Generate Report"
-          onClick={() => setShouldGenerate(true)}
-        />
       </div>
     )
   }
