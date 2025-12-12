@@ -120,11 +120,38 @@ export const getColumns = ({
       ...defaultColumnProps,
     },
     {
-      title: 'fees',
-      renderCell: createRenderCell('fees'),
+      title: 'Fees',
       field: 'fees',
       customCell: true,
       ...defaultColumnProps,
+      renderCell: (row: any) => {
+        const value = getNestedProperty(row, 'fees')
+        const num = typeof value === 'number' ? value : Number(value ?? 0)
+        if (Number.isNaN(num)) {
+          return {
+            cell: '',
+            toolTip: '',
+          }
+        }
+        const formatted = num.toLocaleString('en-IN', {
+          maximumFractionDigits: 2,
+        })
+        const label = `₹ ${formatted}`
+        const display = (
+          <span
+            style={{
+              fontFamily: '"Roboto Condensed", sans-serif',
+              fontWeight: '600',
+            }}
+          >
+            {label}
+          </span>
+        )
+        return {
+          cell: display,
+          toolTip: label,
+        }
+      },
     },
 
     {

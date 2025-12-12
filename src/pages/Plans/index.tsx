@@ -409,20 +409,20 @@ export default function Plans() {
                       {
                         icon: <Icons name="eye" />,
                         action: (row: any) => navigate(`/plans/${row?.id}`),
-                        title: 'view',
+                        title: 'View',
                         toolTip: 'View',
                       },
                       {
                         icon: <Icons name="edit" />,
                         action: (row: any) => handleEditPlan(row),
-                        title: 'edit',
+                        title: 'Edit',
                         toolTip: 'Edit',
                       },
                       {
-                        title: 'deactivate',
+                        title: 'Deactivate',
                         action: (row: any) => handleToggleStatus(row),
                         icon: <Icons name="deactivate-icon" />,
-                        toolTip: 'deactivate',
+                        toolTip: 'Deactivate',
                         hide: (row: any) => {
                           const v = row?.active
                           const isActive =
@@ -434,10 +434,10 @@ export default function Plans() {
                         },
                       },
                       {
-                        title: 'activate',
+                        title: 'Activate',
                         action: (row: any) => handleToggleStatus(row),
                         icon: <Icons name="activate-icon" />,
-                        toolTip: 'activate',
+                        toolTip: 'Activate',
                         hide: (row: any) => {
                           const v = row?.active
                           const isActive =
@@ -454,8 +454,8 @@ export default function Plans() {
                           setPlanToDelete(row)
                           setDeletePlanModal(true)
                         },
-                        title: 'delete',
-                        toolTip: 'delete',
+                        title: 'Delete',
+                        toolTip: 'Delete',
                       },
                     ]
               }

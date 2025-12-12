@@ -150,9 +150,22 @@ export const getColumns = ({
     {
       title: 'Description',
       field: 'description',
-      renderCell: createRenderCell('description'),
       customCell: true,
       ...defaultColumnProps,
+      renderCell: (row: any) => {
+        const raw = getNestedProperty(row, 'description')
+        const html = typeof raw === 'string' ? raw : ''
+        const plain = html.replace(/<[^>]+>/g, '')
+        return {
+          cell: (
+            <div
+              className="text-xs text-gray-700 line-clamp-2"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          ),
+          toolTip: plain,
+        }
+      },
     },
     {
       title: 'Intensity Level',
