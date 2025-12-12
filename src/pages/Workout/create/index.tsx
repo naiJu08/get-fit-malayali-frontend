@@ -141,21 +141,6 @@ export default function CreateAdmin({
       required: true,
     },
     {
-      name: 'video_file',
-      label: 'Video File',
-      id: 'video_file',
-      type: 'file_upload',
-      placeholder: 'Upload video file',
-      required: true,
-      accept: 'video/*',
-      supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
-      acceptedFiles: 'MP4, MOV, AVI',
-      fileSize: 5,
-      selectedFiles: existingVideoFile,
-      subName: 'video_file',
-    },
-
-    {
       name: 'thumbnail',
       label: 'Thumbnail',
       id: 'thumbnail',
@@ -172,6 +157,21 @@ export default function CreateAdmin({
       fileSize: 5,
       selectedFiles: existingThumbnailFile,
       subName: 'thumbnail',
+    },
+
+    {
+      name: 'video_file',
+      label: 'Video File',
+      id: 'video_file',
+      type: 'file_upload',
+      placeholder: 'Upload video file',
+      required: true,
+      accept: 'video/*',
+      supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
+      acceptedFiles: 'MP4, MOV, AVI',
+      fileSize: 5,
+      selectedFiles: existingVideoFile,
+      subName: 'video_file',
     },
   ]
 
