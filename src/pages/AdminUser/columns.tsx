@@ -123,7 +123,18 @@ export const getColumns = ({
     {
       title: 'Name',
       field: 'name',
-      renderCell: createRenderCell('name'),
+      renderCell: (row: any) => {
+        const raw = getNestedProperty(row, 'name') as string | undefined
+        const displayValue =
+          typeof raw === 'string' && raw.length > 0
+            ? raw.charAt(0).toUpperCase() + raw.slice(1)
+            : (raw ?? '')
+
+        return {
+          cell: displayValue,
+          toolTip: displayValue,
+        }
+      },
       customCell: true,
       link: true,
       rowClick: (row: any) => onNameClick && onNameClick(row),

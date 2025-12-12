@@ -2,13 +2,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import moment from 'moment'
 // import moment from 'moment'
 import { useEffect, useState } from 'react'
-import { FormProvider, useForm, Controller } from 'react-hook-form'
+import { FormProvider, useForm } from 'react-hook-form'
 
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
-import FileUpload from '../../../components/common/fileUpload'
+// import FileUpload from '../../../components/common/fileUpload'
 import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
 // import FormFieldView from '../../../components/common/inputs/FormFieldView'
@@ -115,14 +115,6 @@ export default function CreateAdmin({
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter workout name', true) },
 
-    // {
-    //   ...textField(
-    //     'intensity_level',
-    //     'Intensity Level',
-    //     'e.g., Moderate',
-    //     true
-    //   ),
-    // },
     {
       name: 'intensity_level',
       label: 'Intensity Level',
@@ -139,22 +131,7 @@ export default function CreateAdmin({
       ],
     },
 
-    // { ...textField('video_url', 'Video URL', 'https://...', true) },
-    {
-      name: 'video_file',
-      label: 'Video File',
-      id: 'video_file',
-      type: 'file_upload',
-      placeholder: 'Upload video file',
-      // Required on create or when there is no existing video URL
-      required: !edit || !rowData?.video_url,
-      accept: 'video/*',
-      supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
-      acceptedFiles: 'MP4, MOV, AVI',
-      fileSize: 5,
-      selectedFiles: existingVideoFile,
-      subName: 'video_file',
-    },
+    // second row: Description (left), Video File (right)
     {
       name: 'description',
       label: 'Description',
@@ -162,6 +139,39 @@ export default function CreateAdmin({
       type: 'textarea',
       placeholder: 'Enter description',
       required: true,
+    },
+    {
+      name: 'video_file',
+      label: 'Video File',
+      id: 'video_file',
+      type: 'file_upload',
+      placeholder: 'Upload video file',
+      required: true,
+      accept: 'video/*',
+      supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
+      acceptedFiles: 'MP4, MOV, AVI',
+      fileSize: 5,
+      selectedFiles: existingVideoFile,
+      subName: 'video_file',
+    },
+
+    {
+      name: 'thumbnail',
+      label: 'Thumbnail',
+      id: 'thumbnail',
+      type: 'file_upload',
+      placeholder: 'Upload thumbnail image',
+      accept: 'image/*',
+      supportedExtensions: [
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'image/webp',
+      ],
+      acceptedFiles: 'PNG, JPG, JPEG, WEBP (Max 5 MB)',
+      fileSize: 5,
+      selectedFiles: existingThumbnailFile,
+      subName: 'thumbnail',
     },
   ]
 
@@ -301,8 +311,11 @@ export default function CreateAdmin({
   //   }
   // }
   const onSubmit = (details: any) => {
-    if (!details?.video_file && !rowData?.video_url) {
-      setError('video_file', { type: 'manual', message: 'Required.' })
+    const hasNewVideoFile = details?.video_file instanceof File
+    const hasExistingVideoUrl = !!(details?.video_url || rowData?.video_url)
+
+    if (!hasNewVideoFile && !hasExistingVideoUrl) {
+      setError('video_file', { type: 'manual', message: 'Video is required.' })
       return
     }
     clearErrors('video_file')
@@ -432,72 +445,6 @@ export default function CreateAdmin({
               <>
                 <FormProvider {...methods}>
                   <FormBuilder data={formBuilderProps} edit={true} spacing />
-
-                  {/* Thumbnail & Video upload side-by-side */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Controller
-                      name="thumbnail"
-                      control={methods.control}
-                      render={({ field: { onChange } }) => (
-                        <FileUpload
-                          name="thumbnail"
-                          subName="thumbnail"
-                          id="thumbnail"
-                          label="Thumbnail"
-                          onChange={(e: any) =>
-                            onChange(e?.target?.files?.[0] ?? '')
-                          }
-                          value={existingThumbnailFile}
-                          isMultiple={false}
-                          errors={methods.formState.errors as any}
-                          supportedExtensions={[
-                            'image/png',
-                            'image/jpeg',
-                            'image/jpg',
-                            'image/webp',
-                          ]}
-                          supportedFiles="PNG, JPG, JPEG, WEBP (Max 5 MB)"
-                          sizeLimit={5}
-                          buttonLabel="Browse & Upload"
-                          iconName="cloud-upload"
-                          accept="image/*"
-                          // required
-                          disabled={false}
-                        />
-                      )}
-                    />
-
-                    <Controller
-                      name="video_file"
-                      control={methods.control}
-                      render={({ field: { onChange } }) => (
-                        <FileUpload
-                          name="video_file"
-                          subName="video_file"
-                          id="video_file"
-                          label="Video File"
-                          onChange={(e: any) =>
-                            onChange(e?.target?.files?.[0] ?? '')
-                          }
-                          value={existingVideoFile}
-                          isMultiple={false}
-                          errors={methods.formState.errors as any}
-                          supportedExtensions={[
-                            'video/mp4',
-                            'video/quicktime',
-                            'video/x-msvideo',
-                          ]}
-                          supportedFiles="MP4, MOV, AVI"
-                          sizeLimit={5}
-                          buttonLabel="Browse & Upload"
-                          iconName="cloud-upload"
-                          accept="video/*"
-                          required
-                          disabled={false}
-                        />
-                      )}
-                    />
-                  </div>
                 </FormProvider>
                 {videoDurationMs !== null && (
                   <div className="text-sm text-primaryText">

@@ -57,10 +57,21 @@ export const formSchema = z
   })
   .refine(
     (data) => {
+      const baseFilled =
+        typeof data.name === 'string' &&
+        data.name.trim().length > 0 &&
+        typeof data.description === 'string' &&
+        data.description.trim().length > 0 &&
+        typeof data.intensity_level === 'string' &&
+        data.intensity_level.trim().length > 0
+
+      // If base required fields are not yet filled, don't enforce video requirement
+      if (!baseFilled) return true
+
       const hasExistingVideo = !!data.video_url
       const hasNewVideoFile = data.video_file instanceof File
 
-      // A video is required – either file OR existing URL
+      // Once base fields are filled, a video is required – either file OR existing URL
       return hasExistingVideo || hasNewVideoFile
     },
     {

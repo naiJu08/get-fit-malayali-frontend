@@ -70,7 +70,12 @@ export const getColumns = ({
       ...defaultColumnProps,
       fixed: true,
       renderCell: (row: any) => {
-        const value = getNestedProperty(row, 'name')
+        const value = getNestedProperty(row, 'name') as string | undefined
+        const displayValue =
+          typeof value === 'string' && value.length > 0
+            ? value.charAt(0).toUpperCase() + value.slice(1)
+            : (value ?? '')
+
         if (!disableNameLink && onNameClick) {
           return {
             cell: (
@@ -79,15 +84,15 @@ export const getColumns = ({
                 onClick={() => onNameClick && onNameClick(row)}
                 type="button"
               >
-                {value ?? ''}
+                {displayValue}
               </button>
             ),
-            toolTip: value ?? '',
+            toolTip: displayValue,
           }
         }
         return {
-          cell: value ?? '',
-          toolTip: value ?? '',
+          cell: displayValue,
+          toolTip: displayValue,
         }
       },
       customCell: true,
