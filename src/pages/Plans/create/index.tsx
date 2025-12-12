@@ -287,6 +287,14 @@ export default function CreatePlan({
     placeholder,
     ...(required ? { required: true } : {}),
   })
+  const existingImageFile = rowData?.plan?.thumbnail_url
+    ? {
+        name:
+          String(rowData.plan.thumbnail_url).split('/').pop() ||
+          String(rowData.plan.thumbnail_url),
+        link: rowData.plan.thumbnail_url,
+      }
+    : undefined
 
   const formBuilderProps = [
     { ...textField('name', 'Plan Name', 'Enter plan name', true) },
@@ -339,7 +347,7 @@ export default function CreatePlan({
       id: 'thumbnail',
       type: 'file_upload',
       placeholder: 'Upload thumbnail',
-      required: false,
+      required: true,
       accept: 'image/*',
       supportedExtensions: [
         'image/png',
@@ -349,6 +357,8 @@ export default function CreatePlan({
       ],
       acceptedFiles: 'PNG, JPG, JPEG, WEBP (Max 5 MB)',
       fileSize: 5,
+      selectedFiles: existingImageFile,
+      subName: 'thumbnail',
     },
   ]
 
@@ -379,7 +389,7 @@ export default function CreatePlan({
       isOpen={isDrawerOpen}
       onClose={handleClose}
       title={edit ? 'Edit Plan' : viewMode ? 'View Plan' : 'Create Plan'}
-      actionLabel={viewMode ? 'Edit' : edit ? 'Update' : 'create'}
+      actionLabel={viewMode ? 'Edit' : edit ? 'Update' : 'Create'}
       onSubmit={viewMode ? handleChangeMode : handleSubmit(onSubmit)}
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"

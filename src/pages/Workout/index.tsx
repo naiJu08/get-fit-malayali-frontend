@@ -282,13 +282,13 @@ export default function WorkoutMain() {
                       {
                         icon: <Icons name="eye" />,
                         action: (row) => navigate(`/workout/${row?.id}`),
-                        title: 'view',
+                        title: 'View',
                         toolTip: 'View Details',
                       },
                       {
                         icon: <Icons name="edit" />,
                         action: (row) => handleEdit(row),
-                        title: 'edit',
+                        title: 'Edit',
                         toolTip: 'Edit',
                       },
                       {
@@ -297,7 +297,7 @@ export default function WorkoutMain() {
                           setWorkoutToDelete(row)
                           setDeleteWorkoutModal(true)
                         },
-                        title: 'delete',
+                        title: 'Delete',
                         toolTip: 'Delete',
                       },
                     ]

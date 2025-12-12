@@ -622,10 +622,10 @@ const SmartTable: React.FC<SmartTableProps> = ({
         <div className="border-t bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 animate-slideUp">
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-sm font-medium text-gray-700 mr-2">
-              Actions for:{' '}
-              <strong className="text-blue-600">
+              Actions for Selected Row
+              {/* <strong className="text-blue-600">
                 {title ?? selectedRowKey}
-              </strong>
+              </strong> */}
             </span>
             <div className="flex flex-wrap gap-2">
               {actionProps.map((a, i) => {

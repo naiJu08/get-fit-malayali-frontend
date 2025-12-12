@@ -134,7 +134,7 @@ export const planFormSchema = z.object({
     },
     z.string().min(2, 'Category is required')
   ),
-  description: z.string().min(5, 'Description is required'),
+  description: z.string().min(1, 'Description is required'),
   duration_days: z.coerce
     .number({
       invalid_type_error: 'Duration must be a number',
@@ -156,7 +156,12 @@ export const planFormSchema = z.object({
   ),
   yoga_included: z.boolean().default(false),
   meditation_included: z.boolean().default(false),
-  thumbnail: z.any().optional(),
+  // thumbnail: z.any().optional(),
+  thumbnail: z
+    .any({ required_error: 'Required.' })
+    .refine((val) => val !== undefined && val !== null && val !== '', {
+      message: 'Required.',
+    }),
 })
 
 export type PlanSchema = z.infer<typeof planFormSchema>

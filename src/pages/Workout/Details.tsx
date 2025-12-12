@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
 import Icons from '../../components/common/icons'
@@ -66,6 +66,22 @@ export default function UserDetails() {
             value={workout?.intensity_level}
           />
           <DetailItem label="Duration" value={workout?.duration_minutes} />
+          <DetailItem
+            label="Thumbnail"
+            value={
+              workout?.thumbnail_url ? (
+                <div className="w-[120px] h-[120px] overflow-hidden rounded-md border bg-gray-50">
+                  <img
+                    className="w-full h-full object-cover"
+                    src={workout.thumbnail_url}
+                    alt="Workout thumbnail"
+                  />
+                </div>
+              ) : (
+                <span>--</span>
+              )
+            }
+          />
 
           {!loading &&
             !error &&
@@ -152,23 +168,25 @@ export default function UserDetails() {
 
 function DetailItem({ label, value }: { label: string; value: any }) {
   const isUrl = typeof value === 'string' && /^https?:\/\/\S+$/i.test(value)
+  const content = React.isValidElement(value) ? (
+    value
+  ) : isUrl ? (
+    <a
+      href={value}
+      target="_blank"
+      rel="noopener noreferrer"
+      style={{ color: '#2563eb' }}
+    >
+      {value}
+    </a>
+  ) : (
+    <>{safeStr(value)}</>
+  )
+
   return (
     <div className="border rounded-lg p-3 bg-white">
       <div className="text-xs text-gray-500 mb-1">{label}</div>
-      <div className="text-sm">
-        {isUrl ? (
-          <a
-            href={value}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: '#2563eb' }}
-          >
-            {value}
-          </a>
-        ) : (
-          safeStr(value)
-        )}
-      </div>
+      <div className="text-sm">{content}</div>
     </div>
   )
 }
