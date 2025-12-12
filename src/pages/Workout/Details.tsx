@@ -60,23 +60,11 @@ export default function UserDetails() {
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <DetailItem label="Name" value={workout?.name} />
-          <div className="border rounded-lg p-3 bg-white">
-            <div className="text-xs text-gray-500 mb-1">Description</div>
-            <div
-              className="text-sm"
-              dangerouslySetInnerHTML={{
-                __html:
-                  typeof workout?.description === 'string'
-                    ? workout.description
-                    : '',
-              }}
-            />
-          </div>
+          <DetailItem label="Description" value={workout?.description} />
           <DetailItem
             label="Intensity Level"
             value={workout?.intensity_level}
           />
-          {/* <DetailItem label="Feedback Count" value={workout?.feedbacks_count} /> */}
           <DetailItem label="Duration" value={workout?.duration_minutes} />
 
           {!loading &&

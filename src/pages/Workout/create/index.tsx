@@ -148,7 +148,7 @@ export default function CreateAdmin({
       name: 'description',
       label: 'Description',
       id: 'description',
-      type: 'text_editor',
+      type: 'textarea',
       placeholder: 'Enter description',
       required: true,
     },
