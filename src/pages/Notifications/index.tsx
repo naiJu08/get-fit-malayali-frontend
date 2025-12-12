@@ -275,7 +275,7 @@ export default function Notifications() {
   const [isDeleteBatchOpen, setIsDeleteBatchOpen] = useState(false)
 
   const [createForm, setCreateForm] = useState({
-    selectedUsers: [] as any[],
+    selectedBatch: null as any,
     title: '',
     message: '',
     notification_type: 'reminder',
@@ -305,15 +305,9 @@ export default function Notifications() {
     setIsBatchSelectAllActive(false)
   }
 
-  useEffect(() => {
-    setActiveTab(
-      pathname.includes('/notifications/history') ? 'history' : 'current'
-    )
-  }, [pathname])
-
   const clearCreateForm = () => {
     setCreateForm({
-      selectedUsers: [],
+      selectedBatch: null,
       title: '',
       message: '',
       notification_type: 'reminder',
@@ -623,12 +617,10 @@ export default function Notifications() {
   ]
 
   const handleCreateSubmit = () => {
-    const ids = (createForm.selectedUsers || [])
-      .map((u: any) => Number(u?.id))
-      .filter((n: number) => !Number.isNaN(n))
+    const batchId = createForm.selectedBatch?.id
 
-    if (!ids.length) {
-      enqueueSnackbar('Please select at least one user', { variant: 'error' })
+    if (!batchId) {
+      enqueueSnackbar('Please select a batch', { variant: 'error' })
       return
     }
     if (!createForm.title?.trim()) {
@@ -662,7 +654,7 @@ export default function Notifications() {
 
     // Build payload and omit undefined/empty optional fields
     const notification: any = {
-      user_ids: ids,
+      batch_id: batchId,
       title: createForm.title.trim(),
       message: createForm.message.trim(),
       notification_type: createForm.notification_type,
@@ -1179,63 +1171,39 @@ export default function Notifications() {
             body={
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm text-gray-600">Users</label>
+                  <label className="text-sm text-gray-600">Batch</label>
                   <AutoComplete
-                    placeholder="Search users"
+                    placeholder="Search batches"
                     desc="value"
                     descId="id"
                     type={'auto_suggestion'}
-                    isMultiple={true}
-                    selectedItems={createForm.selectedUsers}
-                    value={''}
+                    value={createForm.selectedBatch?.value ?? ''}
                     async={true}
                     initialLoad={true}
                     paginationEnabled={true}
-                    getData={async (key?: string, nextBlock?: number) => {
+                    getData={async (key?: string) => {
                       const params = new URLSearchParams()
                       if (key) params.set('search', key)
-                      params.set('per_page', '10')
-                      if (nextBlock) params.set('page', String(nextBlock))
-                      const url = `${apiUrl.ADMIN_USER}?${params.toString()}`
+                      params.set('per_page', '200')
+                      const url = `${apiUrl.USER_BATCHES}?${params.toString()}`
                       const res: any = await getData(url)
-                      const items: any[] = Array.isArray(res)
+                      const batches: any[] = Array.isArray(res)
                         ? res
-                        : res?.items ||
-                          res?.users ||
+                        : res?.user_batches ||
+                          res?.items ||
                           res?.results ||
                           res?.data?.items ||
-                          res?.data?.users ||
                           []
-                      return items.map((u: any) => {
-                        const nested = u?.user || {}
-                        const fullName =
-                          u?.full_name ||
-                          [u?.first_name, u?.last_name]
-                            .filter(Boolean)
-                            .join(' ') ||
-                          nested?.full_name ||
-                          [nested?.first_name, nested?.last_name]
-                            .filter(Boolean)
-                            .join(' ')
-                        const label =
-                          u?.name ||
-                          fullName ||
-                          u?.username ||
-                          nested?.username ||
-                          u?.email ||
-                          nested?.email ||
-                          `User ${u?.id ?? ''}`
-                        return {
-                          id: u?.id ?? nested?.id,
-                          value: label,
-                        }
-                      })
+                      return batches.map((batch: any) => ({
+                        id: batch?.id,
+                        value: batch?.name ?? `Batch ${batch?.id ?? ''}`,
+                      }))
                     }}
-                    name="users"
+                    name="notification-batch"
                     onChange={(value: any) =>
                       setCreateForm((prev) => ({
                         ...prev,
-                        selectedUsers: value ?? [],
+                        selectedBatch: value?.id ? value : null,
                       }))
                     }
                   />
