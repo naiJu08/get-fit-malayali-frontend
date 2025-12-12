@@ -243,6 +243,16 @@ export default function DietPlanIndex({
 
   return (
     <div className="">
+      <div className="flex justify-end mb-4">
+        {!isNutritionist && checkPermissions('Employee', 'create') && (
+          <Button
+            className="bg-primaryGreen"
+            label="Create Diet Plan"
+            icon="plus"
+            onClick={openCreate}
+          />
+        )}
+      </div>
       <SmartTable
         data={data?.diet_plans ?? []}
         dataRowKey="id"
@@ -266,17 +276,6 @@ export default function DietPlanIndex({
         sortColumn={pageParams.sortColumn}
         handleColumnSort={handleSort}
         emptyTitle="No records to display"
-        createButton={
-          !isNutritionist &&
-          checkPermissions('Employee', 'create') && (
-            <Button
-              className="bg-primaryGreen"
-              label="Create Diet Plan"
-              icon="plus"
-              onClick={openCreate}
-            />
-          )
-        }
         paginationProps={{
           onPagination: onChangePage,
           total: data?.meta?.total_count ?? 0,

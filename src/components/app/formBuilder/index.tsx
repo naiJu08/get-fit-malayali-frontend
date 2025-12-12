@@ -11,6 +11,7 @@ import CustomDatePicker from '../../common/inputs/CustomDatePicker'
 import Radio from '../../common/inputs/Radio'
 import Textarea from '../../common/inputs/TextArea'
 import TextField from '../../common/inputs/TextField'
+import TextEditor from '../../common/TextEditer'
 import CustomeChildTable from '../CustomeChildTable'
 import DuplicateListItem from './utils'
 
@@ -291,6 +292,24 @@ const FormBuilder: React.FC<Props> = (props) => {
                   disabled={field?.disabled ?? isEditable()}
                   maxLength={field?.maxLength}
                   wordCount={field?.wordCount}
+                />
+              )}
+            />
+          </div>
+        )
+      case 'text_editor':
+        return (
+          <div className="relative">
+            <Controller
+              name={`${field.name}`}
+              control={control}
+              key={`${updatekey}${field.name}`}
+              render={({ field: { onChange, value } }) => (
+                <TextEditor
+                  label={field.label}
+                  placeholder={field.placeholder}
+                  value={value as string}
+                  onChange={(val: string) => onChange(val)}
                 />
               )}
             />

@@ -135,7 +135,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       />
       <div className={`customFileUpload ${fullwidth ? 'w-full' : 'w-auto'}`}>
         {label && (
-          <div className="">
+          <div className="flex justify-between items-center">
             <label className={`labels label-text`}>
               {label}
               {required ? <span className="text-error"> *</span> : <></>}

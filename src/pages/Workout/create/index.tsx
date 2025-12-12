@@ -103,7 +103,7 @@ export default function CreateAdmin({
 
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter workout name', true) },
-    { ...textField('description', 'Description', 'Enter description', true) },
+
     // {
     //   ...textField(
     //     'intensity_level',
@@ -135,13 +135,22 @@ export default function CreateAdmin({
       id: 'video_file',
       type: 'file_upload',
       placeholder: 'Upload video file',
-      required: true,
+      // Required on create or when there is no existing video URL
+      required: !edit || !rowData?.video_url,
       accept: 'video/*',
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
       acceptedFiles: 'MP4, MOV, AVI',
       fileSize: 5,
       selectedFiles: existingVideoFile,
       subName: 'video_file',
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      id: 'description',
+      type: 'textarea',
+      placeholder: 'Enter description',
+      required: true,
     },
   ]
 
@@ -183,7 +192,6 @@ export default function CreateAdmin({
         description: rowData?.description ?? '',
         intensity_level: rowData?.intensity_level ?? '',
         video_url: rowData?.video_url ?? '',
-        // seed video_file with existing URL so validation passes when no new file is chosen
         video_file: rowData?.video_url ?? '',
       } as any)
     }
@@ -236,8 +244,10 @@ export default function CreateAdmin({
     }
   }, [watchedVideoFile])
   const onSubmit = (details: any) => {
-    // Ensure a video file is always present (for both create and edit)
-    if (!details?.video_file && !rowData?.video_url) {
+    const isEdit = !!rowData?.id
+
+    // On create, a new video file is mandatory (must be an actual File)
+    if (!isEdit && !(details?.video_file instanceof File)) {
       setError('video_file', { type: 'manual', message: 'Required.' })
       return
     }
@@ -247,8 +257,10 @@ export default function CreateAdmin({
     fd.append('workout[name]', details?.name ?? '')
     fd.append('workout[description]', details?.description ?? '')
     fd.append('workout[intensity_level]', details?.intensity_level ?? '')
-    fd.append('workout[video_url]', details?.video_url ?? '')
-    if (details?.video_file) {
+
+    // Only send a new video file when user selects one (actual File).
+    // For edit without a new file, backend keeps the existing attachment.
+    if (details?.video_file instanceof File) {
       fd.append('video', details.video_file as any)
     }
 

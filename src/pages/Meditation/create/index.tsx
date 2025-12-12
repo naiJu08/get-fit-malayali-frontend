@@ -101,7 +101,14 @@ export default function CreateAdmin({
 
   const formBuilderProps = [
     { ...textField('title', 'Title', 'Enter meditation title', true) },
-    { ...textField('description', 'Description', 'Enter description', true) },
+    {
+      name: 'description',
+      label: 'Description',
+      id: 'description',
+      type: 'textarea',
+      placeholder: 'Enter description',
+      required: true,
+    },
     // { ...textField('video_url', 'Video URL', 'https://...', true) },
     {
       name: 'video_file',

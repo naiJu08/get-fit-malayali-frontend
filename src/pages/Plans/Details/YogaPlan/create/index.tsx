@@ -9,6 +9,7 @@ import {
   //   updateYogaPlan,
   useCreateYogaPlan,
   useUpdateYogaPlan,
+  useYogaPlanDetail,
 } from '../api'
 import { YogaPlanSchema, yogaPlanFormSchema } from './schema'
 
@@ -27,16 +28,23 @@ export default function YogaPlanForm({
   rowData,
   planId,
 }: Props) {
+  const { data: detailData } = useYogaPlanDetail(edit ? rowData?.id : undefined)
+
+  const source: any =
+    edit && (detailData as any)?.yoga_plan
+      ? (detailData as any).yoga_plan
+      : rowData || {}
+
   const methods = useForm<YogaPlanSchema>({
     resolver: zodResolver(yogaPlanFormSchema),
     mode: 'onChange',
     reValidateMode: 'onChange',
     defaultValues: {
-      plan_id: Number(planId ?? rowData?.plan_id ?? 0),
-      day_number: Number(rowData?.day_number ?? 1),
+      plan_id: Number(planId ?? source?.plan_id ?? 0),
+      day_number: Number(source?.day_number ?? 1),
       // sequence_number: Number(rowData?.sequence_number ?? 1),
-      title: rowData?.title ?? '',
-      description: rowData?.description ?? '',
+      title: source?.title ?? '',
+      description: source?.description ?? '',
       // duration_minutes: Number(rowData?.duration_minutes ?? 0),
     },
   })
@@ -48,15 +56,23 @@ export default function YogaPlanForm({
   useEffect(() => {
     if (isOpen) {
       reset({
-        plan_id: Number(planId ?? rowData?.plan_id ?? 0),
-        day_number: Number(rowData?.day_number ?? 1),
+        plan_id: Number(planId ?? source?.plan_id ?? 0),
+        day_number: Number(source?.day_number ?? 1),
         // sequence_number: Number(rowData?.sequence_number ?? 1),
-        title: rowData?.title ?? '',
-        description: rowData?.description ?? '',
+        title: source?.title ?? '',
+        description: source?.description ?? '',
         // duration_minutes: Number(rowData?.duration_minutes ?? 0),
       })
     }
-  }, [isOpen, planId, rowData, reset])
+  }, [
+    isOpen,
+    planId,
+    source?.plan_id,
+    source?.day_number,
+    source?.title,
+    source?.description,
+    reset,
+  ])
 
   const onSubmit = (values: YogaPlanSchema) => {
     const payload = {

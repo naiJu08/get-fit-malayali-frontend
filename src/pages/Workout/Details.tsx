@@ -60,15 +60,11 @@ export default function UserDetails() {
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <DetailItem label="Name" value={workout?.name} />
-          <DetailItem
-            label="Description"
-            value={workout?.description || workout?.description}
-          />
+          <DetailItem label="Description" value={workout?.description} />
           <DetailItem
             label="Intensity Level"
             value={workout?.intensity_level}
           />
-          {/* <DetailItem label="Feedback Count" value={workout?.feedbacks_count} /> */}
           <DetailItem label="Duration" value={workout?.duration_minutes} />
 
           {!loading &&
