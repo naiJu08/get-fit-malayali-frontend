@@ -1,6 +1,6 @@
 import SmartTable from '../../components/common/table/SmartTable'
 import { AutoComplete } from 'qbs-core'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Icons from '../../components/common/icons'
 
@@ -39,6 +39,41 @@ import {
   getUserBatchDetail,
 } from './api'
 import { checkPermissions } from '../../layout/store'
+
+const SELECT_ALL_ID = '__select_all__'
+
+const createSelectAllOption = () => ({
+  id: SELECT_ALL_ID,
+  value: 'Select All',
+  isSelectAll: true,
+})
+
+const isSelectAllOption = (item: any) => item?.id === SELECT_ALL_ID
+
+const dedupeOptions = (options: any[]) => {
+  const unique = new Map<any, any>()
+  options.forEach((option) => {
+    if (!option) return
+    const key = option?.id ?? option?.value
+    if (key === undefined || key === null) return
+    if (!unique.has(key)) {
+      unique.set(key, option)
+    }
+  })
+  return Array.from(unique.values())
+}
+
+const parseAdminUserItems = (res: any) => {
+  if (Array.isArray(res)) return res
+  return (
+    res?.items ||
+    res?.users ||
+    res?.results ||
+    res?.data?.items ||
+    res?.data?.users ||
+    []
+  )
+}
 
 export default function Notifications() {
   const navigate = useNavigate()
@@ -168,6 +203,7 @@ export default function Notifications() {
     name: '',
     description: '',
   })
+  const selectAllOption = useMemo(() => createSelectAllOption(), [])
   const filterNonNull = <T,>(item: T | null | undefined): item is T =>
     item !== null && item !== undefined
   const buildUserOption = (user: any, fallbackId?: any) => {
@@ -230,6 +266,9 @@ export default function Notifications() {
         : selectedFromIds
   }
   const [batchForm, setBatchForm] = useState(createBatchFormDefaults)
+  const batchUserOptionsRef = useRef<Map<any, any>>(new Map())
+  const allBatchUsersRef = useRef<any[]>([])
+  const [isBatchSelectAllActive, setIsBatchSelectAllActive] = useState(false)
   const [editingBatchId, setEditingBatchId] = useState<string | null>(null)
   const [isBatchDetailLoading, setIsBatchDetailLoading] = useState(false)
   const [deleteBatchId, setDeleteBatchId] = useState<string | null>(null)
@@ -246,6 +285,24 @@ export default function Notifications() {
 
   const handleCreateChange = (name: string, value: any) => {
     setCreateForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const registerBatchUserOptions = (options: any[]) => {
+    if (!Array.isArray(options) || !options.length) return
+    const current = new Map(batchUserOptionsRef.current)
+    options.forEach((option) => {
+      if (!option || isSelectAllOption(option)) return
+      const key = option?.id ?? option?.value
+      if (key !== undefined && key !== null && !current.has(key)) {
+        current.set(key, option)
+      }
+    })
+    batchUserOptionsRef.current = current
+  }
+
+  const resetBatchUserOptions = () => {
+    batchUserOptionsRef.current = new Map()
+    setIsBatchSelectAllActive(false)
   }
 
   useEffect(() => {
@@ -327,6 +384,7 @@ export default function Notifications() {
     setEditingBatchId(null)
     setIsBatchDetailLoading(false)
     setBatchForm(createBatchFormDefaults())
+    resetBatchUserOptions()
   }
 
   const handleBatchFormChange = (
@@ -336,22 +394,86 @@ export default function Notifications() {
     setBatchForm((prev) => ({ ...prev, [field]: value }))
   }
 
-  const getUserOptions = async (key?: string, nextBlock?: number) => {
-    const params = new URLSearchParams()
-    if (key) params.set('search', key)
-    params.set('per_page', '10')
-    if (nextBlock) params.set('page', String(nextBlock))
-    const url = `${apiUrl.ADMIN_USER}?${params.toString()}`
-    const res: any = await getData(url)
-    const items: any[] = Array.isArray(res)
-      ? res
-      : res?.items ||
-        res?.users ||
-        res?.results ||
-        res?.data?.items ||
-        res?.data?.users ||
-        []
-    return items.map((u: any) => buildUserOption(u)).filter(filterNonNull)
+  const loadAllBatchUserOptions = async () => {
+    if (allBatchUsersRef.current.length) {
+      return allBatchUsersRef.current
+    }
+
+    const perPage = 200
+    let page = 1
+    const collected: any[] = []
+    const seen = new Map<any, any>()
+
+    while (true) {
+      const params = new URLSearchParams()
+      params.set('per_page', String(perPage))
+      params.set('page', String(page))
+      const url = `${apiUrl.ADMIN_USER}?${params.toString()}`
+      const res: any = await getData(url)
+      const items: any[] = parseAdminUserItems(res)
+      if (!items.length) break
+
+      items.forEach((raw) => {
+        const option = buildUserOption(raw)
+        if (!option) return
+        const key = option?.id ?? option?.value
+        if (key === undefined || key === null) return
+        if (!seen.has(key)) {
+          seen.set(key, option)
+          collected.push(option)
+        }
+      })
+
+      if (items.length < perPage) break
+      page += 1
+    }
+
+    const options = dedupeOptions(collected)
+    registerBatchUserOptions(options)
+    allBatchUsersRef.current = options
+    return options
+  }
+
+  const getUserOptions = async (key?: string) => {
+    const options = await loadAllBatchUserOptions()
+    const filtered = key
+      ? options.filter((opt) =>
+          String(opt?.value ?? '')
+            .toLowerCase()
+            .includes(String(key).toLowerCase())
+        )
+      : options
+    return filtered.length ? [selectAllOption, ...filtered] : filtered
+  }
+
+  const handleBatchUsersChange = (value: any[]) => {
+    const incoming = Array.isArray(value) ? value : []
+    const normalized = dedupeOptions(incoming)
+    const hasSelectAll = normalized.some(isSelectAllOption)
+    const withoutSelectAll = normalized.filter(
+      (item) => !isSelectAllOption(item)
+    )
+
+    registerBatchUserOptions(withoutSelectAll)
+
+    if (hasSelectAll) {
+      const merged = dedupeOptions([
+        selectAllOption,
+        ...Array.from(batchUserOptionsRef.current.values()),
+      ])
+      setIsBatchSelectAllActive(true)
+      setBatchForm((prev) => ({ ...prev, selectedUsers: merged }))
+      return
+    }
+
+    if (!hasSelectAll && isBatchSelectAllActive) {
+      setIsBatchSelectAllActive(false)
+      setBatchForm((prev) => ({ ...prev, selectedUsers: [] }))
+      return
+    }
+
+    const deduped = dedupeOptions(withoutSelectAll)
+    setBatchForm((prev) => ({ ...prev, selectedUsers: deduped }))
   }
 
   const { mutate: createUserBatchMutate, isLoading: isBatchCreating } =
@@ -1270,6 +1392,7 @@ export default function Notifications() {
             onClose={handleCloseCreateBatch}
             onSubmit={handleCreateBatch}
             onChange={handleBatchFormChange}
+            onUsersChange={handleBatchUsersChange}
             title={editingBatchId ? 'Update Batch' : 'Create Batch'}
             actionLabel={editingBatchId ? 'Update' : 'Create'}
           />

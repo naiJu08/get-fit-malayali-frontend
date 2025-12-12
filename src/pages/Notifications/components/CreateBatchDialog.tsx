@@ -16,6 +16,7 @@ type CreateBatchDialogProps = {
   onClose: () => void
   onSubmit: () => void
   onChange: (field: keyof CreateBatchForm, value: any) => void
+  onUsersChange: (value: any[]) => void
   title?: string
   actionLabel?: string
 }
@@ -28,6 +29,7 @@ const CreateBatchDialog = ({
   onClose,
   onSubmit,
   onChange,
+  onUsersChange,
   title = 'Create Batch',
   actionLabel = 'Create',
 }: CreateBatchDialogProps) => {
@@ -77,7 +79,9 @@ const CreateBatchDialog = ({
               paginationEnabled={true}
               getData={getUsers}
               name="batch-users"
-              onChange={(value: any) => onChange('selectedUsers', value ?? [])}
+              onChange={(value: any) =>
+                onUsersChange(Array.isArray(value) ? value : [])
+              }
             />
           </div>
         </div>
