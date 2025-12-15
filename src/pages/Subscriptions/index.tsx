@@ -609,7 +609,7 @@ export default function Subscriptions() {
                 {
                   icon: <Icons name="eye" />,
                   action: (row) => navigate(`/subscriptions/${row?.id}`),
-                  title: 'view',
+                  title: 'View',
                   toolTip: 'View Details',
                 },
                 {

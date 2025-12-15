@@ -123,9 +123,19 @@ export const useCreateAdmin = (handleSubmission: (data: any) => void) => {
     },
 
     onError: (error: any) => {
+      const data = error?.response?.data as any
+      const isDuplicateEmail =
+        Array.isArray(data?.errors) &&
+        data.errors.some((m: any) =>
+          String(m || '')
+            .toLowerCase()
+            .includes('email has already been taken')
+        )
+      if (isDuplicateEmail) return
+
       enqueueSnackbar(
         getErrorMessage(
-          error.response.data.error || error?.response?.data?.detail
+          data?.error || data?.detail || data?.errors || data?.message
         ),
         {
           variant: 'error',
@@ -146,13 +156,23 @@ export const useUpdateAdmin = (handleSubmission: (data: any) => void) => {
     },
 
     onError: (error: any) => {
+      const data = error?.response?.data as any
+      const isDuplicateEmail =
+        Array.isArray(data?.errors) &&
+        data.errors.some((m: any) =>
+          String(m || '')
+            .toLowerCase()
+            .includes('email has already been taken')
+        )
+      if (isDuplicateEmail) return
+
       // enqueueSnackbar(getErrorMessage(error.response.data.error), {
       //   variant: 'error',
       // })
       enqueueSnackbar(
-        error?.response?.data?.detail
-          ? getErrorMessage(error?.response?.data?.detail)
-          : error?.response?.data?.message,
+        data?.detail
+          ? getErrorMessage(data?.detail)
+          : getErrorMessage(data?.error || data?.errors || data?.message),
         {
           variant: 'error',
         }
