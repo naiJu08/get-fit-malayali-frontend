@@ -153,7 +153,7 @@ export default function CreateAdmin({
         'image/jpg',
         'image/webp',
       ],
-      acceptedFiles: 'PNG, JPG, JPEG, WEBP (Max 5 MB)',
+      acceptedFiles: 'PNG, JPG, JPEG, WEBP',
       fileSize: 5,
       selectedFiles: existingThumbnailFile,
       subName: 'thumbnail',

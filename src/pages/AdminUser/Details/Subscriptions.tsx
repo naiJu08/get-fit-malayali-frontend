@@ -65,6 +65,7 @@ export default function Subscriptions({
     notes: string
     plan_id: number | ''
   }>({ start_date: '', end_date: '', status: 0, notes: '', plan_id: '' })
+  const [subSubmitAttempted, setSubSubmitAttempted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [selectedPlanOption, setSelectedPlanOption] = useState<any>(null)
   const { data: plansList } = usePlans({ page: 1, per_page: 100 } as any)
@@ -365,7 +366,6 @@ export default function Subscriptions({
     }
     setSubForm((prev) => ({ ...prev, [name]: value }))
   }
-
   const canSubmit = useMemo(() => {
     return (
       !!user?.id &&
@@ -377,8 +377,38 @@ export default function Subscriptions({
     )
   }, [user?.id, subForm])
 
+  const subFormErrors = useMemo(() => {
+    const errs: {
+      plan_id?: string
+      start_date?: string
+      end_date?: string
+    } = {}
+
+    if (!(typeof subForm.plan_id === 'number' && subForm.plan_id > 0)) {
+      errs.plan_id = 'Required'
+    }
+
+    if (!subForm.start_date) {
+      errs.start_date = 'Required'
+    }
+
+    if (!subForm.end_date) {
+      errs.end_date = 'Required'
+    } else if (
+      subForm.start_date &&
+      moment(subForm.end_date, 'YYYY-MM-DD', true).isValid() &&
+      moment(subForm.start_date, 'YYYY-MM-DD', true).isValid() &&
+      moment(subForm.end_date).isBefore(moment(subForm.start_date), 'day')
+    ) {
+      errs.end_date = 'End date cannot be before start date.'
+    }
+
+    return errs
+  }, [subForm.plan_id, subForm.start_date, subForm.end_date])
+
   const openSubscriptionDrawer = () => {
     setSelectedPlanOption(null)
+    setSubSubmitAttempted(false)
     setSubForm({
       start_date: '',
       end_date: '',
@@ -391,6 +421,7 @@ export default function Subscriptions({
   const closeSubscriptionDrawer = () => setDrawerOpen(false)
 
   const handleSubmitSubscription = async () => {
+    setSubSubmitAttempted(true)
     if (!canSubmit) return
     try {
       setSubmitting(true)
@@ -640,9 +671,11 @@ export default function Subscriptions({
                                       <div className="text-[12px] font-medium">
                                         {c?.label ?? ''}
                                       </div>
-                                      <div className="text-[12px] font-medium">
-                                        Day - {c?.meta?.day_number}
-                                      </div>
+                                      {c?.meta?.day_number ? (
+                                        <div className="text-[12px] font-medium">
+                                          Day - {c?.meta?.day_number}
+                                        </div>
+                                      ) : null}
                                     </div>
                                     {c?.inRange && c?.meta ? (
                                       <div className="mt-1 text-[10px] leading-4">
@@ -729,6 +762,8 @@ export default function Subscriptions({
         onClose={() => closeSubscriptionDrawer()}
         title="Add Subscription"
         onSubmit={handleSubmitSubscription}
+        secondaryAction={() => closeSubscriptionDrawer()}
+        secondaryActionLabel="Close"
         actionLabel="Save"
         actionLoader={submitting}
         small={false}
@@ -761,35 +796,86 @@ export default function Subscriptions({
                 }}
                 required
               />
+              {subSubmitAttempted && subFormErrors.plan_id && (
+                <div className="mt-1 text-xs text-red-500">
+                  {subFormErrors.plan_id}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">
-                Start Date <span className="text-red-500">*</span>
+                Start date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="date"
-                className="w-full border rounded px-3 py-2 text-xs"
-                value={subForm.start_date}
-                onChange={(e) =>
-                  handleSubFormChange('start_date', e.target.value)
-                }
-                required
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  className={`w-full border rounded px-3 py-2 text-xs ${subForm.start_date ? 'pr-7' : ''}`}
+                  value={subForm.start_date}
+                  onChange={(e) =>
+                    handleSubFormChange('start_date', e.target.value)
+                  }
+                  required
+                  min={moment().format('YYYY-MM-DD')}
+                />
+                {subForm.start_date ? (
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    onClick={() => {
+                      setSubForm((prev) => ({
+                        ...prev,
+                        start_date: '',
+                        end_date: '',
+                      }))
+                    }}
+                    aria-label="Clear start date"
+                  >
+                    <Icons name="close" className="text-gray-500" />
+                  </button>
+                ) : null}
+              </div>
+              {subSubmitAttempted && subFormErrors.start_date && (
+                <div className="mt-1 text-xs text-red-500">
+                  {subFormErrors.start_date}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">
-                End Date <span className="text-red-500">*</span>
+                End date <span className="text-red-500">*</span>
               </label>
-              <input
-                type="date"
-                className="w-full border rounded px-3 py-2 text-xs"
-                value={subForm.end_date}
-                onChange={(e) =>
-                  handleSubFormChange('end_date', e.target.value)
-                }
-                required
-                disabled
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  className={`w-full border rounded px-3 py-2 text-xs ${subForm.end_date ? 'pr-7' : ''}`}
+                  value={subForm.end_date}
+                  onChange={(e) =>
+                    handleSubFormChange('end_date', e.target.value)
+                  }
+                  required
+                  disabled
+                />
+                {subForm.end_date ? (
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    onClick={() => {
+                      setSubForm((prev) => ({
+                        ...prev,
+                        end_date: '',
+                      }))
+                    }}
+                    aria-label="Clear end date"
+                  >
+                    <Icons name="close" className="text-gray-500" />
+                  </button>
+                ) : null}
+              </div>
+              {subSubmitAttempted && subFormErrors.end_date && (
+                <div className="mt-1 text-xs text-red-500">
+                  {subFormErrors.end_date}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">
@@ -803,11 +889,6 @@ export default function Subscriptions({
                 placeholder="Optional notes"
               />
             </div>
-            {!canSubmit && (
-              <div className="text-xs text-red-500">
-                Please fill all required fields.
-              </div>
-            )}
           </div>
         }
       />
@@ -848,44 +929,79 @@ export default function Subscriptions({
                   placeholder="Enter reason"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-1">
                 <div className="flex flex-col gap-1">
                   <label className="text-sm text-gray-600">Start date</label>
-                  <input
-                    type="date"
-                    className="textfield"
-                    name="start_date"
-                    value={freezeForm.start_date}
-                    min={overview?.subscription?.start_date || undefined}
-                    max={overview?.subscription?.end_date || undefined}
-                    onChange={(e) =>
-                      handleFreezeChange({
-                        name: e.target.name,
-                        value: e.target.value,
-                      })
-                    }
-                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      className={`w-full border rounded px-3 py-2 text-xs ${freezeForm.start_date ? 'pr-7' : ''}`}
+                      name="start_date"
+                      value={freezeForm.start_date}
+                      min={overview?.subscription?.start_date || undefined}
+                      max={overview?.subscription?.end_date || undefined}
+                      onChange={(e) =>
+                        handleFreezeChange({
+                          name: e.target.name,
+                          value: e.target.value,
+                        })
+                      }
+                    />
+                    {freezeForm.start_date ? (
+                      <button
+                        type="button"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() =>
+                          setFreezeForm((prev) => ({
+                            ...prev,
+                            start_date: '',
+                            end_date: '',
+                          }))
+                        }
+                        aria-label="Clear freeze start date"
+                      >
+                        <Icons name="close" className="text-gray-500" />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-sm text-gray-600">End date</label>
-                  <input
-                    type="date"
-                    className="textfield"
-                    name="end_date"
-                    value={freezeForm.end_date}
-                    min={
-                      freezeForm.start_date ||
-                      overview?.subscription?.start_date ||
-                      undefined
-                    }
-                    max={overview?.subscription?.end_date || undefined}
-                    onChange={(e) =>
-                      handleFreezeChange({
-                        name: e.target.name,
-                        value: e.target.value,
-                      })
-                    }
-                  />
+                  <div className="relative">
+                    <input
+                      type="date"
+                      className={`w-full border rounded px-3 py-2 text-xs ${freezeForm.end_date ? 'pr-7' : ''}`}
+                      name="end_date"
+                      value={freezeForm.end_date}
+                      min={
+                        freezeForm.start_date ||
+                        overview?.subscription?.start_date ||
+                        undefined
+                      }
+                      max={overview?.subscription?.end_date || undefined}
+                      onChange={(e) =>
+                        handleFreezeChange({
+                          name: e.target.name,
+                          value: e.target.value,
+                        })
+                      }
+                    />
+                    {freezeForm.end_date ? (
+                      <button
+                        type="button"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() =>
+                          setFreezeForm((prev) => ({
+                            ...prev,
+                            end_date: '',
+                          }))
+                        }
+                        aria-label="Clear freeze end date"
+                      >
+                        <Icons name="close" className="text-gray-500" />
+                      </button>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             </div>

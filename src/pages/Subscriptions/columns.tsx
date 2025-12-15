@@ -16,11 +16,31 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
       return { cell, toolTip: typeof cell === 'string' ? cell : '' }
     }
 
-  const formatDate = (d: any) => (d ? moment(d).format('YYYY-MM-DD') : '')
-  const capitalize = (s: any) =>
-    typeof s === 'string'
-      ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
-      : s
+  const formatDate = (d: any) => (d ? moment(d).format('DD-MM-YYYY') : '')
+
+  const getStatusBadge = (status: any) => {
+    const raw = status === null || status === undefined ? '' : String(status)
+    const key = raw.toLowerCase()
+    const statusColors: { [k: string]: string } = {
+      active: 'bg-green-100 text-green-800 border-green-200',
+      inactive: 'bg-gray-100 text-gray-800 border-gray-200',
+      paused: 'bg-red-100 text-red-800 border-red-200',
+      suspended: 'bg-red-100 text-red-800 border-red-200',
+      expired: 'bg-orange-100 text-orange-800 border-orange-200',
+      canceled: 'bg-red-100 text-red-800 border-red-200',
+      pending: 'bg-blue-100 text-blue-800 border-blue-200',
+    }
+    const colorClass =
+      statusColors[key] || 'bg-gray-100 text-gray-800 border-gray-200'
+    const label = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : '--'
+    return (
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${colorClass}`}
+      >
+        {label}
+      </span>
+    )
+  }
 
   const column = [
     {
@@ -75,7 +95,7 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
     {
       title: 'Status',
       field: 'status',
-      renderCell: createRenderCell('status', capitalize),
+      renderCell: createRenderCell('status', getStatusBadge),
       customCell: true,
       ...defaultColumnProps,
     },
