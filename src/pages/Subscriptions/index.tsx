@@ -6,7 +6,6 @@ import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
 import DialogModal from '../../components/common/modal/DialogModal'
-import TextField from '../../components/common/inputs/TextField'
 import DynamicDropdown from '../../components/common/DynamicDropdown'
 import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
@@ -20,9 +19,7 @@ import { handleReturnEmptyMsg } from '../../utilities/validation'
 import { getData } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import {
-  deActivateAdmin,
   getAdminDetails,
-  sendAdminInvitation,
   useAdminUser,
   DISABLE_NONLOGIN_APIS,
   deleteAdmin,
@@ -36,9 +33,6 @@ export default function Subscriptions() {
   const navigate = useNavigate()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
-  const [deleteItem, setDeleteItem] = useState('')
-  const [status, setStatus] = useState('')
-  const [deleteModal, setDeleteModal] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [viewMode, setViewMode] = useState(false)
   const [edit, setEdit] = useState(false)
@@ -46,7 +40,6 @@ export default function Subscriptions() {
   const [changePassword, setChangePassword] = useState(false)
   const [userName, setUserName] = useState('')
   const [userId, setUserId] = useState('')
-  const [openConfirm, setOpenConfirm] = useState(false)
   const [deleteUserModal, setDeleteUserModal] = useState(false)
   const [deleteUserId, setDeleteUserId] = useState<string>('')
   const [freezeModal, setFreezeModal] = useState(false)
@@ -64,6 +57,7 @@ export default function Subscriptions() {
   const [planIdFilter, setPlanIdFilter] = useState<string>('')
   const [planLabel, setPlanLabel] = useState<string>('All Plans')
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [statusLabel, setStatusLabel] = useState<string>('All')
   const [plansCache, setPlansCache] = useState<Record<string, string>>({})
   const location = useLocation()
   const [editViewIndicator, setEditViewIndicator] = useState(false)
@@ -72,8 +66,7 @@ export default function Subscriptions() {
 
   const params = useParams()
 
-  const { pageParams, setPageParams, selectedRows, setSelectedRows } =
-    useAdminUserFilterStore()
+  const { pageParams, setPageParams } = useAdminUserFilterStore()
   const { page, page_size, search, ordering, filters } = pageParams
   const searchParams = {
     page: page,
@@ -96,6 +89,7 @@ export default function Subscriptions() {
       setPlanIdFilter('')
       setStatusFilter('')
       setPlanLabel('All Plans')
+      setStatusLabel('All')
       setPageParams({ ...pageParams, search: '', filters: {}, page: 1 })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -107,6 +101,18 @@ export default function Subscriptions() {
     setPlanIdFilter(planFromStore ? String(planFromStore) : '')
     const statusFromStore = (filters as any)?.status
     setStatusFilter(statusFromStore ? String(statusFromStore) : '')
+
+    const s = statusFromStore ? String(statusFromStore) : ''
+    setStatusLabel(
+      s === 'active'
+        ? 'Active'
+        : s === 'paused'
+          ? 'Paused'
+          : s === 'expired'
+            ? 'Expired'
+            : 'All'
+    )
+
     // Prefer cached label; otherwise resolve plan name so it shows after refresh
     if (planFromStore) {
       const cached = plansCache[String(planFromStore)]
@@ -146,6 +152,25 @@ export default function Subscriptions() {
   const isFrozen = (rowData: any) => {
     const val = String(rowData?.status ?? '').toLowerCase()
     return val === 'suspended' || val === 'paused'
+  }
+
+  const handleUnfreezeRow = async (row: any) => {
+    if (!row?.id) return
+    try {
+      setloader(true)
+      await unfreezeUser(String(row.id))
+      enqueueSnackbar('Subscription unfrozen successfully', {
+        variant: 'success',
+      })
+      refetch()
+    } catch (err: any) {
+      enqueueSnackbar(
+        err?.response?.data?.error?.message || err?.response?.data?.message,
+        { variant: 'error' }
+      )
+    } finally {
+      setloader(false)
+    }
   }
 
   const handleFreezeChange = ({
@@ -323,6 +348,15 @@ export default function Subscriptions() {
     setPageParams({ ...pageParams, filters: nextFilters, page: 1 })
   }
 
+  const getStatusDropdown = async () => {
+    return [
+      { id: null, value: 'All' },
+      { id: 'active', value: 'Active' },
+      { id: 'paused', value: 'Paused' },
+      { id: 'expired', value: 'Expired' },
+    ]
+  }
+
   const getPlansDropdown = async (search: string, pageNum: number) => {
     const params = new URLSearchParams()
     if (search) params.set('search', search)
@@ -345,64 +379,6 @@ export default function Subscriptions() {
     setPlansCache(nextCache)
     // Prepend an 'All Plans' option so users can clear via the dropdown
     return [{ id: null, value: 'All Plans' }, ...mapped]
-  }
-
-  const handleDeleteModel = (id: string, username: string, status: string) => {
-    setDeleteItem(id)
-    setDeleteModal(true)
-    setUserName(username)
-    setStatus(status)
-  }
-
-  const handleSendInvitation = () => {
-    setloader(true)
-    sendAdminInvitation(deleteItem ?? '')
-      .then((res) => {
-        enqueueSnackbar(
-          res.message ? res.message : 'Invitation Send Successfully',
-          {
-            variant: 'success',
-          }
-        )
-        setloader(false)
-        refetch()
-        setOpenConfirm(false)
-
-        setSelectedRows(
-          selectedRows?.filter((sel: any) => sel !== deleteItem) || []
-        )
-      })
-      .catch((err: any) => {
-        setloader(false)
-        enqueueSnackbar(
-          err?.response?.data?.error?.message || err?.response?.data?.message,
-          { variant: 'error' }
-        )
-      })
-  }
-
-  const handleDeleteAdmin = () => {
-    setloader(true)
-    deActivateAdmin(deleteItem)
-      .then(() => {
-        enqueueSnackbar('Status Updated successfully', {
-          variant: 'success',
-        })
-        setloader(false)
-        refetch()
-        setSelectedRows(
-          selectedRows?.filter((sel: string | number) => sel !== deleteItem) ||
-            []
-        )
-        setDeleteModal(false)
-      })
-      .catch((err) => {
-        setloader(false)
-        enqueueSnackbar(
-          err?.response?.data?.error?.message || err?.response?.data?.message,
-          { variant: 'error' }
-        )
-      })
   }
 
   const handleClose = () => {
@@ -557,12 +533,13 @@ export default function Subscriptions() {
                 <div className="flex items-end gap-3">
                   <div className="flex flex-col gap-1">
                     <label className="text-xs text-gray-600">Plan</label>
-                    <div className="w-64 flex flex-col gap-1 z-20 border p-[12px] rounded-lg bg-white">
+                    <div className="w-64 flex flex-col gap-1 z-20 border p-[12px] rounded-lg bg-white text-xs">
                       <DynamicDropdown
                         key={`plan-dd-${planIdFilter || 'all'}-${planLabel}`}
                         tileItem={{ label: 'Plan', value: planLabel }}
                         value={planIdFilter}
                         getData={getPlansDropdown}
+                        hideLoader
                         setUpdateCREId={(id: any) => {
                           const v = id ? String(id) : ''
                           setPlanIdFilter(v)
@@ -580,16 +557,30 @@ export default function Subscriptions() {
                   </div>
                   <div className="flex flex-col gap-1 ">
                     <label className="text-xs text-gray-600">Status</label>
-                    <select
-                      className="textfield w-44 "
-                      value={statusFilter}
-                      onChange={(e) => applyStatusFilter(e.target.value)}
-                    >
-                      <option value="">All</option>
-                      <option value="active">Active</option>
-                      <option value="paused">Paused</option>
-                      <option value="expired">Expired</option>
-                    </select>
+                    <div className="w-64 flex flex-col gap-1 z-20 border p-[12px] rounded-lg bg-white text-xs">
+                      <DynamicDropdown
+                        key={`status-dd-${statusFilter || 'all'}-${statusLabel}`}
+                        tileItem={{ label: 'Status', value: statusLabel }}
+                        value={statusFilter}
+                        getData={getStatusDropdown as any}
+                        hideSearch
+                        hideLoader
+                        setUpdateCREId={(id: any) => {
+                          const v = id ? String(id) : ''
+                          setStatusFilter(v)
+                          setStatusLabel(
+                            v === 'active'
+                              ? 'Active'
+                              : v === 'paused'
+                                ? 'Paused'
+                                : v === 'expired'
+                                  ? 'Expired'
+                                  : 'All'
+                          )
+                          applyStatusFilter(v)
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               }
@@ -618,49 +609,29 @@ export default function Subscriptions() {
                 {
                   icon: <Icons name="eye" />,
                   action: (row) => navigate(`/subscriptions/${row?.id}`),
-                  title: 'view',
+                  title: 'View',
                   toolTip: 'View Details',
                 },
                 {
-                  title: 'Freeze/Unfreeze',
+                  title: 'Freeze',
                   action: (row) => {
                     setToggleFreezeRow(row)
                     setToggleFreezeOpen(true)
                   },
                   icon: <Icons name="lock-icon" />,
                   toolTip: 'Toggle Freeze',
-                },
-                {
-                  title: 'Deactivate',
-                  action: (rowData) =>
-                    handleDeleteModel(
-                      rowData?.id,
-                      rowData?.email,
-                      rowData?.status
-                    ),
-                  icon: <Icons name="deactivate-icon" />,
-                  toolTip: 'Deactivate',
                   hide: (rowData: any) =>
                     String(rowData?.status ?? '').toLowerCase() === 'active'
                       ? false
                       : true,
                 },
                 {
-                  title: 'Activate',
-                  action: (rowData) =>
-                    handleDeleteModel(
-                      rowData?.id,
-                      rowData?.email,
-                      rowData?.status
-                    ),
-                  icon: <Icons name="activate-icon" />,
-                  toolTip: 'Activate',
-                  hide: (rowData: any) =>
-                    String(rowData?.status ?? '').toLowerCase() === 'inactive'
-                      ? false
-                      : true,
+                  title: 'Unfreeze',
+                  action: (row) => handleUnfreezeRow(row),
+                  icon: <Icons name="lock-icon" />,
+                  toolTip: 'Toggle Freeze',
+                  hide: (rowData: any) => (isFrozen(rowData) ? false : true),
                 },
-
                 {
                   title: 'Delete',
                   action: (rowData) => handleOpenDeleteUser(rowData?.id),
@@ -672,42 +643,6 @@ export default function Subscriptions() {
               externalActions={true}
             />
           </div>
-
-          <DialogModal
-            isOpen={deleteModal}
-            onClose={() => setDeleteModal(false)}
-            title={
-              status == 'Active'
-                ? 'Deactivate Subscription'
-                : 'Activate Subscription'
-            }
-            onSubmit={() => handleDeleteAdmin()}
-            secondaryAction={() => setDeleteModal(false)}
-            secondaryActionLabel="Cancel"
-            actionLabel={status == 'Active' ? 'Deactivate' : 'Activate'}
-            actionLoader={loader}
-            className="z-50"
-            body={
-              <>
-                <p className="pb-4">
-                  {status == 'Active'
-                    ? 'Are you sure to deactivate this subscription?'
-                    : 'Are you sure to activate this subscription?'}
-                </p>
-                <div className="flex flex-col gap-4">
-                  <div className="w-full flex flex-col gap-2">
-                    <TextField
-                      id="1"
-                      name="email"
-                      value={userName ?? ''}
-                      disabled={true}
-                      label={'Email id'}
-                    />
-                  </div>
-                </div>
-              </>
-            }
-          />
           <ConfirmDeleteModal
             isOpen={deleteUserModal}
             onClose={() => setDeleteUserModal(false)}
@@ -758,21 +693,6 @@ export default function Subscriptions() {
             paramsId={params?.id}
             handleClose={handleClose}
             handleRefresh={handleRefresh}
-          />
-          <DialogModal
-            isOpen={openConfirm}
-            onClose={() => setOpenConfirm(false)}
-            title={'Send Invitation'}
-            onSubmit={() => handleSendInvitation()}
-            secondaryAction={() => setOpenConfirm(false)}
-            secondaryActionLabel="Cancel"
-            actionLabel="Send"
-            actionLoader={loader}
-            body={
-              <InfoBox
-                content={'Are you sure you want to send the invitation?'}
-              />
-            }
           />
         </>
       )}

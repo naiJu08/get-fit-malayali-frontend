@@ -475,13 +475,13 @@ export default function AdminUser() {
                           : '/users'
                       navigate(`${base}/${row?.id}`)
                     },
-                    title: 'view',
+                    title: 'View',
                     toolTip: 'View Details',
                   },
                   {
                     icon: <Icons name="edit" />,
                     action: (row) => handleEdit(row),
-                    title: 'edit',
+                    title: 'Edit',
                     toolTip: 'Edit',
                   },
                   // {
@@ -525,10 +525,10 @@ export default function AdminUser() {
                       rowData?.status == 'Inactive' ? false : true,
                   },
                   {
-                    title: 'delete user',
+                    title: 'Delete',
                     action: (rowData) => handleOpenDeleteUser(rowData?.id),
                     icon: <Icons name="delete" />,
-                    toolTip: 'delete user',
+                    toolTip: 'Delete',
                   },
                 ]}
                 searchValue={pageParams?.search}

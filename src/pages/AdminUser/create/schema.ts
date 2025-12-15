@@ -195,6 +195,87 @@ export const formSchemaNutritionist = z
     }
   )
 
+export const formSchemaNutritionistEdit = z
+  .object({
+    name: z
+      .string({ invalid_type_error: 'Required.' })
+      .min(1, { message: 'Required.' })
+      .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
+    email: z
+      .string()
+      .min(5, { message: 'Required' })
+      .superRefine((value, ctx) => {
+        if (value !== '') {
+          if (!/^[\w-.+]+@([\w-]+\.)+[\w-]{2,4}$/.test(value)) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: 'Invalid email format.',
+            })
+          }
+        }
+      })
+      .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
+    password: z
+      .string()
+      .optional()
+      .refine((val) => !val || /^[^\s]*$/.test(val), {
+        message: 'Space not allowed',
+      })
+      .refine((val) => !val || /.*[A-Z].*/.test(val), { message: passerror })
+      .refine((val) => !val || /.*[a-z].*/.test(val), { message: passerror })
+      .refine((val) => !val || /.*\d.*/.test(val), { message: passerror })
+      .refine(
+        (val) =>
+          !val || /.*[`~<>?,./!@#$%^&*()\-_=+"'\|{}\[\];:\\].*/.test(val),
+        { message: passerror }
+      )
+      .refine((val) => !val || val.length >= 8, { message: passerror }),
+    password_confirmation: z.string().optional(),
+    phone: z.preprocess(
+      (val: unknown) => {
+        if (val === null || val === undefined) return ''
+        if (typeof val === 'number') return String(val)
+        return val
+      },
+      z
+        .string()
+        .min(10, { message: 'Phone number must be at least 10 digits.' })
+        .max(10, { message: 'Phone number must be at most 10 digits.' })
+        .regex(/^[0-9]+$/, { message: 'Only digits are allowed.' })
+    ),
+    role: z.any(),
+    gender: z
+      .any()
+      .refine((val) => val !== null && val !== undefined && val !== '', {
+        message: 'Required.',
+      }),
+    date_of_birth: z.union([
+      z.string().min(1, { message: 'Required.' }),
+      z.date({ invalid_type_error: 'Required.' }),
+    ]),
+    height: z.union([z.number(), z.undefined()]).optional(),
+    weight: z.union([z.number(), z.undefined()]).optional(),
+    lifestyle: z.string().optional(),
+    goal: z.string().optional(),
+    food_preferences: z.string().optional(),
+    medical_conditions: z.string().optional(),
+    food_allergies: z.string().optional(),
+    ethnicity: z.string().optional(),
+    status: z.union([z.number(), z.string()]).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.password || data.password_confirmation) {
+        return data.password === data.password_confirmation
+      }
+      return true
+    },
+    {
+      message: 'Passwords do not match',
+      path: ['password_confirmation'],
+    }
+  )
+
 export const changePasswordSchema = z.object({
   new_password: z
     .string({ required_error: passerror })

@@ -28,6 +28,7 @@ type Props = {
   }[]
   containerRef?: any
   viewMode?: any
+  unmountOnClose?: boolean
 }
 
 export default function CustomDrawer(props: Props) {
@@ -49,6 +50,7 @@ export default function CustomDrawer(props: Props) {
     headerFilter,
     containerRef,
     viewMode,
+    unmountOnClose,
   } = props
 
   const { isDark } = useThemeStore()
@@ -141,7 +143,7 @@ export default function CustomDrawer(props: Props) {
                   : 'px-5 py-4 '
             }`}
           >
-            {children}
+            {!unmountOnClose || open ? children : null}
           </div>
           <div className="p-5 flex items-center justify-between gap-3 border-t border-divider">
             <div>

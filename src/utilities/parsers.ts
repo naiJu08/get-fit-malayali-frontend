@@ -29,20 +29,32 @@ export const formatFormErrors = (params = {}) => {
   )
 }
 export const getErrorMessage = (error: any): string => {
+  if (!error) {
+    return 'An unexpected error occurred'
+  }
   if (typeof error === 'string') {
     return error
   }
-  if (error[0].ctx.error) {
-    if (Array.isArray(error[0].ctx.error)) {
-      return error[0].ctx.error.join(', ')
+
+  // Some APIs return an array of validation errors
+  if (Array.isArray(error) && error.length > 0) {
+    const first = error[0]
+    if (first?.ctx?.error) {
+      if (Array.isArray(first.ctx.error)) {
+        return first.ctx.error.join(', ')
+      }
+      return String(first.ctx.error)
     }
-    return error[0].ctx.error
-  } else if (error[0].msg) {
-    if (Array.isArray(error[0].msg)) {
-      return error[0].msg.join(', ')
+    if (first?.msg) {
+      if (Array.isArray(first.msg)) {
+        return first.msg.join(', ')
+      }
+      return String(first.msg)
     }
-    return error[0].msg
+    // Fall back to stringifying the array
+    return String(error)
   }
+
   if (error && typeof error === 'object') {
     if (Array.isArray(error)) {
       return String(error)

@@ -12,7 +12,12 @@ import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
 // import FormFieldView from '../../../components/common/inputs/FormFieldView'
 import { useCreateAdmin, useUpdateAdmin } from '../api'
-import { AdminSchema, formSchema, formSchemaNutritionist } from './schema'
+import {
+  AdminSchema,
+  formSchema,
+  formSchemaNutritionist,
+  formSchemaNutritionistEdit,
+} from './schema'
 
 type Props = {
   isDrawerOpen: boolean
@@ -213,7 +218,24 @@ export default function CreateAdmin({
             async: false,
             initialLoad: true,
           },
-          { ...textField('goal', 'Goal', 'e.g., Muscle Gain') },
+          {
+            name: 'goal',
+            label: 'Goal',
+            id: 'goal',
+            desc: 'name',
+            descId: 'id',
+            data: [
+              { id: 'Weight Loss', name: 'Weight Loss' },
+              { id: 'Muscle Gain', name: 'Muscle Gain' },
+              { id: 'Wellness', name: 'Wellness' },
+              { id: 'Maintenance', name: 'Maintenance' },
+              { id: 'Disease Management', name: 'Disease Management' },
+            ],
+            type: 'custom_select',
+            placeholder: 'Select Goal',
+            async: false,
+            initialLoad: true,
+          },
           {
             name: 'food_preferences',
             label: 'Food Preferences',
@@ -292,8 +314,8 @@ export default function CreateAdmin({
       role_id: '',
       gender: '',
       date_of_birth: '',
-      height: 0,
-      weight: 0,
+      height: isNutritionistTab ? undefined : '',
+      weight: isNutritionistTab ? undefined : '',
       lifestyle: '',
       goal: '',
       food_preferences: '',
@@ -316,8 +338,8 @@ export default function CreateAdmin({
       role_id: '',
       gender: '',
       date_of_birth: '',
-      height: 0,
-      weight: 0,
+      height: isNutritionistTab ? undefined : '',
+      weight: isNutritionistTab ? undefined : '',
       lifestyle: '',
       goal: '',
       food_preferences: '',
@@ -332,6 +354,18 @@ export default function CreateAdmin({
   useEffect(() => {
     if (isDrawerOpen) {
       if (!viewMode && edit) {
+        const mapGenderToLabel = (v: any) => {
+          if (v === null || v === undefined) return ''
+          if (v === 0 || v === '0') return 'Male'
+          if (v === 1 || v === '1') return 'Female'
+          if (v === 2 || v === '2') return 'Other'
+          const s = String(v).trim().toLowerCase()
+          if (s === 'm' || s === 'male') return 'Male'
+          if (s === 'f' || s === 'female') return 'Female'
+          if (s === 'o' || s === 'other') return 'Other'
+          return ''
+        }
+
         methods.reset({
           name:
             rowData?.user?.first_name && rowData?.user?.last_name
@@ -347,10 +381,16 @@ export default function CreateAdmin({
             if (typeof r === 'string') return r
             return ''
           })(),
-          gender: rowData?.user?.gender ?? '',
+          gender:
+            mapGenderToLabel(rowData?.user?.gender) ||
+            (rowData?.user?.gender ?? ''),
           date_of_birth: rowData?.user?.date_of_birth ?? '',
-          height: rowData?.user?.height ?? 0,
-          weight: rowData?.user?.weight ?? 0,
+          height: isNutritionistTab
+            ? (rowData?.user?.height ?? undefined)
+            : (rowData?.user?.height ?? ''),
+          weight: isNutritionistTab
+            ? (rowData?.user?.weight ?? undefined)
+            : (rowData?.user?.weight ?? ''),
           lifestyle: rowData?.user?.lifestyle ?? '',
           goal: rowData?.user?.goal ?? '',
           food_preferences: rowData?.user?.food_preferences ?? '',
@@ -366,17 +406,22 @@ export default function CreateAdmin({
         } as any)
       }
     }
-  }, [viewMode, edit])
+  }, [isDrawerOpen, viewMode, edit, rowData, isNutritionistTab])
   const onSuccess = () => {
     handleSubmission()
   }
-  const { mutate, isLoading: isCreating } = useCreateAdmin(onSuccess)
-  const { mutate: updateMutation, isLoading: isUpdating } =
+  const { mutateAsync: createMutation, isLoading: isCreating } =
+    useCreateAdmin(onSuccess)
+  const { mutateAsync: updateMutation, isLoading: isUpdating } =
     useUpdateAdmin(onSuccess)
 
   const methods = useForm<AdminSchema>({
     resolver: zodResolver(
-      isNutritionistTab && !edit ? formSchemaNutritionist : formSchema
+      isNutritionistTab
+        ? edit
+          ? formSchemaNutritionistEdit
+          : formSchemaNutritionist
+        : formSchema
     ),
     mode: 'onChange',
     reValidateMode: 'onChange',
@@ -440,7 +485,7 @@ export default function CreateAdmin({
       }
     }
   }, [roleIdValue, isDrawerOpen])
-  const onSubmit = (details: any) => {
+  const onSubmit = async (details: any) => {
     const pickId = (v: any, fallback = 0) => {
       if (v === null || v === undefined) return fallback
       if (typeof v === 'object') {
@@ -559,43 +604,101 @@ export default function CreateAdmin({
       },
     }
 
-    if (rowData?.user?.id) {
-      updateMutation(
-        { id: rowData?.user?.id, data: payload },
-        {
-          onError: (error: any) => {
-            const apiData = error?.response?.data as any
-            const msg =
-              apiData?.errors?.[0] ||
-              (Array.isArray(apiData?.error)
-                ? apiData?.error?.[0]
-                : apiData?.error)
-            if (msg) {
-              ;(methods as any).setError?.('email', {
-                type: 'server',
-                message: msg,
-              })
-            }
-          },
+    const extractEmailErrorMessage = (apiData: any) => {
+      const takeFirstString = (v: any): string => {
+        if (!v) return ''
+        if (typeof v === 'string') return v
+        if (Array.isArray(v)) {
+          const first = v.find((x) => typeof x === 'string')
+          return first ? String(first) : ''
         }
-      )
-    } else {
-      mutate(payload, {
-        onError: (error: any) => {
-          const apiData = error?.response?.data as any
-          const msg =
-            apiData?.errors?.[0] ||
-            (Array.isArray(apiData?.error)
-              ? apiData?.error?.[0]
-              : apiData?.error)
-          if (msg) {
-            ;(methods as any).setError?.('email', {
-              type: 'server',
-              message: msg,
-            })
+        if (typeof v === 'object') {
+          if (typeof v.message === 'string') return v.message
+          if (typeof v.error === 'string') return v.error
+        }
+        return ''
+      }
+
+      const direct =
+        takeFirstString(apiData?.errors?.email) ||
+        takeFirstString(apiData?.error?.email) ||
+        takeFirstString(apiData?.error?.errors?.email) ||
+        takeFirstString(apiData?.error?.errors?.[0]) ||
+        takeFirstString(apiData?.error?.errors) ||
+        takeFirstString(apiData?.errors?.[0]) ||
+        takeFirstString(apiData?.errors) ||
+        takeFirstString(apiData?.error) ||
+        takeFirstString(apiData?.message) ||
+        takeFirstString(apiData?.error?.message)
+      if (direct) return direct
+
+      const errorsObj = apiData?.errors
+      if (
+        errorsObj &&
+        typeof errorsObj === 'object' &&
+        !Array.isArray(errorsObj)
+      ) {
+        for (const k of Object.keys(errorsObj)) {
+          if (String(k).toLowerCase().includes('email')) {
+            const m = takeFirstString((errorsObj as any)[k])
+            if (m) return m
           }
-        },
-      })
+        }
+      }
+
+      const msgText =
+        takeFirstString(apiData?.message) ||
+        takeFirstString(apiData?.error?.message)
+      if (msgText && msgText.toLowerCase().includes('email')) return msgText
+
+      // fallback: backend may send a generic duplicate message without the word "email"
+      const generic =
+        takeFirstString(apiData?.message) ||
+        takeFirstString(apiData?.detail) ||
+        takeFirstString(apiData?.error?.message)
+      if (generic) {
+        const g = generic.toLowerCase()
+        if (
+          g.includes('taken') ||
+          g.includes('already') ||
+          g.includes('exists')
+        ) {
+          return generic
+        }
+      }
+
+      return ''
+    }
+
+    try {
+      if (rowData?.user?.id) {
+        await updateMutation({ id: rowData?.user?.id, data: payload } as any)
+      } else {
+        await createMutation(payload as any)
+      }
+    } catch (error: any) {
+      const apiData = (error?.response?.data ?? error?.data ?? error) as any
+      const statusCode: number | undefined = error?.response?.status
+      const msg =
+        extractEmailErrorMessage(apiData) ||
+        (typeof error?.message === 'string' ? error.message : '')
+      const fallbackMsg =
+        statusCode === 409 || statusCode === 422
+          ? 'Email has already been taken.'
+          : ''
+
+      const finalMsg = msg || fallbackMsg
+
+      if (finalMsg) {
+        ;(methods as any).setError?.(
+          'email',
+          {
+            type: 'server',
+            message: String(finalMsg),
+          },
+          { shouldFocus: true }
+        )
+      }
     }
   }
 
@@ -670,7 +773,7 @@ export default function CreateAdmin({
         title={(() => {
           const label =
             activeRole === 'nutritionist' ? 'Nutritionist' : 'Client'
-          if (edit) return `Edit ${label} Details`
+          if (edit) return `Edit ${label}`
           if (viewMode) return `${label} Details`
           return `Create ${label}`
         })()}
