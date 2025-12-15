@@ -117,13 +117,13 @@ export const getColumns = ({
       customCell: true,
       ...defaultColumnProps,
     },
-    {
-      title: 'Description',
-      renderCell: createRenderCell('description'),
-      field: 'description',
-      customCell: true,
-      ...defaultColumnProps,
-    },
+    // {
+    //   title: 'Description',
+    //   renderCell: createRenderCell('description'),
+    //   field: 'description',
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
     {
       title: 'Fees',
       field: 'fees',

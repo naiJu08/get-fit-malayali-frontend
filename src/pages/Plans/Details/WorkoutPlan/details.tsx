@@ -12,7 +12,7 @@ import Tab from '../../../../components/common/tab/Tab'
 import { TabItemProps } from '../../../../common/types'
 import { useWorkoutList } from '../../../Workout/api'
 import { useAuthStore } from '../../../../store/authStore'
-import { useAddExercise } from './api'
+import { useAddExercises } from './api'
 import { TabContainer } from '../../../../components/common'
 
 // function stripHtml(value: any) {
@@ -70,6 +70,7 @@ function AssignTabContent({
   error,
   // selectedWorkouts,
   getEmbedUrl,
+  refreshDetails,
 }: any) {
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<any[]>([])
   const [removedExerciseIds, setRemovedExerciseIds] = useState<any[]>([])
@@ -97,6 +98,7 @@ function AssignTabContent({
       setSelectedExerciseIds([])
       const msg = res?.message || 'Exercises removed successfully'
       enqueueSnackbar(msg, { variant: 'success' })
+      await refreshDetails?.()
     } catch (e: any) {
       console.error(e)
     }
@@ -145,7 +147,7 @@ function AssignTabContent({
               )}
           </div>
           {exercises.length > 0 ? (
-            <div className="grid grid-cols-4 gap-3 place-items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 place-items-stretch">
               {exercises.map((ex: any) => {
                 const rawUrl =
                   ex?.video_url ||
@@ -160,7 +162,7 @@ function AssignTabContent({
                 return (
                   <div
                     key={ex?.id}
-                    className="border rounded bg-white overflow-hidden w-80"
+                    className="border rounded bg-white overflow-hidden w-full"
                   >
                     {embed ? (
                       <div className="w-full h-36 bg-black/5">
@@ -267,7 +269,8 @@ export default function WorkoutPlanDetails() {
   const [wpSearch, setWpSearch] = useState<string>('')
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
-  const { mutateAsync: addExerciseAsync } = useAddExercise()
+  // const { mutateAsync: addExerciseAsync } = useAddExercise()
+  const { mutateAsync: addExercisesAsync } = useAddExercises()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
 
@@ -312,16 +315,18 @@ export default function WorkoutPlanDetails() {
     per_page: wpPerPage,
     search: wpSearch,
   } as any)
-  const assignedWorkoutIds = new Set(
+  const assignedWorkoutIds = new Set<string>(
     Array.isArray(wp?.exercises)
       ? wp.exercises
-          .map((ex: any) => ex?.workout_id || ex?.workout?.id || null)
-          .filter((id: any) => id !== null && id !== undefined)
+          .flatMap((ex: any) => [ex?.workout_id, ex?.workout?.id, ex?.id])
+          .filter((v: any) => v !== null && v !== undefined && v !== '')
+          .map((v: any) => String(v))
       : []
   )
-  const workouts = (workoutsResp?.workouts ?? []).filter(
-    (w: any) => !assignedWorkoutIds.has(w?.id)
-  )
+  const workouts = (workoutsResp?.workouts ?? []).filter((w: any) => {
+    const idStr = w?.id === null || w?.id === undefined ? '' : String(w?.id)
+    return idStr ? !assignedWorkoutIds.has(idStr) : true
+  })
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
     if (!u) return ''
@@ -358,6 +363,14 @@ export default function WorkoutPlanDetails() {
     }
   }, [currentTab])
 
+  useEffect(() => {
+    if (assignOpen) {
+      setSelectedWorkouts([])
+      setDragIndex(null)
+      setReviewOpen(false)
+    }
+  }, [assignOpen])
+
   const handleNext = () => {
     if (selectedWorkouts.length === 0) return
     setReviewOpen(true)
@@ -368,24 +381,24 @@ export default function WorkoutPlanDetails() {
     if (!wp?.id || selectedWorkouts.length === 0) return
     setAssigning(true)
     try {
-      await Promise.all(
-        selectedWorkouts.map((w, idx) =>
-          addExerciseAsync({
-            id: wp.id,
-            payload: {
-              exercise: {
-                workout_id: w?.id,
-                sequence_number: idx + 1,
-              },
-            },
-          })
-        )
-      )
+      await addExercisesAsync({
+        id: wp.id,
+        payload: {
+          exercises: selectedWorkouts.map((w, idx) => ({
+            workout_id: w?.id,
+            sequence_number: idx + 1,
+          })),
+        },
+      })
       await refreshDetails()
       setReviewOpen(false)
       setSearchParams({ tab: 'assign' })
     } finally {
       setAssigning(false)
+      setSelectedWorkouts([])
+      setDragIndex(null)
+      setWpSearch('')
+      setWpPage(1)
     }
   }
 
@@ -442,6 +455,10 @@ export default function WorkoutPlanDetails() {
             <button
               className="px-3 py-1 text-sm border rounded btn-primary"
               onClick={() => {
+                setSelectedWorkouts([])
+                setDragIndex(null)
+                setReviewOpen(false)
+                setWpSearch('')
                 setAssignOpen(true)
                 setWpPage(1)
               }}
@@ -478,6 +495,7 @@ export default function WorkoutPlanDetails() {
                   error={error}
                   selectedWorkouts={selectedWorkouts}
                   getEmbedUrl={getEmbedUrl}
+                  refreshDetails={refreshDetails}
                 />
               </Tab>
             </TabContainer>
@@ -496,6 +514,7 @@ export default function WorkoutPlanDetails() {
         title={'Assign Workout'}
         handleSubmit={handleNext}
         disableSubmit={selectedWorkouts.length === 0}
+        hideSubmit={selectedWorkouts.length === 0}
         actionLoader={false}
         actionLabel={'Next'}
       >
@@ -660,7 +679,7 @@ export default function WorkoutPlanDetails() {
         handleSubmit={handleBulkAssign}
         disableSubmit={assigning || selectedWorkouts.length === 0}
         actionLoader={assigning}
-        actionLabel={'Assign'}
+        actionLabel={'Confirm'}
       >
         <div className="mt-4">
           <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
