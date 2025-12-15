@@ -176,8 +176,9 @@ function AssignTabContent({
                       </div>
                     ) : url ? (
                       <video
-                        className=" h-40 w-full object-cover"
-                        src={url}
+                        className="w-full h-32 object-cover rounded"
+                        src={String(url)}
+                        muted
                         controls
                       />
                     ) : (
@@ -458,8 +459,8 @@ export default function WorkoutPlanDetails() {
                 setSelectedWorkouts([])
                 setDragIndex(null)
                 setReviewOpen(false)
-                setWpSearch('')
                 setAssignOpen(true)
+                setWpSearch('')
                 setWpPage(1)
               }}
             >
@@ -511,6 +512,8 @@ export default function WorkoutPlanDetails() {
           setWpSearch('')
           setWpPage(1)
         }}
+        className="w-screen max-w-[100vw]"
+        unmountOnClose
         title={'Assign Workout'}
         handleSubmit={handleNext}
         disableSubmit={selectedWorkouts.length === 0}
@@ -518,150 +521,129 @@ export default function WorkoutPlanDetails() {
         actionLoader={false}
         actionLabel={'Next'}
       >
-        <div className="w-[900px] max-w-[95vw]">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded p-3 flex flex-col">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-medium">Workouts</div>
-                <div className="flex items-center gap-2">
-                  <input
-                    value={wpSearch}
-                    onChange={(e) => {
-                      setWpSearch(e.target.value)
-                      setWpPage(1)
-                    }}
-                    placeholder="Search workouts..."
-                    className="border rounded px-2 py-1 text-sm"
-                  />
-                  <select
-                    className="border rounded px-2 py-1 text-sm"
-                    value={wpPerPage}
-                    onChange={(e) => {
-                      setWpPerPage(Number(e.target.value))
-                      setWpPage(1)
-                    }}
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                </div>
-              </div>
-              <div className="max-h-[60vh] overflow-y-auto divide-y">
-                {workoutsLoading && (
-                  <div className="text-xs text-gray-500 p-2">Loading...</div>
-                )}
-                {!workoutsLoading && workouts.length === 0 && (
-                  <div className="text-xs text-gray-500 p-2">
-                    No workouts found.
-                  </div>
-                )}
-                {workouts.map((w: any) => (
-                  <div
-                    key={w?.id}
-                    className={`w-full flex items-start gap-2 p-2 hover:bg-gray-50 cursor-pointer ${
-                      isSelected(w?.id) ? 'bg-primary/10' : ''
-                    }`}
-                    onClick={(e) => {
-                      // avoid double toggle when clicking the checkbox itself
-                      if (
-                        (e.target as HTMLElement).tagName.toLowerCase() !==
-                        'input'
-                      ) {
-                        toggleSelected(w)
-                      }
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={isSelected(w?.id)}
-                      onChange={() => toggleSelected(w)}
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">
-                        {w?.name || 'Untitled'}
-                      </div>
-                      <div
-                        className="text-xs text-gray-500 line-clamp-1"
-                        dangerouslySetInnerHTML={{
-                          __html: w?.description || '',
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="flex items-center justify-between pt-2 text-xs text-gray-600">
-                <div>
-                  Page {workoutsResp?.meta?.current_page ?? wpPage} /{' '}
-                  {workoutsResp?.meta?.total_pages ?? 1}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    className="px-2 py-1 border rounded disabled:opacity-50"
-                    disabled={(workoutsResp?.meta?.current_page ?? wpPage) <= 1}
-                    onClick={() => setWpPage((p) => Math.max(1, p - 1))}
-                  >
-                    Prev
-                  </button>
-                  <button
-                    className="px-2 py-1 border rounded disabled:opacity-50"
-                    disabled={
-                      (workoutsResp?.meta?.current_page ?? wpPage) >=
-                      (workoutsResp?.meta?.total_pages ?? 1)
-                    }
-                    onClick={() => setWpPage((p) => p + 1)}
-                  >
-                    Next
-                  </button>
-                </div>
+        <div className="w-full">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+              <div className="text-sm font-medium">Workouts</div>
+              <div className="flex items-center gap-2">
+                <input
+                  value={wpSearch}
+                  onChange={(e) => {
+                    setWpSearch(e.target.value)
+                    setWpPage(1)
+                  }}
+                  placeholder="Search workouts..."
+                  className="border rounded px-2 py-1 text-sm"
+                />
+                <select
+                  className="border rounded px-2 py-1 text-sm"
+                  value={wpPerPage}
+                  onChange={(e) => {
+                    setWpPerPage(Number(e.target.value))
+                    setWpPage(1)
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
               </div>
             </div>
-            <div className="border rounded p-3">
-              <div className="text-sm font-medium mb-2">Video Preview</div>
-              {selectedWorkouts.length === 0 && (
-                <div className="text-xs text-gray-500">
-                  Select one or more workouts to preview.
-                </div>
-              )}
-              {selectedWorkouts.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {selectedWorkouts.map((w, i) => {
-                    const url = w?.video_url || ''
-                    const embed = getEmbedUrl(url)
-                    return (
-                      <div key={w?.id} className="border rounded p-2">
-                        <div className="px-1 pt-1 text-xs font-medium line-clamp-1">
-                          {i + 1}. {w?.name || 'Untitled'}
-                        </div>
-                        {embed ? (
-                          <div className="w-full h-32 rounded overflow-hidden bg-black/5">
-                            <iframe
-                              src={embed}
-                              title={`Workout Video ${w?.id}`}
-                              className="w-full h-full"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                            />
-                          </div>
-                        ) : url ? (
-                          <video
-                            className="w-full h-32 object-cover rounded"
-                            src={String(url)}
-                            controls
+
+            {workoutsLoading && (
+              <div className="text-xs text-gray-500 p-2">Loading...</div>
+            )}
+            {!workoutsLoading && workouts.length === 0 && (
+              <div className="text-xs text-gray-500 p-2">
+                No workouts found.
+              </div>
+            )}
+
+            {!workoutsLoading && workouts.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {workouts.map((w: any) => {
+                  const url = w?.video_url || ''
+                  const embed = getEmbedUrl(url)
+                  const checked = isSelected(w?.id)
+                  return (
+                    <div
+                      key={w?.id}
+                      className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
+                        checked ? 'ring-2 ring-primary/30' : ''
+                      }`}
+                      onClick={(e) => {
+                        if (
+                          (e.target as HTMLElement).tagName.toLowerCase() !==
+                          'input'
+                        ) {
+                          toggleSelected(w)
+                        }
+                      }}
+                    >
+                      {embed ? (
+                        <div className="w-full h-40 bg-black/5">
+                          <iframe
+                            src={embed}
+                            title={`Workout Video ${w?.id}`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
                           />
-                        ) : (
-                          <div className="text-xs text-gray-600 px-1 pb-1">
-                            No video URL available.
-                          </div>
-                        )}
+                        </div>
+                      ) : url ? (
+                        <video
+                          className="w-full h-32 object-cover rounded"
+                          src={String(url)}
+                          muted
+                          controls
+                        />
+                      ) : (
+                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                          No video
+                        </div>
+                      )}
+                      <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
+                        <div className="font-medium line-clamp-1">
+                          {w?.name || 'Untitled'}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 shrink-0"
+                          checked={checked}
+                          onChange={() => toggleSelected(w)}
+                        />
                       </div>
-                    )
-                  })}
-                </div>
-              )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-2 text-xs text-gray-600">
+              <div>
+                Page {workoutsResp?.meta?.current_page ?? wpPage} /{' '}
+                {workoutsResp?.meta?.total_pages ?? 1}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-2 py-1 border rounded disabled:opacity-50"
+                  disabled={(workoutsResp?.meta?.current_page ?? wpPage) <= 1}
+                  onClick={() => setWpPage((p) => Math.max(1, p - 1))}
+                >
+                  Prev
+                </button>
+                <button
+                  className="px-2 py-1 border rounded disabled:opacity-50"
+                  disabled={
+                    (workoutsResp?.meta?.current_page ?? wpPage) >=
+                    (workoutsResp?.meta?.total_pages ?? 1)
+                  }
+                  onClick={() => setWpPage((p) => p + 1)}
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -675,6 +657,7 @@ export default function WorkoutPlanDetails() {
           setSelectedWorkouts([])
           setDragIndex(null)
         }}
+        unmountOnClose
         title={'Review & Order Exercises'}
         handleSubmit={handleBulkAssign}
         disableSubmit={assigning || selectedWorkouts.length === 0}
@@ -718,12 +701,17 @@ export default function WorkoutPlanDetails() {
                         src={embed}
                         allowFullScreen
                       ></iframe>
-                    ) : (
+                    ) : url ? (
                       <video
                         src={url}
                         controls
+                        muted
                         className="w-full h-48 object-cover"
                       />
+                    ) : (
+                      <div className="text-sm text-gray-500 italic">
+                        No video URL available.
+                      </div>
                     )}
 
                     {/* Footer */}
