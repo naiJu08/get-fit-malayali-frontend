@@ -397,7 +397,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
                 <label className="text-xs text-gray-600">Search</label>
                 <div className="relative">
                   <input
-                    className="pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl w-80 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm"
+                    className="pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg w-80 focus:outline-none focus:border-gray-200 transition-all duration-200 bg-white shadow-sm"
                     // placeholder="Search records..."
                     placeholder={searchPlaceholder}
                     value={searchValue || ''}
@@ -481,7 +481,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
 
       {/* Table Content */}
       <div
-        className="overflow-auto flex-1 relative"
+        className="overflow-y-scroll overflow-x-auto flex-1 relative"
         style={{ maxHeight: typeof height === 'number' ? height : undefined }}
       >
         <table className="min-w-full table-fixed">
