@@ -19,6 +19,26 @@ const numberFromSelect = z.preprocess((val) => {
   return val
 }, numberFromText)
 
+const requiredNumberFromText = (fieldLabel: string) =>
+  z.preprocess(
+    (val) => {
+      if (typeof val === 'number') return val
+      if (typeof val === 'string') {
+        const trimmed = val.trim()
+        if (!trimmed) return undefined
+        const n = Number(trimmed)
+        return Number.isNaN(n) ? undefined : n
+      }
+      return val
+    },
+    z
+      .number({
+        required_error: `${fieldLabel} is required`,
+        invalid_type_error: `${fieldLabel} must be a number`,
+      })
+      .nonnegative({ message: `${fieldLabel} cannot be negative` })
+  )
+
 export const mealFormSchema = z.object({
   name: z
     .string({ required_error: 'Name is required' })
@@ -30,41 +50,16 @@ export const mealFormSchema = z.object({
 
   notes: z.string().optional(),
 
-  // Macro calories (numbers). If your inputs are text, we can switch to preprocess.
-  //   protein: z
-  //     .number({ invalid_type_error: 'Protein must be a number' })
-  //     .nonnegative({ message: 'Protein cannot be negative' }),
-
-  //   carbs: z
-  //     .number({ invalid_type_error: 'Carbs must be a number' })
-  //     .nonnegative({ message: 'Carbs cannot be negative' }),
-
-  //   fat: z
-  //     .number({ invalid_type_error: 'Fat must be a number' })
-  //     .nonnegative({ message: 'Fat cannot be negative' }),
-
-  //   fiber: z
-  //     .number({ invalid_type_error: 'Fiber must be a number' })
-  //     .nonnegative({ message: 'Fiber cannot be negative' }),
-
-  //   total_calories: z
-  //     .number({ invalid_type_error: 'Total calories must be a number' })
-  //     .nonnegative({ message: 'Total calories cannot be negative' }),
-  // protein: numberFromText,
-  // carbs: numberFromText,
-  // fat: numberFromText,
-  // fiber: numberFromText,
-  // total_calories: numberFromText,
   meal_category: z.string().optional(),
   meal_category_id: numberFromSelect,
   serving_unit: z.string().min(1, { message: 'Serving unit is required' }),
-  default_serving_quantity: numberFromText,
+  default_serving_quantity: requiredNumberFromText('Serving Quantity'),
 
   per_serving_calories: numberFromText,
-  per_serving_protein: numberFromText,
-  per_serving_carbs: numberFromText,
-  per_serving_fat: numberFromText,
-  per_serving_fiber: numberFromText,
+  per_serving_protein: requiredNumberFromText('Protein'),
+  per_serving_carbs: requiredNumberFromText('Carbs'),
+  per_serving_fat: requiredNumberFromText('Fat'),
+  per_serving_fiber: requiredNumberFromText('Fiber'),
 })
 
 export type MealSchema = z.infer<typeof mealFormSchema>

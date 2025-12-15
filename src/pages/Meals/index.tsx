@@ -4,6 +4,7 @@ import { TableColumns } from '../../common/types'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import SmartTable from '../../components/common/table/SmartTable'
+import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../utilities/parsers'
 import { calcWindowHeight } from '../../utilities/calcHeight'
@@ -18,6 +19,8 @@ export default function Meals() {
   const [createOpen, setCreateOpen] = useState(false)
   const [edit, setEdit] = useState(false)
   const [rowData, setRowData] = useState<any>()
+  const [deleteMealModal, setDeleteMealModal] = useState(false)
+  const [mealToDelete, setMealToDelete] = useState<any>(null)
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const navigate = useNavigate()
   const deleteMealMutation = useDeleteMeal()
@@ -115,13 +118,19 @@ export default function Meals() {
   }, [location.pathname, setPageParams])
   const handleDelete = (row: any) => {
     if (!row?.id) return
-    if (window.confirm('Are you sure you want to delete this meal?')) {
-      deleteMealMutation.mutate(row.id, {
-        onSuccess: () => {
-          handleRefresh()
-        },
-      } as any)
-    }
+    setMealToDelete(row)
+    setDeleteMealModal(true)
+  }
+
+  const handleConfirmDeleteMeal = () => {
+    if (!mealToDelete?.id) return
+    deleteMealMutation.mutate(mealToDelete.id, {
+      onSuccess: () => {
+        handleRefresh()
+        setDeleteMealModal(false)
+        setMealToDelete(null)
+      },
+    } as any)
   }
 
   return (
@@ -215,6 +224,23 @@ export default function Meals() {
         handleRefresh={handleRefresh}
         edit={edit}
         rowData={rowData}
+      />
+      <ConfirmDeleteModal
+        isOpen={deleteMealModal}
+        onClose={() => {
+          if (!deleteMealMutation.isLoading) {
+            setDeleteMealModal(false)
+            setMealToDelete(null)
+          }
+        }}
+        onConfirm={handleConfirmDeleteMeal}
+        loading={deleteMealMutation.isLoading}
+        title={'Are you sure?'}
+        subTitle={
+          'Do you really want to delete this meal? This process cannot be undone.'
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
       />
     </div>
   )
