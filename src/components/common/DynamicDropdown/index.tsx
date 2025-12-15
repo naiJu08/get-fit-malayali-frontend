@@ -11,6 +11,8 @@ interface SelectDropdownProps {
   unAllocate?: boolean
   getData?: (search: string, page: number) => Promise<any>
   disabled?: boolean
+  hideSearch?: boolean
+  hideLoader?: boolean
 }
 
 const DynamicDropdown: React.FC<SelectDropdownProps> = ({
@@ -19,6 +21,8 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
   setUpdateCREId,
   getData,
   disabled,
+  hideSearch = false,
+  hideLoader = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [searchKey, setSearchKey] = useState('')
@@ -101,7 +105,7 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
         <div className="menuopened">
           <div className="max-h-[240px] overflow-y-auto flex flex-col gap-1">
             <div className="relative">
-              {getData && (
+              {getData && !hideSearch && (
                 <input
                   placeholder="Search"
                   className="sticky top-0 outline-none w-full textfield"
@@ -109,7 +113,7 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
                   value={searchKey ?? value}
                 />
               )}
-              {isLoading && (
+              {isLoading && !hideLoader && (
                 <div className="absolute top-1.5 text-grey-light right-2 bg-grey-lightAlt grid place-items-center">
                   <Spinner />
                 </div>

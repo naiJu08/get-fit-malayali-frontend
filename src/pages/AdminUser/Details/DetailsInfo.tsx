@@ -69,7 +69,7 @@ export default function DetailsInfo({
       )}
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DetailItem label="Name" value={user?.name} />
+          <DetailItem label="Name" value={capitalizeWord(user?.name)} />
           <DetailItem label="Email" value={user?.email || user?.username} />
           <DetailItem label="Phone" value={user?.phone} />
           <DetailItem label="Role" value={mapRole(user?.role)} />
