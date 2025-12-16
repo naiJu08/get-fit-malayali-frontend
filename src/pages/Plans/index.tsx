@@ -351,7 +351,7 @@ export default function Plans() {
                   <div className="flex flex-col gap-1 ">
                     <label className="text-xs text-gray-600">Status</label>
                     <select
-                      className="w-64 flex flex-col gap-1 z-20 border p-[11px] rounded-lg bg-white text-xs"
+                      className="w-64 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-lg bg-white text-xs focus:outline-none focus:ring-0 focus:border-gray-300"
                       value={statusFilter}
                       onChange={(e) => applyStatusFilter(e.target.value)}
                     >

@@ -64,7 +64,10 @@ export default function DietPlanDetails() {
       {!loading && !error && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <DetailItem label="Plan Name" value={dp?.plan_name} />
+            <DetailItem
+              label="Plan Name"
+              value={capitalizeFirst(dp?.plan_name)}
+            />
             <DetailItem label="Plan Id" value={safeStr(dp?.plan_id)} />
             <DetailItem label="Day Number" value={safeStr(dp?.day_number)} />
             <DetailItem
@@ -249,4 +252,10 @@ function DetailItem({ label, value }: { label: string; value: any }) {
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
+}
+
+function capitalizeFirst(v: any) {
+  const s = safeStr(v)
+  if (s === '--') return s
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }

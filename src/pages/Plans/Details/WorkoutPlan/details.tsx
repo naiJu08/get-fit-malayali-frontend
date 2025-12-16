@@ -15,11 +15,6 @@ import { useAuthStore } from '../../../../store/authStore'
 import { useAddExercises } from './api'
 import { TabContainer } from '../../../../components/common'
 
-// function stripHtml(value: any) {
-//   if (!value) return ''
-//   return String(value).replace(/<[^>]+>/g, '')
-// }
-
 function DetailsTabContent({
   wp,
   loading,
@@ -208,44 +203,6 @@ function AssignTabContent({
           ) : (
             <div className="text-sm text-gray-600">No exercises assigned.</div>
           )}
-
-          {/* {selectedWorkouts.length > 0 && (
-            <div className="mt-6">
-              <div className="text-sm font-semibold mb-3">
-                Selected Workouts Preview
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {selectedWorkouts.map((w: any, i: number) => {
-                  const url = w?.video_url || ''
-                  const embed = getEmbedUrl(url)
-                  return (
-                    <div key={w?.id} className="border rounded">
-                      <div className="px-3 py-2 text-sm font-medium">
-                        {i + 1}. {w?.name || 'Untitled'}
-                      </div>
-                      {embed ? (
-                        <div className="aspect-video w-full">
-                          <iframe
-                            src={embed}
-                            title={`Workout Video ${w?.id}`}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                          />
-                        </div>
-                      ) : url ? (
-                        <video className="w-full" src={String(url)} controls />
-                      ) : (
-                        <div className="text-sm text-gray-600 px-3 pb-3">
-                          No video URL available.
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )} */}
         </>
       )}
     </>
@@ -316,18 +273,7 @@ export default function WorkoutPlanDetails() {
     per_page: wpPerPage,
     search: wpSearch,
   } as any)
-  const assignedWorkoutIds = new Set<string>(
-    Array.isArray(wp?.exercises)
-      ? wp.exercises
-          .flatMap((ex: any) => [ex?.workout_id, ex?.workout?.id, ex?.id])
-          .filter((v: any) => v !== null && v !== undefined && v !== '')
-          .map((v: any) => String(v))
-      : []
-  )
-  const workouts = (workoutsResp?.workouts ?? []).filter((w: any) => {
-    const idStr = w?.id === null || w?.id === undefined ? '' : String(w?.id)
-    return idStr ? !assignedWorkoutIds.has(idStr) : true
-  })
+  const workouts = workoutsResp?.workouts ?? []
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
     if (!u) return ''
@@ -359,18 +305,38 @@ export default function WorkoutPlanDetails() {
   useEffect(() => {
     if (currentTab !== 'assign') {
       setAssignOpen(false)
-      setSelectedWorkouts([])
       setReviewOpen(false)
     }
   }, [currentTab])
 
   useEffect(() => {
     if (assignOpen) {
-      setSelectedWorkouts([])
       setDragIndex(null)
       setReviewOpen(false)
+
+      // On first open (or after successful assign when selection was cleared),
+      // pre-select workouts that are already assigned in this plan.
+      if (selectedWorkouts.length === 0 && Array.isArray(wp?.exercises)) {
+        const map = new Map<any, any>()
+        wp.exercises.forEach((ex: any) => {
+          const id = ex?.workout_id || ex?.workout?.id || ex?.id
+          if (!id) return
+          if (!map.has(id)) {
+            map.set(id, {
+              id,
+              name: ex?.workout_name || ex?.workout?.name,
+              video_url:
+                ex?.video_url ||
+                ex?.workout_video_url ||
+                ex?.workout?.video_url ||
+                '',
+            })
+          }
+        })
+        setSelectedWorkouts(Array.from(map.values()))
+      }
     }
-  }, [assignOpen])
+  }, [assignOpen, wp?.exercises, selectedWorkouts.length])
 
   const handleNext = () => {
     if (selectedWorkouts.length === 0) return
@@ -382,45 +348,31 @@ export default function WorkoutPlanDetails() {
     if (!wp?.id || selectedWorkouts.length === 0) return
     setAssigning(true)
     try {
+      // Always send all currently checked workouts from the Review drawer
+      // in their visual order with sequence_number 1..N
       await addExercisesAsync({
         id: wp.id,
         payload: {
-          exercises: selectedWorkouts.map((w, idx) => ({
-            workout_id: w?.id,
-            sequence_number: idx + 1,
-          })),
+          exercises: selectedWorkouts
+            .filter((w: any) => w?.id != null)
+            .map((w: any, idx: number) => ({
+              workout_id: w.id,
+              sequence_number: idx + 1,
+            })),
         },
       })
+
       await refreshDetails()
+      setSelectedWorkouts([])
       setReviewOpen(false)
       setSearchParams({ tab: 'assign' })
     } finally {
       setAssigning(false)
-      setSelectedWorkouts([])
       setDragIndex(null)
       setWpSearch('')
       setWpPage(1)
     }
   }
-
-  // const handleAssignOne = async (workout: any, index: number) => {
-  //   if (!wp?.id || !workout?.id) return
-  //   setAssigning(true)
-  //   try {
-  //     await addExerciseAsync({
-  //       id: wp.id,
-  //       payload: {
-  //         exercise: {
-  //           workout_id: workout.id,
-  //           sequence_number: index + 1,
-  //         },
-  //       },
-  //     })
-  //     await refreshDetails()
-  //   } finally {
-  //     setAssigning(false)
-  //   }
-  // }
 
   const onDragStart = (index: number) => setDragIndex(index)
   const onDragOver = (e: any) => {
@@ -456,7 +408,6 @@ export default function WorkoutPlanDetails() {
             <button
               className="px-3 py-1 text-sm border rounded btn-primary"
               onClick={() => {
-                setSelectedWorkouts([])
                 setDragIndex(null)
                 setReviewOpen(false)
                 setAssignOpen(true)
@@ -508,7 +459,6 @@ export default function WorkoutPlanDetails() {
         open={assignOpen}
         handleClose={() => {
           setAssignOpen(false)
-          setSelectedWorkouts([])
           setWpSearch('')
           setWpPage(1)
         }}
@@ -657,6 +607,7 @@ export default function WorkoutPlanDetails() {
           setSelectedWorkouts([])
           setDragIndex(null)
         }}
+        className="w-screen max-w-[100vw] h-screen"
         unmountOnClose
         title={'Review & Order Exercises'}
         handleSubmit={handleBulkAssign}
@@ -675,7 +626,7 @@ export default function WorkoutPlanDetails() {
             </span>
           </h2>
           {selectedWorkouts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
               {selectedWorkouts.map((w, i) => {
                 const embed = getEmbedUrl(w?.video_url)
                 const url = w?.video_url || ''
@@ -742,11 +693,6 @@ function DetailItem({ label, value }: { label: string; value: any }) {
   )
 }
 
-// function formatDate(d: any) {
-//   if (!d) return '--'
-//   const m = moment(d)
-//   return m.isValid() ? m.format('YYYY-MM-DD') : String(d)
-// }
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
