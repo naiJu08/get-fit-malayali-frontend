@@ -5,6 +5,11 @@ function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
 }
+function capitalizeFirst(v: any) {
+  const s = safeStr(v)
+  if (s === '--') return s
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
 function mapActive(v: any) {
   if (v === true || v === 'true' || v === 1 || v === '1') return 'Active'
   if (v === false || v === 'false' || v === 0 || v === '0') return 'Inactive'
@@ -57,7 +62,7 @@ export default function DetailsInfo({
       )}
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <DetailItem label="Name" value={plan?.name} />
+          <DetailItem label="Name" value={capitalizeFirst(plan?.name)} />
           <DetailItem label="Category" value={plan?.category} />
           <DetailItem label="Description" value={plan?.description} />
           <DetailItem
