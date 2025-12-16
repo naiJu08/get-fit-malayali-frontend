@@ -41,6 +41,7 @@ export default function Subscriptions({
   const [overviewLoading, setOverviewLoading] = useState(false)
   const [currentMonth, setCurrentMonth] = useState<string>('')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [subscriptionEditMode, setSubscriptionEditMode] = useState(false)
   const [dayDetailOpen, setDayDetailOpen] = useState(false)
   const [dayDetail, setDayDetail] = useState<any>(null)
   const [dayDetailLoading, setDayDetailLoading] = useState(false)
@@ -406,7 +407,8 @@ export default function Subscriptions({
     return errs
   }, [subForm.plan_id, subForm.start_date, subForm.end_date])
 
-  const openSubscriptionDrawer = () => {
+  const openSubscriptionDrawer = (isUpdate = false) => {
+    setSubscriptionEditMode(isUpdate)
     setSelectedPlanOption(null)
     setSubSubmitAttempted(false)
     setSubForm({
@@ -418,7 +420,10 @@ export default function Subscriptions({
     })
     setDrawerOpen(true)
   }
-  const closeSubscriptionDrawer = () => setDrawerOpen(false)
+  const closeSubscriptionDrawer = () => {
+    setDrawerOpen(false)
+    setSubscriptionEditMode(false)
+  }
 
   const handleSubmitSubscription = async () => {
     setSubSubmitAttempted(true)
@@ -478,7 +483,7 @@ export default function Subscriptions({
                 <Button
                   className="primaryButton"
                   label="Add Subscription"
-                  onClick={() => openSubscriptionDrawer()}
+                  onClick={() => openSubscriptionDrawer(false)}
                 />
               </div>
             )}
@@ -548,7 +553,7 @@ export default function Subscriptions({
                       <Button
                         className="primaryButton"
                         label="Update Subscription"
-                        onClick={() => openSubscriptionDrawer()}
+                        onClick={() => openSubscriptionDrawer(true)}
                       />
                     )}
                   </div>
@@ -760,7 +765,9 @@ export default function Subscriptions({
       <DialogModal
         isOpen={drawerOpen}
         onClose={() => closeSubscriptionDrawer()}
-        title="Add Subscription"
+        title={
+          subscriptionEditMode ? 'Update Subscription' : 'Add Subscription'
+        }
         onSubmit={handleSubmitSubscription}
         secondaryAction={() => closeSubscriptionDrawer()}
         secondaryActionLabel="Close"

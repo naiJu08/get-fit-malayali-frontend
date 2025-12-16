@@ -92,7 +92,7 @@ export default function DetailsInfo({
                 label="Medical Conditions"
                 value={user?.medical_conditions}
               />
-              <DetailItem label="Ethnicity" value={user?.ethnicity} />
+              <DetailItem label="Nationality" value={user?.ethnicity} />
             </>
           )}
           <DetailItem label="Status" value={mapStatus(user?.status)} />
