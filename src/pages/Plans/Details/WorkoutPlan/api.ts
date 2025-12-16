@@ -88,6 +88,23 @@ export const useAddExercise = () => {
   )
 }
 
+export const addExercises = (id: string | number, payload: any) => {
+  return postFormData(`${apiUrl.WORKOUT_PLAN}/${id}/add_exercise`, payload)
+}
+
+export const useAddExercises = () => {
+  const qc = useQueryClient()
+  return useMutation(
+    ({ id, payload }: { id: string | number; payload: any }) =>
+      addExercises(id, payload),
+    {
+      onSuccess: (_res: any, vars: { id: string | number; payload: any }) => {
+        qc.invalidateQueries(['workout_plan_detail', String(vars?.id)])
+      },
+    }
+  )
+}
+
 // Remove exercise from workout plan
 // export const removeExercise = (id: string | number, payload: any) => {
 //   return postFormData(
