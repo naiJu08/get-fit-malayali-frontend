@@ -50,7 +50,7 @@ export default function WorkoutMain() {
     page: page,
     per_page: per_page,
     search: search,
-    ordering: ordering,
+    ...(ordering ? { ordering } : {}),
     ...filters,
   }
 
@@ -128,6 +128,9 @@ export default function WorkoutMain() {
       ...pageParams,
       page: 1,
       search: '',
+      sortColumn: undefined,
+      sortType: undefined,
+      ordering: undefined,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, setPageParams])
@@ -176,6 +179,15 @@ export default function WorkoutMain() {
     actionTitle: 'Create Workout',
   }
   const handleSort = (orderColumn: any, orderDirection: any) => {
+    if (!orderColumn || !orderDirection) {
+      setPageParams({
+        ...pageParams,
+        sortColumn: undefined,
+        sortType: undefined,
+        ordering: undefined,
+      })
+      return
+    }
     setPageParams({
       ...pageParams,
       sortColumn: orderColumn,
