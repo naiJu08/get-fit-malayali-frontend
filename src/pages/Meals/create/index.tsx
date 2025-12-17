@@ -111,13 +111,16 @@ export default function CreateMeal({
     typeof u === 'string' ? { id: u, name: u } : { id: u.id, name: u.name }
   )
   useEffect(() => {
-    // When meal category changes, reset serving_unit so user selects a unit for that category
-    methods.setValue('serving_unit', '' as any, {
-      shouldValidate: false,
-      shouldDirty: false,
-      shouldTouch: false,
-    })
-  }, [selectedMealCategoryId, methods])
+    // When meal category changes in CREATE mode, reset serving_unit so user selects a unit for that category.
+    // For EDIT mode, keep existing serving_unit on initial load; user can manually change it if needed.
+    if (!edit) {
+      methods.setValue('serving_unit', '' as any, {
+        shouldValidate: false,
+        shouldDirty: false,
+        shouldTouch: false,
+      })
+    }
+  }, [selectedMealCategoryId, methods, edit])
   const onSubmit = (values: MealSchema) => {
     // const payload = {
     //   meal: {
@@ -198,12 +201,12 @@ export default function CreateMeal({
         meal_category: '',
         meal_category_id: undefined,
         serving_unit: '',
-        default_serving_quantity: 1,
-        per_serving_calories: 0,
-        per_serving_protein: 0,
-        per_serving_carbs: 0,
-        per_serving_fat: 0,
-        per_serving_fiber: 0,
+        default_serving_quantity: '' as any,
+        per_serving_calories: '' as any,
+        per_serving_protein: '' as any,
+        per_serving_carbs: '' as any,
+        per_serving_fat: '' as any,
+        per_serving_fiber: '' as any,
         notes: '',
       })
     }
@@ -307,7 +310,7 @@ export default function CreateMeal({
       name: 'per_serving_calories',
       label: 'TotalCalories',
       type: 'text',
-      required: true,
+      required: false,
       allowPositiveOnly: true,
       disabled: true,
     },

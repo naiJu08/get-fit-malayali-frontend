@@ -59,7 +59,7 @@ export default function UserDetails() {
       )}
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DetailItem label="Name" value={workout?.name} />
+          <DetailItem label="Name" value={capitalizeFirst(workout?.name)} />
           <DetailItem label="Description" value={workout?.description} />
           <DetailItem
             label="Intensity Level"
@@ -194,4 +194,10 @@ function DetailItem({ label, value }: { label: string; value: any }) {
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
+}
+
+function capitalizeFirst(v: any) {
+  const s = safeStr(v)
+  if (s === '--') return s
+  return s.charAt(0).toUpperCase() + s.slice(1)
 }

@@ -4,6 +4,12 @@ import Icons from '../../components/common/icons'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import { getMealDetails } from './api'
 
+const capitalizeFirst = (value: unknown) => {
+  const str = typeof value === 'string' ? value : ''
+  if (!str) return str
+  return `${str.charAt(0).toUpperCase()}${str.slice(1)}`
+}
+
 const MealDetail: React.FC = () => {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -42,7 +48,7 @@ const MealDetail: React.FC = () => {
           <button onClick={() => navigate('/meals')} aria-label="Back">
             <Icons name="left-arrow-icon" />
           </button>
-          <h1 className="text-xl font-semibold">Meal Detail</h1>
+          <h1 className="text-xl font-semibold">Meal Details</h1>
         </div>
       </div>
 
@@ -59,7 +65,7 @@ const MealDetail: React.FC = () => {
       {!loading && !error && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <DetailItem label="Name" value={meal?.name} />
+            <DetailItem label="Name" value={capitalizeFirst(meal?.name)} />
             <DetailItem label="Meal Time" value={meal?.meal_time} />
             <DetailItem label="Meal Category" value={meal?.meal_category} />
             <DetailItem label="Serving Unit" value={meal?.serving_unit} />
@@ -88,7 +94,7 @@ const MealDetail: React.FC = () => {
               value={meal?.per_serving?.fiber}
             />
             {/* <DetailItem label="Total Calories" value={meal?.total_calories} /> */}
-            <DetailItem label="Notes" value={meal?.notes} />
+            <DetailItem label="Notes" value={capitalizeFirst(meal?.notes)} />
           </div>
         </>
       )}

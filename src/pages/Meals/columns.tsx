@@ -7,6 +7,12 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
+const capitalizeFirst = (value: unknown) => {
+  const str = typeof value === 'string' ? value : ''
+  if (!str) return str
+  return `${str.charAt(0).toUpperCase()}${str.slice(1)}`
+}
+
 export const getMealsColumns = (onNameClick?: (row: any) => void) => {
   const createRenderCell =
     (key: string, type?: 'date' | 'boolean') => (row: any) => {
@@ -23,9 +29,11 @@ export const getMealsColumns = (onNameClick?: (row: any) => void) => {
         const label = value ? 'Yes' : 'No'
         return { cell: label, toolTip: label }
       }
+      const rawValue = getNestedProperty(row, key)
+      const displayValue = key === 'name' ? capitalizeFirst(rawValue) : rawValue
       return {
-        cell: getNestedProperty(row, key),
-        toolTip: getNestedProperty(row, key) ?? '',
+        cell: displayValue,
+        toolTip: displayValue ?? '',
       }
     }
 
@@ -56,19 +64,28 @@ export const getMealsColumns = (onNameClick?: (row: any) => void) => {
       ...defaultColumnProps,
     },
     {
+      title: 'Serving Quantity',
+      field: 'default_serving_quantity',
+      renderCell: createRenderCell('default_serving_quantity'),
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
       title: 'Serving Unit',
       field: 'serving_unit',
       renderCell: createRenderCell('serving_unit'),
       customCell: true,
       ...defaultColumnProps,
     },
+
     {
-      title: 'Notes',
-      field: 'notes',
-      renderCell: createRenderCell('notes'),
+      title: 'Total Calories',
+      field: 'total_calories',
+      renderCell: createRenderCell('total_calories'),
       customCell: true,
       ...defaultColumnProps,
     },
+
     // keep Created At if you still want it
     // {
     //   title: 'Created At',
