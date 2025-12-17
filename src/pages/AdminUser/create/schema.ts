@@ -76,7 +76,11 @@ export const formSchema = z
       },
       z
         .number({ invalid_type_error: 'Required.' })
-        .refine((v) => !Number.isNaN(v), { message: 'Enter a valid number' })
+        .min(100, { message: 'Height should contain at least 3 digits.' })
+        .max(999, { message: 'Height should not exceed 3 digits.' })
+        .refine((v: number) => !Number.isNaN(v), {
+          message: 'Enter a valid number',
+        })
     ),
     weight: z.preprocess(
       (val: unknown) => {
@@ -90,7 +94,11 @@ export const formSchema = z
       },
       z
         .number({ invalid_type_error: 'Required.' })
-        .refine((v) => !Number.isNaN(v), { message: 'Enter a valid number' })
+        .min(10, { message: 'Weight should contain at least 2 digits.' })
+        .max(999, { message: 'Weight should not exceed 3 digits.' })
+        .refine((v: number) => !Number.isNaN(v), {
+          message: 'Enter a valid number',
+        })
     ),
     lifestyle: z.string().optional(),
     goal: z.string().optional(),
@@ -173,8 +181,16 @@ export const formSchemaNutritionist = z
       z.date({ invalid_type_error: 'Required.' }),
     ]),
     // Optional fields for Nutritionist
-    height: z.union([z.number(), z.undefined()]).optional(),
-    weight: z.union([z.number(), z.undefined()]).optional(),
+    height: z
+      .number()
+      .min(10, { message: 'Height should contain at least 2 digits.' })
+      .max(999, { message: 'Height should not exceed 3 digits.' })
+      .optional(),
+    weight: z
+      .number()
+      .min(10, { message: 'Weight should contain at least 2 digits.' })
+      .max(999, { message: 'Weight should not exceed 3 digits.' })
+      .optional(),
     lifestyle: z.string().optional(),
     goal: z.string().optional(),
     food_preferences: z.string().optional(),
@@ -253,8 +269,16 @@ export const formSchemaNutritionistEdit = z
       z.string().min(1, { message: 'Required.' }),
       z.date({ invalid_type_error: 'Required.' }),
     ]),
-    height: z.union([z.number(), z.undefined()]).optional(),
-    weight: z.union([z.number(), z.undefined()]).optional(),
+    height: z
+      .number()
+      .min(10, { message: 'Height should contain at least 2 digits.' })
+      .max(999, { message: 'Height should not exceed 3 digits.' })
+      .optional(),
+    weight: z
+      .number()
+      .min(10, { message: 'Weight should contain at least 2 digits.' })
+      .max(999, { message: 'Weight should not exceed 3 digits.' })
+      .optional(),
     lifestyle: z.string().optional(),
     goal: z.string().optional(),
     food_preferences: z.string().optional(),

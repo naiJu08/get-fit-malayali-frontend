@@ -189,11 +189,13 @@ export default function CreateAdmin({
             ...textField('height', 'Height (cm)', 'Enter height in cm', true),
             type: 'text',
             allowPositiveOnly: true,
+            maxLength: 3,
           },
           {
             ...textField('weight', 'Weight (kg)', 'Enter weight in kg', true),
             type: 'text',
             allowPositiveOnly: true,
+            maxLength: 3,
           },
           {
             name: 'lifestyle',

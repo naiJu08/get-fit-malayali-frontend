@@ -10,6 +10,7 @@ const TextField: React.FC<TextFieldProps> = ({
   disabled = false,
   fullwidth = true,
   placeholder,
+  maxLength,
   totalCount,
   adorement,
   register,
@@ -174,6 +175,7 @@ const TextField: React.FC<TextFieldProps> = ({
           placeholder={placeholder || label}
           onBlur={onBlur}
           type={type}
+          maxLength={maxLength}
           data-testid={id ?? name}
           autoComplete={autoComplete ? 'on' : 'off'}
           autoFocus={autoFocus}
