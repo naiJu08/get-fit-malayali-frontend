@@ -102,6 +102,7 @@ export interface TextFieldProps {
   disabled?: boolean
   placeholder?: string
   required?: boolean
+  maxLength?: number
   isTotal?: boolean
   fieldEdit?: boolean
   tabularForm?: boolean
