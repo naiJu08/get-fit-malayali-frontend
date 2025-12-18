@@ -46,12 +46,16 @@ export default function WorkoutMain() {
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const { page, per_page, search, ordering, filters } = pageParams
+  const cleanedFilters: any = { ...(filters || {}) }
+  if (cleanedFilters.active === false || cleanedFilters.active === 'false') {
+    delete cleanedFilters.active
+  }
   const searchParams = {
     page: page,
     per_page: per_page,
     search: search,
     ...(ordering ? { ordering } : {}),
-    ...filters,
+    ...cleanedFilters,
   }
 
   const { data, refetch, isFetching } = useWorkoutList(searchParams)
