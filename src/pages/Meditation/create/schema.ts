@@ -22,6 +22,8 @@ export const formSchema = z.object({
     .refine((val) => val !== undefined && val !== null && val !== '', {
       message: 'Required.',
     }),
+
+  thumbnail: z.any().optional(),
 })
 
 export const changePasswordSchema = z.object({

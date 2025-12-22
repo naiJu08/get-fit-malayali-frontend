@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import CustomDrawer from '../../../../components/common/drawer'
 import { useMeditationList } from '../../../Meditation/api'
-import { useAssignMeditations } from './api'
+import { useAssignMeditations, useRemoveMeditationsFromPlan } from './api'
 import { useAuthStore } from '../../../../store/authStore'
+import { useSnackbarManager } from '../../../../components/common/snackbar'
 
 type Props = {
   planName?: string
@@ -13,22 +14,25 @@ export default function MeditationPlanIndex({ planName }: Props) {
   const { id: routePlanId } = useParams()
   const planId = routePlanId as string
   const [assignOpen, setAssignOpen] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
   const [page, setPage] = useState<number>(1)
   const [perPage, setPerPage] = useState<number>(20)
   const [search, setSearch] = useState<string>('')
   const [selectedMeditations, setSelectedMeditations] = useState<any[]>([])
   const [assigning, setAssigning] = useState(false)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
   const { mutateAsync: assignMeditationsAsync } = useAssignMeditations()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
 
   useEffect(() => {
-    if (!assignOpen) {
+    if (!assignOpen && !reviewOpen) {
       setSelectedMeditations([])
       setSearch('')
       setPage(1)
+      setDragIndex(null)
     }
-  }, [assignOpen])
+  }, [assignOpen, reviewOpen])
 
   const {
     data: medResp,
@@ -51,6 +55,34 @@ export default function MeditationPlanIndex({ planName }: Props) {
         : [...prev, m]
     )
   }
+
+  useEffect(() => {
+    if (assignOpen) {
+      setDragIndex(null)
+      setReviewOpen(false)
+
+      // Pre-select currently assigned meditations when opening the drawer.
+      if (selectedMeditations.length === 0 && Array.isArray(meditations)) {
+        const currentPlanId = planId ? String(planId) : undefined
+        const assigned = (meditations || [])
+          .map((m: any) => {
+            const plans = (m?.assigned_plans || []) as any[]
+            const match = plans.find(
+              (p: any) => String(p?.plan_id) === currentPlanId
+            )
+            if (!match) return null
+            return { ...m, sequence_number: match?.sequence_number }
+          })
+          .filter((x: any) => x)
+          .slice()
+          .sort(
+            (a: any, b: any) =>
+              (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
+          )
+        if (assigned.length > 0) setSelectedMeditations(assigned)
+      }
+    }
+  }, [assignOpen, meditations, planId, selectedMeditations.length])
 
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
@@ -82,11 +114,34 @@ export default function MeditationPlanIndex({ planName }: Props) {
       }
       await assignMeditationsAsync({ planId, payload })
       setAssignOpen(false)
+      setReviewOpen(false)
       setSelectedMeditations([])
+      setDragIndex(null)
       refetchMeditations()
     } finally {
       setAssigning(false)
     }
+  }
+
+  const handleNext = () => {
+    if (selectedMeditations.length === 0) return
+    setReviewOpen(true)
+    setAssignOpen(false)
+  }
+
+  const onDragStart = (index: number) => setDragIndex(index)
+  const onDragOver = (e: any) => {
+    e.preventDefault()
+  }
+  const onDrop = (index: number) => {
+    if (dragIndex === null || dragIndex === index) return
+    setSelectedMeditations((prev) => {
+      const next = prev.slice()
+      const [item] = next.splice(dragIndex, 1)
+      next.splice(index, 0, item)
+      return next
+    })
+    setDragIndex(null)
   }
 
   return (
@@ -99,7 +154,13 @@ export default function MeditationPlanIndex({ planName }: Props) {
           <div>
             <button
               className="px-3 py-1.5 text-sm border rounded btn-primary"
-              onClick={() => setAssignOpen(true)}
+              onClick={() => {
+                setDragIndex(null)
+                setReviewOpen(false)
+                setAssignOpen(true)
+                setSearch('')
+                setPage(1)
+              }}
             >
               Assign
             </button>
@@ -111,156 +172,231 @@ export default function MeditationPlanIndex({ planName }: Props) {
         meditations={meditations}
         loading={medLoading}
         getEmbedUrl={getEmbedUrl}
+        isNutritionist={isNutritionist}
+        refreshList={() => refetchMeditations()}
       />
 
       <CustomDrawer
         open={assignOpen}
-        handleClose={() => setAssignOpen(false)}
+        handleClose={() => {
+          setAssignOpen(false)
+          setSearch('')
+          setPage(1)
+        }}
+        className="w-screen max-w-[100vw]"
+        unmountOnClose
         title={'Assign Meditation'}
+        handleSubmit={handleNext}
+        disableSubmit={selectedMeditations.length === 0}
+        hideSubmit={selectedMeditations.length === 0}
+        actionLoader={false}
+        actionLabel={'Next'}
+      >
+        <div className="w-full">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+              <div className="text-sm font-medium">Meditations</div>
+              <div className="flex items-center gap-2">
+                <input
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value)
+                    setPage(1)
+                  }}
+                  placeholder="Search meditations..."
+                  className="border rounded px-2 py-1 text-sm"
+                />
+                <select
+                  className="border rounded px-2 py-1 text-sm"
+                  value={perPage}
+                  onChange={(e) => {
+                    setPerPage(Number(e.target.value))
+                    setPage(1)
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+
+            {medLoading && (
+              <div className="text-xs text-gray-500 p-2">Loading...</div>
+            )}
+            {!medLoading && meditations.length === 0 && (
+              <div className="text-xs text-gray-500 p-2">
+                No meditations found.
+              </div>
+            )}
+
+            {!medLoading && meditations.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {meditations.map((m: any) => {
+                  const url = m?.video_url || m?.meditation_video_url || ''
+                  const embed = getEmbedUrl(url)
+                  const checked = isSelected(m?.id)
+                  const title = m?.name || m?.title || 'Untitled'
+                  return (
+                    <div
+                      key={m?.id}
+                      className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
+                        checked ? 'ring-2 ring-primary/30' : ''
+                      }`}
+                      onClick={(e) => {
+                        if (
+                          (e.target as HTMLElement).tagName.toLowerCase() !==
+                          'input'
+                        ) {
+                          toggleSelected(m)
+                        }
+                      }}
+                    >
+                      {embed ? (
+                        <div className="w-full h-40 bg-black/5">
+                          <iframe
+                            src={embed}
+                            title={`Meditation Video ${m?.id}`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : url ? (
+                        <video
+                          className="w-full h-32 object-cover rounded"
+                          src={String(url)}
+                          muted
+                          controls
+                        />
+                      ) : (
+                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                          No video
+                        </div>
+                      )}
+                      <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
+                        <div className="font-medium line-clamp-1">{title}</div>
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 shrink-0"
+                          checked={checked}
+                          onChange={() => toggleSelected(m)}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-2 text-xs text-gray-600">
+              <div>
+                Page {medResp?.meta?.current_page ?? page} /{' '}
+                {medResp?.meta?.total_pages ?? 1}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-2 py-1 border rounded disabled:opacity-50"
+                  disabled={(medResp?.meta?.current_page ?? page) <= 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                >
+                  Prev
+                </button>
+                <button
+                  className="px-2 py-1 border rounded disabled:opacity-50"
+                  disabled={
+                    (medResp?.meta?.current_page ?? page) >=
+                    (medResp?.meta?.total_pages ?? 1)
+                  }
+                  onClick={() => setPage((p) => p + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CustomDrawer>
+
+      <CustomDrawer
+        open={reviewOpen}
+        handleClose={() => {
+          setReviewOpen(false)
+          setSelectedMeditations([])
+          setDragIndex(null)
+        }}
+        className="w-screen max-w-[100vw] h-screen"
+        unmountOnClose
+        title={'Review & Order Meditations'}
         handleSubmit={handleAssign}
         disableSubmit={assigning || selectedMeditations.length === 0}
         actionLoader={assigning}
-        actionLabel={'Assign'}
+        actionLabel={'Confirm'}
       >
-        <div className="w-[900px] max-w-[95vw]">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded p-3 flex flex-col">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-medium">Meditations</div>
-                <div className="flex items-center gap-2">
-                  <input
-                    value={search}
-                    onChange={(e) => {
-                      setSearch(e.target.value)
-                      setPage(1)
-                    }}
-                    placeholder="Search meditations..."
-                    className="border rounded px-2 py-1 text-sm"
-                  />
-                  <select
-                    className="border rounded px-2 py-1 text-sm"
-                    value={perPage}
-                    onChange={(e) => {
-                      setPerPage(Number(e.target.value))
-                      setPage(1)
-                    }}
+        <div className="mt-4">
+          <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
+            <span className="text-blue-600 text-xl">🎬</span>
+            <span className="text-gray-600  bg-clip-text ">
+              Drag and drop the videos below into the order you want them to
+              appear in the meditation plan, then click{' '}
+              <span className="font-semibold">Assign</span> to save this
+              sequence.
+            </span>
+          </h2>
+          {selectedMeditations.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {selectedMeditations.map((m: any, i: number) => {
+                const rawUrl = m?.video_url || m?.meditation_video_url || ''
+                const url = String(rawUrl || '')
+                const embed = getEmbedUrl(url)
+                const title = m?.name || m?.title || 'Untitled'
+                return (
+                  <div
+                    key={m?.id ?? `${title}-${i}`}
+                    draggable
+                    onDragStart={() => onDragStart(i)}
+                    onDragOver={(e) => onDragOver(e)}
+                    onDrop={() => onDrop(i)}
+                    className="rounded-xl shadow-lg bg-white border hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing overflow-hidden"
                   >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                </div>
-              </div>
-              <div className="max-h-[60vh] overflow-y-auto divide-y">
-                {medLoading && (
-                  <div className="text-xs text-gray-500 p-2">Loading...</div>
-                )}
-                {!medLoading && meditations.length === 0 && (
-                  <div className="text-xs text-gray-500 p-2">
-                    No meditations found.
-                  </div>
-                )}
-                {meditations.map((m: any) => (
-                  <label
-                    key={m?.id}
-                    className={`w-full flex items-start gap-2 p-2 hover:bg-gray-50 cursor-pointer ${isSelected(m?.id) ? 'bg-primary/10' : ''}`}
-                    onClick={(e) => {
-                      if (
-                        (e.target as HTMLElement).tagName.toLowerCase() !==
-                        'input'
-                      )
-                        toggleSelected(m)
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={isSelected(m?.id)}
-                      onChange={() => toggleSelected(m)}
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">
-                        {m?.name || m?.title || 'Untitled'}
-                      </div>
-                      <div className="text-xs text-gray-500 line-clamp-1">
-                        {m?.description || ''}
-                      </div>
+                    <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
+                      <span className="line-clamp-1">
+                        {i + 1}. {title}
+                      </span>
                     </div>
-                  </label>
-                ))}
-              </div>
-              <div className="flex items-center justify-between pt-2 text-xs text-gray-600">
-                <div>
-                  Page {medResp?.meta?.current_page ?? page} /{' '}
-                  {medResp?.meta?.total_pages ?? 1}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    className="px-2 py-1 border rounded disabled:opacity-50"
-                    disabled={(medResp?.meta?.current_page ?? page) <= 1}
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  >
-                    Prev
-                  </button>
-                  <button
-                    className="px-2 py-1 border rounded disabled:opacity-50"
-                    disabled={
-                      (medResp?.meta?.current_page ?? page) >=
-                      (medResp?.meta?.total_pages ?? 1)
-                    }
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="border rounded p-3">
-              <div className="text-sm font-medium mb-2">Preview</div>
-              {selectedMeditations.length === 0 && (
-                <div className="text-xs text-gray-500">
-                  Select one or more meditations to preview.
-                </div>
-              )}
-              {selectedMeditations.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {selectedMeditations.map((m, i) => {
-                    const url = m?.video_url || ''
-                    const embed = getEmbedUrl(url)
-                    return (
-                      <div key={m?.id} className="border rounded p-2">
-                        <div className="px-1 pt-1 text-xs font-medium line-clamp-1">
-                          {i + 1}. {m?.name || m?.title || 'Untitled'}
-                        </div>
-                        {embed ? (
-                          <div className="w-full h-32 rounded overflow-hidden bg-black/5">
-                            <iframe
-                              src={embed}
-                              title={`Meditation Video ${m?.id}`}
-                              className="w-full h-full"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                            />
-                          </div>
-                        ) : url ? (
-                          <video
-                            className="w-full h-32 object-cover rounded"
-                            src={String(url)}
-                            controls
-                          />
-                        ) : (
-                          <div className="text-xs text-gray-600 px-1 pb-1">
-                            No video URL available.
-                          </div>
-                        )}
+
+                    {embed ? (
+                      <iframe
+                        className="w-full h-48"
+                        src={embed}
+                        allowFullScreen
+                      ></iframe>
+                    ) : url ? (
+                      <video
+                        src={url}
+                        controls
+                        muted
+                        className="w-full h-48 object-cover"
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-500 italic">
+                        No video URL available.
                       </div>
-                    )
-                  })}
-                </div>
-              )}
+                    )}
+
+                    <div className="px-4 py-2 text-xs text-gray-600">
+                      Hold and drag to rearrange
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          </div>
+          ) : (
+            <div className="text-sm text-gray-500 italic">
+              No videos selected yet.
+            </div>
+          )}
         </div>
       </CustomDrawer>
     </div>
@@ -272,13 +408,47 @@ function AssignedMeditationsSection({
   meditations,
   loading,
   getEmbedUrl,
+  isNutritionist,
+  refreshList,
 }: {
   planId?: string
   meditations: any[]
   loading: boolean
   getEmbedUrl: (url?: string) => string
+  isNutritionist: boolean
+  refreshList: () => void
 }) {
   const currentPlanId = planId ? String(planId) : undefined
+  const [selectedMeditationIds, setSelectedMeditationIds] = useState<any[]>([])
+  const [removedMeditationIds, setRemovedMeditationIds] = useState<any[]>([])
+  const { enqueueSnackbar } = useSnackbarManager()
+  const { mutateAsync: removeMeditationsAsync } = useRemoveMeditationsFromPlan()
+
+  const toggleSelectedMeditation = (meditationId: any) => {
+    if (!meditationId) return
+    setSelectedMeditationIds((prev) =>
+      prev.includes(meditationId)
+        ? prev.filter((x) => x !== meditationId)
+        : [...prev, meditationId]
+    )
+  }
+
+  const handleRemoveSelected = async () => {
+    if (!planId || selectedMeditationIds.length === 0) return
+    try {
+      const res: any = await removeMeditationsAsync({
+        planId,
+        meditationIds: selectedMeditationIds,
+      })
+      setRemovedMeditationIds((prev) => [...prev, ...selectedMeditationIds])
+      setSelectedMeditationIds([])
+      const msg = res?.message || 'Meditations removed successfully'
+      enqueueSnackbar(msg, { variant: 'success' })
+      refreshList?.()
+    } catch (e: any) {
+      console.error(e)
+    }
+  }
 
   const assigned = (meditations || [])
     .map((m: any) => {
@@ -291,10 +461,23 @@ function AssignedMeditationsSection({
       }
     })
     .filter((x: any) => x)
+    .filter((m: any) => !removedMeditationIds.includes(m?.id))
 
   return (
     <div className="border rounded p-3">
-      <div className="text-sm font-medium mb-2">Meditations</div>
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-sm font-semibold">Meditations</div>
+        {!isNutritionist &&
+          assigned.length > 0 &&
+          selectedMeditationIds.length > 0 && (
+            <button
+              className="px-3 py-1 text-xs border rounded  btn-primary"
+              onClick={handleRemoveSelected}
+            >
+              Remove Meditation
+            </button>
+          )}
+      </div>
       {loading && (
         <div className="text-xs text-gray-500">
           Loading assigned meditations...
@@ -306,7 +489,7 @@ function AssignedMeditationsSection({
         </div>
       )}
       {!loading && assigned.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 place-items-stretch">
           {assigned
             .slice()
             .sort(
@@ -318,16 +501,15 @@ function AssignedMeditationsSection({
               const url = String(rawUrl || '')
               const embed = getEmbedUrl(url)
               const title = m?.name || m?.title || 'Untitled'
+              const meditationId = m?.id
+              const checked = selectedMeditationIds.includes(meditationId)
               return (
                 <div
                   key={m?.id ?? `${title}-${i}`}
-                  className="border rounded p-2 w-56"
+                  className="border rounded bg-white overflow-hidden w-full"
                 >
-                  <div className="px-1 pt-1 text-xs font-medium line-clamp-1">
-                    {i + 1}. {title}
-                  </div>
                   {embed ? (
-                    <div className="w-full h-36 rounded overflow-hidden bg-black/5">
+                    <div className="w-full h-40 bg-black/5">
                       <iframe
                         src={embed}
                         title={`Meditation Video ${m?.id ?? i}`}
@@ -338,15 +520,27 @@ function AssignedMeditationsSection({
                     </div>
                   ) : url ? (
                     <video
-                      className="w-full h-24 object-cover rounded"
+                      className="w-full h-32 object-cover"
                       src={String(url)}
                       controls
                     />
                   ) : (
-                    <div className="text-xs text-gray-600 px-1 pb-1">
+                    <div className="w-full h-40 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
                       No video URL available.
                     </div>
                   )}
+
+                  <div className="px-2 py-1 text-xs flex items-center justify-between gap-2">
+                    <div className="font-medium line-clamp-1">{title}</div>
+                    {!isNutritionist && (
+                      <input
+                        type="checkbox"
+                        className="shrink-0"
+                        checked={checked}
+                        onChange={() => toggleSelectedMeditation(meditationId)}
+                      />
+                    )}
+                  </div>
                 </div>
               )
             })}

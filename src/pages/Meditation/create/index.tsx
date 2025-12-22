@@ -99,6 +99,15 @@ export default function CreateAdmin({
       }
     : undefined
 
+  const existingThumbnailFile = rowData?.thumbnail_url
+    ? {
+        name:
+          String(rowData.thumbnail_url).split('/').pop() ||
+          String(rowData.thumbnail_url),
+        link: rowData.thumbnail_url,
+      }
+    : undefined
+
   const formBuilderProps = [
     { ...textField('title', 'Title', 'Enter meditation title', true) },
     {
@@ -116,12 +125,31 @@ export default function CreateAdmin({
       id: 'video_file',
       type: 'file_upload',
       placeholder: 'Upload video file',
-      required: false,
+      required: true,
       accept: 'video/*',
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
-      acceptedFiles: 'MP4, MOV, AVI (Max 5 MB)',
+      acceptedFiles: 'MP4, MOV, AVI',
       fileSize: 5,
       selectedFiles: existingVideoFile,
+    },
+    {
+      name: 'thumbnail',
+      label: 'Thumbnail',
+      id: 'thumbnail',
+      type: 'file_upload',
+      placeholder: 'Upload thumbnail image',
+      required: false,
+      accept: 'image/*',
+      supportedExtensions: [
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'image/webp',
+      ],
+      acceptedFiles: 'PNG, JPG, JPEG, WEBP',
+      fileSize: 5,
+      selectedFiles: existingThumbnailFile,
+      subName: 'thumbnail',
     },
   ]
 
@@ -137,6 +165,7 @@ export default function CreateAdmin({
       description: '',
       video_url: '',
       video_file: '',
+      thumbnail: '',
     } as any)
     setVideoDurationMs(null)
     handleClose()
@@ -148,6 +177,7 @@ export default function CreateAdmin({
       description: '',
       video_url: '',
       video_file: '',
+      thumbnail: '',
     } as any)
 
     setVideoDurationMs(null)
@@ -161,6 +191,7 @@ export default function CreateAdmin({
         description: rowData?.description ?? '',
         video_url: rowData?.video_url ?? '',
         video_file: rowData?.video_file ?? '',
+        thumbnail: rowData?.thumbnail_url ?? '',
       } as any)
     }
   }, [isDrawerOpen, edit, viewMode, rowData])
@@ -222,6 +253,10 @@ export default function CreateAdmin({
 
     if (details?.video_file) {
       fd.append('video', details.video_file as any)
+    }
+
+    if (details?.thumbnail instanceof File) {
+      fd.append('meditation[thumbnail]', details.thumbnail)
     }
     if (rowData?.id) {
       updateMutation({ id: rowData?.id, data: fd })
