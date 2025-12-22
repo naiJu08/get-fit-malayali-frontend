@@ -221,9 +221,11 @@ export default function CreatePlan({
       'plan[yoga_included]',
       String(values.yoga_included ? 'true' : 'false')
     )
+
+    const meditationIncluded = edit ? Boolean(values.meditation_included) : true
     fd.append(
       'plan[meditation_included]',
-      String(values.meditation_included ? 'true' : 'false')
+      String(meditationIncluded ? 'true' : 'false')
     )
 
     const thumbVal: any = values.thumbnail
@@ -268,7 +270,7 @@ export default function CreatePlan({
         duration_days: 0,
         fees: 0,
         yoga_included: false,
-        meditation_included: false,
+        meditation_included: true,
         thumbnail: '',
       })
     }
@@ -440,8 +442,9 @@ export default function CreatePlan({
                   <ToggleSwitch
                     id="meditation_included"
                     checked={methods.watch('meditation_included')}
-                    onChange={(checked) =>
-                      methods.setValue('meditation_included', checked, {
+                    disabled
+                    onChange={() =>
+                      methods.setValue('meditation_included', true, {
                         shouldValidate: true,
                       })
                     }

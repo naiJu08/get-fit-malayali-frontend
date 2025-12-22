@@ -195,13 +195,13 @@ export default function MeditationMain() {
       {
         icon: <Icons name="eye" />,
         action: (row: any) => navigate(`/meditation/${row?.id}`),
-        title: 'view',
+        title: 'View',
         toolTip: 'View Details',
       },
       {
         icon: <Icons name="edit" />,
         action: (row: any) => handleEdit(row),
-        title: 'edit',
+        title: 'Edit',
         toolTip: 'Edit',
       },
       {
@@ -211,7 +211,7 @@ export default function MeditationMain() {
           setDeleteMeditationId(String(row.id))
           setDeleteMeditationModal(true)
         },
-        title: 'delete',
+        title: 'Delete',
         toolTip: 'Delete',
       }
     )
