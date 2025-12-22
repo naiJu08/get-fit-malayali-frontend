@@ -99,6 +99,15 @@ export default function CreateAdmin({
       }
     : undefined
 
+  const existingThumbnailFile = rowData?.thumbnail_url
+    ? {
+        name:
+          String(rowData.thumbnail_url).split('/').pop() ||
+          String(rowData.thumbnail_url),
+        link: rowData.thumbnail_url,
+      }
+    : undefined
+
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter yoga name', true) },
     {
@@ -131,6 +140,24 @@ export default function CreateAdmin({
       selectedFiles: existingVideoFile,
     },
     {
+      name: 'thumbnail',
+      label: 'Thumbnail',
+      id: 'thumbnail',
+      type: 'file_upload',
+      placeholder: 'Upload thumbnail image',
+      accept: 'image/*',
+      supportedExtensions: [
+        'image/png',
+        'image/jpg',
+        'image/jpeg',
+        'image/webp',
+      ],
+      acceptedFiles: 'PNG, JPG, JPEG, WEBP',
+      fileSize: 5,
+      selectedFiles: existingThumbnailFile,
+      subName: 'thumbnail',
+    },
+    {
       name: 'description',
       label: 'Description',
       id: 'description',
@@ -153,6 +180,7 @@ export default function CreateAdmin({
       intensity_level: '',
       video_url: '',
       video_file: '',
+      thumbnail: '',
     } as any)
     setVideoDurationMs(null)
     handleClose()
@@ -165,6 +193,7 @@ export default function CreateAdmin({
       intensity_level: '',
       video_url: '',
       video_file: '',
+      thumbnail: '',
     } as any)
 
     setVideoDurationMs(null)
@@ -178,7 +207,8 @@ export default function CreateAdmin({
         description: rowData?.description ?? '',
         intensity_level: rowData?.intensity_level ?? '',
         video_url: rowData?.video_url ?? '',
-        video_file: rowData?.video_file ?? '',
+        video_file: existingVideoFile ?? '',
+        thumbnail: existingThumbnailFile ?? '',
       } as any)
     }
   }, [isDrawerOpen, edit, viewMode, rowData])
@@ -235,8 +265,13 @@ export default function CreateAdmin({
     fd.append('yoga[description]', details?.description ?? '')
     fd.append('yoga[intensity_level]', details?.intensity_level ?? '')
     // fd.append('yoga[video_url]', details?.video_url ?? '')
-    if (details?.video_file) {
+    if (details?.video_file instanceof File) {
       fd.append('yoga[video_url]', details.video_file as any)
+    }
+
+    const thumbVal = details?.thumbnail
+    if (thumbVal && typeof thumbVal !== 'string') {
+      fd.append('yoga[thumbnail]', thumbVal as any)
     }
 
     if (videoDurationMs !== null) {

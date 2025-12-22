@@ -20,11 +20,26 @@ export const formSchema = z.object({
   //   .string({ invalid_type_error: 'Required.' })
   //   .min(1, { message: 'Required.' })
   //   .url({ message: 'Enter a valid URL' }),
-  video_file: z
-    .any({ required_error: 'Required.' })
-    .refine((val) => val !== undefined && val !== null && val !== '', {
+  video_file: z.any({ required_error: 'Required.' }).refine(
+    (val) => {
+      if (val === undefined || val === null || val === '') return false
+      if (val instanceof File) return true
+      if (typeof val === 'string' && val.trim().length > 0) return true
+      if (
+        typeof val === 'object' &&
+        (val as any) &&
+        (typeof (val as any)?.link === 'string' ||
+          typeof (val as any)?.name === 'string')
+      ) {
+        return true
+      }
+      return false
+    },
+    {
       message: 'Required.',
-    }),
+    }
+  ),
+  thumbnail: z.any().optional(),
 })
 
 export const changePasswordSchema = z.object({

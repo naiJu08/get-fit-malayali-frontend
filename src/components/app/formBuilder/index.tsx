@@ -602,7 +602,11 @@ const FormBuilder: React.FC<Props> = (props) => {
           <Controller
             name={`${field.name}`}
             control={control}
-            render={({ field: {} }) => {
+            render={({ field: { value } }) => {
+              const fileValue =
+                value !== undefined && value !== null && value !== ''
+                  ? value
+                  : field.selectedFiles
               return (
                 <>
                   <FileUpload
@@ -612,7 +616,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                     key={`${updatekey}${field.name}`}
                     onChange={(value) => handleFileUpload(value, field)}
                     label={field.label ?? ''}
-                    value={field.selectedFiles}
+                    value={fileValue}
                     isMultiple={field.isMultiple}
                     errors={!isEditable() ? errors : undefined}
                     handleDeleteFile={field.handleDeleteFile}

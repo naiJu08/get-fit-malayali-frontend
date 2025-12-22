@@ -82,11 +82,28 @@ export const addExercise = (id: string | number, payload: any) => {
   return postFormData(`${apiUrl.YOGA_PLAN}/${id}/add_yoga`, payload)
 }
 
+export const addExercises = (id: string | number, payload: any) => {
+  return postFormData(`${apiUrl.YOGA_PLAN}/${id}/add_yoga`, payload)
+}
+
 export const useAddYogaExercise = () => {
   const qc = useQueryClient()
   return useMutation(
     ({ id, payload }: { id: string | number; payload: any }) =>
       addExercise(id, payload),
+    {
+      onSuccess: (_res: any, vars: { id: string | number; payload: any }) => {
+        qc.invalidateQueries(['yoga_plan_detail', String(vars?.id)])
+      },
+    }
+  )
+}
+
+export const useAddYogaExercises = () => {
+  const qc = useQueryClient()
+  return useMutation(
+    ({ id, payload }: { id: string | number; payload: any }) =>
+      addExercises(id, payload),
     {
       onSuccess: (_res: any, vars: { id: string | number; payload: any }) => {
         qc.invalidateQueries(['yoga_plan_detail', String(vars?.id)])

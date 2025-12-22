@@ -120,6 +120,13 @@ export const getColumns = ({
       field: 'name',
       renderCell: (row: any) => {
         const value = getNestedProperty(row, 'name')
+        const raw = typeof value === 'string' ? value : ''
+        const display = raw
+          ? raw.replace(
+              /\w\S*/g,
+              (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+            )
+          : ''
         if (!disableNameLink && onNameClick) {
           return {
             cell: (
@@ -128,15 +135,15 @@ export const getColumns = ({
                 onClick={() => onNameClick && onNameClick(row)}
                 type="button"
               >
-                {value ?? ''}
+                {display}
               </button>
             ),
-            toolTip: value ?? '',
+            toolTip: display,
           }
         }
         return {
-          cell: <span>{value ?? ''}</span>,
-          toolTip: value ?? '',
+          cell: <span>{display}</span>,
+          toolTip: display,
         }
       },
       customCell: true,
