@@ -12,6 +12,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   name,
   id,
   label,
+  labelAddon,
   fullwidth = true,
   type = 'file',
   disabled = false,
@@ -134,12 +135,19 @@ const FileUpload: React.FC<FileUploadProps> = ({
         }
       />
       <div className={`customFileUpload ${fullwidth ? 'w-full' : 'w-auto'}`}>
-        {label && (
-          <div className="flex justify-between items-center">
-            <label className={`labels label-text`}>
-              {label}
-              {required ? <span className="text-error"> *</span> : <></>}
-            </label>
+        {(label || labelAddon) && (
+          <div className="flex justify-between items-center gap-4">
+            {label && (
+              <label className={`labels label-text`}>
+                {label}
+                {required ? <span className="text-error"> *</span> : <></>}
+              </label>
+            )}
+            {labelAddon ? (
+              <div className="text-xs text-primaryText whitespace-nowrap">
+                {labelAddon}
+              </div>
+            ) : null}
           </div>
         )}
         <div

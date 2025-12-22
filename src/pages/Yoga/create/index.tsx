@@ -61,6 +61,25 @@ export default function CreateAdmin({
     ...(required ? { required: true } : {}),
     ...(disabled ? { disabled: true } : {}),
   })
+  const getReadableFileName = (value?: string) => {
+    if (!value) {
+      return ''
+    }
+    const segments = String(value).split('/')
+    const rawName = segments[segments.length - 1] || String(value)
+    const sanitizedName = rawName.split('?')[0].split('#')[0]
+    try {
+      return decodeURIComponent(sanitizedName)
+    } catch {
+      return sanitizedName
+    }
+  }
+  const formatVideoDurationLabel = (durationMs: number | null) => {
+    if (durationMs === null) return ''
+    const minutes = durationMs / 60000
+    const formatted = minutes.toFixed(2)
+    return `Duration: ${formatted} min`
+  }
   const [deleteModal, setDeleteModal] = useState(false)
   const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null)
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
@@ -92,18 +111,14 @@ export default function CreateAdmin({
   }
   const existingVideoFile = rowData?.video_url
     ? {
-        name:
-          String(rowData.video_url).split('/').pop() ||
-          String(rowData.video_url),
+        name: getReadableFileName(rowData.video_url),
         link: rowData.video_url,
       }
     : undefined
 
   const existingThumbnailFile = rowData?.thumbnail_url
     ? {
-        name:
-          String(rowData.thumbnail_url).split('/').pop() ||
-          String(rowData.thumbnail_url),
+        name: getReadableFileName(rowData.thumbnail_url),
         link: rowData.thumbnail_url,
       }
     : undefined
@@ -129,6 +144,9 @@ export default function CreateAdmin({
     {
       name: 'video_file',
       label: 'Video File',
+      labelAddon: videoDurationMs
+        ? formatVideoDurationLabel(videoDurationMs)
+        : '',
       id: 'video_file',
       type: 'file_upload',
       placeholder: 'Upload video file',
@@ -229,36 +247,73 @@ export default function CreateAdmin({
   const watchedVideoFile = watch('video_file')
 
   useEffect(() => {
+    const fallbackDurationMs =
+      edit && !viewMode && typeof rowData?.duration_minutes === 'number'
+        ? rowData.duration_minutes * 60000
+        : null
+
     if (!watchedVideoFile) {
-      setVideoDurationMs(null)
+      setVideoDurationMs(fallbackDurationMs)
       return
     }
 
-    if (watchedVideoFile instanceof File) {
-      const videoElement = document.createElement('video')
-      videoElement.preload = 'metadata'
+    const videoElement = document.createElement('video')
+    videoElement.preload = 'metadata'
+    let objectUrl: string | null = null
 
-      const objectUrl = URL.createObjectURL(watchedVideoFile)
-      videoElement.src = objectUrl
-
-      const handleLoadedMetadata = () => {
-        const durationSeconds = videoElement.duration
-        if (!isNaN(durationSeconds)) {
-          setVideoDurationMs(durationSeconds * 1000)
-        }
+    const clearObjectUrl = () => {
+      if (objectUrl) {
         URL.revokeObjectURL(objectUrl)
+        objectUrl = null
       }
-
-      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
-
-      return () => {
-        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
-        URL.revokeObjectURL(objectUrl)
-      }
-    } else {
-      setVideoDurationMs(null)
     }
-  }, [watchedVideoFile])
+
+    const handleLoadedMetadata = () => {
+      const durationSeconds = videoElement.duration
+      if (!isNaN(durationSeconds)) {
+        setVideoDurationMs(durationSeconds * 1000)
+      } else {
+        setVideoDurationMs(fallbackDurationMs)
+      }
+      clearObjectUrl()
+    }
+
+    const handleError = () => {
+      setVideoDurationMs(fallbackDurationMs)
+      clearObjectUrl()
+    }
+
+    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+    videoElement.addEventListener('error', handleError)
+
+    if (watchedVideoFile instanceof File) {
+      objectUrl = URL.createObjectURL(watchedVideoFile)
+      videoElement.src = objectUrl
+    } else {
+      const source =
+        typeof watchedVideoFile === 'string'
+          ? watchedVideoFile
+          : (watchedVideoFile?.link ?? '')
+
+      if (!source) {
+        setVideoDurationMs(fallbackDurationMs)
+        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        videoElement.removeEventListener('error', handleError)
+        return
+      }
+      videoElement.crossOrigin = 'anonymous'
+      videoElement.src = source
+    }
+
+    return () => {
+      videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
+      videoElement.removeEventListener('error', handleError)
+      clearObjectUrl()
+    }
+  }, [watchedVideoFile, edit, viewMode, rowData?.duration_minutes])
+  const isFileInstance = (input: unknown): input is File =>
+    typeof File !== 'undefined' && input instanceof File
+
   const onSubmit = (details: any) => {
     const fd = new FormData()
     fd.append('yoga[name]', details?.name ?? '')
@@ -270,8 +325,8 @@ export default function CreateAdmin({
     }
 
     const thumbVal = details?.thumbnail
-    if (thumbVal && typeof thumbVal !== 'string') {
-      fd.append('yoga[thumbnail]', thumbVal as any)
+    if (isFileInstance(thumbVal)) {
+      fd.append('yoga[thumbnail]', thumbVal)
     }
 
     if (videoDurationMs !== null) {
@@ -366,20 +421,9 @@ export default function CreateAdmin({
         body={
           <div className="flex flex-col gap-4">
             {!viewMode ? (
-              <>
-                <FormProvider {...methods}>
-                  <FormBuilder data={formBuilderProps} edit={true} spacing />
-                </FormProvider>
-                {videoDurationMs !== null && (
-                  <div className="text-sm text-primaryText">
-                    {(() => {
-                      const minutes = videoDurationMs / 60000
-                      const formatted = minutes.toFixed(2).padStart(5, '0')
-                      return `Video duration: ${formatted} minutes`
-                    })()}
-                  </div>
-                )}
-              </>
+              <FormProvider {...methods}>
+                <FormBuilder data={formBuilderProps} edit={true} spacing />
+              </FormProvider>
             ) : (
               <CustomeSideViewer
                 headerData={viewHeaderData}

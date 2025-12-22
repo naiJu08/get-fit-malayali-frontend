@@ -237,7 +237,7 @@ export default function YogaMain() {
                   <div className="flex flex-col gap-1 ">
                     <label className="text-xs text-gray-600">Intensity</label>
                     <select
-                      className="textfield w-44 "
+                      className="w-64 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-xl bg-white text-xs outline-none focus:outline-none focus:ring-0 focus:border-gray-300"
                       value={currentIntensity}
                       onChange={(e) => onIntensityChange(e.target.value)}
                     >

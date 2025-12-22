@@ -136,6 +136,7 @@ export interface FileUploadProps {
   name: string
   subName: string
   label?: string
+  labelAddon?: ReactNode
   type?: string
   fullwidth?: boolean
   disabled?: boolean
@@ -487,6 +488,7 @@ export interface FormBuilderProps {
   subId?: string
   subData?: any[]
   toLowercase?: boolean
+  labelAddon?: ReactNode
 }
 interface Content {
   cell: ReactNode | string
