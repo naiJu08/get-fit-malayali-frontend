@@ -7,6 +7,7 @@ import CustomDrawer from '../../../../components/common/drawer'
 import {
   getYogaPlanDetails,
   useAddYogaExercise,
+  useAddYogaExercises,
   deleteYogaPlanExercise,
 } from './api'
 import { TabContainer } from '../../../../components/common'
@@ -130,7 +131,7 @@ function AssignTabContent({
               exercises.length > 0 &&
               selectedExerciseIds.length > 0 && (
                 <button
-                  className="px-3 py-1 text-xs border rounded btn-primary"
+                  className="px-3 py-1 text-xs border rounded  btn-primary"
                   onClick={handleRemoveSelected}
                 >
                   Remove Exercise
@@ -138,7 +139,7 @@ function AssignTabContent({
               )}
           </div>
           {exercises.length > 0 ? (
-            <div className="grid grid-cols-4 gap-3 place-items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 place-items-stretch">
               {exercises.map((ex: any) => {
                 const rawUrl =
                   ex?.video_url ||
@@ -152,7 +153,7 @@ function AssignTabContent({
                 return (
                   <div
                     key={ex?.id}
-                    className="border rounded bg-white overflow-hidden w-70"
+                    className="border rounded bg-white overflow-hidden w-full"
                   >
                     {embed ? (
                       <div className="w-full h-36 bg-black/5">
@@ -166,8 +167,9 @@ function AssignTabContent({
                       </div>
                     ) : url ? (
                       <video
-                        className=" h-40 w-full object-cover"
-                        src={url}
+                        className="w-full h-32 object-cover rounded"
+                        src={String(url)}
+                        muted
                         controls
                       />
                     ) : (
@@ -265,6 +267,7 @@ export default function YogaPlanDetails() {
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const { mutateAsync: addYogaExerciseAsync } = useAddYogaExercise()
+  const { mutateAsync: addYogaExercisesAsync } = useAddYogaExercises()
   const { enqueueSnackbar } = useSnackbarManager()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
@@ -314,10 +317,9 @@ export default function YogaPlanDetails() {
     Array.isArray(yp?.exercises)
       ? yp.exercises
           .map((ex: any) => ex?.yoga_id || ex?.yoga?.id || null)
-          .filter((id: any) => id !== null && id !== undefined)
+          .filter((exId: any) => exId !== null && exId !== undefined)
       : []
   )
-  const availableYogas = yogas.filter((y: any) => !assignedYogaIds.has(y?.id))
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
     if (!u) return ''
@@ -346,6 +348,41 @@ export default function YogaPlanDetails() {
   }
 
   useEffect(() => {
+    if (assignOpen) {
+      setDragIndex(null)
+      setReviewOpen(false)
+
+      // On first open (or after successful assign when selection was cleared),
+      // pre-select yogas that are already assigned in this plan.
+      if (selectedWorkouts.length === 0 && Array.isArray(yp?.exercises)) {
+        const map = new Map<any, any>()
+        yp.exercises.forEach((ex: any) => {
+          const exId = ex?.yoga_id || ex?.yoga?.id || ex?.id
+          if (!exId) return
+          if (!map.has(exId)) {
+            map.set(exId, {
+              id: exId,
+              name:
+                ex?.workout_name ||
+                ex?.yoga_name ||
+                ex?.name ||
+                ex?.title ||
+                ex?.yoga?.name,
+              video_url:
+                ex?.video_url ||
+                ex?.workout_video_url ||
+                ex?.workout?.video_url ||
+                ex?.yoga?.video_url ||
+                '',
+            })
+          }
+        })
+        setSelectedWorkouts(Array.from(map.values()))
+      }
+    }
+  }, [assignOpen, yp?.exercises, selectedWorkouts.length])
+
+  useEffect(() => {
     if (currentTab !== 'assign') {
       setAssignOpen(false)
       setSelectedWorkouts([])
@@ -363,26 +400,53 @@ export default function YogaPlanDetails() {
     if (!yp?.id || selectedWorkouts.length === 0) return
     setAssigning(true)
     try {
-      const results = await Promise.all(
-        selectedWorkouts.map((w, idx) =>
-          addYogaExerciseAsync({
-            id: yp.id,
-            payload: {
-              exercise: {
-                yoga_id: w?.id,
-                sequence_number: idx + 1,
-              },
-            },
-          })
-        )
+      const selectedIds = new Set(
+        selectedWorkouts
+          .map((w: any) => w?.id)
+          .filter((x: any) => x !== null && x !== undefined)
       )
+      const toRemove = (
+        Array.from(assignedYogaIds) as (string | number)[]
+      ).filter((exId) => !selectedIds.has(exId))
+      if (toRemove.length > 0) {
+        await deleteYogaPlanExercise(yp.id, toRemove)
+      }
+
+      // Mirror workout-plan behavior: treat the checked list as the source of truth
+      // (already assigned + newly checked), in the visual order.
+      const items = selectedWorkouts
+        .filter((w: any) => w?.id != null)
+        .map((w: any, idx: number) => ({
+          yoga_id: w.id,
+          sequence_number: idx + 1,
+        }))
+
+      let bulkRes: any
+      try {
+        bulkRes = await addYogaExercisesAsync({
+          id: yp.id,
+          payload: {
+            exercises: items,
+            yogas: items,
+          },
+        })
+      } catch (_bulkErr: any) {
+        // Fallback to existing API behavior if backend doesn't support bulk payload.
+        await Promise.all(
+          items.map((it: any) =>
+            addYogaExerciseAsync({
+              id: yp.id,
+              payload: {
+                exercise: it,
+              },
+            })
+          )
+        )
+      }
       await refreshDetails()
       setReviewOpen(false)
       setSearchParams({ tab: 'assign' })
-      const successMsg =
-        (Array.isArray(results) &&
-          (results[results.length - 1] as any)?.message) ||
-        'Yoga added successfully'
+      const successMsg = bulkRes?.message || 'Yoga added successfully'
       enqueueSnackbar(successMsg, { variant: 'success' })
     } catch (e: any) {
       enqueueSnackbar(e?.response?.data?.message || 'Failed to add yoga', {
@@ -390,6 +454,9 @@ export default function YogaPlanDetails() {
       })
     } finally {
       setAssigning(false)
+      setDragIndex(null)
+      setWpSearch('')
+      setWpPage(1)
     }
   }
 
@@ -473,197 +540,78 @@ export default function YogaPlanDetails() {
         open={assignOpen}
         handleClose={() => {
           setAssignOpen(false)
-          setSelectedWorkouts([])
           setWpSearch('')
           setWpPage(1)
         }}
+        className="w-screen max-w-[100vw]"
+        unmountOnClose
         title={'Assign Yoga'}
         handleSubmit={handleNext}
         disableSubmit={selectedWorkouts.length === 0}
+        hideSubmit={selectedWorkouts.length === 0}
         actionLoader={false}
         actionLabel={'Next'}
       >
-        <div className="w-[900px] max-w-[95vw]">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border rounded p-3 flex flex-col">
-              <div className="flex items-center justify-between mb-2">
-                <div className="text-sm font-medium">Yoga</div>
-                <div className="flex items-center gap-2">
-                  <input
-                    value={wpSearch}
-                    onChange={(e) => {
-                      setWpSearch(e.target.value)
-                      setWpPage(1)
-                    }}
-                    placeholder="Search yoga..."
-                    className="border rounded px-2 py-1 text-sm"
-                  />
-                  <select
-                    className="border rounded px-2 py-1 text-sm"
-                    value={wpPerPage}
-                    onChange={(e) => {
-                      setWpPerPage(Number(e.target.value))
-                      setWpPage(1)
-                    }}
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
-                </div>
-              </div>
-              <div className="max-h-[60vh] overflow-y-auto divide-y">
-                {yogasLoading && (
-                  <div className="text-xs text-gray-500 p-2">Loading...</div>
-                )}
-                {!yogasLoading && availableYogas.length === 0 && (
-                  <div className="text-xs text-gray-500 p-2">
-                    No yoga found.
-                  </div>
-                )}
-                {availableYogas.map((w: any) => (
-                  <label
-                    key={w?.id}
-                    className={`w-full flex items-start gap-2 p-2 hover:bg-gray-50 cursor-pointer ${isSelected(w?.id) ? 'bg-primary/10' : ''}`}
-                    onClick={(e) => {
-                      if (
-                        (e.target as HTMLElement).tagName.toLowerCase() !==
-                        'input'
-                      )
-                        toggleSelected(w)
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      className="mt-1"
-                      checked={isSelected(w?.id)}
-                      onChange={() => toggleSelected(w)}
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">
-                        {w?.name || 'Untitled'}
-                      </div>
-                      <div className="text-xs text-gray-500 line-clamp-1">
-                        {w?.description || ''}
-                      </div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-              <div className="flex items-center justify-between pt-2 text-xs text-gray-600">
-                <div>
-                  Page {yogasResp?.meta?.current_page ?? wpPage} /{' '}
-                  {yogasResp?.meta?.total_pages ?? 1}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    className="px-2 py-1 border rounded disabled:opacity-50"
-                    disabled={(yogasResp?.meta?.current_page ?? wpPage) <= 1}
-                    onClick={() => setWpPage((p) => Math.max(1, p - 1))}
-                  >
-                    Prev
-                  </button>
-                  <button
-                    className="px-2 py-1 border rounded disabled:opacity-50"
-                    disabled={
-                      (yogasResp?.meta?.current_page ?? wpPage) >=
-                      (yogasResp?.meta?.total_pages ?? 1)
-                    }
-                    onClick={() => setWpPage((p) => p + 1)}
-                  >
-                    Next
-                  </button>
-                </div>
+        <div className="w-full">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+              <div className="text-sm font-medium">Yoga</div>
+              <div className="flex items-center gap-2">
+                <input
+                  value={wpSearch}
+                  onChange={(e) => {
+                    setWpSearch(e.target.value)
+                    setWpPage(1)
+                  }}
+                  placeholder="Search yoga..."
+                  className="border rounded px-2 py-1 text-sm"
+                />
+                <select
+                  className="border rounded px-2 py-1 text-sm"
+                  value={wpPerPage}
+                  onChange={(e) => {
+                    setWpPerPage(Number(e.target.value))
+                    setWpPage(1)
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
               </div>
             </div>
-            <div className="border rounded p-3">
-              <div className="text-sm font-medium mb-2">Video Preview</div>
-              {selectedWorkouts.length === 0 && (
-                <div className="text-xs text-gray-500">
-                  Select one or more yoga to preview.
-                </div>
-              )}
-              {selectedWorkouts.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {selectedWorkouts.map((w, i) => {
-                    const url = w?.video_url || ''
-                    const embed = getEmbedUrl(url)
-                    return (
-                      <div key={w?.id} className="border rounded p-2">
-                        <div className="px-1 pt-1 text-xs font-medium line-clamp-1">
-                          {i + 1}. {w?.name || 'Untitled'}
-                        </div>
-                        <div className="px-1 pb-1 text-xxs text-gray-500 break-all line-clamp-1">
-                          {url || '--'}
-                        </div>
-                        {embed ? (
-                          <div className="w-full h-32 rounded overflow-hidden bg-black/5">
-                            <iframe
-                              src={embed}
-                              title={`Yoga Video ${w?.id}`}
-                              className="w-full h-full"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                              allowFullScreen
-                            />
-                          </div>
-                        ) : url ? (
-                          <video
-                            className="w-full h-32 object-cover rounded"
-                            src={String(url)}
-                            controls
-                          />
-                        ) : (
-                          <div className="text-xs text-gray-600 px-1 pb-1">
-                            No video URL available.
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </CustomDrawer>
 
-      <CustomDrawer
-        open={reviewOpen}
-        handleClose={() => setReviewOpen(false)}
-        title={'Review & Order'}
-        handleSubmit={handleBulkAssign}
-        disableSubmit={assigning || selectedWorkouts.length === 0}
-        actionLoader={assigning}
-        actionLabel={'Assign'}
-      >
-        <div className="w-[900px] max-w-[95vw]">
-          <div className="border rounded p-3">
-            <div className="text-sm font-medium mb-2">
-              Selected Videos (Drag to Reorder)
-            </div>
-            {selectedWorkouts.length === 0 && (
-              <div className="text-xs text-gray-500">No yoga selected.</div>
+            {yogasLoading && (
+              <div className="text-xs text-gray-500 p-2">Loading...</div>
             )}
-            {selectedWorkouts.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {selectedWorkouts.map((w, i) => {
+            {!yogasLoading && yogas.length === 0 && (
+              <div className="text-xs text-gray-500 p-2">No yoga found.</div>
+            )}
+
+            {!yogasLoading && yogas.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {yogas.map((w: any) => {
                   const url = w?.video_url || ''
                   const embed = getEmbedUrl(url)
+                  const checked = isSelected(w?.id)
                   return (
                     <div
                       key={w?.id}
-                      className="border rounded p-2 cursor-move"
-                      draggable
-                      onDragStart={() => onDragStart(i)}
-                      onDragOver={onDragOver}
-                      onDrop={() => onDrop(i)}
+                      className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
+                        checked ? 'ring-2 ring-primary/30' : ''
+                      }`}
+                      onClick={(e) => {
+                        if (
+                          (e.target as HTMLElement).tagName.toLowerCase() !==
+                          'input'
+                        ) {
+                          toggleSelected(w)
+                        }
+                      }}
                     >
-                      <div className="px-1 pb-1 text-xxs text-gray-500 break-all line-clamp-1">
-                        {url || '--'}
-                      </div>
                       {embed ? (
-                        <div className="w-full h-24 rounded overflow-hidden bg-black/5">
+                        <div className="w-full h-40 bg-black/5">
                           <iframe
                             src={embed}
                             title={`Yoga Video ${w?.id}`}
@@ -674,21 +622,134 @@ export default function YogaPlanDetails() {
                         </div>
                       ) : url ? (
                         <video
-                          className="w-full h-24 object-cover rounded"
+                          className="w-full h-32 object-cover rounded"
                           src={String(url)}
+                          muted
                           controls
                         />
                       ) : (
-                        <div className="text-xs text-gray-600 px-1 pb-1">
-                          No video URL available.
+                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                          No video
                         </div>
                       )}
+                      <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
+                        <div className="font-medium line-clamp-1">
+                          {w?.name || 'Untitled'}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 shrink-0"
+                          checked={checked}
+                          onChange={() => toggleSelected(w)}
+                        />
+                      </div>
                     </div>
                   )
                 })}
               </div>
             )}
+
+            <div className="flex items-center justify-between pt-2 text-xs text-gray-600">
+              <div>
+                Page {yogasResp?.meta?.current_page ?? wpPage} /{' '}
+                {yogasResp?.meta?.total_pages ?? 1}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-2 py-1 border rounded disabled:opacity-50"
+                  disabled={(yogasResp?.meta?.current_page ?? wpPage) <= 1}
+                  onClick={() => setWpPage((p) => Math.max(1, p - 1))}
+                >
+                  Prev
+                </button>
+                <button
+                  className="px-2 py-1 border rounded disabled:opacity-50"
+                  disabled={
+                    (yogasResp?.meta?.current_page ?? wpPage) >=
+                    (yogasResp?.meta?.total_pages ?? 1)
+                  }
+                  onClick={() => setWpPage((p) => p + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
+      </CustomDrawer>
+
+      <CustomDrawer
+        open={reviewOpen}
+        handleClose={() => setReviewOpen(false)}
+        className="w-screen max-w-[100vw] h-screen"
+        unmountOnClose
+        title={'Review & Order Exercises'}
+        handleSubmit={handleBulkAssign}
+        disableSubmit={assigning || selectedWorkouts.length === 0}
+        actionLoader={assigning}
+        actionLabel={'Confirm'}
+      >
+        <div className="mt-4">
+          <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
+            <span className="text-blue-600 text-xl">🎬</span>
+            <span className="text-gray-600  bg-clip-text ">
+              Drag and drop the videos below into the order you want them to
+              appear in the yogaplan, then click{' '}
+              <span className="font-semibold">Assign</span> to save this
+              sequence.
+            </span>
+          </h2>
+          {selectedWorkouts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {selectedWorkouts.map((w, i) => {
+                const embed = getEmbedUrl(w?.video_url)
+                const url = w?.video_url || ''
+                return (
+                  <div
+                    key={w?.id}
+                    draggable
+                    onDragStart={() => onDragStart(i)}
+                    onDragOver={(e) => onDragOver(e)}
+                    onDrop={() => onDrop(i)}
+                    className="rounded-xl shadow-lg bg-white border hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing overflow-hidden"
+                  >
+                    <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
+                      <span className="line-clamp-1">
+                        {i + 1}. {w?.name}
+                      </span>
+                    </div>
+
+                    {embed ? (
+                      <iframe
+                        className="w-full h-48"
+                        src={embed}
+                        allowFullScreen
+                      ></iframe>
+                    ) : url ? (
+                      <video
+                        src={url}
+                        controls
+                        muted
+                        className="w-full h-48 object-cover"
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-500 italic">
+                        No video URL available.
+                      </div>
+                    )}
+
+                    <div className="px-4 py-2 text-xs text-gray-600">
+                      Hold and drag to rearrange
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500 italic">
+              No videos selected yet.
+            </div>
+          )}
         </div>
       </CustomDrawer>
     </div>

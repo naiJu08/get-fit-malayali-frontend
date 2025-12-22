@@ -59,7 +59,18 @@ export default function YogaDetails() {
       )}
       {!loading && !error && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DetailItem label="Name" value={yoga?.name} />
+          <DetailItem
+            label="Name"
+            value={
+              typeof yoga?.name === 'string'
+                ? yoga.name.replace(
+                    /\w\S*/g,
+                    (w: string) =>
+                      w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+                  )
+                : yoga?.name
+            }
+          />
           <DetailItem
             label="Description"
             value={yoga?.description || yoga?.description}
@@ -68,6 +79,42 @@ export default function YogaDetails() {
           <DetailItem label="Average Rating" value={yoga?.average_rating} />
           <DetailItem label="Feedback Count" value={yoga?.feedbacks_count} />
           <DetailItem label="Duration" value={yoga?.duration_minutes} />
+
+          {(() => {
+            const raw = yoga?.thumbnail_url
+            const t = typeof raw === 'string' ? raw.trim() : ''
+            const isUrl = typeof t === 'string' && /^https?:\/\/\S+$/i.test(t)
+            if (!isUrl) return null
+
+            return (
+              <div className="">
+                <div className="border rounded-lg p-3 bg-white ">
+                  <div className="text-xs text-gray-500 mb-2">Thumbnail</div>
+                  <div className="relative w-64">
+                    <img
+                      src={t}
+                      alt="Yoga thumbnail"
+                      className="w-[7.25rem] h-[7.25rem] object-cover rounded"
+                      onError={(e) => {
+                        ;(e.currentTarget as HTMLImageElement).style.display =
+                          'none'
+                      }}
+                    />
+                    <div className="mt-2 text-xs">
+                      <a
+                        href={t}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ color: '#2563eb' }}
+                      >
+                        Open thumbnail
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
 
           {!loading &&
             !error &&
