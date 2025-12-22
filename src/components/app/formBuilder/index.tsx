@@ -616,6 +616,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                     key={`${updatekey}${field.name}`}
                     onChange={(value) => handleFileUpload(value, field)}
                     label={field.label ?? ''}
+                    labelAddon={field.labelAddon}
                     value={fileValue}
                     isMultiple={field.isMultiple}
                     errors={!isEditable() ? errors : undefined}
