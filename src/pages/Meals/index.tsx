@@ -169,19 +169,19 @@ export default function Meals() {
                   {
                     icon: <Icons name="eye" />,
                     action: (row: any) => navigate(`/meals/${row?.id}`),
-                    title: 'view',
+                    title: 'View',
                     toolTip: 'View',
                   },
                   {
                     icon: <Icons name="edit" />,
                     action: (row: any) => openEdit(row),
-                    title: 'edit',
+                    title: 'Edit',
                     toolTip: 'Edit',
                   },
                   {
                     icon: <Icons name="delete" />,
                     action: (row: any) => handleDelete(row),
-                    title: 'delete',
+                    title: 'Delete',
                     toolTip: 'Delete',
                   },
                 ]
