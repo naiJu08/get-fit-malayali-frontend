@@ -5,7 +5,7 @@ import noLeadingSpaces from '../../../utilities/noLeadingSpaces'
 const passerror =
   'Password should contain at least one uppercase letter, one lowercase letter, one digit, and one special character, with a minimum length of eight characters, and must not contain any spaces.'
 
-export const formSchema = z.object({
+const baseSchema = {
   title: z
     .string({ invalid_type_error: 'Required.' })
     .min(1, { message: 'Required.' })
@@ -13,17 +13,25 @@ export const formSchema = z.object({
   description: z
     .string({ invalid_type_error: 'Required.' })
     .min(1, { message: 'Required.' }),
-  // video_url: z
-  //   .string({ invalid_type_error: 'Required.' })
-  //   .min(1, { message: 'Required.' })
-  //   .url({ message: 'Enter a valid URL' }),
-  video_file: z
-    .any({ required_error: 'Required.' })
-    .refine((val) => val !== undefined && val !== null && val !== '', {
-      message: 'Required.',
-    }),
-
   thumbnail: z.any().optional(),
+}
+
+const requiredVideoField = z
+  .any({ required_error: 'Required.' })
+  .refine((val) => val !== undefined && val !== null && val !== '', {
+    message: 'Required.',
+  })
+
+export const formSchema = z.object({
+  ...baseSchema,
+  video_file: requiredVideoField,
+  video_file_label: z.any().optional(),
+})
+
+export const editFormSchema = z.object({
+  ...baseSchema,
+  video_file: z.any().optional(),
+  video_file_label: z.any().optional(),
 })
 
 export const changePasswordSchema = z.object({
@@ -47,5 +55,5 @@ export const changePasswordSchema = z.object({
     }),
 })
 
-export type MeditationSchema = z.infer<typeof formSchema>
+export type MeditationSchema = z.infer<typeof editFormSchema>
 export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>
