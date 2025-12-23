@@ -10,8 +10,6 @@ import { DialogModal } from '../../../components/common'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
 import { useSnackbarManager } from '../../../components/common/snackbar'
 import { humanizeDatetime } from '../../../utilities/format'
-// import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
-// import FormFieldView from '../../../components/common/inputs/FormFieldView'
 import { useCreateMeditation, useUpdateMeditation } from '../api'
 import { MeditationSchema, editFormSchema, formSchema } from './schema'
 
@@ -65,15 +63,6 @@ export default function CreateAdmin({
   const [deleteModal, setDeleteModal] = useState(false)
   const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null)
   const { enqueueSnackbar } = useSnackbarManager()
-  // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
-
-  // useEffect(() => {
-  //   const intervalId = setTimeout(() => {
-  //     SetProfileLoading(false)
-  //   }, 2000)
-
-  //   return () => clearTimeout(intervalId)
-  // }, [])
 
   const decodeFileName = (input?: string) => {
     const raw = String(input ?? '')
@@ -91,20 +80,6 @@ export default function CreateAdmin({
   }
   const handleDeleteFile = () => {
     console.log('handle delete')
-    // deleteAssessorImage(rowData?.user?.id)
-    //   .then((res: any) => {
-    //     enqueueSnackbar(res.message ? res.message : 'Deleted Successfully', {
-    //       variant: 'success',
-    //     })
-    //     handleRefresh?.()
-    //     setDeleteModal(false)
-    //   })
-    //   .catch((err: any) => {
-    //     enqueueSnackbar(
-    //       err?.response?.data?.error?.message || err?.response?.data?.message,
-    //       { variant: 'error' }
-    //     )
-    //   })
   }
   const existingVideoFile = rowData?.video_url
     ? {
@@ -141,7 +116,6 @@ export default function CreateAdmin({
       placeholder: 'Enter description',
       required: true,
     },
-    // { ...textField('video', 'Video URL', 'https://...', true) },
     {
       name: 'video_file',
       label: 'Video File',
@@ -179,12 +153,6 @@ export default function CreateAdmin({
     },
   ]
 
-  // const getAdminDetails = (name: any) => {
-  //   const property = formBuilderProps.find((prop) => prop.name === name)
-  //   // return property ? property.value : '--'
-  //   return property && property.value ? property.value : '--'
-  // }
-
   const handleClearAndClose = () => {
     methods.reset({
       title: '',
@@ -212,18 +180,6 @@ export default function CreateAdmin({
     handleRefresh?.()
     handleClearAndClose()
   }
-  // useEffect(() => {
-  //   if (isDrawerOpen && edit && !viewMode && rowData) {
-  //     methods.reset({
-  //       title: rowData?.title ?? '',
-  //       description: rowData?.description ?? '',
-  //       video_url: rowData?.video_url ?? '',
-  //       video_file: existingVideoFile ?? '',
-  //       thumbnail: existingThumbnailFile ?? '',
-  //       video_file_label: existingVideoFile?.name ?? '',
-  //     } as any)
-  //   }
-  // }, [isDrawerOpen, edit, viewMode, rowData, existingVideoFile, existingThumbnailFile])
   useEffect(() => {
     if (isDrawerOpen && edit && !viewMode && rowData) {
       methods.reset({
@@ -240,8 +196,8 @@ export default function CreateAdmin({
     edit,
     viewMode,
     rowData,
-    existingVideoFile,
-    existingThumbnailFile,
+    // existingVideoFile,
+    // existingThumbnailFile,
   ])
   const onSuccess = () => {
     handleSubmission()
@@ -251,30 +207,6 @@ export default function CreateAdmin({
     useUpdateMeditation(onSuccess)
 
   const watchedVideoFile = watch('video_file')
-  // useEffect(() => {
-  //   if (!watchedVideoFile) {
-  //     setVideoFileLabel(existingVideoFile?.name ?? '')
-  //     return
-  //   }
-
-  //   if (watchedVideoFile instanceof File) {
-  //     setVideoFileLabel(watchedVideoFile.name)
-  //     return
-  //   }
-
-  //   const derivedName =
-  //     typeof watchedVideoFile === 'object' && watchedVideoFile
-  //       ? watchedVideoFile.name ?? ''
-  //       : ''
-  //   setVideoFileLabel(derivedName)
-  // }, [watchedVideoFile, existingVideoFile?.name])
-  // useEffect(() => {
-  //   if (watchedVideoFile instanceof File) {
-  //     setVideoFileLabel(watchedVideoFile.name)   // 🔥 new file name
-  //   } else {
-  //     setVideoFileLabel(existingVideoFile?.name ?? '') // old file name
-  //   }
-  // }, [watchedVideoFile, existingVideoFile?.name])
 
   const fallbackDurationMs = useMemo(() => {
     if (!edit || viewMode) return null
@@ -433,15 +365,6 @@ export default function CreateAdmin({
                 <FormProvider {...methods}>
                   <FormBuilder data={formBuilderProps} edit={true} spacing />
                 </FormProvider>
-                {/* {videoDurationMs !== null && (
-                  <div className="text-sm text-primaryText">
-                    {(() => {
-                      const minutes = videoDurationMs / 60000
-                      const formatted = minutes.toFixed(2).padStart(5, '0')
-                      return `Video duration: ${formatted} minutes`
-                    })()}
-                  </div>
-                )} */}
               </>
             ) : (
               <CustomeSideViewer
