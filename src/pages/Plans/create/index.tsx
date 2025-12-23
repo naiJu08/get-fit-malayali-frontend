@@ -222,11 +222,8 @@ export default function CreatePlan({
       String(values.yoga_included ? 'true' : 'false')
     )
 
-    const meditationIncluded = edit ? Boolean(values.meditation_included) : true
-    fd.append(
-      'plan[meditation_included]',
-      String(meditationIncluded ? 'true' : 'false')
-    )
+    const meditationIncluded = Boolean(values.meditation_included)
+    fd.append('plan[meditation_included]', String(meditationIncluded))
 
     const thumbVal: any = values.thumbnail
     // Only append if a new File is provided (not just an existing URL/string)
@@ -260,7 +257,7 @@ export default function CreatePlan({
         meditation_included: Boolean(
           rowData?.plan?.meditation_included ?? false
         ),
-        thumbnail: rowData?.plan?.thumbnail_url ?? '',
+        thumbnail: null,
       })
     } else if (isDrawerOpen && !edit) {
       reset({
@@ -275,6 +272,20 @@ export default function CreatePlan({
       })
     }
   }, [isDrawerOpen, edit, rowData, reset])
+
+  const getReadableFileName = (value?: string) => {
+    if (!value) {
+      return ''
+    }
+    const segments = String(value).split('/')
+    const raw = segments[segments.length - 1] || String(value)
+    const sanitized = raw.split('?')[0].split('#')[0]
+    try {
+      return decodeURIComponent(sanitized)
+    } catch {
+      return sanitized
+    }
+  }
 
   const textField = (
     name: string,
@@ -291,9 +302,7 @@ export default function CreatePlan({
   })
   const existingImageFile = rowData?.plan?.thumbnail_url
     ? {
-        name:
-          String(rowData.plan.thumbnail_url).split('/').pop() ||
-          String(rowData.plan.thumbnail_url),
+        name: getReadableFileName(rowData.plan.thumbnail_url),
         link: rowData.plan.thumbnail_url,
       }
     : undefined
@@ -442,9 +451,8 @@ export default function CreatePlan({
                   <ToggleSwitch
                     id="meditation_included"
                     checked={methods.watch('meditation_included')}
-                    disabled
-                    onChange={() =>
-                      methods.setValue('meditation_included', true, {
+                    onChange={(checked) =>
+                      methods.setValue('meditation_included', checked, {
                         shouldValidate: true,
                       })
                     }

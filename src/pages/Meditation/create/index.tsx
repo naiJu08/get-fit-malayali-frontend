@@ -1,18 +1,17 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import moment from 'moment'
 // import moment from 'moment'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
+import { useSnackbarManager } from '../../../components/common/snackbar'
 import { humanizeDatetime } from '../../../utilities/format'
-// import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
-// import FormFieldView from '../../../components/common/inputs/FormFieldView'
 import { useCreateMeditation, useUpdateMeditation } from '../api'
-import { MeditationSchema, formSchema } from './schema'
+import { MeditationSchema, editFormSchema, formSchema } from './schema'
 
 type Props = {
   isDrawerOpen: boolean
@@ -63,50 +62,49 @@ export default function CreateAdmin({
   })
   const [deleteModal, setDeleteModal] = useState(false)
   const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null)
-  // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
+  const { enqueueSnackbar } = useSnackbarManager()
 
-  // useEffect(() => {
-  //   const intervalId = setTimeout(() => {
-  //     SetProfileLoading(false)
-  //   }, 2000)
-
-  //   return () => clearTimeout(intervalId)
-  // }, [])
-
+  const decodeFileName = (input?: string) => {
+    const raw = String(input ?? '')
+    const fallback = raw.split('/').pop() || raw
+    try {
+      return decodeURIComponent(fallback)
+    } catch {
+      return fallback
+    }
+  }
+  const formatVideoDurationLabel = (durationMs: number | null) => {
+    if (durationMs === null) return ''
+    const minutes = durationMs / 60000
+    return `Duration: ${minutes.toFixed(2)} min`
+  }
   const handleDeleteFile = () => {
     console.log('handle delete')
-    // deleteAssessorImage(rowData?.user?.id)
-    //   .then((res: any) => {
-    //     enqueueSnackbar(res.message ? res.message : 'Deleted Successfully', {
-    //       variant: 'success',
-    //     })
-    //     handleRefresh?.()
-    //     setDeleteModal(false)
-    //   })
-    //   .catch((err: any) => {
-    //     enqueueSnackbar(
-    //       err?.response?.data?.error?.message || err?.response?.data?.message,
-    //       { variant: 'error' }
-    //     )
-    //   })
   }
   const existingVideoFile = rowData?.video_url
     ? {
-        name:
-          String(rowData.video_url).split('/').pop() ||
-          String(rowData.video_url),
+        name: decodeFileName(rowData.video_url),
         link: rowData.video_url,
       }
     : undefined
 
   const existingThumbnailFile = rowData?.thumbnail_url
     ? {
-        name:
-          String(rowData.thumbnail_url).split('/').pop() ||
-          String(rowData.thumbnail_url),
+        name: decodeFileName(rowData.thumbnail_url),
         link: rowData.thumbnail_url,
       }
     : undefined
+
+  const methods = useForm<MeditationSchema>({
+    resolver: zodResolver(edit ? editFormSchema : formSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+  })
+  const { handleSubmit, watch } = methods
+
+  const setVideoFileLabel = (value?: string) => {
+    methods.setValue('video_file_label', value ?? '', { shouldValidate: false })
+  }
 
   const formBuilderProps = [
     { ...textField('title', 'Title', 'Enter meditation title', true) },
@@ -118,19 +116,21 @@ export default function CreateAdmin({
       placeholder: 'Enter description',
       required: true,
     },
-    // { ...textField('video_url', 'Video URL', 'https://...', true) },
     {
       name: 'video_file',
       label: 'Video File',
+      labelAddon: formatVideoDurationLabel(videoDurationMs),
       id: 'video_file',
       type: 'file_upload',
       placeholder: 'Upload video file',
-      required: true,
+      required: !rowData?.id,
       accept: 'video/*',
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
       acceptedFiles: 'MP4, MOV, AVI',
       fileSize: 5,
       selectedFiles: existingVideoFile,
+      subName: 'video_file_label',
+      setAttachmentName: (value: string) => setVideoFileLabel(value),
     },
     {
       name: 'thumbnail',
@@ -153,12 +153,6 @@ export default function CreateAdmin({
     },
   ]
 
-  // const getAdminDetails = (name: any) => {
-  //   const property = formBuilderProps.find((prop) => prop.name === name)
-  //   // return property ? property.value : '--'
-  //   return property && property.value ? property.value : '--'
-  // }
-
   const handleClearAndClose = () => {
     methods.reset({
       title: '',
@@ -166,6 +160,7 @@ export default function CreateAdmin({
       video_url: '',
       video_file: '',
       thumbnail: '',
+      video_file_label: '',
     } as any)
     setVideoDurationMs(null)
     handleClose()
@@ -178,6 +173,7 @@ export default function CreateAdmin({
       video_url: '',
       video_file: '',
       thumbnail: '',
+      video_file_label: '',
     } as any)
 
     setVideoDurationMs(null)
@@ -190,11 +186,19 @@ export default function CreateAdmin({
         title: rowData?.title ?? '',
         description: rowData?.description ?? '',
         video_url: rowData?.video_url ?? '',
-        video_file: rowData?.video_file ?? '',
-        thumbnail: rowData?.thumbnail_url ?? '',
+        video_file: null,
+        thumbnail: null,
+        video_file_label: existingVideoFile?.name ?? '',
       } as any)
     }
-  }, [isDrawerOpen, edit, viewMode, rowData])
+  }, [
+    isDrawerOpen,
+    edit,
+    viewMode,
+    rowData,
+    // existingVideoFile,
+    // existingThumbnailFile,
+  ])
   const onSuccess = () => {
     handleSubmission()
   }
@@ -202,47 +206,46 @@ export default function CreateAdmin({
   const { mutate: updateMutation, isLoading: isUpdating } =
     useUpdateMeditation(onSuccess)
 
-  const methods = useForm<MeditationSchema>({
-    resolver: zodResolver(formSchema),
-    mode: 'onChange',
-    reValidateMode: 'onChange',
-  })
-  const { handleSubmit, watch } = methods
-
   const watchedVideoFile = watch('video_file')
 
+  const fallbackDurationMs = useMemo(() => {
+    if (!edit || viewMode) return null
+    const raw = rowData?.duration_minutes
+    const numeric =
+      typeof raw === 'number'
+        ? raw
+        : typeof raw === 'string'
+          ? parseFloat(raw)
+          : null
+    if (numeric === null || Number.isNaN(numeric)) {
+      return null
+    }
+    return numeric * 60000
+  }, [edit, viewMode, rowData?.duration_minutes])
+
   useEffect(() => {
-    if (!watchedVideoFile) {
-      setVideoDurationMs(null)
+    if (!(watchedVideoFile instanceof File)) {
+      setVideoDurationMs(fallbackDurationMs)
       return
     }
 
-    if (watchedVideoFile instanceof File) {
-      const videoElement = document.createElement('video')
-      videoElement.preload = 'metadata'
+    const video = document.createElement('video')
+    const url = URL.createObjectURL(watchedVideoFile)
 
-      const objectUrl = URL.createObjectURL(watchedVideoFile)
-      videoElement.src = objectUrl
+    video.preload = 'metadata'
+    video.src = url
 
-      const handleLoadedMetadata = () => {
-        const durationSeconds = videoElement.duration
-        if (!isNaN(durationSeconds)) {
-          setVideoDurationMs(durationSeconds * 1000)
-        }
-        URL.revokeObjectURL(objectUrl)
-      }
-
-      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
-
-      return () => {
-        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
-        URL.revokeObjectURL(objectUrl)
-      }
-    } else {
-      setVideoDurationMs(null)
+    video.onloadedmetadata = () => {
+      setVideoDurationMs(video.duration * 1000)
+      URL.revokeObjectURL(url)
     }
-  }, [watchedVideoFile])
-  const onSubmit = (details: any) => {
+
+    video.onerror = () => {
+      setVideoDurationMs(fallbackDurationMs)
+      URL.revokeObjectURL(url)
+    }
+  }, [watchedVideoFile, fallbackDurationMs])
+  const onSubmit = async (details: any) => {
     const fd = new FormData()
     fd.append('meditation[title]', details?.title ?? '')
     fd.append('meditation[description]', details?.description ?? '')
@@ -251,8 +254,15 @@ export default function CreateAdmin({
       fd.append('meditation[duration_minutes]', durationMinutes.toFixed(2))
     }
 
-    if (details?.video_file) {
-      fd.append('video', details.video_file as any)
+    const hasNewVideoFile = details?.video_file instanceof File
+
+    if (!hasNewVideoFile && !rowData?.id) {
+      enqueueSnackbar('Video file is required.', { variant: 'error' })
+      return
+    }
+
+    if (hasNewVideoFile) {
+      fd.append('meditation[video]', details.video_file as File)
     }
 
     if (details?.thumbnail instanceof File) {
@@ -355,15 +365,6 @@ export default function CreateAdmin({
                 <FormProvider {...methods}>
                   <FormBuilder data={formBuilderProps} edit={true} spacing />
                 </FormProvider>
-                {videoDurationMs !== null && (
-                  <div className="text-sm text-primaryText">
-                    {(() => {
-                      const minutes = videoDurationMs / 60000
-                      const formatted = minutes.toFixed(2).padStart(5, '0')
-                      return `Video duration: ${formatted} minutes`
-                    })()}
-                  </div>
-                )}
               </>
             ) : (
               <CustomeSideViewer
