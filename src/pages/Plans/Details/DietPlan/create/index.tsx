@@ -66,7 +66,14 @@ export default function DietPlanForm({
     },
   })
 
-  const { handleSubmit, reset, watch, setValue, control } = methods
+  const {
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    control,
+    formState: { errors },
+  } = methods
   const { mutate: createMutate, isLoading: creating } = useCreateDietPlan()
   const { mutate: updateMutate, isLoading: updating } = useUpdateDietPlan()
 
@@ -351,13 +358,7 @@ export default function DietPlanForm({
       secondaryActionLabel="Cancel"
       small={false}
       body={
-        <div
-          className={
-            edit
-              ? 'max-h-[70vh] pr-1 overflow-y-auto'
-              : 'max-h-[70vh] pr-1 overflow-visible'
-          }
-        >
+        <div className="max-h-[70vh] pr-1 overflow-y-auto">
           <FormProvider {...methods}>
             <>
               <FormBuilder data={formFields} edit={true} spacing />
@@ -375,6 +376,8 @@ export default function DietPlanForm({
                     const intakeQty = Number(
                       watch(`meals.${index}.count` as const) || 1
                     )
+                    const mealErrors = (errors?.meals as any)?.[index]
+                    const countError = mealErrors?.count
                     // Build options for this row: exclude meals already chosen in other rows
                     const selectedIdsAll: number[] = (mealsFormValues || [])
                       .map((m: any) => Number(m?.meal_id || 0))
@@ -487,8 +490,13 @@ export default function DietPlanForm({
                                     onChange(v === '' ? 0 : Number(v))
                                   }}
                                   allowPositiveOnly
-                                  // optional: disabled / readOnly if you want it non-editable
-                                  // disabled={true}
+                                  errors={
+                                    countError
+                                      ? {
+                                          [`meals.${index}.count`]: countError,
+                                        }
+                                      : undefined
+                                  }
                                 />
                               )}
                             />

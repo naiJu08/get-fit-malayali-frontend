@@ -121,6 +121,11 @@ export default function CreateMeal({
       })
     }
   }, [selectedMealCategoryId, methods, edit])
+  const capitalizeFirstLetter = (value?: string | null) => {
+    if (!value) return ''
+    return value.charAt(0).toUpperCase() + value.slice(1)
+  }
+
   const onSubmit = (values: MealSchema) => {
     // const payload = {
     //   meal: {
@@ -138,7 +143,7 @@ export default function CreateMeal({
     // }
     const payload = {
       meal: {
-        name: values.name,
+        name: capitalizeFirstLetter(values.name),
         meal_time: values.meal_time,
         meal_category_id: values.meal_category_id,
         serving_unit: values.serving_unit,

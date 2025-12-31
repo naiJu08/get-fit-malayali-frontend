@@ -170,7 +170,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
                 )}
 
                 {(actionLabel || secondaryActionLabel) && !actionBody && (
-                  <div className="flex flex-col p-5">
+                  <div className="flex flex-col p-5 mt-2">
                     <div
                       className="
                     flex
@@ -179,6 +179,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
                     gap-2
                     w-full
                     justify-end
+                    mt-3
                   "
                     >
                       {secondaryAction && secondaryActionLabel && (
