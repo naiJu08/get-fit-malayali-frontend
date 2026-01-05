@@ -134,7 +134,7 @@ const CATEGORIES_DETAILS: RouterMenuProps = {
   icon: 'user',
   label: 'Category Details',
   key: 'category-details',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
 const WORKOUT: RouterMenuProps = {
@@ -197,7 +197,7 @@ const WORKOUT_DETAILS: RouterMenuProps = {
   icon: 'user',
   label: 'Workout Details',
   key: 'workout-details',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
 const YOGA_DETAILS: RouterMenuProps = {
@@ -208,7 +208,7 @@ const YOGA_DETAILS: RouterMenuProps = {
   icon: 'user',
   label: 'Yoga Details',
   key: 'yoga-details',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
 const MEDITATION_DETAILS: RouterMenuProps = {
@@ -219,7 +219,7 @@ const MEDITATION_DETAILS: RouterMenuProps = {
   icon: 'user',
   label: 'Meditation Details',
   key: 'meditation-details',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
 const SUBSCRIPTIONS_DETAILS: RouterMenuProps = {
@@ -230,7 +230,7 @@ const SUBSCRIPTIONS_DETAILS: RouterMenuProps = {
   icon: 'user',
   label: 'Subscription Details',
   key: 'subscriptions-details',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
 }
 
 // Plan Details base route
@@ -242,7 +242,7 @@ const PLAN_DETAILS: RouterMenuProps = {
   icon: 'user',
   label: 'Plan Details',
   key: 'Plan-details',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
 }
 
 // Explicit alias (kept for consistency with existing slugs usage)
@@ -254,7 +254,7 @@ const PLAN_DETAILS_DETAILS: RouterMenuProps = {
   icon: 'user',
   label: 'Plan Details',
   key: 'plan-details-details',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
 }
 
 const PLAN_DETAILS_WORKOUT: RouterMenuProps = {
@@ -265,7 +265,7 @@ const PLAN_DETAILS_WORKOUT: RouterMenuProps = {
   icon: 'user',
   label: 'Plan Details - Workout',
   key: 'plan-details-workout',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
 }
 
 const PLAN_DETAILS_DIET: RouterMenuProps = {
@@ -276,7 +276,7 @@ const PLAN_DETAILS_DIET: RouterMenuProps = {
   icon: 'user',
   label: 'Plan Details - Diet',
   key: 'plan-details-diet',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
 }
 const RECIPE: RouterMenuProps = {
   id: 24,
@@ -295,7 +295,7 @@ const RECIPE_DETAILS: RouterMenuProps = {
   parent_id: 21,
   label: 'Recipe Details',
   key: 'recipe',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
 const MEALS: RouterMenuProps = {
@@ -314,7 +314,7 @@ const MEALS_DETAILS: RouterMenuProps = {
   parent_id: 21,
   label: 'Meals Details',
   key: 'meals-details',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
 
@@ -326,7 +326,7 @@ const WORKOUT_PLAN_DETAILS: RouterMenuProps = {
   icon: 'user',
   label: 'Workout plan Details',
   key: 'workout-details',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
@@ -338,7 +338,7 @@ const YOGAPLAN_DETAILS: RouterMenuProps = {
   icon: 'user',
   label: 'Yogaplan Details',
   key: 'yogaplan-details',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
@@ -351,7 +351,7 @@ const DIET_DETAILS: RouterMenuProps = {
   icon: 'user',
   label: 'Diet Details',
   key: 'diet-details',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
 }
 const YOGAPLAN: RouterMenuProps = {
@@ -362,7 +362,7 @@ const YOGAPLAN: RouterMenuProps = {
   icon: 'user',
   label: 'Yogaplan',
   key: 'yogaplan',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
 }
 const MEDITATIONPLAN: RouterMenuProps = {
   id: 225,
@@ -372,7 +372,7 @@ const MEDITATIONPLAN: RouterMenuProps = {
   icon: 'user',
   label: 'Meditationplan',
   key: 'meditationplan',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
 }
 
 const ORGANISATION_FILE_REPOSTITORY: RouterMenuProps = {
@@ -381,7 +381,7 @@ const ORGANISATION_FILE_REPOSTITORY: RouterMenuProps = {
   parent_id: null,
   label: 'File Repository',
   key: 'org-file-repo',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
 const ORGANISATION_USERLIST: RouterMenuProps = {
@@ -390,7 +390,7 @@ const ORGANISATION_USERLIST: RouterMenuProps = {
   parent_id: null,
   label: 'Organization Users',
   key: 'org-users',
-  permission_slugs: [],
+  permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
 const PAYMENT_HISTORY: RouterMenuProps = {
