@@ -120,7 +120,7 @@ const CATEGORIES: RouterMenuProps = {
   parent_id: null,
   label: 'Categories',
   key: 'categories',
-  icon: 'plan',
+  icon: 'category-icon',
   breadcrumb: ['CATEGORIES'],
   permission_slugs: ['superadmin', 'nutritionist'],
   slugOptions: ['CATEGORIES'],
