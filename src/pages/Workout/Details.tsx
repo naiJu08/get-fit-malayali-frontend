@@ -35,6 +35,43 @@ export default function UserDetails() {
   }, [id])
 
   const workout = data?.workout || data || {}
+  const { categoryName, subcategoryName } = React.useMemo(() => {
+    const categoryData = workout?.category
+    const mainCategoryName =
+      typeof categoryData?.main_category?.name === 'string'
+        ? categoryData.main_category.name
+        : undefined
+    const parentCategoryName =
+      typeof categoryData?.parent?.name === 'string'
+        ? categoryData.parent.name
+        : undefined
+    const categoryNameDerived =
+      mainCategoryName ??
+      parentCategoryName ??
+      (typeof categoryData?.name === 'string' ? categoryData.name : undefined)
+
+    const explicitSubcategory =
+      (typeof workout?.subcategory?.name === 'string'
+        ? workout?.subcategory?.name
+        : undefined) ??
+      (typeof workout?.subcategory_name === 'string'
+        ? workout?.subcategory_name
+        : undefined) ??
+      (typeof workout?.subcategory === 'string'
+        ? workout?.subcategory
+        : undefined)
+
+    const subcategoryNameDerived =
+      explicitSubcategory ??
+      (mainCategoryName && typeof categoryData?.name === 'string'
+        ? categoryData.name
+        : undefined)
+
+    return {
+      categoryName: categoryNameDerived,
+      subcategoryName: subcategoryNameDerived,
+    }
+  }, [workout])
 
   return (
     <div className="p-4">
@@ -65,6 +102,8 @@ export default function UserDetails() {
             label="Intensity Level"
             value={workout?.intensity_level}
           />
+          <DetailItem label="Category" value={categoryName} />
+          <DetailItem label="Subcategory" value={subcategoryName} />
           <DetailItem label="Duration" value={workout?.duration_minutes} />
           <DetailItem
             label="Thumbnail"

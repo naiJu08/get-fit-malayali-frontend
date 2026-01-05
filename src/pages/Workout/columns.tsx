@@ -17,6 +17,50 @@ export const getColumns = ({
   onNameClick?: (row: any) => void
   disableNameLink?: boolean
 }) => {
+  const resolveCategoryInfo = (row: any) => {
+    const categoryData = getNestedProperty(row, 'category') as
+      | {
+          name?: string
+          main_category?: { name?: string }
+          parent?: { name?: string }
+        }
+      | undefined
+
+    const mainCategoryName =
+      typeof categoryData?.main_category?.name === 'string'
+        ? categoryData.main_category.name
+        : undefined
+
+    const primaryCategoryName =
+      mainCategoryName ??
+      (typeof categoryData?.parent?.name === 'string'
+        ? categoryData?.parent?.name
+        : undefined) ??
+      (typeof categoryData?.name === 'string' ? categoryData.name : undefined)
+
+    const explicitSubcategory =
+      (typeof getNestedProperty(row, 'subcategory.name') === 'string'
+        ? (getNestedProperty(row, 'subcategory.name') as string)
+        : undefined) ??
+      (typeof getNestedProperty(row, 'subcategory_name') === 'string'
+        ? (getNestedProperty(row, 'subcategory_name') as string)
+        : undefined) ??
+      (typeof getNestedProperty(row, 'subcategory') === 'string'
+        ? (getNestedProperty(row, 'subcategory') as string)
+        : undefined)
+
+    const derivedSubcategoryName =
+      explicitSubcategory ??
+      (mainCategoryName && typeof categoryData?.name === 'string'
+        ? categoryData.name
+        : undefined)
+
+    return {
+      categoryName: primaryCategoryName,
+      subcategoryName: derivedSubcategoryName,
+    }
+  }
+
   const createRenderCell =
     (key: string, isCustom?: string) => (row: AdminListResponse) => {
       if (isCustom === 'fullname') {
@@ -180,6 +224,34 @@ export const getColumns = ({
       title: 'Intensity Level',
       renderCell: createRenderCell('intensity_level'),
       field: 'intensity_level',
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
+      title: 'Category',
+      field: 'category',
+      renderCell: (row: any) => {
+        const { categoryName } = resolveCategoryInfo(row)
+        const display = categoryName || '-'
+        return {
+          cell: display,
+          toolTip: display,
+        }
+      },
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
+      title: 'Subcategory',
+      field: 'subcategory',
+      renderCell: (row: any) => {
+        const { subcategoryName } = resolveCategoryInfo(row)
+        const display = subcategoryName || '-'
+        return {
+          cell: display,
+          toolTip: display,
+        }
+      },
       customCell: true,
       ...defaultColumnProps,
     },

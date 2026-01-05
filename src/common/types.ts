@@ -178,6 +178,7 @@ export interface QueryParams {
   ordering?: string
   type?: string
   currentDomain?: string
+  parent_id?: string | number
 }
 export interface SearchParams {
   search?: string
