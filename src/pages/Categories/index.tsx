@@ -172,7 +172,7 @@ export default function CategoriesMain() {
   }
   const basicData = {
     title: 'Categories',
-    icon: 'workout',
+    icon: 'category-header-icon',
   }
   const openDrawer = () => {
     if (isNutritionist) return
