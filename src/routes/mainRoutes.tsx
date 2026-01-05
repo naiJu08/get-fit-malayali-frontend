@@ -45,6 +45,8 @@ const BatchHistoryDetail = lazy(
 const RecipeDetail = lazy(() => import('../pages/Recipe/Detail'))
 const UserDetails = lazy(() => import('../pages/AdminUser/Details'))
 const WorkoutDetails = lazy(() => import('../pages/Workout/Details'))
+const CategoriesMain = lazy(() => import('../pages/Categories'))
+const CategoriesDetails = lazy(() => import('../pages/Categories/Details'))
 // const PlanDetailsContent=lazy(() => import('../pages/Plans/Details/DetailsInfo'))
 
 // Dashboard
@@ -67,6 +69,8 @@ const routes: any = [
   { slug: 'WORKOUT', component: <Workout /> },
   { slug: 'PLANS', component: <Plans /> },
   { slug: 'PLAN_DETAILS', component: <PlanDetails /> },
+  { slug: 'CATEGORIES', component: <CategoriesMain /> },
+  { slug: 'CATEGORIES_DETAILS', component: <CategoriesDetails /> },
   { slug: 'WORKOUT_PLAN_DETAILS', component: <WorkoutPlanDetails /> },
   { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
   { slug: 'YOGAPLAN', component: <PlanDetails /> },

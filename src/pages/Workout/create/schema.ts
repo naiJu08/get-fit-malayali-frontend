@@ -5,6 +5,34 @@ import noLeadingSpaces from '../../../utilities/noLeadingSpaces'
 const passerror =
   'Password should contain at least one uppercase letter, one lowercase letter, one digit, and one special character, with a minimum length of eight characters, and must not contain any spaces.'
 
+const preprocessSelectValue = (val: unknown) => {
+  if (
+    typeof val === 'object' &&
+    val !== null &&
+    'id' in (val as Record<string, unknown>)
+  ) {
+    return (val as Record<string, unknown>).id
+  }
+  if (typeof val === 'string') {
+    const trimmed = val.trim()
+    return trimmed === '' ? undefined : trimmed
+  }
+  if (val === '') return undefined
+  return val ?? undefined
+}
+
+const requiredSelectId = (fieldLabel: string) =>
+  z.preprocess(
+    preprocessSelectValue,
+    z.coerce.number({
+      required_error: `${fieldLabel} is required.`,
+      invalid_type_error: `${fieldLabel} is required.`,
+    })
+  )
+
+const optionalSelectId = () =>
+  z.preprocess(preprocessSelectValue, z.coerce.number().optional())
+
 // export const formSchema = z.object({
 //   name: z
 //     .string({ invalid_type_error: 'Required.' })
@@ -48,6 +76,12 @@ export const formSchema = z
     intensity_level: z
       .string({ invalid_type_error: 'Required.' })
       .min(1, { message: 'Required.' }),
+
+    category: z.string().optional(),
+    category_id: requiredSelectId('Category'),
+
+    subcategory: z.string().optional(),
+    subcategory_id: optionalSelectId(),
 
     video_url: z.string().optional(), // added support for existing video
 
