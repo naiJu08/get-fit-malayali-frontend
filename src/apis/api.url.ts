@@ -36,6 +36,7 @@ const YOGA = '/yogas'
 const MEDITATION = '/meditations'
 const MEAL_CATEGORIES = 'meal_categories'
 const SERVING_UNITS = 'references/serving_units'
+const CATEGORIES = '/categories'
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
   ASSESSOR_LIST_URL,
@@ -73,6 +74,7 @@ const apiUrl: { [key: string]: string } = {
   MEDITATION,
   MEAL_CATEGORIES,
   SERVING_UNITS,
+  CATEGORIES,
 }
 
 export default apiUrl

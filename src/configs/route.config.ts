@@ -114,6 +114,29 @@ const PLANS: RouterMenuProps = {
   slugOptions: ['PLANS', 'PLAN_DETAILS', 'DIET_DETAILS'],
   isSidebarMenu: true,
 }
+const CATEGORIES: RouterMenuProps = {
+  id: 20,
+  path: '/categories',
+  parent_id: null,
+  label: 'Categories',
+  key: 'categories',
+  icon: 'category-icon',
+  breadcrumb: ['CATEGORIES'],
+  permission_slugs: ['superadmin', 'nutritionist'],
+  slugOptions: ['CATEGORIES'],
+  isSidebarMenu: true,
+}
+const CATEGORIES_DETAILS: RouterMenuProps = {
+  id: 15,
+  path: '/categories/:id',
+  parent_id: 20,
+  isDetails: true,
+  icon: 'user',
+  label: 'Category Details',
+  key: 'category-details',
+  permission_slugs: [],
+  // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
+}
 const WORKOUT: RouterMenuProps = {
   id: 25,
   path: '/workout',
@@ -381,12 +404,12 @@ const PAYMENT_HISTORY: RouterMenuProps = {
   isSidebarMenu: true,
 }
 
-// Note : The arrangements of below "router_config" object will reflect in Sidebar
 export const router_config: { [key: string]: RouterMenuProps } = {
-  // Primary sidebar order
   DASHBOARD,
   ADMIN_USER,
   PLANS,
+  CATEGORIES,
+  CATEGORIES_DETAILS,
   WORKOUT,
   YOGA,
   MEDITATION,

@@ -344,6 +344,14 @@ export default function DietPlanForm({
       // In edit mode, keep meal time fixed to avoid clearing and 'no data found'
       disabled: !!edit,
     },
+    // {
+    //   name: 'sequence_number',
+    //   label: 'Sequence Number',
+    //   type: 'text',
+    //   placeholder: 'Enter sequence number',
+    //   required: true,
+    //   disabled: true,
+    // },
   ]
   const showMealsSection = edit || !!selectedMealTime
   return (
@@ -358,7 +366,7 @@ export default function DietPlanForm({
       secondaryActionLabel="Cancel"
       small={false}
       body={
-        <div className="max-h-[70vh] pr-1 overflow-y-auto">
+        <div className="max-h-[70vh] min-h-[250px] pr-1">
           <FormProvider {...methods}>
             <>
               <FormBuilder data={formFields} edit={true} spacing />
@@ -681,7 +689,7 @@ export default function DietPlanForm({
                     </span>
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center rounded-full bg-blue-500 px-2.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                      className="inline-flex items-center justify-center rounded-full bg-blue-500 px-2.5 py-1 mb-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                       onClick={() =>
                         appendMeal({
                           meal_id: 0,
