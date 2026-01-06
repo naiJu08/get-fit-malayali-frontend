@@ -1,8 +1,10 @@
 import SmartTable from '../../components/common/table/SmartTable'
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { ChangeEvent, useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
 import { TableColumns } from '../../common/types'
+import { getData } from '../../apis/api.helpers'
+import apiUrl from '../../apis/api.url'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
@@ -22,7 +24,7 @@ import {
 } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 
 export default function WorkoutMain() {
   const navigate = useNavigate()
@@ -59,12 +61,6 @@ export default function WorkoutMain() {
   }
 
   const { data, refetch, isFetching } = useWorkoutList(searchParams)
-  useEffect(() => {
-    if (pageParams?.search) {
-      setPageParams({ ...pageParams, search: '', page: 1 })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
   useEffect(() => {
     const totalPages = data?.meta?.total_pages
     if (typeof totalPages === 'number' && totalPages > 0) {
@@ -128,6 +124,10 @@ export default function WorkoutMain() {
     )
   }, [isNutritionist])
   useEffect(() => {
+    const sanitizedFilters = { ...(pageParams?.filters || {}) }
+    delete (sanitizedFilters as any).category_id
+    delete (sanitizedFilters as any).subcategory_ids
+
     setPageParams({
       ...pageParams,
       page: 1,
@@ -135,6 +135,7 @@ export default function WorkoutMain() {
       sortColumn: undefined,
       sortType: undefined,
       ordering: undefined,
+      filters: sanitizedFilters,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, setPageParams])
@@ -210,6 +211,69 @@ export default function WorkoutMain() {
     setPageParams({ ...pageParams, filters: newFilters, page: 1 })
   }
 
+  const { data: categoriesResponse, isLoading: categoriesLoading } = useQuery(
+    ['workout-filter-categories'],
+    () => getData(apiUrl.CATEGORIES)
+  )
+
+  const categoryOptions = useMemo(
+    () =>
+      (categoriesResponse?.categories ?? []).map((category: any) => ({
+        id: category?.id,
+        name: category?.name ?? '-',
+        subcategories: Array.isArray(category?.subcategories)
+          ? category.subcategories
+          : [],
+      })),
+    [categoriesResponse?.categories]
+  )
+
+  const currentCategoryId =
+    (filters as any)?.category_id !== undefined &&
+    (filters as any)?.category_id !== null
+      ? String((filters as any)?.category_id)
+      : ''
+
+  const currentSubcategoryIds = useMemo(() => {
+    const raw = (filters as any)?.subcategory_ids
+    if (!raw) return []
+    if (Array.isArray(raw)) return raw.map((item) => String(item))
+    return String(raw)
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }, [filters])
+
+  const currentSubcategoryValue = currentSubcategoryIds[0] ?? ''
+
+  const selectedCategory = useMemo(
+    () =>
+      categoryOptions.find(
+        (category: { id?: number }) =>
+          String(category?.id) === currentCategoryId
+      ),
+    [categoryOptions, currentCategoryId]
+  )
+
+  const subcategoryOptions: { id?: number; name?: string }[] =
+    selectedCategory?.subcategories ?? []
+
+  const onCategoryChange = (val: string) => {
+    const newFilters = { ...(filters || {}) }
+    if (val) newFilters.category_id = Number(val)
+    else delete (newFilters as any).category_id
+    delete (newFilters as any).subcategory_ids
+    setPageParams({ ...pageParams, filters: newFilters, page: 1 })
+  }
+
+  const onSubcategoryChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const selectedValue = event.target.value
+    const newFilters = { ...(filters || {}) }
+    if (selectedValue) newFilters.subcategory_ids = selectedValue
+    else delete (newFilters as any).subcategory_ids
+    setPageParams({ ...pageParams, filters: newFilters, page: 1 })
+  }
+
   return (
     <div>
       {DISABLE_NONLOGIN_APIS ? (
@@ -232,8 +296,8 @@ export default function WorkoutMain() {
               dataRowKey="id"
               toolbar={true}
               toolbarExtra={
-                <div className="flex items-end gap-3">
-                  <div className="flex flex-col gap-1 ">
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex flex-col gap-1">
                     <label className="text-xs text-gray-600">Intensity</label>
                     <select
                       className="w-64 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-xl bg-white text-xs outline-none focus:outline-none focus:ring-0 focus:border-gray-300"
@@ -246,6 +310,49 @@ export default function WorkoutMain() {
                           {opt}
                         </option>
                       ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-600">Category</label>
+                    <select
+                      className="w-64 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-xl bg-white text-xs outline-none focus:outline-none focus:ring-0 focus:border-gray-300 disabled:bg-gray-100"
+                      value={currentCategoryId}
+                      onChange={(e) => onCategoryChange(e.target.value)}
+                      disabled={categoriesLoading}
+                    >
+                      <option value="">All</option>
+                      {categoryOptions.map((category: any) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-600">Subcategory</label>
+                    <select
+                      className="w-64 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-xl bg-white text-xs outline-none focus:outline-none focus:ring-0 focus:border-gray-300 disabled:bg-gray-100"
+                      value={currentSubcategoryValue}
+                      onChange={onSubcategoryChange}
+                      disabled={
+                        !currentCategoryId ||
+                        (subcategoryOptions?.length ?? 0) === 0
+                      }
+                    >
+                      <option value="" disabled hidden>
+                        Select subcategory
+                      </option>
+                      {subcategoryOptions.length === 0 ? (
+                        <option value="" disabled>
+                          No subcategories found
+                        </option>
+                      ) : (
+                        subcategoryOptions.map((subcategory) => (
+                          <option key={subcategory.id} value={subcategory.id}>
+                            {subcategory.name}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
                 </div>

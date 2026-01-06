@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import SmartTable from '../../../../components/common/table/SmartTable'
 import Icons from '../../../../components/common/icons'
 import { TableColumns } from '../../../../common/types'
+import ConfirmDeleteModal from '../../../../components/common/modal/ConfirmDeleteModal'
 import { useDietPlans, useDeleteDietPlan } from './api'
 import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../../../utilities/parsers'
@@ -24,136 +25,137 @@ export default function DietPlanIndex({
   const effectivePlanId = planId ?? routePlanId
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
-  const [columns] = useState<TableColumns[]>([
-    {
-      title: 'Day',
-      field: 'day_number',
-      // sortable: true,
-      resizable: true,
-      isVisible: true,
-      customCell: true,
-      renderCell: (row: any) => ({
-        cell: (
-          <button
-            type="button"
-            className="text-blue-600 hover:underline"
-            onClick={() => navigate(`/diet_details/${row?.id}`)}
-          >
-            {row?.day_number ?? ''}
-          </button>
-        ),
-      }),
-      sortKey: 'day_number',
-    },
-    {
-      title: 'Sequence',
-      field: 'sequence_number',
-      // sortable: true,
-      resizable: true,
-      isVisible: true,
-      customCell: true,
-      renderCell: (row: any) => ({ cell: row?.sequence_number ?? '' }),
-      sortKey: 'sequence_number',
-    },
-    {
-      title: 'Meal Time',
-      field: 'meal_time',
-      // sortable: true,
-      resizable: true,
-      isVisible: true,
-      customCell: true,
-      renderCell: (row: any) => ({ cell: row?.meal_time ?? '' }),
-      sortKey: 'meal_time',
-    },
-    {
-      title: 'Meal Name',
-      field: 'meal_name',
-      // sortable: true,
-      resizable: true,
-      isVisible: true,
-      customCell: true,
-      renderCell: (row: any) => {
-        const items = Array.isArray(row?.items) ? (row.items as any[]) : []
-        let label: any = row?.meal_name ?? ''
-        if (items.length > 0) {
-          const parsed = items
-            .map((it: any) => {
-              const name = it?.meal_name ?? ''
-              const reqRaw = (it?.requirement ?? it?.key_requirement ?? '')
-                .toString()
-                .toLowerCase()
-              const req =
-                reqRaw === 'mandatory'
-                  ? 'mandatory'
-                  : reqRaw === 'optional'
-                    ? 'optional'
-                    : ''
-              return { name, req }
-            })
-            .filter((p: any) => Boolean(p.name))
-
-          const mandatory = parsed
-            .filter((p: any) => p.req === 'mandatory')
-            .map((p: any) => p.name)
-          const optional = parsed
-            .filter((p: any) => p.req === 'optional')
-            .map((p: any) => p.name)
-
-          const nodes: Array<string | JSX.Element> = []
-          if (mandatory.length) {
-            mandatory.forEach((name: string, idx: number) => {
-              if (idx > 0)
-                nodes.push(
-                  <span
-                    className="text-green-600 font-semibold"
-                    key={`m-sep-${idx}`}
-                  >
-                    {' '}
-                    +{' '}
-                  </span>
-                )
-              nodes.push(<span key={`m-${idx}`}>{name}</span>)
-            })
-          }
-          if (optional.length) {
-            if (nodes.length)
-              nodes.push(
-                <span className="font-semibold" key={`comma-sep`}>
-                  {', '}
-                </span>
-              )
-            optional.forEach((name: string, idx: number) => {
-              if (idx > 0)
-                nodes.push(
-                  <span
-                    className="text-orange-600 font-semibold"
-                    key={`o-sep-${idx}`}
-                  >
-                    {' '}
-                    or{' '}
-                  </span>
-                )
-              nodes.push(<span key={`o-${idx}`}>{name}</span>)
-            })
-          }
-
-          label = <span>{nodes}</span>
-        }
-        return { cell: label }
+  const columns: TableColumns[] = useMemo(
+    () => [
+      {
+        title: 'Day',
+        field: 'day_number',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({
+          cell: (
+            <button
+              type="button"
+              className="text-blue-600 hover:underline"
+              onClick={() => navigate(`/diet_details/${row?.id}`)}
+            >
+              {row?.day_number ?? ''}
+            </button>
+          ),
+        }),
+        sortKey: 'day_number',
       },
-      sortKey: 'meal_name',
-    },
-    {
-      title: 'Calories',
-      field: 'effective_total_calories',
-      // sortable: true,
-      resizable: true,
-      isVisible: true,
-      customCell: true,
-      renderCell: (row: any) => ({ cell: row?.effective_total_calories ?? '' }),
-      sortKey: 'effective_total_calories',
-    },
-  ])
+      {
+        title: 'Sequence',
+        field: 'sequence_number',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({ cell: row?.sequence_number ?? '' }),
+        sortKey: 'sequence_number',
+      },
+      {
+        title: 'Meal Time',
+        field: 'meal_time',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({ cell: row?.meal_time ?? '' }),
+        sortKey: 'meal_time',
+      },
+      {
+        title: 'Meal Name',
+        field: 'meal_name',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => {
+          const items = Array.isArray(row?.items) ? (row.items as any[]) : []
+          let label: any = row?.meal_name ?? ''
+          if (items.length > 0) {
+            const parsed = items
+              .map((it: any) => {
+                const name = it?.meal_name ?? ''
+                const reqRaw = (it?.requirement ?? it?.key_requirement ?? '')
+                  .toString()
+                  .toLowerCase()
+                const req =
+                  reqRaw === 'mandatory'
+                    ? 'mandatory'
+                    : reqRaw === 'optional'
+                      ? 'optional'
+                      : ''
+                return { name, req }
+              })
+              .filter((p: any) => Boolean(p.name))
+
+            const mandatory = parsed
+              .filter((p: any) => p.req === 'mandatory')
+              .map((p: any) => p.name)
+            const optional = parsed
+              .filter((p: any) => p.req === 'optional')
+              .map((p: any) => p.name)
+
+            const nodes: Array<string | JSX.Element> = []
+            if (mandatory.length) {
+              mandatory.forEach((name: string, idx: number) => {
+                if (idx > 0)
+                  nodes.push(
+                    <span
+                      className="text-green-600 font-semibold"
+                      key={`m-sep-${idx}`}
+                    >
+                      {' '}
+                      +{' '}
+                    </span>
+                  )
+                nodes.push(<span key={`m-${idx}`}>{name}</span>)
+              })
+            }
+
+            if (optional.length) {
+              if (nodes.length)
+                nodes.push(
+                  <span className="font-semibold" key={`comma-sep`}>
+                    {', '}
+                  </span>
+                )
+              optional.forEach((name: string, idx: number) => {
+                if (idx > 0)
+                  nodes.push(
+                    <span
+                      className="text-orange-600 font-semibold"
+                      key={`o-sep-${idx}`}
+                    >
+                      {' '}
+                      or{' '}
+                    </span>
+                  )
+                nodes.push(<span key={`o-${idx}`}>{name}</span>)
+              })
+            }
+
+            label = <span>{nodes}</span>
+          }
+          return { cell: label }
+        },
+        sortKey: 'meal_name',
+      },
+      {
+        title: 'Calories',
+        field: 'effective_total_calories',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({
+          cell: row?.effective_total_calories ?? '',
+        }),
+        sortKey: 'effective_total_calories',
+      },
+    ],
+    [navigate]
+  )
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const { page, per_page, search, ordering } = pageParams
@@ -168,7 +170,12 @@ export default function DietPlanIndex({
 
   const { data, isFetching } = useDietPlans(searchParams)
 
-  const { mutate: deleteDietPlan } = useDeleteDietPlan()
+  const { mutateAsync: deleteDietPlan, isLoading: deleteLoading } =
+    useDeleteDietPlan()
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [selectedDietPlanId, setSelectedDietPlanId] = useState<
+    string | number | null
+  >(null)
 
   const [formOpen, setFormOpen] = useState(false)
   const [formValues, setFormValues] = useState<any | null>(null)
@@ -209,6 +216,18 @@ export default function DietPlanIndex({
     setEditMode(false)
     setFormValues(null)
   }
+
+  const handleDeleteClick = useCallback((row: any) => {
+    setSelectedDietPlanId(row?.id ?? null)
+    setDeleteModalOpen(true)
+  }, [])
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!selectedDietPlanId) return
+    await deleteDietPlan(selectedDietPlanId)
+    setDeleteModalOpen(false)
+    setSelectedDietPlanId(null)
+  }, [deleteDietPlan, selectedDietPlanId])
 
   useEffect(() => {
     if (typeof pageParams?.page !== 'number' || pageParams.page !== 1) {
@@ -319,7 +338,7 @@ export default function DietPlanIndex({
                 },
                 {
                   icon: <Icons name="delete" />,
-                  action: (row: any) => deleteDietPlan(row?.id),
+                  action: (row: any) => handleDeleteClick(row),
                   title: 'Delete',
                   toolTip: 'Delete',
                 },
@@ -333,6 +352,21 @@ export default function DietPlanIndex({
         edit={editMode}
         rowData={formValues ?? undefined}
         planId={effectivePlanId}
+      />
+      <ConfirmDeleteModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          if (!deleteLoading) {
+            setDeleteModalOpen(false)
+            setSelectedDietPlanId(null)
+          }
+        }}
+        onConfirm={handleConfirmDelete}
+        loading={deleteLoading}
+        title="Are you sure?"
+        subTitle="Do you really want to delete this diet plan? This process cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
       />
     </div>
   )
