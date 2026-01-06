@@ -1,6 +1,5 @@
 import SmartTable from '../../components/common/table/SmartTable'
-import { useEffect, useState } from 'react'
-
+import { useEffect, useState, useRef } from 'react'
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
@@ -11,7 +10,7 @@ import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { checkPermissions } from '../../layout/store'
-import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
+import { usePlanFilterStore } from '../../store/filterSore/planFilterStore'
 import { useAuthStore } from '../../store/authStore'
 import { getSortedColumnName } from '../../utilities/parsers'
 import { calcWindowHeight } from '../../utilities/calcHeight'
@@ -47,7 +46,7 @@ export default function Plans() {
   const [openConfirm, setOpenConfirm] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [searchInput, setSearchInput] = useState<string>(
-    (useAdminUserFilterStore.getState().pageParams?.search as string) || ''
+    (usePlanFilterStore.getState().pageParams?.search as string) || ''
   )
   const { mutate: updatePlanMutate } = useUpdatePlan()
 
@@ -60,8 +59,15 @@ export default function Plans() {
   const [planToDelete, setPlanToDelete] = useState<any>(null)
   const location = useLocation()
 
-  const { pageParams, setPageParams, selectedRows, setSelectedRows } =
-    useAdminUserFilterStore()
+  const { pageParams, setPageParams, selectedRows, setSelectedRows, reset } =
+    usePlanFilterStore()
+  const latestPageParamsRef = useRef(pageParams)
+
+  useEffect(() => {
+    latestPageParamsRef.current = pageParams
+  }, [pageParams])
+
+  useEffect(() => reset, [reset])
   useEffect(() => {
     if (pageParams?.search) {
       setPageParams({ ...pageParams, search: '', page: 1 })

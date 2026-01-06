@@ -176,8 +176,9 @@ export default function AdminUser() {
 
   const { data, refetch, isFetching } = useAdminUser(searchParams)
   useEffect(() => {
-    if (pageParams?.search) {
-      setPageParams({ ...pageParams, search: '', page: 1 })
+    const latestParams = useAdminUserFilterStore.getState().pageParams
+    if (latestParams?.search) {
+      setPageParams({ ...latestParams, search: '', page: 1 })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
