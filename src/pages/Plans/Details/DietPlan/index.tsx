@@ -308,19 +308,19 @@ export default function DietPlanIndex({
                     navigate(
                       `/plans/${row?.plan_id}/dietplan_details/${row?.id}`
                     ),
-                  title: 'view',
+                  title: 'View',
                   toolTip: 'View',
                 },
                 {
                   icon: <Icons name="edit" />,
                   action: (row: any) => openEdit(row),
-                  title: 'edit',
+                  title: 'Edit',
                   toolTip: 'Edit',
                 },
                 {
                   icon: <Icons name="delete" />,
                   action: (row: any) => deleteDietPlan(row?.id),
-                  title: 'delete',
+                  title: 'Delete',
                   toolTip: 'Delete',
                 },
               ]

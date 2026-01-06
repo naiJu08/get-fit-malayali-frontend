@@ -116,15 +116,14 @@ const DialogModal: React.FC<DialogModalProps> = ({
               translate
               max-h-[90vh]
               shadow-popupShadow
-              overflow-y-auto
-               rounded-xl
+              overflow-hidden
+              rounded-xl
               relative
               flex
               flex-col
               w-full
-               bg-white
+              bg-white
               focus:outline-none
-              
             "
             >
               {isCloseIcon && (
@@ -142,7 +141,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
                   />
                 </button>
               )}
-              <div className={`p-0 text-left`}>
+              <div className="p-0 text-left flex flex-col h-full">
                 <div
                   className={`flex flex-col gap-0.5 p-5  ${!headborder ? '' : 'border-b border-formBorder'}  `}
                 >
@@ -162,7 +161,11 @@ const DialogModal: React.FC<DialogModalProps> = ({
                     </span>
                   )}
                 </div>
-                <div className={`flex flex-col  ${small ? 'px-5' : 'px-6'}`}>
+                <div
+                  className={`flex-1 overflow-y-auto ${
+                    small ? 'px-5' : 'px-6'
+                  } py-4`}
+                >
                   {body}
                 </div>
                 {actionBody && (
@@ -170,17 +173,8 @@ const DialogModal: React.FC<DialogModalProps> = ({
                 )}
 
                 {(actionLabel || secondaryActionLabel) && !actionBody && (
-                  <div className="flex flex-col p-5">
-                    <div
-                      className="
-                    flex
-                    flex-row
-                    items-end
-                    gap-2
-                    w-full
-                    justify-end
-                  "
-                    >
+                  <div className="flex flex-col p-5 border-t border-formBorder">
+                    <div className="flex flex-row gap-2 w-full justify-end">
                       {secondaryAction && secondaryActionLabel && (
                         <Button
                           disabled={disabled}

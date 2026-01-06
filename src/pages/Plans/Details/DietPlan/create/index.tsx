@@ -66,7 +66,14 @@ export default function DietPlanForm({
     },
   })
 
-  const { handleSubmit, reset, watch, setValue, control } = methods
+  const {
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    control,
+    formState: { errors },
+  } = methods
   const { mutate: createMutate, isLoading: creating } = useCreateDietPlan()
   const { mutate: updateMutate, isLoading: updating } = useUpdateDietPlan()
 
@@ -337,6 +344,14 @@ export default function DietPlanForm({
       // In edit mode, keep meal time fixed to avoid clearing and 'no data found'
       disabled: !!edit,
     },
+    // {
+    //   name: 'sequence_number',
+    //   label: 'Sequence Number',
+    //   type: 'text',
+    //   placeholder: 'Enter sequence number',
+    //   required: true,
+    //   disabled: true,
+    // },
   ]
   const showMealsSection = edit || !!selectedMealTime
   return (
@@ -351,13 +366,7 @@ export default function DietPlanForm({
       secondaryActionLabel="Cancel"
       small={false}
       body={
-        <div
-          className={
-            edit
-              ? 'max-h-[70vh] pr-1 overflow-y-auto'
-              : 'max-h-[70vh] pr-1 overflow-visible'
-          }
-        >
+        <div className="max-h-[70vh] min-h-[250px] pr-1">
           <FormProvider {...methods}>
             <>
               <FormBuilder data={formFields} edit={true} spacing />
@@ -375,6 +384,8 @@ export default function DietPlanForm({
                     const intakeQty = Number(
                       watch(`meals.${index}.count` as const) || 1
                     )
+                    const mealErrors = (errors?.meals as any)?.[index]
+                    const countError = mealErrors?.count
                     // Build options for this row: exclude meals already chosen in other rows
                     const selectedIdsAll: number[] = (mealsFormValues || [])
                       .map((m: any) => Number(m?.meal_id || 0))
@@ -487,8 +498,13 @@ export default function DietPlanForm({
                                     onChange(v === '' ? 0 : Number(v))
                                   }}
                                   allowPositiveOnly
-                                  // optional: disabled / readOnly if you want it non-editable
-                                  // disabled={true}
+                                  errors={
+                                    countError
+                                      ? {
+                                          [`meals.${index}.count`]: countError,
+                                        }
+                                      : undefined
+                                  }
                                 />
                               )}
                             />
@@ -673,7 +689,7 @@ export default function DietPlanForm({
                     </span>
                     <button
                       type="button"
-                      className="inline-flex items-center justify-center rounded-full bg-blue-500 px-2.5 py-1 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                      className="inline-flex items-center justify-center rounded-full bg-blue-500 px-2.5 py-1 mb-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                       onClick={() =>
                         appendMeal({
                           meal_id: 0,
