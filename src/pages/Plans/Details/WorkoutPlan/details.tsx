@@ -311,12 +311,6 @@ export default function WorkoutPlanDetails() {
   }, [id])
 
   const wp = data?.workout_plan || data || {}
-  // Load workouts for assignment
-  const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList({
-    page: wpPage,
-    per_page: wpPerPage,
-    search: wpSearch,
-  } as any)
 
   // Derive selected subcategory IDs from multi-select
   const selectedSubcategoryIds = useMemo(
@@ -327,31 +321,82 @@ export default function WorkoutPlanDetails() {
     [selectedSubcategories]
   )
 
-  // Filter workouts so that only those belonging to the selected subcategories
-  // are available for selection and carried into the Review drawer.
-  const workouts = useMemo(() => {
-    const all = (workoutsResp as any)?.workouts ?? []
-    if (!Array.isArray(all)) return []
-    if (!selectedSubcategoryIds.length) return all
+  // Build params for workouts API including category and subcategory filters
+  const workoutListParams = useMemo(() => {
+    const params: any = {
+      page: wpPage,
+      per_page: wpPerPage,
+      search: wpSearch,
+    }
 
-    return all.filter((w: any) => {
-      const subId =
-        w?.subcategory_id ?? w?.subcategory?.id ?? w?.category?.id ?? undefined
-      if (subId == null) return false
-      return selectedSubcategoryIds.some(
-        (sid: any) => Number(sid) === Number(subId)
-      )
-    })
-  }, [workoutsResp, selectedSubcategoryIds])
+    if (selectedCategoryId) {
+      params.category_id = selectedCategoryId
+    }
+
+    if (selectedSubcategoryIds.length) {
+      params.subcategory_ids = selectedSubcategoryIds.join(',')
+    }
+
+    return params
+  }, [wpPage, wpPerPage, wpSearch, selectedCategoryId, selectedSubcategoryIds])
+
+  // Load workouts for assignment from backend with category/subcategory filters
+  const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList(
+    workoutListParams as any
+  )
+
+  const workouts = (workoutsResp as any)?.workouts ?? []
+
+  // When the Assign drawer is open and workouts are loaded for the
+  // selected category / subcategories (or no filter), ensure that
+  // previously assigned workouts remain selected and that, for the
+  // current filter, only the visible workouts are newly selected.
+  useEffect(() => {
+    if (!assignOpen) return
+    if (!Array.isArray(workouts)) {
+      setSelectedWorkouts([])
+      return
+    }
+
+    const map = new Map<any, any>()
+
+    // Always include workouts already assigned in this plan so that
+    // previously assigned items stay selected across sessions.
+    if (Array.isArray(wp?.exercises)) {
+      wp.exercises.forEach((ex: any) => {
+        const id = ex?.workout_id || ex?.workout?.id || ex?.id
+        if (!id) return
+        if (!map.has(id)) {
+          map.set(id, {
+            id,
+            name: ex?.workout_name || ex?.workout?.name,
+            video_url:
+              ex?.video_url ||
+              ex?.workout_video_url ||
+              ex?.workout?.video_url ||
+              '',
+          })
+        }
+      })
+    }
+
+    // Then include only the workouts visible for the current
+    // category/subcategory filter so that the selection reflects
+    // exactly this filter plus any previously assigned items.
+    if (Array.isArray(workouts) && workouts.length > 0) {
+      workouts.forEach((w: any) => {
+        if (w && w.id != null) {
+          map.set(w.id, w)
+        }
+      })
+    }
+
+    setSelectedWorkouts(Array.from(map.values()))
+  }, [assignOpen, workouts, wp?.exercises])
 
   // You can proceed to Review if either:
-  // - at least one workout is explicitly selected, OR
-  // - there are selected subcategories and the filtered workouts list is non-empty.
-  const canProceedToReview =
-    selectedWorkouts.length > 0 ||
-    (selectedSubcategoryIds.length > 0 &&
-      Array.isArray(workouts) &&
-      workouts.length > 0)
+  // - at least one workout is explicitly selected by the user.
+  const canProceedToReview = selectedWorkouts.length > 0
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
     if (!u) return ''
@@ -394,54 +439,15 @@ export default function WorkoutPlanDetails() {
 
       // On first open (or after successful assign when selection was cleared),
       // pre-select workouts that are already assigned in this plan.
-      if (selectedWorkouts.length === 0 && Array.isArray(wp?.exercises)) {
-        const map = new Map<any, any>()
-        wp.exercises.forEach((ex: any) => {
-          const id = ex?.workout_id || ex?.workout?.id || ex?.id
-          if (!id) return
-          if (!map.has(id)) {
-            map.set(id, {
-              id,
-              name: ex?.workout_name || ex?.workout?.name,
-              video_url:
-                ex?.video_url ||
-                ex?.workout_video_url ||
-                ex?.workout?.video_url ||
-                '',
-            })
-          }
-        })
-        setSelectedWorkouts(Array.from(map.values()))
-      }
+      // selection is now derived in the workouts/useEffect above
     }
   }, [assignOpen, wp?.exercises, selectedWorkouts.length])
 
   const handleNext = () => {
-    // If subcategories are chosen, include all workouts from those
-    // subcategories in addition to anything already selected.
-    if (selectedSubcategoryIds.length > 0) {
-      if (!Array.isArray(workouts) || workouts.length === 0) return
-
-      setSelectedWorkouts((prev) => {
-        const existing = Array.isArray(prev) ? prev : []
-        const nextMap = new Map<any, any>()
-
-        // keep previously selected
-        existing.forEach((w: any) => {
-          if (w?.id != null) nextMap.set(w.id, w)
-        })
-
-        // add all filtered workouts from selected subcategories
-        workouts.forEach((w: any) => {
-          if (w?.id != null) nextMap.set(w.id, w)
-        })
-
-        return Array.from(nextMap.values())
-      })
-    } else if (!canProceedToReview) {
-      // No subcategory filter: fall back to requiring explicit selections
-      return
-    }
+    // Only move to Review drawer if there is at least one explicitly
+    // selected workout. The Review drawer always reflects exactly the
+    // current selectedWorkouts list.
+    if (!canProceedToReview) return
 
     setReviewOpen(true)
     setAssignOpen(false)
