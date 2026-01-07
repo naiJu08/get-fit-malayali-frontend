@@ -151,7 +151,7 @@ function AssignTabContent({
               )}
           </div>
           {exercises.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 place-items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-3 place-items-stretch">
               {exercises.map((ex: any) => {
                 const rawUrl =
                   ex?.video_url ||
@@ -417,11 +417,27 @@ export default function WorkoutPlanDetails() {
   }, [assignOpen, wp?.exercises, selectedWorkouts.length])
 
   const handleNext = () => {
-    // If subcategories are chosen, always base the Review drawer
-    // on the current filtered workouts from those subcategories.
+    // If subcategories are chosen, include all workouts from those
+    // subcategories in addition to anything already selected.
     if (selectedSubcategoryIds.length > 0) {
       if (!Array.isArray(workouts) || workouts.length === 0) return
-      setSelectedWorkouts(workouts)
+
+      setSelectedWorkouts((prev) => {
+        const existing = Array.isArray(prev) ? prev : []
+        const nextMap = new Map<any, any>()
+
+        // keep previously selected
+        existing.forEach((w: any) => {
+          if (w?.id != null) nextMap.set(w.id, w)
+        })
+
+        // add all filtered workouts from selected subcategories
+        workouts.forEach((w: any) => {
+          if (w?.id != null) nextMap.set(w.id, w)
+        })
+
+        return Array.from(nextMap.values())
+      })
     } else if (!canProceedToReview) {
       // No subcategory filter: fall back to requiring explicit selections
       return
@@ -755,7 +771,7 @@ export default function WorkoutPlanDetails() {
         actionLabel={'Confirm'}
       >
         <div className="mt-4">
-          <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
+          <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
             <span className="text-blue-600 text-xl">🎬</span>
             <span className="text-gray-600  bg-clip-text ">
               Drag and drop the videos below into the order you want them to
@@ -765,7 +781,7 @@ export default function WorkoutPlanDetails() {
             </span>
           </h2>
           {selectedWorkouts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-5">
               {selectedWorkouts.map((w, i) => {
                 const embed = getEmbedUrl(w?.video_url)
                 const url = w?.video_url || ''
@@ -787,7 +803,7 @@ export default function WorkoutPlanDetails() {
                     {/* Video preview */}
                     {embed ? (
                       <iframe
-                        className="w-full h-48"
+                        className="w-full h-40"
                         src={embed}
                         allowFullScreen
                       ></iframe>
@@ -796,7 +812,7 @@ export default function WorkoutPlanDetails() {
                         src={url}
                         controls
                         muted
-                        className="w-full h-48 object-cover"
+                        className="w-full h-40 object-cover"
                       />
                     ) : (
                       <div className="text-sm text-gray-500 italic">
