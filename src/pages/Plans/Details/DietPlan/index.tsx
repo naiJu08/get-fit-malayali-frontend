@@ -323,10 +323,7 @@ export default function DietPlanIndex({
             : [
                 {
                   icon: <Icons name="eye" />,
-                  action: (row: any) =>
-                    navigate(
-                      `/plans/${row?.plan_id}/dietplan_details/${row?.id}`
-                    ),
+                  action: (row: any) => navigate(`/diet_details/${row?.id}`),
                   title: 'View',
                   toolTip: 'View',
                 },
