@@ -1,11 +1,18 @@
 // import moment from 'moment'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+
+import { useQuery } from '@tanstack/react-query'
+import { AutoComplete } from 'qbs-core'
 
 import Icons from '../../../../components/common/icons'
 import InfoBox from '../../../../components/app/alertBox/infoBox'
 import { useSnackbarManager } from '../../../../components/common/snackbar'
-import { getWorkoutPlanDetails, deleteWorkoutPlanExercise } from './api'
+import {
+  getWorkoutPlanDetails,
+  deleteWorkoutPlanExercise,
+  getWorkoutPlanSubcategories,
+} from './api'
 import CustomDrawer from '../../../../components/common/drawer'
 // import TabContainer from '../../../../components/common/tab/TabContainer'
 import Tab from '../../../../components/common/tab/Tab'
@@ -14,6 +21,8 @@ import { useWorkoutList } from '../../../Workout/api'
 import { useAuthStore } from '../../../../store/authStore'
 import { useAddExercises } from './api'
 import { TabContainer } from '../../../../components/common'
+import apiUrl from '../../../../apis/api.url'
+import { getData } from '../../../../apis/api.helpers'
 
 function DetailsTabContent({
   wp,
@@ -232,6 +241,41 @@ export default function WorkoutPlanDetails() {
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
 
+  const { data: categoriesResponse } = useQuery(
+    ['workout_categories_for_assign'],
+    () => getData(apiUrl.CATEGORIES),
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  )
+
+  const normalizedCategories = useMemo(() => {
+    const categories =
+      (categoriesResponse as any)?.categories ??
+      (categoriesResponse as any)?.category ??
+      categoriesResponse
+    if (Array.isArray(categories)) return categories
+    return []
+  }, [categoriesResponse])
+
+  const categoryOptions = useMemo(
+    () =>
+      normalizedCategories.map((cat: any) => ({
+        id: cat?.id,
+        name: cat?.name,
+        subcategories: Array.isArray(cat?.subcategories)
+          ? cat.subcategories
+          : [],
+      })),
+    [normalizedCategories]
+  )
+
+  const [selectedCategoryId, setSelectedCategoryId] = useState<
+    number | string | undefined
+  >(undefined)
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('')
+  const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
+
   const refreshDetails = async () => {
     try {
       setLoading(true)
@@ -273,7 +317,41 @@ export default function WorkoutPlanDetails() {
     per_page: wpPerPage,
     search: wpSearch,
   } as any)
-  const workouts = workoutsResp?.workouts ?? []
+
+  // Derive selected subcategory IDs from multi-select
+  const selectedSubcategoryIds = useMemo(
+    () =>
+      (selectedSubcategories || [])
+        .map((s: any) => s?.id)
+        .filter((id: any) => id != null),
+    [selectedSubcategories]
+  )
+
+  // Filter workouts so that only those belonging to the selected subcategories
+  // are available for selection and carried into the Review drawer.
+  const workouts = useMemo(() => {
+    const all = (workoutsResp as any)?.workouts ?? []
+    if (!Array.isArray(all)) return []
+    if (!selectedSubcategoryIds.length) return all
+
+    return all.filter((w: any) => {
+      const subId =
+        w?.subcategory_id ?? w?.subcategory?.id ?? w?.category?.id ?? undefined
+      if (subId == null) return false
+      return selectedSubcategoryIds.some(
+        (sid: any) => Number(sid) === Number(subId)
+      )
+    })
+  }, [workoutsResp, selectedSubcategoryIds])
+
+  // You can proceed to Review if either:
+  // - at least one workout is explicitly selected, OR
+  // - there are selected subcategories and the filtered workouts list is non-empty.
+  const canProceedToReview =
+    selectedWorkouts.length > 0 ||
+    (selectedSubcategoryIds.length > 0 &&
+      Array.isArray(workouts) &&
+      workouts.length > 0)
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
     if (!u) return ''
@@ -339,7 +417,16 @@ export default function WorkoutPlanDetails() {
   }, [assignOpen, wp?.exercises, selectedWorkouts.length])
 
   const handleNext = () => {
-    if (selectedWorkouts.length === 0) return
+    // If subcategories are chosen, always base the Review drawer
+    // on the current filtered workouts from those subcategories.
+    if (selectedSubcategoryIds.length > 0) {
+      if (!Array.isArray(workouts) || workouts.length === 0) return
+      setSelectedWorkouts(workouts)
+    } else if (!canProceedToReview) {
+      // No subcategory filter: fall back to requiring explicit selections
+      return
+    }
+
     setReviewOpen(true)
     setAssignOpen(false)
   }
@@ -466,8 +553,8 @@ export default function WorkoutPlanDetails() {
         unmountOnClose
         title={'Assign Workout'}
         handleSubmit={handleNext}
-        disableSubmit={selectedWorkouts.length === 0}
-        hideSubmit={selectedWorkouts.length === 0}
+        disableSubmit={!canProceedToReview}
+        hideSubmit={!canProceedToReview}
         actionLoader={false}
         actionLabel={'Next'}
       >
@@ -475,16 +562,68 @@ export default function WorkoutPlanDetails() {
           <div className="flex flex-col gap-3">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
               <div className="text-sm font-medium">Workouts</div>
-              <div className="flex items-center gap-2">
-                <input
-                  value={wpSearch}
-                  onChange={(e) => {
-                    setWpSearch(e.target.value)
-                    setWpPage(1)
-                  }}
-                  placeholder="Search workouts..."
-                  className="border rounded px-2 py-1 text-sm"
-                />
+              <div className="flex flex-col md:flex-row md:items-end gap-2 w-full md:w-auto">
+                <div className="flex-1 min-w-[180px]">
+                  <AutoComplete
+                    placeholder="Select category"
+                    desc="name"
+                    descId="id"
+                    type="custom_search_select"
+                    data={categoryOptions}
+                    value={selectedCategoryName}
+                    name="assign_category"
+                    onChange={(option: any) => {
+                      const id = option?.id ?? option?.value ?? ''
+                      const name = option?.name ?? option?.label ?? ''
+                      setSelectedCategoryId(id || undefined)
+                      setSelectedCategoryName(name || '')
+                      setSelectedSubcategories([])
+                    }}
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <AutoComplete
+                    placeholder="Select subcategories"
+                    desc="value"
+                    descId="id"
+                    type="auto_suggestion"
+                    isMultiple={true}
+                    selectedItems={selectedSubcategories}
+                    value={''}
+                    async={true}
+                    initialLoad={true}
+                    paginationEnabled={false}
+                    name="assign_subcategories"
+                    getData={async (key?: string) => {
+                      if (!selectedCategoryId) return []
+
+                      const raw =
+                        await getWorkoutPlanSubcategories(selectedCategoryId)
+
+                      let options = Array.isArray(raw) ? raw : []
+
+                      if (key) {
+                        const lower = String(key).toLowerCase()
+                        options = options.filter((o: any) =>
+                          String(o.value || '')
+                            .toLowerCase()
+                            .includes(lower)
+                        )
+                      }
+
+                      return options
+                    }}
+                    onChange={(value?: any | any[]) => {
+                      if (!value) {
+                        setSelectedSubcategories([])
+                      } else if (Array.isArray(value)) {
+                        setSelectedSubcategories(value)
+                      } else {
+                        setSelectedSubcategories([value])
+                      }
+                    }}
+                  />
+                </div>
                 <select
                   className="border rounded px-2 py-1 text-sm"
                   value={wpPerPage}
@@ -511,7 +650,7 @@ export default function WorkoutPlanDetails() {
             )}
 
             {!workoutsLoading && workouts.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
                 {workouts.map((w: any) => {
                   const url = w?.video_url || ''
                   const embed = getEmbedUrl(url)

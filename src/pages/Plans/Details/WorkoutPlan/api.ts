@@ -133,3 +133,22 @@ export const deleteWorkoutPlanExercise = (
     workout_ids: workoutIds,
   })
 }
+
+// Fetch subcategories for a given category to power Assign drawer multi-select
+// Uses /categories/:id (getCategoriesDetails-like endpoint)
+export const getWorkoutPlanSubcategories = async (
+  parentId?: string | number
+) => {
+  if (!parentId) return []
+  // Use /categories/:id only, as requested
+  const detail: any = await getData(`${apiUrl.CATEGORIES}/${parentId}`)
+  // Handles your response shape:
+  // { category: { ..., subcategories: [...] } }
+  const container =
+    detail?.category ?? detail?.data?.category ?? detail?.data ?? detail
+  const subs: any[] = container?.subcategories || container?.subcategory || []
+  return (Array.isArray(subs) ? subs : []).map((sub: any) => ({
+    id: sub?.id,
+    value: sub?.name ?? '',
+  }))
+}
