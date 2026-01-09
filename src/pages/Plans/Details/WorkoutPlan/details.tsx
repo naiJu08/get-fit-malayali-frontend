@@ -1,19 +1,27 @@
 // import moment from 'moment'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+
+import { useQuery } from '@tanstack/react-query'
+import { AutoComplete } from 'qbs-core'
 
 import Icons from '../../../../components/common/icons'
 import InfoBox from '../../../../components/app/alertBox/infoBox'
 import { useSnackbarManager } from '../../../../components/common/snackbar'
-import { getWorkoutPlanDetails, deleteWorkoutPlanExercise } from './api'
+import {
+  getWorkoutPlanDetails,
+  deleteWorkoutPlanExercise,
+  getWorkoutPlanSubcategories,
+} from './api'
 import CustomDrawer from '../../../../components/common/drawer'
-// import TabContainer from '../../../../components/common/tab/TabContainer'
 import Tab from '../../../../components/common/tab/Tab'
 import { TabItemProps } from '../../../../common/types'
 import { useWorkoutList } from '../../../Workout/api'
 import { useAuthStore } from '../../../../store/authStore'
 import { useAddExercises } from './api'
 import { TabContainer } from '../../../../components/common'
+import apiUrl from '../../../../apis/api.url'
+import { getData } from '../../../../apis/api.helpers'
 
 function DetailsTabContent({
   wp,
@@ -114,6 +122,38 @@ function AssignTabContent({
         )
     : []
 
+  const groupedAssignedExercises = useMemo(() => {
+    if (!Array.isArray(exercises) || exercises.length === 0) return []
+
+    const groups = new Map<string, any[]>()
+
+    exercises.forEach((ex: any) => {
+      const catName =
+        ex?.category?.main_category?.name ??
+        ex?.category?.name ??
+        ex?.workout?.category?.main_category?.name ??
+        ex?.workout?.category_name ??
+        'Others'
+
+      const subName =
+        ex?.category?.name ??
+        ex?.workout?.category?.name ??
+        ex?.workout?.subcategory_name ??
+        ex?.workout?.subcategory?.name ??
+        'Others'
+
+      const legendText = `${catName} - ${subName}`
+
+      if (!groups.has(legendText)) groups.set(legendText, [])
+      groups.get(legendText)!.push(ex)
+    })
+
+    return Array.from(groups.entries()).map(([legend, items]) => ({
+      legend,
+      items,
+    }))
+  }, [exercises])
+
   return (
     <>
       {loading && (
@@ -142,63 +182,80 @@ function AssignTabContent({
               )}
           </div>
           {exercises.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 place-items-stretch">
-              {exercises.map((ex: any) => {
-                const rawUrl =
-                  ex?.video_url ||
-                  ex?.workout_video_url ||
-                  ex?.workout?.video_url ||
-                  ''
-                const url = String(rawUrl || '')
-                const embed = getEmbedUrl(url)
-                const workoutIdForEx =
-                  ex?.workout_id || ex?.workout?.id || ex?.id
-                const checked = selectedExerciseIds.includes(workoutIdForEx)
-                return (
-                  <div
-                    key={ex?.id}
-                    className="border rounded bg-white overflow-hidden w-full"
-                  >
-                    {embed ? (
-                      <div className="w-full h-36 bg-black/5">
-                        <iframe
-                          src={embed}
-                          title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
-                          className="w-full h-full"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                          allowFullScreen
-                        />
-                      </div>
-                    ) : url ? (
-                      <video
-                        className="w-full h-32 object-cover rounded"
-                        src={String(url)}
-                        muted
-                        controls
-                      />
-                    ) : (
-                      <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                        No video
-                      </div>
-                    )}
-                    <div className="px-2 py-1 text-xs flex items-center justify-between gap-2">
-                      <div className="font-medium line-clamp-1">
-                        {ex?.workout_name || 'Untitled'}
-                      </div>
-                      {!isNutritionist && (
-                        <input
-                          type="checkbox"
-                          className="shrink-0"
-                          checked={checked}
-                          onChange={() =>
-                            toggleSelectedExercise(workoutIdForEx)
-                          }
-                        />
-                      )}
-                    </div>
+            <div className="flex flex-col gap-4">
+              {groupedAssignedExercises.map((group) => (
+                <fieldset
+                  key={group.legend}
+                  className="border border-gray-300 rounded-xl p-4 bg-white"
+                >
+                  <legend className="px-2 text-md font-semibold text-gray-600">
+                    {group.legend}
+                  </legend>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-3 place-items-stretch">
+                    {group.items.map((ex: any) => {
+                      const rawUrl =
+                        ex?.video_url ||
+                        ex?.workout_video_url ||
+                        ex?.workout?.video_url ||
+                        ''
+                      const url = String(rawUrl || '')
+                      const embed = getEmbedUrl(url)
+                      const workoutIdForEx =
+                        ex?.workout_id || ex?.workout?.id || ex?.id
+                      const checked =
+                        selectedExerciseIds.includes(workoutIdForEx)
+
+                      return (
+                        <div
+                          key={ex?.id}
+                          className="border rounded bg-white overflow-hidden w-full"
+                        >
+                          {embed ? (
+                            <div className="w-full h-36 bg-black/5">
+                              <iframe
+                                src={embed}
+                                title={`Workout Video ${
+                                  ex?.workout_id ?? ex?.id
+                                }`}
+                                className="w-full h-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                              />
+                            </div>
+                          ) : url ? (
+                            <video
+                              className="w-full h-32 object-cover rounded"
+                              src={String(url)}
+                              muted
+                              controls
+                            />
+                          ) : (
+                            <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                              No video
+                            </div>
+                          )}
+                          <div className="px-2 py-1 text-xs flex items-center justify-between gap-2">
+                            <div className="font-medium line-clamp-1">
+                              {ex?.workout_name || 'Untitled'}
+                            </div>
+                            {!isNutritionist && (
+                              <input
+                                type="checkbox"
+                                className="shrink-0"
+                                checked={checked}
+                                onChange={() =>
+                                  toggleSelectedExercise(workoutIdForEx)
+                                }
+                              />
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                )
-              })}
+                </fieldset>
+              ))}
             </div>
           ) : (
             <div className="text-sm text-gray-600">No exercises assigned.</div>
@@ -223,14 +280,50 @@ export default function WorkoutPlanDetails() {
   const [reviewOpen, setReviewOpen] = useState(false)
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
   const [wpPage, setWpPage] = useState<number>(1)
-  const [wpPerPage, setWpPerPage] = useState<number>(20)
+  const [wpPerPage] = useState<number>(9999)
   const [wpSearch, setWpSearch] = useState<string>('')
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dragGroup, setDragGroup] = useState<string | null>(null)
   // const { mutateAsync: addExerciseAsync } = useAddExercise()
   const { mutateAsync: addExercisesAsync } = useAddExercises()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
+
+  const { data: categoriesResponse } = useQuery(
+    ['workout_categories_for_assign'],
+    () => getData(apiUrl.CATEGORIES),
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  )
+
+  const normalizedCategories = useMemo(() => {
+    const categories =
+      (categoriesResponse as any)?.categories ??
+      (categoriesResponse as any)?.category ??
+      categoriesResponse
+    if (Array.isArray(categories)) return categories
+    return []
+  }, [categoriesResponse])
+
+  const categoryOptions = useMemo(
+    () =>
+      normalizedCategories.map((cat: any) => ({
+        id: cat?.id,
+        name: cat?.name,
+        subcategories: Array.isArray(cat?.subcategories)
+          ? cat.subcategories
+          : [],
+      })),
+    [normalizedCategories]
+  )
+
+  const [selectedCategoryId, setSelectedCategoryId] = useState<
+    number | string | undefined
+  >(undefined)
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('')
+  const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
 
   const refreshDetails = async () => {
     try {
@@ -267,13 +360,88 @@ export default function WorkoutPlanDetails() {
   }, [id])
 
   const wp = data?.workout_plan || data || {}
-  // Load workouts for assignment
-  const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList({
-    page: wpPage,
-    per_page: wpPerPage,
-    search: wpSearch,
-  } as any)
-  const workouts = workoutsResp?.workouts ?? []
+
+  // Derive selected subcategory IDs from multi-select
+  const selectedSubcategoryIds = useMemo(
+    () =>
+      (selectedSubcategories || [])
+        .map((s: any) => s?.id)
+        .filter((id: any) => id != null),
+    [selectedSubcategories]
+  )
+
+  // Build params for workouts API including category and subcategory filters
+  const workoutListParams = useMemo(() => {
+    const params: any = {
+      page: wpPage,
+      per_page: wpPerPage,
+      search: wpSearch,
+    }
+
+    if (selectedCategoryId) {
+      params.category_id = selectedCategoryId
+    }
+
+    if (selectedSubcategoryIds.length) {
+      params.subcategory_ids = selectedSubcategoryIds.join(',')
+    }
+
+    return params
+  }, [wpPage, wpPerPage, wpSearch, selectedCategoryId, selectedSubcategoryIds])
+
+  // Load workouts for assignment from backend with category/subcategory filters
+  const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList(
+    workoutListParams as any
+  )
+
+  const workouts = (workoutsResp as any)?.workouts ?? []
+
+  useEffect(() => {
+    if (!assignOpen) return
+    if (!Array.isArray(workouts)) {
+      setSelectedWorkouts([])
+      return
+    }
+
+    const map = new Map<any, any>()
+
+    // Always include workouts already assigned in this plan so that
+    // previously assigned items stay selected across sessions.
+    if (Array.isArray(wp?.exercises)) {
+      wp.exercises.forEach((ex: any) => {
+        const id = ex?.workout_id || ex?.workout?.id || ex?.id
+        if (!id) return
+        if (!map.has(id)) {
+          map.set(id, {
+            id,
+            name: ex?.workout_name || ex?.workout?.name,
+            video_url:
+              ex?.video_url ||
+              ex?.workout_video_url ||
+              ex?.workout?.video_url ||
+              '',
+          })
+        }
+      })
+    }
+
+    // Then include only the workouts visible for the current
+    // category/subcategory filter so that the selection reflects
+    // exactly this filter plus any previously assigned items.
+    if (Array.isArray(workouts) && workouts.length > 0) {
+      workouts.forEach((w: any) => {
+        if (w && w.id != null) {
+          map.set(w.id, w)
+        }
+      })
+    }
+
+    setSelectedWorkouts(Array.from(map.values()))
+  }, [assignOpen, workouts, wp?.exercises])
+
+  // You can proceed to Review if either:
+  // - at least one workout is explicitly selected by the user.
+  const canProceedToReview = selectedWorkouts.length > 0
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
     if (!u) return ''
@@ -291,6 +459,75 @@ export default function WorkoutPlanDetails() {
     }
     return ''
   }
+
+  const getWorkoutGroupKey = (w: any) => {
+    const rawSub =
+      w?.subcategory?.name ??
+      w?.subcategory_name ??
+      w?.subcategory ??
+      w?.category?.name ??
+      'Others'
+
+    return String(rawSub || 'Others')
+  }
+
+  // Group workouts by subcategory for the Assign drawer so that
+  // workouts sharing the same subcategory appear in a single wrapper.
+  const groupedWorkouts = useMemo(() => {
+    if (!Array.isArray(workouts) || workouts.length === 0) return []
+
+    // Sort workouts by category/subcategory priority so that higher
+    // priority categories are shown first in the Assign drawer.
+    const sorted = workouts.slice().sort((a: any, b: any) => {
+      const pa = a?.category?.priority ?? 9999
+      const pb = b?.category?.priority ?? 9999
+      if (pa === pb) return 0
+      return pa < pb ? -1 : 1
+    })
+
+    const groups = new Map<string, any[]>()
+
+    sorted.forEach((w: any) => {
+      const key = getWorkoutGroupKey(w)
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key)!.push(w)
+    })
+
+    return Array.from(groups.entries()).map(([name, items]) => ({
+      name,
+      items,
+    }))
+  }, [workouts])
+
+  // Group selected workouts by subcategory for the Review drawer so that
+  // ordering is managed within each subcategory only.
+  const groupedSelectedWorkouts = useMemo(() => {
+    if (!Array.isArray(selectedWorkouts) || selectedWorkouts.length === 0)
+      return []
+
+    const groups = new Map<string, any[]>()
+    const priorities = new Map<string, number>()
+
+    selectedWorkouts.forEach((w: any) => {
+      const key = getWorkoutGroupKey(w)
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key)!.push(w)
+
+      // Capture the category priority for this group (first value wins).
+      if (!priorities.has(key)) {
+        const p = w?.category?.priority ?? 9999
+        priorities.set(key, p)
+      }
+    })
+
+    return Array.from(groups.entries())
+      .map(([name, items]) => ({
+        name,
+        items,
+        priority: priorities.get(name) ?? 9999,
+      }))
+      .sort((a, b) => a.priority - b.priority)
+  }, [selectedWorkouts])
 
   const isSelected = (id: any) => selectedWorkouts.some((w) => w?.id === id)
   const toggleSelected = (w: any) => {
@@ -316,30 +553,30 @@ export default function WorkoutPlanDetails() {
 
       // On first open (or after successful assign when selection was cleared),
       // pre-select workouts that are already assigned in this plan.
-      if (selectedWorkouts.length === 0 && Array.isArray(wp?.exercises)) {
-        const map = new Map<any, any>()
-        wp.exercises.forEach((ex: any) => {
-          const id = ex?.workout_id || ex?.workout?.id || ex?.id
-          if (!id) return
-          if (!map.has(id)) {
-            map.set(id, {
-              id,
-              name: ex?.workout_name || ex?.workout?.name,
-              video_url:
-                ex?.video_url ||
-                ex?.workout_video_url ||
-                ex?.workout?.video_url ||
-                '',
-            })
-          }
-        })
-        setSelectedWorkouts(Array.from(map.values()))
-      }
+      // selection is now derived in the workouts/useEffect above
     }
   }, [assignOpen, wp?.exercises, selectedWorkouts.length])
 
   const handleNext = () => {
-    if (selectedWorkouts.length === 0) return
+    // Only move to Review drawer if there is at least one explicitly
+    // selected workout. The Review drawer always reflects exactly the
+    // current selectedWorkouts list.
+    if (!canProceedToReview) return
+    // Before opening the Review drawer, sort the selected workouts
+    // by category priority so that priority 1 appears first, then 2,
+    // then 3, etc. This defines the initial order; the user can still
+    // reorder via drag-and-drop afterwards.
+    setSelectedWorkouts((prev) => {
+      const next = prev.slice()
+      next.sort((a: any, b: any) => {
+        const pa = a?.category?.priority ?? 9999
+        const pb = b?.category?.priority ?? 9999
+        if (pa === pb) return 0
+        return pa < pb ? -1 : 1
+      })
+      return next
+    })
+
     setReviewOpen(true)
     setAssignOpen(false)
   }
@@ -374,12 +611,19 @@ export default function WorkoutPlanDetails() {
     }
   }
 
-  const onDragStart = (index: number) => setDragIndex(index)
+  const onDragStart = (index: number, groupName: string) => {
+    setDragIndex(index)
+    setDragGroup(groupName)
+  }
   const onDragOver = (e: any) => {
     e.preventDefault()
   }
-  const onDrop = (index: number) => {
-    if (dragIndex === null || dragIndex === index) return
+  const onDrop = (index: number, groupName: string) => {
+    if (dragIndex === null || dragIndex === index || dragGroup !== groupName) {
+      setDragIndex(null)
+      setDragGroup(null)
+      return
+    }
     setSelectedWorkouts((prev) => {
       const next = prev.slice()
       const [item] = next.splice(dragIndex, 1)
@@ -387,6 +631,7 @@ export default function WorkoutPlanDetails() {
       return next
     })
     setDragIndex(null)
+    setDragGroup(null)
   }
 
   return (
@@ -466,38 +711,77 @@ export default function WorkoutPlanDetails() {
         unmountOnClose
         title={'Assign Workout'}
         handleSubmit={handleNext}
-        disableSubmit={selectedWorkouts.length === 0}
-        hideSubmit={selectedWorkouts.length === 0}
+        disableSubmit={!canProceedToReview}
+        hideSubmit={!canProceedToReview}
         actionLoader={false}
         actionLabel={'Next'}
       >
         <div className="w-full">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-              <div className="text-sm font-medium">Workouts</div>
-              <div className="flex items-center gap-2">
-                <input
-                  value={wpSearch}
-                  onChange={(e) => {
-                    setWpSearch(e.target.value)
-                    setWpPage(1)
-                  }}
-                  placeholder="Search workouts..."
-                  className="border rounded px-2 py-1 text-sm"
-                />
-                <select
-                  className="border rounded px-2 py-1 text-sm"
-                  value={wpPerPage}
-                  onChange={(e) => {
-                    setWpPerPage(Number(e.target.value))
-                    setWpPage(1)
-                  }}
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+              <div className="text-md font-bold">Workouts</div>
+              <div className="flex flex-col md:flex-row md:items-end gap-2 w-full md:w-auto">
+                <div className="flex-1 min-w-[180px]">
+                  <AutoComplete
+                    placeholder="Select category"
+                    desc="name"
+                    descId="id"
+                    type="custom_search_select"
+                    data={categoryOptions}
+                    value={selectedCategoryName}
+                    name="assign_category"
+                    onChange={(option: any) => {
+                      const id = option?.id ?? option?.value ?? ''
+                      const name = option?.name ?? option?.label ?? ''
+                      setSelectedCategoryId(id || undefined)
+                      setSelectedCategoryName(name || '')
+                      setSelectedSubcategories([])
+                    }}
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <AutoComplete
+                    placeholder="Select subcategories"
+                    desc="value"
+                    descId="id"
+                    type="auto_suggestion"
+                    isMultiple={true}
+                    selectedItems={selectedSubcategories}
+                    value={''}
+                    async={true}
+                    initialLoad={true}
+                    paginationEnabled={false}
+                    name="assign_subcategories"
+                    getData={async (key?: string) => {
+                      if (!selectedCategoryId) return []
+
+                      const raw =
+                        await getWorkoutPlanSubcategories(selectedCategoryId)
+
+                      let options = Array.isArray(raw) ? raw : []
+
+                      if (key) {
+                        const lower = String(key).toLowerCase()
+                        options = options.filter((o: any) =>
+                          String(o.value || '')
+                            .toLowerCase()
+                            .includes(lower)
+                        )
+                      }
+
+                      return options
+                    }}
+                    onChange={(value?: any | any[]) => {
+                      if (!value) {
+                        setSelectedSubcategories([])
+                      } else if (Array.isArray(value)) {
+                        setSelectedSubcategories(value)
+                      } else {
+                        setSelectedSubcategories([value])
+                      }
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
@@ -511,90 +795,91 @@ export default function WorkoutPlanDetails() {
             )}
 
             {!workoutsLoading && workouts.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {workouts.map((w: any) => {
-                  const url = w?.video_url || ''
-                  const embed = getEmbedUrl(url)
-                  const checked = isSelected(w?.id)
+              <div className="flex flex-col gap-4">
+                {groupedWorkouts.map((group) => {
+                  const first = group.items?.[0]
+                  const categoryName =
+                    first?.category?.main_category?.name ??
+                    first?.category_name ??
+                    'Others'
+                  const legendText = categoryName
+                    ? `${categoryName} - ${group.name}`
+                    : group.name
+
                   return (
-                    <div
-                      key={w?.id}
-                      className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
-                        checked ? 'ring-2 ring-primary/30' : ''
-                      }`}
-                      onClick={(e) => {
-                        if (
-                          (e.target as HTMLElement).tagName.toLowerCase() !==
-                          'input'
-                        ) {
-                          toggleSelected(w)
-                        }
-                      }}
+                    <fieldset
+                      key={group.name}
+                      className="border border-gray-300 rounded-xl p-4 bg-white"
                     >
-                      {embed ? (
-                        <div className="w-full h-40 bg-black/5">
-                          <iframe
-                            src={embed}
-                            title={`Workout Video ${w?.id}`}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                          />
-                        </div>
-                      ) : url ? (
-                        <video
-                          className="w-full h-32 object-cover rounded"
-                          src={String(url)}
-                          muted
-                          controls
-                        />
-                      ) : (
-                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                          No video
-                        </div>
-                      )}
-                      <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
-                        <div className="font-medium line-clamp-1">
-                          {w?.name || 'Untitled'}
-                        </div>
-                        <input
-                          type="checkbox"
-                          className="mt-0.5 shrink-0"
-                          checked={checked}
-                          onChange={() => toggleSelected(w)}
-                        />
+                      {/* Category - Subcategory name on border */}
+                      <legend className="px-2 text-md font-semibold text-gray-600">
+                        {legendText}
+                      </legend>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
+                        {group.items.map((w: any) => {
+                          const url = w?.video_url || ''
+                          const embed = getEmbedUrl(url)
+                          const checked = isSelected(w?.id)
+
+                          return (
+                            <div
+                              key={w?.id}
+                              className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
+                                checked ? 'ring-2 ring-primary/30' : ''
+                              }`}
+                              onClick={(e) => {
+                                if (
+                                  (
+                                    e.target as HTMLElement
+                                  ).tagName.toLowerCase() !== 'input'
+                                ) {
+                                  toggleSelected(w)
+                                }
+                              }}
+                            >
+                              {embed ? (
+                                <div className="w-full h-40 bg-black/5">
+                                  <iframe
+                                    src={embed}
+                                    title={`Workout Video ${w?.id}`}
+                                    className="w-full h-full"
+                                    allowFullScreen
+                                  />
+                                </div>
+                              ) : url ? (
+                                <video
+                                  className="w-full h-32 object-cover"
+                                  src={String(url)}
+                                  muted
+                                  controls
+                                />
+                              ) : (
+                                <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                                  No video
+                                </div>
+                              )}
+
+                              <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
+                                <div className="font-medium line-clamp-1">
+                                  {w?.name || 'Untitled'}
+                                </div>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleSelected(w)}
+                                  className="cursor-pointer"
+                                />
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
-                    </div>
+                    </fieldset>
                   )
                 })}
               </div>
             )}
-
-            <div className="flex items-center justify-between pt-2 text-xs text-gray-600">
-              <div>
-                Page {workoutsResp?.meta?.current_page ?? wpPage} /{' '}
-                {workoutsResp?.meta?.total_pages ?? 1}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  className="px-2 py-1 border rounded disabled:opacity-50"
-                  disabled={(workoutsResp?.meta?.current_page ?? wpPage) <= 1}
-                  onClick={() => setWpPage((p) => Math.max(1, p - 1))}
-                >
-                  Prev
-                </button>
-                <button
-                  className="px-2 py-1 border rounded disabled:opacity-50"
-                  disabled={
-                    (workoutsResp?.meta?.current_page ?? wpPage) >=
-                    (workoutsResp?.meta?.total_pages ?? 1)
-                  }
-                  onClick={() => setWpPage((p) => p + 1)}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </CustomDrawer>
@@ -606,6 +891,7 @@ export default function WorkoutPlanDetails() {
           setReviewOpen(false)
           setSelectedWorkouts([])
           setDragIndex(null)
+          setDragGroup(null)
         }}
         className="w-screen max-w-[100vw] h-screen"
         unmountOnClose
@@ -616,7 +902,7 @@ export default function WorkoutPlanDetails() {
         actionLabel={'Confirm'}
       >
         <div className="mt-4">
-          <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
+          <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
             <span className="text-blue-600 text-xl">🎬</span>
             <span className="text-gray-600  bg-clip-text ">
               Drag and drop the videos below into the order you want them to
@@ -626,50 +912,78 @@ export default function WorkoutPlanDetails() {
             </span>
           </h2>
           {selectedWorkouts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {selectedWorkouts.map((w, i) => {
-                const embed = getEmbedUrl(w?.video_url)
-                const url = w?.video_url || ''
+            <div className="flex flex-col gap-4">
+              {groupedSelectedWorkouts.map((group) => {
+                const first = group.items?.[0]
+                const categoryName =
+                  first?.category?.main_category?.name ??
+                  first?.category_name ??
+                  'Others'
+                const legendText = categoryName
+                  ? `${categoryName} - ${group.name}`
+                  : group.name
+
                 return (
-                  <div
-                    key={w?.id}
-                    draggable
-                    onDragStart={() => onDragStart(i)}
-                    onDragOver={(e) => onDragOver(e)}
-                    onDrop={() => onDrop(i)}
-                    className="rounded-xl shadow-lg bg-white border hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing overflow-hidden"
+                  <fieldset
+                    key={group.name}
+                    className="border border-gray-300 rounded-xl p-4 bg-white"
                   >
-                    <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
-                      <span className="line-clamp-1">
-                        {i + 1}. {w?.name}
-                      </span>
-                    </div>
+                    <legend className="px-2 text-md font-semibold text-gray-600">
+                      {legendText}
+                    </legend>
 
-                    {/* Video preview */}
-                    {embed ? (
-                      <iframe
-                        className="w-full h-48"
-                        src={embed}
-                        allowFullScreen
-                      ></iframe>
-                    ) : url ? (
-                      <video
-                        src={url}
-                        controls
-                        muted
-                        className="w-full h-48 object-cover"
-                      />
-                    ) : (
-                      <div className="text-sm text-gray-500 italic">
-                        No video URL available.
-                      </div>
-                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-5">
+                      {group.items.map((w: any) => {
+                        const index = selectedWorkouts.findIndex(
+                          (it) => it?.id === w?.id
+                        )
+                        if (index === -1) return null
 
-                    {/* Footer */}
-                    <div className="px-4 py-2 text-xs text-gray-600">
-                      Hold and drag to rearrange
+                        const embed = getEmbedUrl(w?.video_url)
+                        const url = w?.video_url || ''
+
+                        return (
+                          <div
+                            key={w?.id}
+                            draggable
+                            onDragStart={() => onDragStart(index, group.name)}
+                            onDragOver={(e) => onDragOver(e)}
+                            onDrop={() => onDrop(index, group.name)}
+                            className="rounded-xl shadow-lg bg-white border hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing overflow-hidden"
+                          >
+                            <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
+                              <span className="line-clamp-1">
+                                {index + 1}. {w?.name}
+                              </span>
+                            </div>
+
+                            {embed ? (
+                              <iframe
+                                className="w-full h-30"
+                                src={embed}
+                                allowFullScreen
+                              ></iframe>
+                            ) : url ? (
+                              <video
+                                src={url}
+                                controls
+                                muted
+                                className="w-full h-30 object-cover"
+                              />
+                            ) : (
+                              <div className="text-sm text-gray-500 italic">
+                                No video URL available.
+                              </div>
+                            )}
+
+                            <div className="px-4 py-2 text-xs text-gray-600">
+                              Hold and drag to rearrange
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
-                  </div>
+                  </fieldset>
                 )
               })}
             </div>
