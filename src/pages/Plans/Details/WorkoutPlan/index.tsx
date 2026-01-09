@@ -220,13 +220,13 @@ export default function WorkoutPlanIndex({
                     navigate(
                       `/plans/${row?.plan_id}/workout_details/${row?.id}`
                     ),
-                  title: 'view',
+                  title: 'View',
                   toolTip: 'View',
                 },
                 {
                   icon: <Icons name="edit" />,
                   action: (row: any) => openEdit(row),
-                  title: 'edit',
+                  title: 'Edit',
                   toolTip: 'Edit',
                 },
               ]
