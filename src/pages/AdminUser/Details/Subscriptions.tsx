@@ -1,22 +1,31 @@
 import moment from 'moment'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import type { DragEvent } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import Button from '../../../components/common/buttons/Button'
 import { AutoComplete } from 'qbs-core'
+import CustomDrawer from '../../../components/common/drawer'
 import { DialogModal } from '../../../components/common'
 import Icons from '../../../components/common/icons'
 import { Tab, TabContainer } from '../../../components/common/tab'
 import { usePlans } from '../../Plans/api'
+import { useMeditationList } from '../../Meditation/api'
+import { useWorkoutList } from '../../Workout/api'
 import {
   createSubscription,
   getAdminDetails,
   getActivePlanOverview,
   getOverviewDetail,
   freezeSubscription,
+  workoutOverridesBulk,
+  meditationOverridesBulk,
 } from '../api'
 import { useAuthStore } from '../../../store/authStore'
 import { useSnackbarManager } from '../../../components/common/snackbar'
-import { useEffect } from 'react'
+import apiUrl from '../../../apis/api.url'
+import { getData } from '../../../apis/api.helpers'
+import { getWorkoutPlanSubcategories } from '../../Plans/Details/WorkoutPlan/api'
 
 export default function Subscriptions({
   id,
@@ -35,6 +44,7 @@ export default function Subscriptions({
     ? user.interested_plans.filter((p: any) => p?.active)
     : []
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = loginRole === 'nutritionist'
 
   const subscribedPlan = user?.subscribed_plan
   const [overview, setOverview] = useState<any>(null)
@@ -69,12 +79,105 @@ export default function Subscriptions({
   const [subSubmitAttempted, setSubSubmitAttempted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [selectedPlanOption, setSelectedPlanOption] = useState<any>(null)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
+  const [wpPage, setWpPage] = useState<number>(1)
+  const [wpPerPage] = useState<number>(9999)
+  const [wpSearch, setWpSearch] = useState<string>('')
+  const [assigning, setAssigning] = useState<boolean>(false)
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [dragGroup, setDragGroup] = useState<string | null>(null)
+  const [medAssignOpen, setMedAssignOpen] = useState(false)
+  const [medReviewOpen, setMedReviewOpen] = useState(false)
+  const [selectedMeditations, setSelectedMeditations] = useState<any[]>([])
+  const [medPage, setMedPage] = useState<number>(1)
+  const [medPerPage, setMedPerPage] = useState<number>(20)
+  const [medSearch, setMedSearch] = useState<string>('')
+  const [medAssigning, setMedAssigning] = useState(false)
+  const [medDragIndex, setMedDragIndex] = useState<number | null>(null)
   const { data: plansList } = usePlans({ page: 1, per_page: 100 } as any)
   const allPlans: any[] = (
     (plansList?.plans || plansList?.items || []) as any[]
   ).filter((p: any) => p?.active)
   const { enqueueSnackbar } = useSnackbarManager()
   const hasPlanOverview = !!overview?.subscription
+  const { data: categoriesResponse } = useQuery(
+    ['workout_categories_for_assign_admin'],
+    () => getData(apiUrl.CATEGORIES),
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  )
+  const normalizedCategories = useMemo(() => {
+    const categories =
+      (categoriesResponse as any)?.categories ??
+      (categoriesResponse as any)?.category ??
+      categoriesResponse
+    if (Array.isArray(categories)) return categories
+    return []
+  }, [categoriesResponse])
+  const categoryOptions = useMemo(
+    () =>
+      normalizedCategories.map((cat: any) => ({
+        id: cat?.id,
+        name: cat?.name,
+        subcategories: Array.isArray(cat?.subcategories)
+          ? cat.subcategories
+          : [],
+      })),
+    [normalizedCategories]
+  )
+  const [selectedCategoryId, setSelectedCategoryId] = useState<
+    number | string | undefined
+  >(undefined)
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('')
+  const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
+  const selectedSubcategoryIds = useMemo(
+    () =>
+      (selectedSubcategories || [])
+        .map((s: any) => s?.id)
+        .filter((id: any) => id != null),
+    [selectedSubcategories]
+  )
+  const workoutListParams = useMemo(() => {
+    const params: any = {
+      page: wpPage,
+      per_page: wpPerPage,
+      search: wpSearch,
+    }
+    if (selectedCategoryId) {
+      params.category_id = selectedCategoryId
+    }
+    if (selectedSubcategoryIds.length) {
+      params.subcategory_ids = selectedSubcategoryIds.join(',')
+    }
+    return params
+  }, [wpPage, wpPerPage, wpSearch, selectedCategoryId, selectedSubcategoryIds])
+  const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList(
+    workoutListParams as any
+  )
+  const workouts = workoutsResp?.workouts ?? []
+  const {
+    data: medResp,
+    isFetching: medLoading,
+    refetch: refetchMeditationsList,
+  } = useMeditationList({
+    page: medPage,
+    per_page: medPerPage,
+    search: medSearch,
+  } as any)
+  const meditations = medResp?.meditations ?? medResp?.items ?? []
+  const medMeta = medResp?.meta ?? {}
+  const sortedMeditations = useMemo(() => {
+    if (!Array.isArray(meditations) || meditations.length === 0) return []
+    return meditations.slice().sort((a: any, b: any) => {
+      const nameA = (a?.title || a?.name || '').toLowerCase()
+      const nameB = (b?.title || b?.name || '').toLowerCase()
+      if (nameA === nameB) return 0
+      return nameA < nameB ? -1 : 1
+    })
+  }, [meditations])
 
   const computeEndDate = (start: string, days?: number) => {
     if (!start || !days || isNaN(days as any)) return ''
@@ -82,6 +185,131 @@ export default function Subscriptions({
     if (!d.isValid()) return ''
     const end = d.clone().add((days as number) - 1, 'days')
     return end.format('YYYY-MM-DD')
+  }
+
+  const getEmbedUrl = (url?: string) => {
+    const u = String(url || '')
+    if (!u) return ''
+    if (u.includes('youtube.com/watch')) {
+      try {
+        const v = new URL(u).searchParams.get('v')
+        return v ? `https://www.youtube.com/embed/${v}` : ''
+      } catch {
+        return ''
+      }
+    }
+    if (u.includes('youtu.be/')) {
+      const id = u.split('youtu.be/')[1]?.split(/[?&]/)[0]
+      return id ? `https://www.youtube.com/embed/${id}` : ''
+    }
+    return ''
+  }
+
+  const isSelected = (id: any) => selectedWorkouts.some((w) => w?.id === id)
+  const toggleSelected = (w: any) => {
+    if (!w?.id) return
+    setSelectedWorkouts((prev) =>
+      prev.some((x) => x?.id === w.id)
+        ? prev.filter((x) => x?.id !== w.id)
+        : [...prev, w]
+    )
+  }
+
+  const getWorkoutGroupKey = (w: any) => {
+    const rawSub =
+      w?.subcategory?.name ??
+      w?.subcategory_name ??
+      w?.subcategory ??
+      w?.category?.name ??
+      'Others'
+
+    return String(rawSub || 'Others')
+  }
+
+  const getMeditationId = (meditation: any) => {
+    if (!meditation) return undefined
+    return (
+      meditation?.meditation_id ??
+      meditation?.id ??
+      meditation?.meditationId ??
+      meditation?.meditation?.id ??
+      meditation?.meditation_item_id
+    )
+  }
+
+  const groupedWorkouts = useMemo(() => {
+    if (!Array.isArray(workouts) || workouts.length === 0) return []
+
+    const sorted = workouts.slice().sort((a: any, b: any) => {
+      const pa = a?.category?.priority ?? 9999
+      const pb = b?.category?.priority ?? 9999
+      if (pa === pb) return 0
+      return pa < pb ? -1 : 1
+    })
+
+    const groups = new Map<string, any[]>()
+
+    sorted.forEach((w: any) => {
+      const key = getWorkoutGroupKey(w)
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key)!.push(w)
+    })
+
+    return Array.from(groups.entries()).map(([name, items]) => ({
+      name,
+      items,
+    }))
+  }, [workouts])
+
+  const groupedSelectedWorkouts = useMemo(() => {
+    if (!Array.isArray(selectedWorkouts) || selectedWorkouts.length === 0)
+      return []
+
+    const groups = new Map<string, any[]>()
+    const priorities = new Map<string, number>()
+
+    selectedWorkouts.forEach((w: any) => {
+      const key = getWorkoutGroupKey(w)
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key)!.push(w)
+
+      if (!priorities.has(key)) {
+        const p = w?.category?.priority ?? 9999
+        priorities.set(key, p)
+      }
+    })
+
+    return Array.from(groups.entries())
+      .map(([name, items]) => ({
+        name,
+        items,
+        priority: priorities.get(name) ?? 9999,
+      }))
+      .sort((a, b) => a.priority - b.priority)
+  }, [selectedWorkouts])
+
+  const canProceedToReview = selectedWorkouts.length > 0
+  const medCanProceedToReview = selectedMeditations.length > 0
+  const isMeditationSelected = (id: any) =>
+    selectedMeditations.some((m) => String(getMeditationId(m)) === String(id))
+  const toggleMeditationSelected = (meditation: any) => {
+    const medId = getMeditationId(meditation)
+    if (medId == null) return
+    setSelectedMeditations((prev) => {
+      const exists = prev.some(
+        (item) => String(getMeditationId(item)) === String(medId)
+      )
+      if (exists) {
+        return prev.filter(
+          (item) => String(getMeditationId(item)) !== String(medId)
+        )
+      }
+      const withId =
+        String(meditation?.id) === String(medId)
+          ? meditation
+          : { ...meditation, id: medId }
+      return [...prev, withId]
+    })
   }
 
   const buildMonthCells = (monthKey: string) => {
@@ -257,6 +485,284 @@ export default function Subscriptions({
       setDayDetail(null)
     } finally {
       setDayDetailLoading(false)
+    }
+  }
+  useEffect(() => {
+    if (!assignOpen) return
+    setDragIndex(null)
+    setDragGroup(null)
+    setReviewOpen(false)
+
+    const map = new Map<any, any>()
+
+    if (Array.isArray(dayDetail?.workout_plan?.exercises)) {
+      dayDetail.workout_plan.exercises.forEach((ex: any) => {
+        const workoutId = ex?.workout_id || ex?.workout?.id || ex?.id
+        if (!workoutId || map.has(workoutId)) return
+        map.set(workoutId, {
+          id: workoutId,
+          name:
+            ex?.workout_name ||
+            ex?.workout?.name ||
+            ex?.name ||
+            ex?.title ||
+            'Workout',
+          video_url:
+            ex?.video_url ||
+            ex?.workout_video_url ||
+            ex?.workout?.video_url ||
+            '',
+          category: ex?.workout?.category || ex?.category,
+          category_name: ex?.workout?.category_name || ex?.category_name,
+          subcategory_name:
+            ex?.workout?.subcategory_name || ex?.subcategory_name,
+        })
+      })
+    }
+
+    setSelectedWorkouts(Array.from(map.values()))
+  }, [assignOpen, dayDetail?.workout_plan?.exercises])
+
+  useEffect(() => {
+    if (!medAssignOpen) return
+    setMedDragIndex(null)
+    setMedReviewOpen(false)
+
+    const map = new Map<any, any>()
+    if (Array.isArray(dayDetail?.meditations)) {
+      dayDetail.meditations.forEach((med: any, idx: number) => {
+        const medId = getMeditationId(med)
+        if (!medId || map.has(medId)) return
+        map.set(medId, {
+          ...med,
+          id: medId,
+          sequence_number: med?.sequence_number ?? idx + 1,
+        })
+      })
+    }
+    setSelectedMeditations(Array.from(map.values()))
+  }, [dayDetail?.meditations, medAssignOpen])
+
+  useEffect(() => {
+    if (!dayDetailOpen) {
+      setAssignOpen(false)
+      setReviewOpen(false)
+      setSelectedWorkouts([])
+      setDragIndex(null)
+      setMedAssignOpen(false)
+      setMedReviewOpen(false)
+      setSelectedMeditations([])
+      setMedDragIndex(null)
+    }
+  }, [dayDetailOpen])
+
+  const handleNext = () => {
+    if (!canProceedToReview) return
+    setSelectedWorkouts((prev) => {
+      const next = prev.slice()
+      next.sort((a: any, b: any) => {
+        const pa = a?.category?.priority ?? 9999
+        const pb = b?.category?.priority ?? 9999
+        if (pa === pb) return 0
+        return pa < pb ? -1 : 1
+      })
+      return next
+    })
+
+    setReviewOpen(true)
+    setAssignOpen(false)
+  }
+
+  const handleMedNext = () => {
+    if (!medCanProceedToReview) return
+    setMedReviewOpen(true)
+    setMedAssignOpen(false)
+  }
+
+  const normalizeExercisePayload = (items: any[]) => {
+    return items.reduce(
+      (
+        acc: { workout_id: number | string; sequence_number: number }[],
+        item: any,
+        idx: number
+      ) => {
+        const workoutId =
+          item?.workout_id || item?.workout?.id || item?.id || item?.workoutId
+        if (workoutId == null) return acc
+        acc.push({
+          workout_id: workoutId,
+          sequence_number: idx + 1,
+        })
+        return acc
+      },
+      []
+    )
+  }
+
+  const handleBulkAssign = async () => {
+    const workoutPlanId = dayDetail?.workout_plan?.id
+    const subscriptionId = overview?.subscription?.id
+    if (!workoutPlanId || !subscriptionId || selectedWorkouts.length === 0)
+      return
+    setAssigning(true)
+    try {
+      const exercisesPayload = normalizeExercisePayload(selectedWorkouts)
+
+      if (!exercisesPayload.length) {
+        throw new Error('No valid workouts to assign')
+      }
+
+      await workoutOverridesBulk(subscriptionId, {
+        workout_plan_id: workoutPlanId,
+        exercises: exercisesPayload,
+      })
+      if (user?.id && selectedDate) {
+        try {
+          const refreshed = await getOverviewDetail(
+            String(user.id),
+            selectedDate
+          )
+          setDayDetail(refreshed)
+        } catch (err) {
+          console.error(err)
+        }
+      }
+      setSelectedWorkouts([])
+      setReviewOpen(false)
+      enqueueSnackbar('Workout plan updated successfully', {
+        variant: 'success',
+      })
+    } catch (error: any) {
+      const resp = error?.response?.data
+      const messageFromResponse =
+        resp?.message ||
+        resp?.error ||
+        (Array.isArray(resp?.errors) ? resp.errors.join(', ') : null) ||
+        resp?.detail ||
+        error?.message
+      enqueueSnackbar(messageFromResponse || 'Failed to assign workouts', {
+        variant: 'error',
+      })
+    } finally {
+      setAssigning(false)
+      setDragIndex(null)
+      setDragGroup(null)
+      setWpSearch('')
+      setWpPage(1)
+    }
+  }
+
+  const onDrop = (index: number, groupName?: string) => {
+    if (
+      dragIndex === null ||
+      dragIndex === index ||
+      (groupName && dragGroup && groupName !== dragGroup)
+    ) {
+      setDragIndex(null)
+      setDragGroup(null)
+      return
+    }
+    setSelectedWorkouts((prev) => {
+      const next = prev.slice()
+      const [item] = next.splice(dragIndex, 1)
+      next.splice(index, 0, item)
+      return next
+    })
+    setDragIndex(null)
+    setDragGroup(null)
+  }
+
+  const onMedDragStart = (index: number) => {
+    setMedDragIndex(index)
+  }
+  const onMedDragOver = (e: any) => {
+    e.preventDefault()
+  }
+  const onMedDrop = (index: number) => {
+    if (medDragIndex === null || medDragIndex === index) {
+      setMedDragIndex(null)
+      return
+    }
+    setSelectedMeditations((prev) => {
+      const next = prev.slice()
+      const [item] = next.splice(medDragIndex, 1)
+      next.splice(index, 0, item)
+      return next
+    })
+    setMedDragIndex(null)
+  }
+
+  const handleMedAssign = async () => {
+    const subscriptionId = overview?.subscription?.id
+    const planId =
+      dayDetail?.meditation_plan?.id ||
+      dayDetail?.plan_id ||
+      overview?.subscription?.plan_id
+
+    if (!subscriptionId || !planId || selectedMeditations.length === 0) return
+
+    setMedAssigning(true)
+    try {
+      const payload = {
+        plan_id: planId,
+        meditations: selectedMeditations.reduce(
+          (
+            acc: { meditation_id: number | string; sequence_number: number }[],
+            item: any,
+            idx: number
+          ) => {
+            const medId = getMeditationId(item)
+            if (!medId) return acc
+            acc.push({
+              meditation_id: medId,
+              sequence_number: idx + 1,
+            })
+            return acc
+          },
+          []
+        ),
+      }
+
+      if (!payload.meditations.length) {
+        throw new Error('No valid meditations to assign')
+      }
+
+      await meditationOverridesBulk(subscriptionId, payload)
+
+      if (user?.id && selectedDate) {
+        try {
+          const refreshed = await getOverviewDetail(
+            String(user.id),
+            selectedDate
+          )
+          setDayDetail(refreshed)
+        } catch (err) {
+          console.error(err)
+        }
+      }
+
+      setSelectedMeditations([])
+      setMedReviewOpen(false)
+      enqueueSnackbar('Meditation plan updated successfully', {
+        variant: 'success',
+      })
+      refetchMeditationsList?.()
+    } catch (error: any) {
+      const resp = error?.response?.data
+      const messageFromResponse =
+        resp?.message ||
+        resp?.error ||
+        (Array.isArray(resp?.errors) ? resp.errors.join(', ') : null) ||
+        resp?.detail ||
+        error?.message
+      enqueueSnackbar(messageFromResponse || 'Failed to assign meditations', {
+        variant: 'error',
+      })
+    } finally {
+      setMedAssigning(false)
+      setMedDragIndex(null)
+      setMedSearch('')
+      setMedPage(1)
     }
   }
 
@@ -460,6 +966,14 @@ export default function Subscriptions({
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const onDragStart = (index: number, groupName?: string) => {
+    setDragIndex(index)
+    setDragGroup(groupName ?? null)
+  }
+  const onDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
   }
 
   return (
@@ -761,6 +1275,537 @@ export default function Subscriptions({
           </div>
         </div>
       )}
+
+      <CustomDrawer
+        open={assignOpen}
+        handleClose={() => {
+          setAssignOpen(false)
+          setWpSearch('')
+          setWpPage(1)
+        }}
+        className="w-screen max-w-[100vw]"
+        unmountOnClose
+        title={'Assign Workout'}
+        handleSubmit={handleNext}
+        disableSubmit={!canProceedToReview}
+        hideSubmit={!canProceedToReview}
+        actionLoader={false}
+        actionLabel={'Next'}
+      >
+        <div className="w-full">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+              <div className="text-md font-bold">Workouts</div>
+              <div className="flex flex-col md:flex-row md:items-end gap-2 w-full md:w-auto">
+                <div className="flex-1 min-w-[180px]">
+                  <AutoComplete
+                    placeholder="Select category"
+                    desc="name"
+                    descId="id"
+                    type="custom_search_select"
+                    data={categoryOptions}
+                    value={selectedCategoryName}
+                    name="assign_category"
+                    onChange={(option: any) => {
+                      const id = option?.id ?? option?.value ?? ''
+                      const name = option?.name ?? option?.label ?? ''
+                      setSelectedCategoryId(id || undefined)
+                      setSelectedCategoryName(name || '')
+                      setSelectedSubcategories([])
+                    }}
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <AutoComplete
+                    placeholder="Select subcategories"
+                    desc="value"
+                    descId="id"
+                    type="auto_suggestion"
+                    isMultiple={true}
+                    selectedItems={selectedSubcategories}
+                    value={''}
+                    async={true}
+                    initialLoad={true}
+                    paginationEnabled={false}
+                    name="assign_subcategories"
+                    getData={async (key?: string) => {
+                      if (!selectedCategoryId) return []
+
+                      const raw =
+                        await getWorkoutPlanSubcategories(selectedCategoryId)
+
+                      let options = Array.isArray(raw) ? raw : []
+
+                      if (key) {
+                        const lower = String(key).toLowerCase()
+                        options = options.filter((o: any) =>
+                          String(o.value || '')
+                            .toLowerCase()
+                            .includes(lower)
+                        )
+                      }
+
+                      return options
+                    }}
+                    onChange={(value?: any | any[]) => {
+                      if (!value) {
+                        setSelectedSubcategories([])
+                      } else if (Array.isArray(value)) {
+                        setSelectedSubcategories(value)
+                      } else {
+                        setSelectedSubcategories([value])
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row md:items-center gap-2">
+              <input
+                value={wpSearch}
+                onChange={(e) => {
+                  setWpSearch(e.target.value)
+                  setWpPage(1)
+                }}
+                placeholder="Search workouts..."
+                className="border rounded px-2 py-1 text-sm w-full md:w-auto"
+              />
+            </div>
+
+            {workoutsLoading && (
+              <div className="text-xs text-gray-500 p-2">Loading...</div>
+            )}
+            {!workoutsLoading && workouts.length === 0 && (
+              <div className="text-xs text-gray-500 p-2">
+                No workouts found.
+              </div>
+            )}
+
+            {!workoutsLoading && workouts.length > 0 && (
+              <div className="flex flex-col gap-4">
+                {groupedWorkouts.map((group) => {
+                  const first = group.items?.[0]
+                  const categoryName =
+                    first?.category?.main_category?.name ??
+                    first?.category_name ??
+                    'Others'
+                  const legendText = categoryName
+                    ? `${categoryName} - ${group.name}`
+                    : group.name
+
+                  return (
+                    <fieldset
+                      key={group.name}
+                      className="border border-gray-300 rounded-xl p-4 bg-white"
+                    >
+                      <legend className="px-2 text-md font-semibold text-gray-600">
+                        {legendText}
+                      </legend>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
+                        {group.items.map((w: any) => {
+                          const url = w?.video_url || ''
+                          const embed = getEmbedUrl(url)
+                          const checked = isSelected(w?.id)
+
+                          return (
+                            <div
+                              key={w?.id}
+                              className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
+                                checked ? 'ring-2 ring-primary/30' : ''
+                              }`}
+                              onClick={(e) => {
+                                if (
+                                  (
+                                    e.target as HTMLElement
+                                  ).tagName.toLowerCase() !== 'input'
+                                ) {
+                                  toggleSelected(w)
+                                }
+                              }}
+                            >
+                              {embed ? (
+                                <div className="w-full h-40 bg-black/5">
+                                  <iframe
+                                    src={embed}
+                                    title={`Workout Video ${w?.id}`}
+                                    className="w-full h-full"
+                                    allowFullScreen
+                                  />
+                                </div>
+                              ) : url ? (
+                                <video
+                                  className="w-full h-32 object-cover"
+                                  src={String(url)}
+                                  muted
+                                  controls
+                                />
+                              ) : (
+                                <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                                  No video
+                                </div>
+                              )}
+
+                              <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
+                                <div className="font-medium line-clamp-1">
+                                  {w?.name || 'Untitled'}
+                                </div>
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleSelected(w)}
+                                  className="cursor-pointer"
+                                />
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </fieldset>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </CustomDrawer>
+
+      <CustomDrawer
+        open={reviewOpen}
+        handleClose={() => {
+          setReviewOpen(false)
+          setSelectedWorkouts([])
+          setDragIndex(null)
+          setDragGroup(null)
+        }}
+        className="w-screen max-w-[100vw] h-screen"
+        unmountOnClose
+        title={'Review & Order Exercises'}
+        handleSubmit={handleBulkAssign}
+        disableSubmit={assigning || selectedWorkouts.length === 0}
+        actionLoader={assigning}
+        actionLabel={'Confirm'}
+      >
+        <div className="mt-4">
+          <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
+            <span className="text-blue-600 text-xl">🎬</span>
+            <span className="text-gray-600  bg-clip-text ">
+              Drag and drop the videos below into the order you want them to
+              appear in the workout plan, then click{' '}
+              <span className="font-semibold">Assign</span> to save this
+              sequence.
+            </span>
+          </h2>
+          {selectedWorkouts.length > 0 ? (
+            <div className="flex flex-col gap-4">
+              {groupedSelectedWorkouts.map((group) => {
+                const first = group.items?.[0]
+                const categoryName =
+                  first?.category?.main_category?.name ??
+                  first?.category_name ??
+                  'Others'
+                const legendText = categoryName
+                  ? `${categoryName} - ${group.name}`
+                  : group.name
+
+                return (
+                  <fieldset
+                    key={group.name}
+                    className="border border-gray-300 rounded-xl p-4 bg-white"
+                  >
+                    <legend className="px-2 text-md font-semibold text-gray-600">
+                      {legendText}
+                    </legend>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-5">
+                      {group.items.map((w: any) => {
+                        const index = selectedWorkouts.findIndex(
+                          (it) => it?.id === w?.id
+                        )
+                        if (index === -1) return null
+
+                        const embed = getEmbedUrl(w?.video_url)
+                        const url = w?.video_url || ''
+
+                        return (
+                          <div
+                            key={w?.id}
+                            draggable
+                            onDragStart={() => onDragStart(index, group.name)}
+                            onDragOver={(e) => onDragOver(e)}
+                            onDrop={() => onDrop(index, group.name)}
+                            className="rounded-xl shadow-lg bg-white border hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing overflow-hidden"
+                          >
+                            <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
+                              <span className="line-clamp-1">
+                                {index + 1}. {w?.name}
+                              </span>
+                            </div>
+
+                            {embed ? (
+                              <iframe
+                                className="w-full h-30"
+                                src={embed}
+                                allowFullScreen
+                              ></iframe>
+                            ) : url ? (
+                              <video
+                                src={url}
+                                controls
+                                muted
+                                className="w-full h-30 object-cover"
+                              />
+                            ) : (
+                              <div className="text-sm text-gray-500 italic">
+                                No video URL available.
+                              </div>
+                            )}
+
+                            <div className="px-4 py-2 text-xs text-gray-600">
+                              Hold and drag to rearrange
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </fieldset>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500 italic">
+              No videos selected yet.
+            </div>
+          )}
+        </div>
+      </CustomDrawer>
+
+      <CustomDrawer
+        open={medAssignOpen}
+        handleClose={() => {
+          setMedAssignOpen(false)
+          setMedSearch('')
+          setMedPage(1)
+        }}
+        className="w-screen max-w-[100vw]"
+        unmountOnClose
+        title={'Assign Meditation'}
+        handleSubmit={handleMedNext}
+        disableSubmit={!medCanProceedToReview}
+        hideSubmit={!medCanProceedToReview}
+        actionLoader={false}
+        actionLabel={'Next'}
+      >
+        <div className="w-full">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+              <div className="text-sm font-medium">Meditations</div>
+              <div className="flex items-center gap-2">
+                <input
+                  value={medSearch}
+                  onChange={(e) => {
+                    setMedSearch(e.target.value)
+                    setMedPage(1)
+                  }}
+                  placeholder="Search meditations..."
+                  className="border rounded px-2 py-1 text-sm"
+                />
+                <select
+                  className="border rounded px-2 py-1 text-sm"
+                  value={medPerPage}
+                  onChange={(e) => {
+                    setMedPerPage(Number(e.target.value))
+                    setMedPage(1)
+                  }}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+            </div>
+
+            {medLoading && (
+              <div className="text-xs text-gray-500 p-2">Loading...</div>
+            )}
+            {!medLoading && sortedMeditations.length === 0 && (
+              <div className="text-xs text-gray-500 p-2">
+                No meditations found.
+              </div>
+            )}
+
+            {!medLoading && sortedMeditations.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {sortedMeditations.map((m: any) => {
+                  const url = m?.video_url || m?.meditation_video_url || ''
+                  const embed = getEmbedUrl(url)
+                  const medId = getMeditationId(m)
+                  const checked = isMeditationSelected(medId)
+                  const title = m?.name || m?.title || 'Untitled'
+                  return (
+                    <div
+                      key={medId ?? m?.id}
+                      className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
+                        checked ? 'ring-2 ring-primary/30' : ''
+                      }`}
+                      onClick={(e) => {
+                        if (
+                          (e.target as HTMLElement).tagName.toLowerCase() !==
+                          'input'
+                        ) {
+                          toggleMeditationSelected(m)
+                        }
+                      }}
+                    >
+                      {embed ? (
+                        <div className="w-full h-40 bg-black/5">
+                          <iframe
+                            src={embed}
+                            title={`Meditation Video ${medId}`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : url ? (
+                        <video
+                          className="w-full h-32 object-cover"
+                          src={String(url)}
+                          muted
+                          controls
+                        />
+                      ) : (
+                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                          No video
+                        </div>
+                      )}
+                      <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
+                        <div className="font-medium line-clamp-1">{title}</div>
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 shrink-0"
+                          checked={checked}
+                          onChange={() => toggleMeditationSelected(m)}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-2 text-xs text-gray-600">
+              <div>
+                Page {medMeta?.current_page ?? medPage} /{' '}
+                {medMeta?.total_pages ?? 1}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-2 py-1 border rounded disabled:opacity-50"
+                  disabled={(medMeta?.current_page ?? medPage) <= 1}
+                  onClick={() => setMedPage((p) => Math.max(1, p - 1))}
+                >
+                  Prev
+                </button>
+                <button
+                  className="px-2 py-1 border rounded disabled:opacity-50"
+                  disabled={
+                    (medMeta?.current_page ?? medPage) >=
+                    (medMeta?.total_pages ?? 1)
+                  }
+                  onClick={() => setMedPage((p) => p + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CustomDrawer>
+
+      <CustomDrawer
+        open={medReviewOpen}
+        handleClose={() => {
+          setMedReviewOpen(false)
+          setSelectedMeditations([])
+          setMedDragIndex(null)
+        }}
+        className="w-screen max-w-[100vw] h-screen"
+        unmountOnClose
+        title={'Review & Order Meditations'}
+        handleSubmit={handleMedAssign}
+        disableSubmit={medAssigning || selectedMeditations.length === 0}
+        actionLoader={medAssigning}
+        actionLabel={'Confirm'}
+      >
+        <div className="mt-4">
+          <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
+            <span className="text-blue-600 text-xl">🧘</span>
+            <span className="text-gray-600  bg-clip-text ">
+              Drag and drop the videos below into the order you want them to
+              appear in the meditation plan, then click{' '}
+              <span className="font-semibold">Assign</span> to save this
+              sequence.
+            </span>
+          </h2>
+          {selectedMeditations.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {selectedMeditations.map((m: any, i: number) => {
+                const rawUrl = m?.video_url || m?.meditation_video_url || ''
+                const url = String(rawUrl || '')
+                const embed = getEmbedUrl(url)
+                const title = m?.name || m?.title || 'Untitled'
+                const medId = getMeditationId(m) ?? `${title}-${i}`
+                return (
+                  <div
+                    key={medId}
+                    draggable
+                    onDragStart={() => onMedDragStart(i)}
+                    onDragOver={onMedDragOver}
+                    onDrop={() => onMedDrop(i)}
+                    className="rounded-xl shadow-lg bg-white border hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing overflow-hidden"
+                  >
+                    <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
+                      <span className="line-clamp-1">
+                        {i + 1}. {title}
+                      </span>
+                    </div>
+
+                    {embed ? (
+                      <iframe
+                        className="w-full h-48"
+                        src={embed}
+                        allowFullScreen
+                      ></iframe>
+                    ) : url ? (
+                      <video
+                        src={url}
+                        controls
+                        muted
+                        className="w-full h-48 object-cover"
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-500 italic">
+                        No video URL available.
+                      </div>
+                    )}
+
+                    <div className="px-4 py-2 text-xs text-gray-600">
+                      Hold and drag to rearrange
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500 italic">
+              No videos selected yet.
+            </div>
+          )}
+        </div>
+      </CustomDrawer>
 
       <DialogModal
         isOpen={drawerOpen}
@@ -1367,8 +2412,25 @@ export default function Subscriptions({
                   <Tab id="workout">
                     <div className="max-h-[700px] overflow-y-auto">
                       <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
-                        <div className="text-sm font-semibold mb-2">
-                          Workout Plan
+                        <div className="flex items-center justify-between mb-2 gap-3">
+                          <div className="text-sm font-semibold">
+                            Workout Plan
+                          </div>
+                          {dayDetail?.workout_plan && !isNutritionist && (
+                            <button
+                              className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
+                              onClick={() => {
+                                setDragIndex(null)
+                                setReviewOpen(false)
+                                setAssignOpen(true)
+                                setWpSearch('')
+                                setWpPage(1)
+                              }}
+                            >
+                              <Icons name="edit" />
+                              <span>Edit Workout Plan</span>
+                            </button>
+                          )}
                         </div>
                         {dayDetail?.workout_plan ? (
                           <div className="flex flex-col gap-2 text-xs">
@@ -1409,25 +2471,28 @@ export default function Subscriptions({
                                               workoutStatus === 'in_progress'
                                             ? 'text-amber-600'
                                             : 'text-gray-700'
+
                                     return (
                                       <div
                                         key={`${ex?.id}-${idx}`}
-                                        className="flex items-center justify-between border rounded px-3 py-2"
+                                        className="flex items-center justify-between border rounded px-3 py-2 gap-3"
                                       >
-                                        <div className="flex flex-col">
-                                          <span className="font-medium">
-                                            {ex?.workout_name || '--'}
-                                          </span>
-                                          {ex?.video_url && (
-                                            <a
-                                              className="text-primaryBlue underline"
-                                              href={ex.video_url}
-                                              target="_blank"
-                                              rel="noreferrer"
-                                            >
-                                              Video
-                                            </a>
-                                          )}
+                                        <div className="flex items-start gap-3 flex-1">
+                                          <div className="flex flex-col">
+                                            <span className="font-medium">
+                                              {ex?.workout_name || '--'}
+                                            </span>
+                                            {ex?.video_url && (
+                                              <a
+                                                className="text-primaryBlue underline"
+                                                href={ex.video_url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                              >
+                                                Video
+                                              </a>
+                                            )}
+                                          </div>
                                         </div>
                                         <div className="text-right text-[11px] text-gray-600 space-y-0.5">
                                           {ex?.reps ? (
@@ -1717,8 +2782,28 @@ export default function Subscriptions({
                   <Tab id="meditation">
                     <div className="max-h-[700px] overflow-y-auto">
                       <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
-                        <div className="text-sm font-semibold mb-2">
-                          Meditation
+                        <div className="flex items-center justify-between mb-2 gap-3">
+                          <div className="text-sm font-semibold">
+                            Meditation
+                          </div>
+                          {Array.isArray(dayDetail?.meditations) &&
+                            dayDetail.meditations.length > 0 &&
+                            !isNutritionist && (
+                              <button
+                                className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
+                                onClick={() => {
+                                  setMedDragIndex(null)
+                                  setMedReviewOpen(false)
+                                  setMedAssignOpen(true)
+                                  setMedSearch('')
+                                  setMedPage(1)
+                                  refetchMeditationsList?.()
+                                }}
+                              >
+                                <Icons name="edit" />
+                                <span>Update Meditation Plan</span>
+                              </button>
+                            )}
                         </div>
                         {Array.isArray(dayDetail?.meditations) &&
                         dayDetail.meditations.length > 0 ? (

@@ -84,6 +84,37 @@ export const freezeSubscription = (
 ) => {
   return postData(`${apiUrl.SUBSCRIPTIONS}/${id}/freeze`, payload)
 }
+export const workoutOverridesBulk = (
+  subscriptionId: string | number,
+  payload: {
+    workout_plan_id: number | string
+    exercises: Array<{
+      workout_id: number | string
+      sequence_number: number
+    }>
+  }
+) => {
+  return postData(
+    `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/user_specific_exercises`,
+    payload
+  )
+}
+
+export const meditationOverridesBulk = (
+  subscriptionId: string | number,
+  payload: {
+    plan_id: number | string
+    meditations: Array<{
+      meditation_id: number | string
+      sequence_number: number
+    }>
+  }
+) => {
+  return postData(
+    `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/user_specific_meditations`,
+    payload
+  )
+}
 export const freezeUser = (
   id: string,
   payload: { reason: string; start_date: string; end_date: string }
