@@ -403,41 +403,21 @@ export default function WorkoutPlanDetails() {
       return
     }
 
+    // Only consider workouts from the current category/subcategory
+    // filter as part of the selection for this Assign session.
+    // Previously assigned workouts (from wp.exercises) are not
+    // auto-included, so the Review drawer reflects only the
+    // last-selected categories/subcategories.
     const map = new Map<any, any>()
 
-    // Always include workouts already assigned in this plan so that
-    // previously assigned items stay selected across sessions.
-    if (Array.isArray(wp?.exercises)) {
-      wp.exercises.forEach((ex: any) => {
-        const id = ex?.workout_id || ex?.workout?.id || ex?.id
-        if (!id) return
-        if (!map.has(id)) {
-          map.set(id, {
-            id,
-            name: ex?.workout_name || ex?.workout?.name,
-            video_url:
-              ex?.video_url ||
-              ex?.workout_video_url ||
-              ex?.workout?.video_url ||
-              '',
-          })
-        }
-      })
-    }
-
-    // Then include only the workouts visible for the current
-    // category/subcategory filter so that the selection reflects
-    // exactly this filter plus any previously assigned items.
-    if (Array.isArray(workouts) && workouts.length > 0) {
-      workouts.forEach((w: any) => {
-        if (w && w.id != null) {
-          map.set(w.id, w)
-        }
-      })
-    }
+    workouts.forEach((w: any) => {
+      if (w && w.id != null) {
+        map.set(w.id, w)
+      }
+    })
 
     setSelectedWorkouts(Array.from(map.values()))
-  }, [assignOpen, workouts, wp?.exercises])
+  }, [assignOpen, workouts])
 
   // You can proceed to Review if either:
   // - at least one workout is explicitly selected by the user.
