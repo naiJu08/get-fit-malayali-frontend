@@ -17,6 +17,12 @@ import { useYogaList } from '../../../Yoga/api'
 import { useSnackbarManager } from '../../../../components/common/snackbar'
 import { useAuthStore } from '../../../../store/authStore'
 
+const YOGA_CATEGORY_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Basic', value: 'basic' },
+  { label: 'Intermediate', value: 'intermediate' },
+  { label: 'Advanced', value: 'advanced' },
+]
+
 function DetailsTabContent({
   yp,
   loading,
@@ -261,9 +267,8 @@ export default function YogaPlanDetails() {
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
-  const [wpPage, setWpPage] = useState<number>(1)
-  const [wpPerPage, setWpPerPage] = useState<number>(20)
-  const [wpSearch, setWpSearch] = useState<string>('')
+  const [autoSelectEnabled, setAutoSelectEnabled] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const { mutateAsync: addYogaExerciseAsync } = useAddYogaExercise()
@@ -306,11 +311,15 @@ export default function YogaPlanDetails() {
   }
 
   // Load yogas for assignment
-  const { data: yogasResp, isFetching: yogasLoading } = useYogaList({
-    page: wpPage,
-    per_page: wpPerPage,
-    search: wpSearch,
-  } as any)
+  const yogaListParams: any = {
+    page: 1,
+    per_page: 99999,
+  }
+  if (categoryFilter) {
+    yogaListParams.category = categoryFilter
+  }
+  const { data: yogasResp, isFetching: yogasLoading } =
+    useYogaList(yogaListParams)
   const yogas = yogasResp?.yogas ?? []
 
   const assignedYogaIds = new Set(
@@ -338,54 +347,104 @@ export default function YogaPlanDetails() {
     return ''
   }
 
+  const toSelectableYoga = (yoga: any) => ({
+    id: yoga?.id,
+    name:
+      yoga?.name ||
+      yoga?.title ||
+      yoga?.yoga_name ||
+      yoga?.workout_name ||
+      'Untitled',
+    video_url:
+      yoga?.video_url ||
+      yoga?.yoga?.video_url ||
+      yoga?.workout_video_url ||
+      yoga?.workout?.video_url ||
+      '',
+  })
+
   const isSelected = (wid: any) => selectedWorkouts.some((w) => w?.id === wid)
   const toggleSelected = (w: any) => {
+    setAutoSelectEnabled(false)
     setSelectedWorkouts((prev) =>
       prev.some((x) => x?.id === w?.id)
         ? prev.filter((x) => x?.id !== w?.id)
-        : [...prev, w]
+        : [...prev, toSelectableYoga(w)]
     )
   }
 
   useEffect(() => {
-    if (assignOpen) {
-      setDragIndex(null)
-      setReviewOpen(false)
+    if (!assignOpen) return
 
-      // On first open (or after successful assign when selection was cleared),
-      // pre-select yogas that are already assigned in this plan.
-      if (selectedWorkouts.length === 0 && Array.isArray(yp?.exercises)) {
-        const map = new Map<any, any>()
-        yp.exercises.forEach((ex: any) => {
-          const exId = ex?.yoga_id || ex?.yoga?.id || ex?.id
-          if (!exId) return
-          if (!map.has(exId)) {
-            map.set(exId, {
-              id: exId,
-              name:
-                ex?.workout_name ||
-                ex?.yoga_name ||
-                ex?.name ||
-                ex?.title ||
-                ex?.yoga?.name,
-              video_url:
-                ex?.video_url ||
-                ex?.workout_video_url ||
-                ex?.workout?.video_url ||
-                ex?.yoga?.video_url ||
-                '',
-            })
-          }
+    setDragIndex(null)
+    setReviewOpen(false)
+
+    const hasPrefills =
+      Array.isArray(yp?.exercises) && (yp?.exercises?.length ?? 0) > 0
+
+    if (selectedWorkouts.length === 0 && hasPrefills) {
+      const map = new Map<any, any>()
+      yp?.exercises?.forEach((ex: any) => {
+        const exId = ex?.yoga_id || ex?.yoga?.id || ex?.id
+        if (!exId || map.has(exId)) return
+        map.set(exId, {
+          id: exId,
+          name:
+            ex?.workout_name ||
+            ex?.yoga_name ||
+            ex?.name ||
+            ex?.title ||
+            ex?.yoga?.name,
+          video_url:
+            ex?.video_url ||
+            ex?.workout_video_url ||
+            ex?.workout?.video_url ||
+            ex?.yoga?.video_url ||
+            '',
         })
-        setSelectedWorkouts(Array.from(map.values()))
+      })
+      const prefills = Array.from(map.values())
+      if (prefills.length > 0) {
+        setSelectedWorkouts(prefills)
+        if (autoSelectEnabled) {
+          setAutoSelectEnabled(false)
+        }
+        return
       }
     }
-  }, [assignOpen, yp?.exercises, selectedWorkouts.length])
+
+    if (hasPrefills && autoSelectEnabled) {
+      setAutoSelectEnabled(false)
+    } else if (
+      !hasPrefills &&
+      selectedWorkouts.length === 0 &&
+      !autoSelectEnabled
+    ) {
+      setAutoSelectEnabled(true)
+    }
+  }, [assignOpen, yp?.exercises, selectedWorkouts.length, autoSelectEnabled])
+
+  useEffect(() => {
+    if (!assignOpen || !autoSelectEnabled || yogasLoading) return
+
+    const nextSelections = yogas
+      .filter((y: any) => y?.id != null)
+      .map((y: any) => toSelectableYoga(y))
+
+    const hasDiff =
+      nextSelections.length !== selectedWorkouts.length ||
+      nextSelections.some(
+        (item: any, idx: number) => item.id !== selectedWorkouts[idx]?.id
+      )
+
+    if (hasDiff) {
+      setSelectedWorkouts(nextSelections)
+    }
+  }, [assignOpen, autoSelectEnabled, yogasLoading, yogas, selectedWorkouts])
 
   useEffect(() => {
     if (currentTab !== 'assign') {
       setAssignOpen(false)
-      setSelectedWorkouts([])
       setReviewOpen(false)
     }
   }, [currentTab])
@@ -455,8 +514,7 @@ export default function YogaPlanDetails() {
     } finally {
       setAssigning(false)
       setDragIndex(null)
-      setWpSearch('')
-      setWpPage(1)
+      setCategoryFilter('')
     }
   }
 
@@ -503,7 +561,6 @@ export default function YogaPlanDetails() {
               className="px-3 py-1 text-sm border rounded btn-primary"
               onClick={() => {
                 setAssignOpen(true)
-                setWpPage(1)
               }}
             >
               Assign
@@ -540,8 +597,7 @@ export default function YogaPlanDetails() {
         open={assignOpen}
         handleClose={() => {
           setAssignOpen(false)
-          setWpSearch('')
-          setWpPage(1)
+          setCategoryFilter('')
         }}
         className="w-screen max-w-[100vw]"
         unmountOnClose
@@ -557,28 +613,23 @@ export default function YogaPlanDetails() {
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
               <div className="text-sm font-medium">Yoga</div>
               <div className="flex items-center gap-2">
-                <input
-                  value={wpSearch}
-                  onChange={(e) => {
-                    setWpSearch(e.target.value)
-                    setWpPage(1)
-                  }}
-                  placeholder="Search yoga..."
-                  className="border rounded px-2 py-1 text-sm"
-                />
-                <select
-                  className="border rounded px-2 py-1 text-sm"
-                  value={wpPerPage}
-                  onChange={(e) => {
-                    setWpPerPage(Number(e.target.value))
-                    setWpPage(1)
-                  }}
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-600">Category</label>
+                  <select
+                    className="border rounded px-2 py-1 text-sm"
+                    value={categoryFilter}
+                    onChange={(e) => {
+                      setCategoryFilter(e.target.value)
+                    }}
+                  >
+                    <option value="">All</option>
+                    {YOGA_CATEGORY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -648,32 +699,6 @@ export default function YogaPlanDetails() {
                 })}
               </div>
             )}
-
-            <div className="flex items-center justify-between pt-2 text-xs text-gray-600">
-              <div>
-                Page {yogasResp?.meta?.current_page ?? wpPage} /{' '}
-                {yogasResp?.meta?.total_pages ?? 1}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  className="px-2 py-1 border rounded disabled:opacity-50"
-                  disabled={(yogasResp?.meta?.current_page ?? wpPage) <= 1}
-                  onClick={() => setWpPage((p) => Math.max(1, p - 1))}
-                >
-                  Prev
-                </button>
-                <button
-                  className="px-2 py-1 border rounded disabled:opacity-50"
-                  disabled={
-                    (yogasResp?.meta?.current_page ?? wpPage) >=
-                    (yogasResp?.meta?.total_pages ?? 1)
-                  }
-                  onClick={() => setWpPage((p) => p + 1)}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </CustomDrawer>

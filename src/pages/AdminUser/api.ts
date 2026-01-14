@@ -60,6 +60,22 @@ export const useAdminUser = (input: QueryParams) => {
   )
 }
 
+export const yogaOverridesBulk = (
+  subscriptionId: string | number,
+  payload: {
+    yoga_plan_id: number | string
+    exercises: Array<{
+      yoga_id: number | string
+      sequence_number: number
+    }>
+  }
+) => {
+  return postData(
+    `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/user_specific_yogas`,
+    payload
+  )
+}
+
 export const deActivateAdmin = (id?: string) => {
   return updateFromData(`${apiUrl.ADMIN_USER}/${id}/status`, {})
 }
@@ -83,6 +99,37 @@ export const freezeSubscription = (
   payload?: { reason?: string; start_date?: string; end_date?: string }
 ) => {
   return postData(`${apiUrl.SUBSCRIPTIONS}/${id}/freeze`, payload)
+}
+export const workoutOverridesBulk = (
+  subscriptionId: string | number,
+  payload: {
+    workout_plan_id: number | string
+    exercises: Array<{
+      workout_id: number | string
+      sequence_number: number
+    }>
+  }
+) => {
+  return postData(
+    `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/user_specific_exercises`,
+    payload
+  )
+}
+
+export const meditationOverridesBulk = (
+  subscriptionId: string | number,
+  payload: {
+    plan_id: number | string
+    meditations: Array<{
+      meditation_id: number | string
+      sequence_number: number
+    }>
+  }
+) => {
+  return postData(
+    `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/user_specific_meditations`,
+    payload
+  )
 }
 export const freezeUser = (
   id: string,

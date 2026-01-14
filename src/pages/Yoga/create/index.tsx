@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import moment from 'moment'
 // import moment from 'moment'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 
 import InfoBox from '../../../components/app/alertBox/infoBox'
@@ -123,6 +123,15 @@ export default function CreateAdmin({
       }
     : undefined
 
+  const categoryOptions = useMemo(
+    () => [
+      { id: 'basic', name: 'Basic' },
+      { id: 'intermediate', name: 'Intermediate' },
+      { id: 'advanced', name: 'Advanced' },
+    ],
+    []
+  )
+
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter yoga name', true) },
     {
@@ -139,6 +148,17 @@ export default function CreateAdmin({
         { id: 'High', name: 'High' },
         { id: 'Moderate', name: 'Moderate' },
       ],
+    },
+    {
+      name: 'category',
+      label: 'Category',
+      id: 'category',
+      type: 'custom_select',
+      placeholder: 'Select category',
+      desc: 'name',
+      descId: 'id',
+      required: true,
+      data: categoryOptions,
     },
     // { ...textField('video_url', 'Video URL', 'https://...', true) },
     {
@@ -196,6 +216,7 @@ export default function CreateAdmin({
       name: '',
       description: '',
       intensity_level: '',
+      category: '',
       video_url: '',
       video_file: '',
       thumbnail: '',
@@ -209,6 +230,7 @@ export default function CreateAdmin({
       name: '',
       description: '',
       intensity_level: '',
+      category: '',
       video_url: '',
       video_file: '',
       thumbnail: '',
@@ -220,10 +242,17 @@ export default function CreateAdmin({
   }
   useEffect(() => {
     if (isDrawerOpen && edit && !viewMode && rowData) {
+      const normalizedCategory =
+        typeof rowData?.category === 'string'
+          ? rowData.category.toLowerCase()
+          : ''
+      const matchedCategory =
+        categoryOptions.find((opt) => opt.id === normalizedCategory) ?? null
       methods.reset({
         name: rowData?.name ?? '',
         description: rowData?.description ?? '',
         intensity_level: rowData?.intensity_level ?? '',
+        category: matchedCategory?.name ?? '',
         video_url: rowData?.video_url ?? '',
         video_file: existingVideoFile ?? '',
         thumbnail: existingThumbnailFile ?? '',
@@ -314,11 +343,22 @@ export default function CreateAdmin({
   const isFileInstance = (input: unknown): input is File =>
     typeof File !== 'undefined' && input instanceof File
 
+  const extractSelectValue = (val: any) => {
+    if (!val) return ''
+    if (typeof val === 'string') return val.toLowerCase()
+    if (typeof val === 'object') {
+      if (typeof val?.id === 'string') return val.id.toLowerCase()
+      if (typeof val?.value === 'string') return val.value.toLowerCase()
+    }
+    return ''
+  }
+
   const onSubmit = (details: any) => {
     const fd = new FormData()
     fd.append('yoga[name]', details?.name ?? '')
     fd.append('yoga[description]', details?.description ?? '')
     fd.append('yoga[intensity_level]', details?.intensity_level ?? '')
+    fd.append('yoga[category]', extractSelectValue(details?.category))
     // fd.append('yoga[video_url]', details?.video_url ?? '')
     if (details?.video_file instanceof File) {
       fd.append('yoga[video_url]', details.video_file as any)

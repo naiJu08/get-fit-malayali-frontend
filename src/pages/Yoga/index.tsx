@@ -173,12 +173,27 @@ export default function YogaMain() {
   }
 
   const intensityOptions = useMemo(() => ['Moderate', 'High', 'Low'], [])
+  const categoryOptions = useMemo(
+    () => [
+      { label: 'Basic', value: 'basic' },
+      { label: 'Intermediate', value: 'intermediate' },
+      { label: 'Advanced', value: 'advanced' },
+    ],
+    []
+  )
 
   const currentIntensity = (filters as any)?.intensity_level || ''
   const onIntensityChange = (val: string) => {
     const newFilters = { ...(filters || {}) }
     if (val) newFilters.intensity_level = val
     else delete (newFilters as any).intensity_level
+    setPageParams({ ...pageParams, filters: newFilters, page: 1 })
+  }
+  const currentCategory = (filters as any)?.category || ''
+  const onCategoryChange = (val: string) => {
+    const newFilters = { ...(filters || {}) }
+    if (val) newFilters.category = val
+    else delete (newFilters as any).category
     setPageParams({ ...pageParams, filters: newFilters, page: 1 })
   }
 
@@ -245,6 +260,21 @@ export default function YogaMain() {
                       {intensityOptions.map((opt) => (
                         <option key={opt} value={opt}>
                           {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1 ">
+                    <label className="text-xs text-gray-600">Category</label>
+                    <select
+                      className="w-64 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-xl bg-white text-xs outline-none focus:outline-none focus:ring-0 focus:border-gray-300"
+                      value={currentCategory}
+                      onChange={(e) => onCategoryChange(e.target.value)}
+                    >
+                      <option value="">All</option>
+                      {categoryOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
                         </option>
                       ))}
                     </select>

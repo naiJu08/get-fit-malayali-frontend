@@ -396,10 +396,18 @@ export default function CategoryDetails() {
                 data={[
                   {
                     name: 'name',
+                    id: 'subcategory_name',
                     label: 'Name',
-                    placeholder: 'Enter subcategory name',
-                    type: 'text',
+                    placeholder: 'Select subcategory type',
+                    type: 'custom_select',
+                    desc: 'name',
+                    descId: 'id',
                     required: true,
+                    data: [
+                      { id: 'warmup', name: 'Warmup' },
+                      { id: 'workout', name: 'Workout' },
+                      { id: 'cool_down', name: 'Cool Down' },
+                    ],
                   },
                   {
                     name: 'description',
