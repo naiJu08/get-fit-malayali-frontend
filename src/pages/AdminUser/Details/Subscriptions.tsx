@@ -8,10 +8,10 @@ import { AutoComplete } from 'qbs-core'
 import CustomDrawer from '../../../components/common/drawer'
 import { DialogModal } from '../../../components/common'
 import Icons from '../../../components/common/icons'
-import { Tab, TabContainer } from '../../../components/common/tab'
 import { usePlans } from '../../Plans/api'
 import { useMeditationList } from '../../Meditation/api'
 import { useWorkoutList } from '../../Workout/api'
+import { useYogaList } from '../../Yoga/api'
 import {
   createSubscription,
   getAdminDetails,
@@ -20,12 +20,20 @@ import {
   freezeSubscription,
   workoutOverridesBulk,
   meditationOverridesBulk,
+  yogaOverridesBulk,
 } from '../api'
 import { useAuthStore } from '../../../store/authStore'
 import { useSnackbarManager } from '../../../components/common/snackbar'
 import apiUrl from '../../../apis/api.url'
 import { getData } from '../../../apis/api.helpers'
 import { getWorkoutPlanSubcategories } from '../../Plans/Details/WorkoutPlan/api'
+import DayDetailTabsSection from './DayDetailTabsSection'
+
+const YOGA_CATEGORY_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Basic', value: 'basic' },
+  { label: 'Intermediate', value: 'intermediate' },
+  { label: 'Advanced', value: 'advanced' },
+]
 
 export default function Subscriptions({
   id,
@@ -88,6 +96,12 @@ export default function Subscriptions({
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragGroup, setDragGroup] = useState<string | null>(null)
+  const [yogaAssignOpen, setYogaAssignOpen] = useState(false)
+  const [yogaReviewOpen, setYogaReviewOpen] = useState(false)
+  const [selectedYogas, setSelectedYogas] = useState<any[]>([])
+  const [yogaCategoryFilter, setYogaCategoryFilter] = useState<string>('')
+  const [yogaAssigning, setYogaAssigning] = useState(false)
+  const [yogaDragIndex, setYogaDragIndex] = useState<number | null>(null)
   const [medAssignOpen, setMedAssignOpen] = useState(false)
   const [medReviewOpen, setMedReviewOpen] = useState(false)
   const [selectedMeditations, setSelectedMeditations] = useState<any[]>([])
@@ -109,6 +123,7 @@ export default function Subscriptions({
       staleTime: 5 * 60 * 1000,
     }
   )
+
   const normalizedCategories = useMemo(() => {
     const categories =
       (categoriesResponse as any)?.categories ??
@@ -169,6 +184,20 @@ export default function Subscriptions({
   } as any)
   const meditations = medResp?.meditations ?? medResp?.items ?? []
   const medMeta = medResp?.meta ?? {}
+  const yogaListParams = useMemo(() => {
+    const params: any = {
+      page: 1,
+      per_page: 99999,
+    }
+    if (yogaCategoryFilter) {
+      params.category = yogaCategoryFilter
+    }
+    return params
+  }, [yogaCategoryFilter])
+  const { data: yogasResp, isFetching: yogasLoading } = useYogaList(
+    yogaListParams as any
+  )
+  const yogas = yogasResp?.yogas ?? yogasResp?.items ?? []
   const sortedMeditations = useMemo(() => {
     if (!Array.isArray(meditations) || meditations.length === 0) return []
     return meditations.slice().sort((a: any, b: any) => {
@@ -205,6 +234,38 @@ export default function Subscriptions({
     return ''
   }
 
+  const getYogaId = (item: any) => {
+    if (!item) return undefined
+    return (
+      item?.yoga_id ??
+      item?.id ??
+      item?.yoga?.id ??
+      item?.yogaId ??
+      item?.yoga_item_id
+    )
+  }
+
+  const toYogaSelectable = (item: any, idx?: number) => {
+    const yogaId = getYogaId(item)
+    if (yogaId == null) return null
+    return {
+      ...item,
+      id: yogaId,
+      name:
+        item?.yoga_name ||
+        item?.name ||
+        item?.title ||
+        item?.workout_name ||
+        `Yoga ${typeof idx === 'number' ? idx + 1 : ''}`.trim(),
+      video_url:
+        item?.video_url ||
+        item?.yoga?.video_url ||
+        item?.workout_video_url ||
+        item?.workout?.video_url ||
+        '',
+    }
+  }
+
   const isSelected = (id: any) => selectedWorkouts.some((w) => w?.id === id)
   const toggleSelected = (w: any) => {
     if (!w?.id) return
@@ -212,6 +273,19 @@ export default function Subscriptions({
       prev.some((x) => x?.id === w.id)
         ? prev.filter((x) => x?.id !== w.id)
         : [...prev, w]
+    )
+  }
+
+  const yogaCanProceedToReview = selectedYogas.length > 0
+  const isYogaSelected = (id: any) =>
+    selectedYogas.some((y) => String(y?.id) === String(id))
+  const toggleYogaSelected = (item: any) => {
+    const normalized = toYogaSelectable(item)
+    if (!normalized?.id) return
+    setSelectedYogas((prev) =>
+      prev.some((y) => String(y?.id) === String(normalized.id))
+        ? prev.filter((y) => String(y?.id) !== String(normalized.id))
+        : [...prev, normalized]
     )
   }
 
@@ -524,6 +598,22 @@ export default function Subscriptions({
   }, [assignOpen, dayDetail?.workout_plan?.exercises])
 
   useEffect(() => {
+    if (!yogaAssignOpen) return
+    setYogaDragIndex(null)
+    setYogaReviewOpen(false)
+
+    const map = new Map<any, any>()
+    if (Array.isArray(dayDetail?.yoga_plan?.exercises)) {
+      dayDetail.yoga_plan.exercises.forEach((ex: any, idx: number) => {
+        const normalized = toYogaSelectable(ex, idx)
+        if (!normalized?.id || map.has(normalized.id)) return
+        map.set(normalized.id, normalized)
+      })
+    }
+    setSelectedYogas(Array.from(map.values()))
+  }, [dayDetail?.yoga_plan?.exercises, yogaAssignOpen])
+
+  useEffect(() => {
     if (!medAssignOpen) return
     setMedDragIndex(null)
     setMedReviewOpen(false)
@@ -549,12 +639,28 @@ export default function Subscriptions({
       setReviewOpen(false)
       setSelectedWorkouts([])
       setDragIndex(null)
+      setYogaAssignOpen(false)
+      setYogaReviewOpen(false)
+      setSelectedYogas([])
+      setYogaDragIndex(null)
+      setYogaCategoryFilter('')
       setMedAssignOpen(false)
       setMedReviewOpen(false)
       setSelectedMeditations([])
       setMedDragIndex(null)
     }
   }, [dayDetailOpen])
+
+  const refreshDayDetail = async () => {
+    if (user?.id && selectedDate) {
+      try {
+        const refreshed = await getOverviewDetail(String(user.id), selectedDate)
+        setDayDetail(refreshed)
+      } catch (err) {
+        console.error(err)
+      }
+    }
+  }
 
   const handleNext = () => {
     if (!canProceedToReview) return
@@ -577,6 +683,12 @@ export default function Subscriptions({
     if (!medCanProceedToReview) return
     setMedReviewOpen(true)
     setMedAssignOpen(false)
+  }
+
+  const handleYogaNext = () => {
+    if (!yogaCanProceedToReview) return
+    setYogaReviewOpen(true)
+    setYogaAssignOpen(false)
   }
 
   const normalizeExercisePayload = (items: any[]) => {
@@ -616,17 +728,7 @@ export default function Subscriptions({
         workout_plan_id: workoutPlanId,
         exercises: exercisesPayload,
       })
-      if (user?.id && selectedDate) {
-        try {
-          const refreshed = await getOverviewDetail(
-            String(user.id),
-            selectedDate
-          )
-          setDayDetail(refreshed)
-        } catch (err) {
-          console.error(err)
-        }
-      }
+      await refreshDayDetail()
       setSelectedWorkouts([])
       setReviewOpen(false)
       enqueueSnackbar('Workout plan updated successfully', {
@@ -692,6 +794,26 @@ export default function Subscriptions({
     setMedDragIndex(null)
   }
 
+  const onYogaDragStart = (index: number) => {
+    setYogaDragIndex(index)
+  }
+  const onYogaDragOver = (e: any) => {
+    e.preventDefault()
+  }
+  const onYogaDrop = (index: number) => {
+    if (yogaDragIndex === null || yogaDragIndex === index) {
+      setYogaDragIndex(null)
+      return
+    }
+    setSelectedYogas((prev) => {
+      const next = prev.slice()
+      const [item] = next.splice(yogaDragIndex, 1)
+      next.splice(index, 0, item)
+      return next
+    })
+    setYogaDragIndex(null)
+  }
+
   const handleMedAssign = async () => {
     const subscriptionId = overview?.subscription?.id
     const planId =
@@ -729,18 +851,7 @@ export default function Subscriptions({
 
       await meditationOverridesBulk(subscriptionId, payload)
 
-      if (user?.id && selectedDate) {
-        try {
-          const refreshed = await getOverviewDetail(
-            String(user.id),
-            selectedDate
-          )
-          setDayDetail(refreshed)
-        } catch (err) {
-          console.error(err)
-        }
-      }
-
+      await refreshDayDetail()
       setSelectedMeditations([])
       setMedReviewOpen(false)
       enqueueSnackbar('Meditation plan updated successfully', {
@@ -763,6 +874,60 @@ export default function Subscriptions({
       setMedDragIndex(null)
       setMedSearch('')
       setMedPage(1)
+    }
+  }
+
+  const handleYogaAssign = async () => {
+    const yogaPlanId = dayDetail?.yoga_plan?.id
+    const subscriptionId = overview?.subscription?.id
+    if (!yogaPlanId || !subscriptionId || selectedYogas.length === 0) return
+    setYogaAssigning(true)
+    try {
+      const exercisesPayload = selectedYogas.reduce(
+        (
+          acc: { yoga_id: number | string; sequence_number: number }[],
+          item: any,
+          idx: number
+        ) => {
+          const yogaId = getYogaId(item)
+          if (!yogaId) return acc
+          acc.push({
+            yoga_id: yogaId,
+            sequence_number: idx + 1,
+          })
+          return acc
+        },
+        []
+      )
+
+      if (!exercisesPayload.length) {
+        throw new Error('No valid yogas to assign')
+      }
+
+      await yogaOverridesBulk(subscriptionId, {
+        yoga_plan_id: yogaPlanId,
+        exercises: exercisesPayload,
+      })
+
+      await refreshDayDetail()
+      setSelectedYogas([])
+      setYogaReviewOpen(false)
+      enqueueSnackbar('Yoga plan updated successfully', { variant: 'success' })
+    } catch (error: any) {
+      const resp = error?.response?.data
+      const messageFromResponse =
+        resp?.message ||
+        resp?.error ||
+        (Array.isArray(resp?.errors) ? resp.errors.join(', ') : null) ||
+        resp?.detail ||
+        error?.message
+      enqueueSnackbar(messageFromResponse || 'Failed to assign yogas', {
+        variant: 'error',
+      })
+    } finally {
+      setYogaAssigning(false)
+      setYogaDragIndex(null)
+      setYogaCategoryFilter('')
     }
   }
 
@@ -1582,6 +1747,195 @@ export default function Subscriptions({
       </CustomDrawer>
 
       <CustomDrawer
+        open={yogaAssignOpen}
+        handleClose={() => {
+          setYogaAssignOpen(false)
+          setYogaCategoryFilter('')
+        }}
+        className="w-screen max-w-[100vw]"
+        unmountOnClose
+        title={'Assign Yoga'}
+        handleSubmit={handleYogaNext}
+        disableSubmit={!yogaCanProceedToReview}
+        hideSubmit={!yogaCanProceedToReview}
+        actionLoader={false}
+        actionLabel={'Next'}
+      >
+        <div className="w-full">
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+              <div className="text-sm font-medium">Yoga</div>
+              <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-gray-600">Category</label>
+                  <select
+                    className="border rounded px-2 py-1 text-sm"
+                    value={yogaCategoryFilter}
+                    onChange={(e) => {
+                      setYogaCategoryFilter(e.target.value)
+                    }}
+                  >
+                    <option value="">All</option>
+                    {YOGA_CATEGORY_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {yogasLoading && (
+              <div className="text-xs text-gray-500 p-2">Loading...</div>
+            )}
+            {!yogasLoading && yogas.length === 0 && (
+              <div className="text-xs text-gray-500 p-2">No yoga found.</div>
+            )}
+
+            {!yogasLoading && yogas.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {yogas.map((y: any) => {
+                  const url = y?.video_url || ''
+                  const embed = getEmbedUrl(url)
+                  const checked = isYogaSelected(y?.id)
+                  return (
+                    <div
+                      key={y?.id}
+                      className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
+                        checked ? 'ring-2 ring-primary/30' : ''
+                      }`}
+                      onClick={(e) => {
+                        if (
+                          (e.target as HTMLElement).tagName.toLowerCase() !==
+                          'input'
+                        ) {
+                          toggleYogaSelected(y)
+                        }
+                      }}
+                    >
+                      {embed ? (
+                        <div className="w-full h-40 bg-black/5">
+                          <iframe
+                            src={embed}
+                            title={`Yoga Video ${y?.id}`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            allowFullScreen
+                          />
+                        </div>
+                      ) : url ? (
+                        <video
+                          className="w-full h-32 object-cover rounded"
+                          src={String(url)}
+                          muted
+                          controls
+                        />
+                      ) : (
+                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                          No video
+                        </div>
+                      )}
+                      <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
+                        <div className="font-medium line-clamp-1">
+                          {y?.name || y?.title || 'Untitled'}
+                        </div>
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 shrink-0"
+                          checked={checked}
+                          onChange={() => toggleYogaSelected(y)}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </CustomDrawer>
+
+      <CustomDrawer
+        open={yogaReviewOpen}
+        handleClose={() => {
+          setYogaReviewOpen(false)
+          setSelectedYogas([])
+          setYogaDragIndex(null)
+        }}
+        className="w-screen max-w-[100vw] h-screen"
+        unmountOnClose
+        title={'Review & Order Yoga'}
+        handleSubmit={handleYogaAssign}
+        disableSubmit={yogaAssigning || selectedYogas.length === 0}
+        actionLoader={yogaAssigning}
+        actionLabel={'Confirm'}
+      >
+        <div className="mt-4">
+          <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
+            <span className="text-blue-600 text-xl">🧘</span>
+            <span className="text-gray-600  bg-clip-text ">
+              Drag and drop the videos below into the order you want them to
+              appear in the yoga plan, then click{' '}
+              <span className="font-semibold">Assign</span> to save this
+              sequence.
+            </span>
+          </h2>
+          {selectedYogas.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {selectedYogas.map((y, i) => {
+                const embed = getEmbedUrl(y?.video_url)
+                const url = y?.video_url || ''
+                return (
+                  <div
+                    key={`${y?.id}-${i}`}
+                    draggable
+                    onDragStart={() => onYogaDragStart(i)}
+                    onDragOver={onYogaDragOver}
+                    onDrop={() => onYogaDrop(i)}
+                    className="rounded-xl shadow-lg bg-white border hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing overflow-hidden"
+                  >
+                    <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
+                      <span className="line-clamp-1">
+                        {i + 1}. {y?.name || y?.title || 'Untitled'}
+                      </span>
+                    </div>
+
+                    {embed ? (
+                      <iframe
+                        className="w-full h-48"
+                        src={embed}
+                        allowFullScreen
+                      ></iframe>
+                    ) : url ? (
+                      <video
+                        src={url}
+                        controls
+                        muted
+                        className="w-full h-48 object-cover"
+                      />
+                    ) : (
+                      <div className="text-sm text-gray-500 italic">
+                        No video URL available.
+                      </div>
+                    )}
+
+                    <div className="px-4 py-2 text-xs text-gray-600">
+                      Hold and drag to rearrange
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500 italic">
+              No videos selected yet.
+            </div>
+          )}
+        </div>
+      </CustomDrawer>
+
+      <CustomDrawer
         open={medAssignOpen}
         handleClose={() => {
           setMedAssignOpen(false)
@@ -2086,871 +2440,33 @@ export default function Subscriptions({
               <div className="text-xs text-gray-500">No details available.</div>
             )}
             {!dayDetailLoading && dayDetail && (
-              <>
-                <TabContainer
-                  data={[
-                    { label: 'Diet', id: 'diet' },
-                    { label: 'Workout', id: 'workout' },
-                    { label: 'Yoga', id: 'yoga' },
-                    { label: 'Meditation', id: 'meditation' },
-                  ]}
-                  activeTab={dayDetailTab}
-                  onClick={(item) => setDayDetailTab(String(item.id))}
-                >
-                  <Tab id="diet">
-                    <div className="max-h-[700px] overflow-y-auto">
-                      <div className="border rounded p-3 bg-white">
-                        <div className="text-sm font-semibold mb-2">
-                          Diet Plans
-                        </div>
-                        {Array.isArray(dayDetail?.diet_plans) &&
-                        dayDetail.diet_plans.length > 0 ? (
-                          <div className="flex flex-col gap-2 text-xs">
-                            {dayDetail.diet_plans.map((d: any) => {
-                              const totalItems = Array.isArray(d?.items)
-                                ? d.items.length
-                                : 0
-                              const completedItems = Array.isArray(
-                                d?.item_statuses?.completed_item_ids
-                              )
-                                ? d.item_statuses.completed_item_ids.length
-                                : 0
-                              const missedItems = Array.isArray(
-                                d?.item_statuses?.not_taken_mandatory_item_ids
-                              )
-                                ? d.item_statuses.not_taken_mandatory_item_ids
-                                    .length
-                                : 0
-                              const mealStatus = String(
-                                d?.actions?.status || ''
-                              ).toLowerCase()
-                              const mealStatusClass =
-                                mealStatus === 'completed'
-                                  ? 'text-green-600'
-                                  : mealStatus === 'missed' ||
-                                      mealStatus === 'failed'
-                                    ? 'text-red-600'
-                                    : mealStatus === 'today' ||
-                                        mealStatus === 'in_progress'
-                                      ? 'text-amber-600'
-                                      : 'text-gray-700'
-
-                              return (
-                                <div
-                                  key={`${d?.id}-${d?.sequence_number}`}
-                                  className="border rounded px-3 py-2 flex flex-col gap-1"
-                                >
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="flex flex-col">
-                                      <span className="font-medium">
-                                        {d?.meal_time || '--'}
-                                      </span>
-                                      <span className="text-gray-600">
-                                        {d?.meal_name || '--'}
-                                      </span>
-                                    </div>
-                                    <div className="text-right text-[11px] text-gray-600 space-y-0.5">
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Calories:{' '}
-                                        </span>
-                                        <span className="font-medium text-gray-800">
-                                          {d?.calories ?? '--'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Items:{' '}
-                                        </span>
-                                        <span className="font-medium text-gray-800">
-                                          {totalItems}
-                                        </span>
-                                        {totalItems > 0 && (
-                                          <span className="ml-1 text-[10px] text-gray-500">
-                                            ({completedItems} done /{' '}
-                                            {missedItems} missed)
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {d?.actions && (
-                                    <div className="mt-1 flex flex-col gap-0.5 border-t pt-1 text-[11px] text-gray-600">
-                                      <div className="">
-                                        <span className="text-gray-500">
-                                          Status
-                                        </span>
-                                        <span
-                                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${mealStatusClass}`}
-                                        >
-                                          {mealStatus
-                                            ? mealStatus
-                                                .charAt(0)
-                                                .toUpperCase() +
-                                              mealStatus.slice(1)
-                                            : '--'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Action date:{' '}
-                                        </span>
-                                        <span>
-                                          {d.actions.action_date || '--'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Completed at:{' '}
-                                        </span>
-                                        <span>
-                                          {d.actions.completed_at || '--'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Duration sec:{' '}
-                                        </span>
-                                        <span>
-                                          {d.actions.duration_seconds ?? '--'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Repeats:{' '}
-                                        </span>
-                                        <span>
-                                          {d.actions.repeat_count ?? '--'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Watched %:{' '}
-                                        </span>
-                                        <span>
-                                          {d.actions.video_watch_percentage ??
-                                            '--'}
-                                        </span>
-                                      </div>
-                                      {d.actions.notes && (
-                                        <div>
-                                          <span className="text-gray-500">
-                                            Notes:{' '}
-                                          </span>
-                                          <span>{d.actions.notes}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-
-                                  {Array.isArray(d?.items) &&
-                                    d.items.length > 0 && (
-                                      <div className="mt-1 border-t pt-1 space-y-1 text-[11px] text-gray-700">
-                                        {d.items.map((it: any) => {
-                                          const itemStatus = String(
-                                            it?.actions?.status || ''
-                                          ).toLowerCase()
-                                          const itemStatusClass =
-                                            itemStatus === 'completed'
-                                              ? 'text-green-600'
-                                              : itemStatus === 'missed' ||
-                                                  itemStatus === 'failed'
-                                                ? 'text-red-600'
-                                                : itemStatus === 'today' ||
-                                                    itemStatus === 'in_progress'
-                                                  ? 'text-amber-600'
-                                                  : 'text-gray-700'
-
-                                          return (
-                                            <div
-                                              key={it?.id}
-                                              className="flex flex-col gap-0.5 rounded bg-gray-50 px-2 py-1 text-[10px] text-gray-600"
-                                            >
-                                              <div>
-                                                <span className="font-medium">
-                                                  Meal :{' '}
-                                                </span>
-                                                <span>
-                                                  {it?.meal_name || '--'}
-                                                </span>
-                                              </div>
-                                              <div>
-                                                <span className="font-medium">
-                                                  Quantity :{' '}
-                                                </span>
-                                                <span>
-                                                  {it?.quantity} x{' '}
-                                                  {it?.serving_unit} (per{' '}
-                                                  {it?.serving_quantity})
-                                                </span>
-                                              </div>
-                                              <div>
-                                                <span className="font-medium">
-                                                  Requirement :{' '}
-                                                </span>
-                                                <span>
-                                                  {it?.requirement || '--'}
-                                                </span>
-                                              </div>
-                                              {it?.per_serving && (
-                                                <div>
-                                                  <span className="font-medium">
-                                                    Per serving :{' '}
-                                                  </span>
-                                                  <span>
-                                                    {it.per_serving.calories ??
-                                                      '--'}{' '}
-                                                    kcal, P{' '}
-                                                    {it.per_serving.protein ??
-                                                      '--'}
-                                                    , C{' '}
-                                                    {it.per_serving.carbs ??
-                                                      '--'}
-                                                    , F{' '}
-                                                    {it.per_serving.fat ?? '--'}
-                                                    , Fib{' '}
-                                                    {it.per_serving.fiber ??
-                                                      '--'}
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {it?.actions && (
-                                                <div className="mt-0.5 flex flex-col gap-0.5 text-[10px] text-gray-600">
-                                                  <div>
-                                                    <span className="text-gray-500">
-                                                      Status :{' '}
-                                                    </span>
-                                                    <span
-                                                      className={`font-semibold ${itemStatusClass}`}
-                                                    >
-                                                      {itemStatus
-                                                        ? itemStatus
-                                                            .charAt(0)
-                                                            .toUpperCase() +
-                                                          itemStatus.slice(1)
-                                                        : '--'}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-gray-500">
-                                                      Action date :{' '}
-                                                    </span>
-                                                    <span>
-                                                      {it.actions.action_date ||
-                                                        '--'}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-gray-500">
-                                                      Completed at :{' '}
-                                                    </span>
-                                                    <span>
-                                                      {it.actions
-                                                        .completed_at || '--'}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-gray-500">
-                                                      Duration sec :{' '}
-                                                    </span>
-                                                    <span>
-                                                      {it.actions
-                                                        .duration_seconds ??
-                                                        '--'}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-gray-500">
-                                                      Repeats :{' '}
-                                                    </span>
-                                                    <span>
-                                                      {it.actions
-                                                        .repeat_count ?? '--'}
-                                                    </span>
-                                                  </div>
-                                                  <div>
-                                                    <span className="text-gray-500">
-                                                      Watched % :{' '}
-                                                    </span>
-                                                    <span>
-                                                      {it.actions
-                                                        .video_watch_percentage ??
-                                                        '--'}
-                                                    </span>
-                                                  </div>
-                                                  {it.actions.notes && (
-                                                    <div>
-                                                      <span className="text-gray-500">
-                                                        Notes :{' '}
-                                                      </span>
-                                                      <span>
-                                                        {it.actions.notes}
-                                                      </span>
-                                                    </div>
-                                                  )}
-                                                </div>
-                                              )}
-                                            </div>
-                                          )
-                                        })}
-                                      </div>
-                                    )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-gray-500">
-                            No diet items.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Tab>
-
-                  <Tab id="workout">
-                    <div className="max-h-[700px] overflow-y-auto">
-                      <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-2 gap-3">
-                          <div className="text-sm font-semibold">
-                            Workout Plan
-                          </div>
-                          {dayDetail?.workout_plan && !isNutritionist && (
-                            <button
-                              className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
-                              onClick={() => {
-                                setDragIndex(null)
-                                setReviewOpen(false)
-                                setAssignOpen(true)
-                                setWpSearch('')
-                                setWpPage(1)
-                              }}
-                            >
-                              <Icons name="edit" />
-                              <span>Edit Workout Plan</span>
-                            </button>
-                          )}
-                        </div>
-                        {dayDetail?.workout_plan ? (
-                          <div className="flex flex-col gap-2 text-xs">
-                            <div className="mb-1">
-                              <div className="font-medium">
-                                {dayDetail?.workout_plan?.title || 'Workout'}
-                              </div>
-                              {dayDetail?.workout_plan?.description && (
-                                <div className="text-gray-600">
-                                  {dayDetail.workout_plan.description}
-                                </div>
-                              )}
-                            </div>
-                            {Array.isArray(
-                              dayDetail?.workout_plan?.exercises
-                            ) && dayDetail.workout_plan.exercises.length > 0 ? (
-                              <div className="flex flex-col gap-2">
-                                {dayDetail.workout_plan.exercises.map(
-                                  (ex: any, idx: number) => {
-                                    const action = ex?.actions
-                                    const durationMinutesFromSeconds =
-                                      typeof action?.duration_seconds ===
-                                      'number'
-                                        ? (
-                                            action.duration_seconds / 60
-                                          ).toFixed(1)
-                                        : null
-                                    const workoutStatus = String(
-                                      action?.status || ''
-                                    ).toLowerCase()
-                                    const workoutStatusClass =
-                                      workoutStatus === 'completed'
-                                        ? 'text-green-600'
-                                        : workoutStatus === 'missed' ||
-                                            workoutStatus === 'failed'
-                                          ? 'text-red-600'
-                                          : workoutStatus === 'today' ||
-                                              workoutStatus === 'in_progress'
-                                            ? 'text-amber-600'
-                                            : 'text-gray-700'
-
-                                    return (
-                                      <div
-                                        key={`${ex?.id}-${idx}`}
-                                        className="flex items-center justify-between border rounded px-3 py-2 gap-3"
-                                      >
-                                        <div className="flex items-start gap-3 flex-1">
-                                          <div className="flex flex-col">
-                                            <span className="font-medium">
-                                              {ex?.workout_name || '--'}
-                                            </span>
-                                            {ex?.video_url && (
-                                              <a
-                                                className="text-primaryBlue underline"
-                                                href={ex.video_url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                              >
-                                                Video
-                                              </a>
-                                            )}
-                                          </div>
-                                        </div>
-                                        <div className="text-right text-[11px] text-gray-600 space-y-0.5">
-                                          {ex?.reps ? (
-                                            <div>Reps: {ex.reps}</div>
-                                          ) : null}
-                                          {ex?.sets ? (
-                                            <div>Sets: {ex.sets}</div>
-                                          ) : null}
-                                          {ex?.duration_minutes ? (
-                                            <div>
-                                              Duration: {ex.duration_minutes}m
-                                            </div>
-                                          ) : null}
-                                          {action && (
-                                            <>
-                                              {action.status && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Status:{' '}
-                                                  </span>
-                                                  <span
-                                                    className={`font-semibold ${workoutStatusClass}`}
-                                                  >
-                                                    {workoutStatus
-                                                      ? workoutStatus
-                                                          .charAt(0)
-                                                          .toUpperCase() +
-                                                        workoutStatus.slice(1)
-                                                      : '--'}
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {durationMinutesFromSeconds && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Duration:{' '}
-                                                  </span>
-                                                  <span className="font-medium text-gray-800">
-                                                    {durationMinutesFromSeconds}
-                                                    m
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {typeof action.duration_seconds ===
-                                                'number' && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Duration sec:{' '}
-                                                  </span>
-                                                  <span className="font-medium text-gray-800">
-                                                    {action.duration_seconds}
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {typeof action.repeat_count ===
-                                                'number' && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Repeats:{' '}
-                                                  </span>
-                                                  <span className="font-medium text-gray-800">
-                                                    {action.repeat_count}
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {action.video_watch_percentage && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Watched:{' '}
-                                                  </span>
-                                                  <span className="font-medium text-gray-800">
-                                                    {
-                                                      action.video_watch_percentage
-                                                    }
-                                                    %
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {action.notes && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Notes:{' '}
-                                                  </span>
-                                                  <span className="font-medium text-gray-800">
-                                                    {action.notes}
-                                                  </span>
-                                                </div>
-                                              )}
-                                            </>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )
-                                  }
-                                )}
-                              </div>
-                            ) : (
-                              <div className="text-xs text-gray-500">
-                                No exercises.
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-gray-500">
-                            No workout plan.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Tab>
-
-                  <Tab id="yoga">
-                    <div className="max-h-[700px] overflow-y-auto">
-                      <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
-                        <div className="text-sm font-semibold mb-2">
-                          Yoga Plan
-                        </div>
-                        {dayDetail?.yoga_plan ? (
-                          <div className="flex flex-col gap-2 text-xs">
-                            <div className="mb-1">
-                              <div className="font-medium">
-                                {dayDetail?.yoga_plan?.title || 'Yoga Plan'}
-                              </div>
-                              {dayDetail?.yoga_plan?.description && (
-                                <div className="text-gray-600">
-                                  {dayDetail.yoga_plan.description}
-                                </div>
-                              )}
-                            </div>
-                            {Array.isArray(dayDetail?.yoga_plan?.exercises) &&
-                            dayDetail.yoga_plan.exercises.length > 0 ? (
-                              <div className="flex flex-col gap-2">
-                                {dayDetail.yoga_plan.exercises.map(
-                                  (ex: any, idx: number) => {
-                                    const action = ex?.actions
-                                    const yogaStatus = String(
-                                      action?.status || ''
-                                    ).toLowerCase()
-                                    const yogaStatusClass =
-                                      yogaStatus === 'completed'
-                                        ? 'text-green-600'
-                                        : yogaStatus === 'missed' ||
-                                            yogaStatus === 'failed'
-                                          ? 'text-red-600'
-                                          : yogaStatus === 'today' ||
-                                              yogaStatus === 'in_progress'
-                                            ? 'text-amber-600'
-                                            : 'text-gray-700'
-
-                                    return (
-                                      <div
-                                        key={`${ex?.id}-${idx}`}
-                                        className="flex items-center justify-between border rounded px-3 py-2"
-                                      >
-                                        <div className="flex flex-col">
-                                          <span className="font-medium">
-                                            {ex?.yoga_name || '--'}
-                                          </span>
-                                          {ex?.video_url && (
-                                            <a
-                                              className="text-primaryBlue underline"
-                                              href={ex.video_url}
-                                              target="_blank"
-                                              rel="noreferrer"
-                                            >
-                                              Video
-                                            </a>
-                                          )}
-                                        </div>
-                                        <div className="text-right text-[11px] text-gray-600 space-y-0.5">
-                                          {ex?.yoga_duration_minutes ? (
-                                            <div>
-                                              Duration:{' '}
-                                              {ex.yoga_duration_minutes}m
-                                            </div>
-                                          ) : ex?.duration_minutes ? (
-                                            <div>
-                                              Duration: {ex.duration_minutes}m
-                                            </div>
-                                          ) : null}
-                                          {action && (
-                                            <>
-                                              {action.status && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Status:{' '}
-                                                  </span>
-                                                  <span
-                                                    className={`font-semibold ${yogaStatusClass}`}
-                                                  >
-                                                    {yogaStatus
-                                                      ? yogaStatus
-                                                          .charAt(0)
-                                                          .toUpperCase() +
-                                                        yogaStatus.slice(1)
-                                                      : '--'}
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {action.action_date && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Action date:{' '}
-                                                  </span>
-                                                  <span>
-                                                    {action.action_date}
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {action.completed_at && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Completed at:{' '}
-                                                  </span>
-                                                  <span>
-                                                    {action.completed_at}
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {typeof action.duration_seconds ===
-                                                'number' && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Duration sec:{' '}
-                                                  </span>
-                                                  <span className="font-medium text-gray-800">
-                                                    {action.duration_seconds}
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {typeof action.repeat_count ===
-                                                'number' && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Repeats:{' '}
-                                                  </span>
-                                                  <span className="font-medium text-gray-800">
-                                                    {action.repeat_count}
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {action.video_watch_percentage && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Watched %:{' '}
-                                                  </span>
-                                                  <span className="font-medium text-gray-800">
-                                                    {
-                                                      action.video_watch_percentage
-                                                    }
-                                                  </span>
-                                                </div>
-                                              )}
-                                              {action.notes && (
-                                                <div>
-                                                  <span className="text-gray-500">
-                                                    Notes:{' '}
-                                                  </span>
-                                                  <span className="font-medium text-gray-800">
-                                                    {action.notes}
-                                                  </span>
-                                                </div>
-                                              )}
-                                            </>
-                                          )}
-                                        </div>
-                                      </div>
-                                    )
-                                  }
-                                )}
-                              </div>
-                            ) : (
-                              <div className="text-xs text-gray-500">
-                                No yoga exercises.
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-gray-500">
-                            No yoga plan.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Tab>
-
-                  <Tab id="meditation">
-                    <div className="max-h-[700px] overflow-y-auto">
-                      <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
-                        <div className="flex items-center justify-between mb-2 gap-3">
-                          <div className="text-sm font-semibold">
-                            Meditation
-                          </div>
-                          {Array.isArray(dayDetail?.meditations) &&
-                            dayDetail.meditations.length > 0 &&
-                            !isNutritionist && (
-                              <button
-                                className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
-                                onClick={() => {
-                                  setMedDragIndex(null)
-                                  setMedReviewOpen(false)
-                                  setMedAssignOpen(true)
-                                  setMedSearch('')
-                                  setMedPage(1)
-                                  refetchMeditationsList?.()
-                                }}
-                              >
-                                <Icons name="edit" />
-                                <span>Update Meditation Plan</span>
-                              </button>
-                            )}
-                        </div>
-                        {Array.isArray(dayDetail?.meditations) &&
-                        dayDetail.meditations.length > 0 ? (
-                          <div className="flex flex-col gap-2 text-xs">
-                            {dayDetail.meditations.map(
-                              (m: any, idx: number) => {
-                                const action = m?.actions
-                                const meditationStatus = String(
-                                  action?.status || ''
-                                ).toLowerCase()
-                                const meditationStatusClass =
-                                  meditationStatus === 'completed'
-                                    ? 'text-green-600'
-                                    : meditationStatus === 'missed' ||
-                                        meditationStatus === 'failed'
-                                      ? 'text-red-600'
-                                      : meditationStatus === 'today' ||
-                                          meditationStatus === 'in_progress'
-                                        ? 'text-amber-600'
-                                        : 'text-gray-700'
-
-                                return (
-                                  <div
-                                    key={`${m?.id}-${idx}`}
-                                    className="flex items-center justify-between border rounded px-3 py-2"
-                                  >
-                                    <div className="flex flex-col">
-                                      <span className="font-medium">
-                                        {m?.title || '--'}
-                                      </span>
-                                      {m?.description && (
-                                        <span className="text-gray-600">
-                                          {m.description}
-                                        </span>
-                                      )}
-                                      {m?.video_url && (
-                                        <a
-                                          className="text-primaryBlue underline mt-1"
-                                          href={m.video_url}
-                                          target="_blank"
-                                          rel="noreferrer"
-                                        >
-                                          Video
-                                        </a>
-                                      )}
-                                    </div>
-                                    <div className="text-right text-[11px] text-gray-600 space-y-0.5">
-                                      {m?.duration_minutes ? (
-                                        <div>
-                                          Duration: {m.duration_minutes}m
-                                        </div>
-                                      ) : null}
-                                      {action && (
-                                        <>
-                                          {action.status && (
-                                            <div>
-                                              <span className="text-gray-500">
-                                                Status:{' '}
-                                              </span>
-                                              <span
-                                                className={`font-semibold ${meditationStatusClass}`}
-                                              >
-                                                {meditationStatus
-                                                  ? meditationStatus
-                                                      .charAt(0)
-                                                      .toUpperCase() +
-                                                    meditationStatus.slice(1)
-                                                  : '--'}
-                                              </span>
-                                            </div>
-                                          )}
-                                          {action.action_date && (
-                                            <div>
-                                              <span className="text-gray-500">
-                                                Action date:{' '}
-                                              </span>
-                                              <span>{action.action_date}</span>
-                                            </div>
-                                          )}
-                                          {action.completed_at && (
-                                            <div>
-                                              <span className="text-gray-500">
-                                                Completed at:{' '}
-                                              </span>
-                                              <span>{action.completed_at}</span>
-                                            </div>
-                                          )}
-                                          {typeof action.duration_seconds ===
-                                            'number' && (
-                                            <div>
-                                              <span className="text-gray-500">
-                                                Duration sec:{' '}
-                                              </span>
-                                              <span className="font-medium text-gray-800">
-                                                {action.duration_seconds}
-                                              </span>
-                                            </div>
-                                          )}
-                                          {typeof action.repeat_count ===
-                                            'number' && (
-                                            <div>
-                                              <span className="text-gray-500">
-                                                Repeats:{' '}
-                                              </span>
-                                              <span className="font-medium text-gray-800">
-                                                {action.repeat_count}
-                                              </span>
-                                            </div>
-                                          )}
-                                          {action.video_watch_percentage && (
-                                            <div>
-                                              <span className="text-gray-500">
-                                                Watched %:{' '}
-                                              </span>
-                                              <span className="font-medium text-gray-800">
-                                                {action.video_watch_percentage}
-                                              </span>
-                                            </div>
-                                          )}
-                                          {action.notes && (
-                                            <div>
-                                              <span className="text-gray-500">
-                                                Notes:{' '}
-                                              </span>
-                                              <span className="font-medium text-gray-800">
-                                                {action.notes}
-                                              </span>
-                                            </div>
-                                          )}
-                                        </>
-                                      )}
-                                    </div>
-                                  </div>
-                                )
-                              }
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-gray-500">
-                            No meditation items.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Tab>
-                </TabContainer>
-              </>
+              <DayDetailTabsSection
+                dayDetail={dayDetail}
+                dayDetailTab={dayDetailTab}
+                onChangeTab={(tabId) => setDayDetailTab(tabId)}
+                isNutritionist={isNutritionist}
+                onEditWorkoutPlan={() => {
+                  setDragIndex(null)
+                  setReviewOpen(false)
+                  setAssignOpen(true)
+                  setWpSearch('')
+                  setWpPage(1)
+                }}
+                onEditYogaPlan={() => {
+                  setYogaDragIndex(null)
+                  setYogaReviewOpen(false)
+                  setYogaAssignOpen(true)
+                  setYogaCategoryFilter('')
+                }}
+                onEditMeditationPlan={() => {
+                  setMedDragIndex(null)
+                  setMedReviewOpen(false)
+                  setMedAssignOpen(true)
+                  setMedSearch('')
+                  setMedPage(1)
+                  refetchMeditationsList?.()
+                }}
+              />
             )}
           </div>
         }

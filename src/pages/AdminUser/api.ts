@@ -60,6 +60,22 @@ export const useAdminUser = (input: QueryParams) => {
   )
 }
 
+export const yogaOverridesBulk = (
+  subscriptionId: string | number,
+  payload: {
+    yoga_plan_id: number | string
+    exercises: Array<{
+      yoga_id: number | string
+      sequence_number: number
+    }>
+  }
+) => {
+  return postData(
+    `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/user_specific_yogas`,
+    payload
+  )
+}
+
 export const deActivateAdmin = (id?: string) => {
   return updateFromData(`${apiUrl.ADMIN_USER}/${id}/status`, {})
 }
