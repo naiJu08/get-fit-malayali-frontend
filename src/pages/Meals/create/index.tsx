@@ -55,34 +55,6 @@ export default function CreateMeal({
   //   //   shouldDirty: true,
   //   // })
   // }, [methods])
-  const perServingProtein = methods.watch('per_serving_protein')
-  const perServingCarbs = methods.watch('per_serving_carbs')
-  const perServingFat = methods.watch('per_serving_fat')
-  const perServingFiber = methods.watch('per_serving_fiber')
-
-  useEffect(() => {
-    const toNumber = (v: any) => {
-      const n = Number(v)
-      return Number.isNaN(n) ? 0 : n
-    }
-
-    const total =
-      toNumber(perServingProtein) +
-      toNumber(perServingCarbs) +
-      toNumber(perServingFat) +
-      toNumber(perServingFiber)
-
-    methods.setValue('per_serving_calories', total as any, {
-      shouldValidate: true,
-      shouldDirty: true,
-    })
-  }, [
-    perServingProtein,
-    perServingCarbs,
-    perServingFat,
-    perServingFiber,
-    methods,
-  ])
   const { mutate: createMealMutate } = useCreateMeal()
   const { mutate: updateMealMutate } = useUpdateMeal()
   const queryClient = useQueryClient()
@@ -317,7 +289,6 @@ export default function CreateMeal({
       type: 'text',
       required: false,
       allowPositiveOnly: true,
-      disabled: true,
     },
   ]
 
@@ -325,7 +296,7 @@ export default function CreateMeal({
     <DialogModal
       isOpen={isDrawerOpen}
       onClose={handleClose}
-      title={edit ? 'Edit Meal' : 'Create Meal'}
+      title={edit ? 'Edit Food' : 'Create Food'}
       actionLabel={edit ? 'Update' : 'Create'}
       onSubmit={handleSubmit(onSubmit)}
       secondaryAction={handleClose}

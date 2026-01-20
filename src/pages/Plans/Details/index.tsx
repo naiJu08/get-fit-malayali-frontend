@@ -69,7 +69,7 @@ function PlanDetailsContent() {
     const baseTabs: TabConfig[] = [
       { id: 'details', label: 'Details' },
       { id: 'workout-plan', label: 'Workout Plan' },
-      { id: 'dietplan', label: 'Diet Plan' },
+      // { id: 'dietplan', label: 'Diet Plan' },
     ]
     if (hasYogaPlan) baseTabs.push({ id: 'yogaplan', label: 'Yoga Plan' })
     if (hasMeditationPlan)

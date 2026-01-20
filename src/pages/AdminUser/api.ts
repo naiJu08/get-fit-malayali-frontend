@@ -107,6 +107,7 @@ export const workoutOverridesBulk = (
     exercises: Array<{
       workout_id: number | string
       sequence_number: number
+      reps: number
     }>
   }
 ) => {
@@ -128,6 +129,16 @@ export const meditationOverridesBulk = (
 ) => {
   return postData(
     `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/user_specific_meditations`,
+    payload
+  )
+}
+
+export const assignDietPlanTemplate = (
+  subscriptionId: string | number,
+  payload: { diet_plan_template_id: number }
+) => {
+  return postData(
+    `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/assign_diet_plan_template`,
     payload
   )
 }
@@ -397,6 +408,26 @@ export const createClientReport = (payload: {
   year: number
 }) => {
   return postData(`${apiUrl.CLIENT_REPORTS}`, payload)
+}
+
+// User reminders
+const fetchUserReminders = async (input: { user_id?: string | number }) => {
+  if (!input?.user_id) {
+    return { items: [], meta: {} }
+  }
+  const params = new URLSearchParams()
+  params.set('user_id', String(input.user_id))
+  const url = `${apiUrl.USER_REMINDERS}?${params.toString()}`
+  const response: any = await getData(url)
+  const items = Array.isArray(response?.reminders) ? response.reminders : []
+  const meta = response?.meta ?? {}
+  return { items, meta }
+}
+
+export const useUserReminders = (input: { user_id?: string | number }) => {
+  return useQuery(['user_reminders', input], () => fetchUserReminders(input), {
+    enabled: !!input?.user_id,
+  })
 }
 
 // Subscription-level report

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Icons from '../icons'
 import ColumnIcon from '../icons/ColumnIcon'
 import { TableColumns } from '../../../common/types'
@@ -84,6 +84,11 @@ const SmartTable: React.FC<SmartTableProps> = ({
   const [selectedRowKey, setSelectedRowKey] = useState<any | null>(null)
   const [hoveredRow, setHoveredRow] = useState<any | null>(null)
   const [actionAnimation, setActionAnimation] = useState<string | null>(null)
+  const latestOnSearchRef = useRef(onSearch)
+
+  useEffect(() => {
+    latestOnSearchRef.current = onSearch
+  }, [onSearch])
 
   useEffect(() => {
     setVisibleColumns(columns)
@@ -143,6 +148,16 @@ const SmartTable: React.FC<SmartTableProps> = ({
       return cell
     }
     return row[col.field]
+  }
+
+  const handleClearSearch = () => {
+    if (!searchValue) return
+    onSearchChange?.('')
+    if (latestOnSearchRef.current) {
+      setTimeout(() => {
+        latestOnSearchRef.current?.('')
+      }, 0)
+    }
   }
 
   const header = (
@@ -397,7 +412,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
                 <label className="text-xs text-gray-600">Search</label>
                 <div className="relative">
                   <input
-                    className="pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg w-80 bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200"
+                    className="pl-10 pr-9 py-2.5 text-sm border border-gray-200 rounded-lg w-80 bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200"
                     // placeholder="Search records..."
                     placeholder={searchPlaceholder}
                     value={searchValue || ''}
@@ -411,6 +426,16 @@ const SmartTable: React.FC<SmartTableProps> = ({
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                     <Icons name="search" className="w-4 h-4" />
                   </span>
+                  {searchValue ? (
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      onClick={handleClearSearch}
+                    >
+                      <Icons name="close" className="w-4 h-4" />
+                    </button>
+                  ) : null}
                 </div>
               </div>
             )}

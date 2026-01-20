@@ -13,7 +13,8 @@ import UserRoute from './components/userRoute'
 import SubscriptionDetailsMain from '../pages/Subscriptions/Details'
 import PaymentHistory from '../pages/PaymentHistory'
 import YogaPlanDetails from '../pages/Plans/Details/YogaPlan/details'
-
+import DietTemplateDetails from '../pages/DietTemplate/Details'
+//
 // Users sample page is no longer used for the Users route; using AdminUser instead
 
 const Login = lazy(() => import('../pages/userManagement/login'))
@@ -30,7 +31,7 @@ const WorkoutPlanDetails = lazy(
   () => import('../pages/Plans/Details/WorkoutPlan/details')
 )
 const DietPlanDetails = lazy(
-  () => import('../pages/Plans/Details/DietPlan/details')
+  () => import('../pages/DietTemplate/Details/DietPlanTab/details')
 )
 // const YogaplanDetails = lazy(
 //   () => import('../pages/Plans/Details/YogaPlan/index')
@@ -62,6 +63,8 @@ const YogaDetails = lazy(() => import('../pages/Yoga/Details'))
 const YogaMain = lazy(() => import('../pages/Yoga'))
 const MeditationMain = lazy(() => import('../pages/Meditation'))
 const MeditationDetails = lazy(() => import('../pages/Meditation/Details'))
+const DietTemplateMain = lazy(() => import('../pages/DietTemplate'))
+
 const routes: any = [
   { slug: 'DASHBOARD', component: <Dashboard /> },
   { slug: 'SETTINGS_SAMPLE', component: <Settings /> },
@@ -71,6 +74,9 @@ const routes: any = [
   { slug: 'PLAN_DETAILS', component: <PlanDetails /> },
   { slug: 'CATEGORIES', component: <CategoriesMain /> },
   { slug: 'CATEGORIES_DETAILS', component: <CategoriesDetails /> },
+  { slug: 'DIET_TEMPLATE', component: <DietTemplateMain /> },
+  { slug: 'DIET_TEMPLATE_DETAILS', component: <DietTemplateDetails /> },
+  { slug: 'DIET_TEMPLATE_DIET_PLAN', component: <DietTemplateDetails /> },
   { slug: 'WORKOUT_PLAN_DETAILS', component: <WorkoutPlanDetails /> },
   { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
   { slug: 'YOGAPLAN', component: <PlanDetails /> },
@@ -93,6 +99,7 @@ const routes: any = [
   { slug: 'PLAN_DETAILS_WORKOUT', component: <PlanDetails /> },
   { slug: 'PLAN_DETAILS_DIET', component: <PlanDetails /> },
   { slug: 'PAYMENT_HISTORY', component: <PaymentHistory /> },
+  { slug: 'REMINDER_SETTINGS', component: <UserDetails /> },
 
   {
     isAuthRoute: true,
@@ -282,6 +289,14 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/users/nutritionist/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="REMINDER_SETTINGS">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/:id/reminders"
       />
 
       <Route

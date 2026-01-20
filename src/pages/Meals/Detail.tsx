@@ -48,7 +48,7 @@ const MealDetail: React.FC = () => {
           <button onClick={() => navigate('/meals')} aria-label="Back">
             <Icons name="left-arrow-icon" />
           </button>
-          <h1 className="text-xl font-semibold">Meal Details</h1>
+          <h1 className="text-xl font-semibold">Food Details</h1>
         </div>
       </div>
 
