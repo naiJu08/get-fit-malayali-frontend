@@ -14,7 +14,10 @@ export const getColumns = ({
   onNameClick,
   disableNameLink = false,
 }:
-  | { onNameClick?: (row: any) => void; disableNameLink?: boolean }
+  | {
+      onNameClick?: (row: any) => void
+      disableNameLink?: boolean
+    }
   | AdminListResponse
   | any) => {
   const createRenderCell =
@@ -121,12 +124,7 @@ export const getColumns = ({
       renderCell: (row: any) => {
         const value = getNestedProperty(row, 'name')
         const raw = typeof value === 'string' ? value : ''
-        const display = raw
-          ? raw.replace(
-              /\w\S*/g,
-              (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
-            )
-          : ''
+        const display = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : ''
         if (!disableNameLink && onNameClick) {
           return {
             cell: (
@@ -164,27 +162,12 @@ export const getColumns = ({
       ...defaultColumnProps,
     },
     {
-      title: 'Intensity Level',
-      renderCell: createRenderCell('intensity_level'),
-      field: 'intensity_level',
+      title: 'Duration (Days)',
+      renderCell: createRenderCell('duration_days'),
+      field: 'duration_days',
       customCell: true,
       ...defaultColumnProps,
     },
-    {
-      title: 'Category',
-      renderCell: createRenderCell('category', 'capitalize'),
-      field: 'category',
-      customCell: true,
-      ...defaultColumnProps,
-    },
-    {
-      title: 'Duration(in minutes)',
-      field: 'duration_minutes',
-      renderCell: createRenderCell('duration_minutes'),
-      customCell: true,
-      ...defaultColumnProps,
-    },
-
     // {
     //   title: 'Average Rating',
     //   field: 'average_rating',

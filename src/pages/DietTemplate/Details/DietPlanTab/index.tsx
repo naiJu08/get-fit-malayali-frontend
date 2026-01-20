@@ -1,0 +1,417 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+import SmartTable from '../../../../components/common/table/SmartTable'
+import Icons from '../../../../components/common/icons'
+import { TableColumns } from '../../../../common/types'
+import ConfirmDeleteModal from '../../../../components/common/modal/ConfirmDeleteModal'
+import InfoBox from '../../../../components/app/alertBox/infoBox'
+import Button from '../../../../components/common/buttons/Button'
+// import DietPlanForm from './create'
+// import { useDietPlans, useDeleteDietPlan } from './api'
+import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
+import { getSortedColumnName } from '../../../../utilities/parsers'
+import { calcWindowHeight } from '../../../../utilities/calcHeight'
+import { checkPermissions } from '../../../../layout/store'
+import { useAuthStore } from '../../../../store/authStore'
+import { useDeleteDietPlan, useDietPlans } from './api'
+import DietPlanForm from './create'
+
+interface DietPlanTabProps {
+  template: any
+  loading: boolean
+  error: string
+}
+
+export default function DietPlanTab({
+  template,
+  loading,
+  error,
+}: DietPlanTabProps) {
+  if (loading) {
+    return (
+      <div className="p-6">
+        <InfoBox content="Loading diet plans..." />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <InfoBox content={error} />
+      </div>
+    )
+  }
+
+  if (!template?.id) {
+    return (
+      <div className="p-6">
+        <InfoBox content="Template information unavailable." />
+      </div>
+    )
+  }
+
+  return (
+    <DietPlanContent
+      templateName={template?.name}
+      templateId={template?.id}
+      templateDurationDays={template?.duration_days}
+    />
+  )
+}
+
+function DietPlanContent({
+  templateName,
+  templateId,
+  templateDurationDays,
+}: {
+  templateName?: string
+  templateId: string | number
+  templateDurationDays?: number
+}) {
+  const navigate = useNavigate()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
+
+  const columns: TableColumns[] = useMemo(
+    () => [
+      {
+        title: 'Day',
+        field: 'day_number',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({
+          cell: (
+            <button
+              type="button"
+              className="text-blue-600 hover:underline"
+              onClick={() => navigate(`/diet_details/${row?.id}`)}
+            >
+              {row?.day_number ?? ''}
+            </button>
+          ),
+        }),
+        sortKey: 'day_number',
+      },
+      {
+        title: 'Sequence',
+        field: 'sequence_number',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({ cell: row?.sequence_number ?? '' }),
+        sortKey: 'sequence_number',
+      },
+      {
+        title: 'Meal Time',
+        field: 'meal_time',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({ cell: row?.meal_time ?? '' }),
+        sortKey: 'meal_time',
+      },
+      {
+        title: 'Meal Name',
+        field: 'meal_name',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => {
+          const items = Array.isArray(row?.items) ? (row.items as any[]) : []
+          let label: any = row?.meal_name ?? ''
+          if (items.length > 0) {
+            const parsed = items
+              .map((it: any) => {
+                const name = it?.meal_name ?? ''
+                const reqRaw = (it?.requirement ?? it?.key_requirement ?? '')
+                  .toString()
+                  .toLowerCase()
+                const req =
+                  reqRaw === 'mandatory'
+                    ? 'mandatory'
+                    : reqRaw === 'optional'
+                      ? 'optional'
+                      : ''
+                return { name, req }
+              })
+              .filter((p: any) => Boolean(p.name))
+
+            const mandatory = parsed
+              .filter((p: any) => p.req === 'mandatory')
+              .map((p: any) => p.name)
+            const optional = parsed
+              .filter((p: any) => p.req === 'optional')
+              .map((p: any) => p.name)
+
+            const nodes: Array<string | JSX.Element> = []
+            if (mandatory.length) {
+              mandatory.forEach((name: string, idx: number) => {
+                if (idx > 0)
+                  nodes.push(
+                    <span
+                      className="text-green-600 font-semibold"
+                      key={`m-sep-${idx}`}
+                    >
+                      {' '}
+                      +{' '}
+                    </span>
+                  )
+                nodes.push(<span key={`m-${idx}`}>{name}</span>)
+              })
+            }
+
+            if (optional.length) {
+              if (nodes.length)
+                nodes.push(
+                  <span className="font-semibold" key={`comma-sep`}>
+                    {', '}
+                  </span>
+                )
+              optional.forEach((name: string, idx: number) => {
+                if (idx > 0)
+                  nodes.push(
+                    <span
+                      className="text-orange-600 font-semibold"
+                      key={`o-sep-${idx}`}
+                    >
+                      {' '}
+                      or{' '}
+                    </span>
+                  )
+                nodes.push(<span key={`o-${idx}`}>{name}</span>)
+              })
+            }
+
+            label = <span>{nodes}</span>
+          }
+          return { cell: label }
+        },
+        sortKey: 'meal_name',
+      },
+      {
+        title: 'Calories',
+        field: 'effective_total_calories',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({
+          cell: row?.effective_total_calories ?? '',
+        }),
+        sortKey: 'effective_total_calories',
+      },
+    ],
+    [navigate]
+  )
+
+  const { pageParams, setPageParams } = useAdminUserFilterStore()
+  const { page, per_page, search, ordering } = pageParams
+
+  const searchParams = {
+    page,
+    per_page: Number(per_page ?? 10),
+    search,
+    ordering,
+    diet_plan_template_id: Number(templateId),
+  }
+
+  const { data, isFetching } = useDietPlans(searchParams)
+  const { mutateAsync: deleteDietPlan, isLoading: deleteLoading } =
+    useDeleteDietPlan()
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [selectedDietPlanId, setSelectedDietPlanId] = useState<
+    string | number | null
+  >(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [formValues, setFormValues] = useState<any | null>(null)
+  const [editMode, setEditMode] = useState(false)
+
+  const openCreate = () => {
+    setEditMode(false)
+    setFormValues({
+      diet_plan_template_id: templateId,
+      day_number: 1,
+      sequence_number: 1,
+      meal_time: '',
+      meal_name: '',
+      calories: '',
+    })
+    setFormOpen(true)
+  }
+
+  const openEdit = (row: any) => {
+    setEditMode(true)
+    setFormValues({
+      id: row?.id,
+      diet_plan_template_id: row?.diet_plan_template_id ?? templateId,
+      day_number: row?.day_number ?? '',
+      sequence_number: row?.sequence_number ?? '',
+      meal_time: row?.meal_time ?? '',
+      meal_name: row?.meal_name ?? '',
+      calories: row?.calories ?? '',
+      items: Array.isArray(row?.items) ? row.items : [],
+    })
+    setFormOpen(true)
+  }
+
+  const handleClose = () => {
+    setFormOpen(false)
+    setEditMode(false)
+    setFormValues(null)
+  }
+
+  const handleDeleteClick = useCallback((row: any) => {
+    setSelectedDietPlanId(row?.id ?? null)
+    setDeleteModalOpen(true)
+  }, [])
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!selectedDietPlanId) return
+    await deleteDietPlan(selectedDietPlanId)
+    setDeleteModalOpen(false)
+    setSelectedDietPlanId(null)
+  }, [deleteDietPlan, selectedDietPlanId])
+
+  useEffect(() => {
+    if (typeof pageParams?.page !== 'number' || pageParams.page !== 1) {
+      setPageParams({ ...pageParams, page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleSort = (orderColumn?: any, orderDirection?: any) => {
+    setPageParams({
+      ...pageParams,
+      sortColumn: orderColumn,
+      sortType: orderDirection,
+      ordering: getSortedColumnName(orderColumn, orderDirection),
+    })
+  }
+
+  const onChangePage = (pageNumber: number) => {
+    setPageParams({
+      ...pageParams,
+      page: pageNumber,
+    })
+  }
+
+  const onChangeRowsPerPage = (count: number | string) => {
+    setPageParams({
+      ...pageParams,
+      per_page: Number(count),
+      page: 1,
+    })
+  }
+
+  return (
+    <div className="">
+      <div className="flex justify-end mb-4">
+        {!isNutritionist && checkPermissions('Employee', 'create') && (
+          <Button
+            className="bg-primaryGreen"
+            label="Create Diet Plan"
+            icon="plus"
+            onClick={openCreate}
+          />
+        )}
+      </div>
+      <SmartTable
+        data={data?.diet_plans ?? []}
+        dataRowKey="id"
+        toolbar={true}
+        title={templateName || 'Diet Plans'}
+        searchValue={String(pageParams?.search || '')}
+        onSearchChange={(val) =>
+          setPageParams({ ...pageParams, search: val, page: 1 })
+        }
+        onSearch={() => setPageParams({ ...pageParams, page: 1 })}
+        columns={columns}
+        height={
+          (data?.plans?.length ?? 0) === 0
+            ? calcWindowHeight(218)
+            : calcWindowHeight(200)
+        }
+        pagination={true}
+        isLoading={isFetching}
+        sortType={pageParams.sortType}
+        sortColumn={pageParams.sortColumn}
+        handleColumnSort={handleSort}
+        emptyTitle="No records to display"
+        paginationProps={{
+          onPagination: onChangePage,
+          total: data?.meta?.total_count ?? 0,
+          currentPage:
+            typeof data?.meta?.current_page === 'number'
+              ? (data?.meta?.current_page as number)
+              : (pageParams?.page ?? 1),
+          rowsPerPage: Number(
+            pageParams?.per_page ?? data?.meta?.per_page ?? 10
+          ),
+          onRowsPerPage: onChangeRowsPerPage,
+          totalPages: Math.max(
+            1,
+            Math.ceil(
+              (Number(data?.meta?.total_count ?? 0) || 0) /
+                Number(pageParams?.per_page ?? data?.meta?.per_page ?? 10)
+            )
+          ),
+          dropOptions: [10, 20, 30, 50, 100],
+        }}
+        columnToggle
+        externalActions={true}
+        actionProps={
+          isNutritionist
+            ? []
+            : [
+                {
+                  icon: <Icons name="eye" />,
+                  action: (row: any) => navigate(`/diet_details/${row?.id}`),
+                  title: 'View',
+                  toolTip: 'View',
+                },
+                {
+                  icon: <Icons name="edit" />,
+                  action: (row: any) => openEdit(row),
+                  title: 'Edit',
+                  toolTip: 'Edit',
+                },
+                {
+                  icon: <Icons name="delete" />,
+                  action: (row: any) => handleDeleteClick(row),
+                  title: 'Delete',
+                  toolTip: 'Delete',
+                },
+              ]
+        }
+      />
+
+      <DietPlanForm
+        isOpen={formOpen}
+        handleClose={handleClose}
+        edit={editMode}
+        rowData={formValues ?? undefined}
+        planId={templateId}
+        planDurationDays={templateDurationDays}
+      />
+
+      <ConfirmDeleteModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          if (!deleteLoading) {
+            setDeleteModalOpen(false)
+            setSelectedDietPlanId(null)
+          }
+        }}
+        onConfirm={handleConfirmDelete}
+        loading={deleteLoading}
+        title="Are you sure?"
+        subTitle="Do you really want to delete this diet plan? This process cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+      />
+    </div>
+  )
+}

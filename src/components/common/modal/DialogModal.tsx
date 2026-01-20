@@ -114,7 +114,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
             <div
               className="
               translate
-              max-h-[90vh]
+              max-h-[97vh]
               shadow-popupShadow
               overflow-hidden
               rounded-xl

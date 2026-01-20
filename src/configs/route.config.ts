@@ -137,6 +137,42 @@ const CATEGORIES_DETAILS: RouterMenuProps = {
   permission_slugs: [],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
+const DIET_TEMPLATE: RouterMenuProps = {
+  id: 21,
+  path: '/diet-template',
+  parent_id: null,
+  label: 'Diet Template',
+  key: 'diet-template',
+  icon: 'template-icon-white',
+  breadcrumb: ['DIET_TEMPLATE'],
+  permission_slugs: ['superadmin', 'nutritionist'],
+  slugOptions: [
+    'DIET_TEMPLATE',
+    'DIET_TEMPLATE_DETAILS',
+    'DIET_TEMPLATE_DIET_PLAN',
+  ],
+  isSidebarMenu: true,
+}
+const DIET_TEMPLATE_DETAILS: RouterMenuProps = {
+  id: 16,
+  path: '/diet-template/:id',
+  parent_id: 21,
+  isDetails: true,
+  icon: 'user',
+  label: 'Diet Template Details',
+  key: 'diet-template-details',
+  permission_slugs: [],
+}
+const DIET_TEMPLATE_DIET_PLAN: RouterMenuProps = {
+  id: 17,
+  path: '/diet-template/:id/diet-plan',
+  parent_id: 21,
+  isDetails: true,
+  icon: 'user',
+  label: 'Diet Template Diet Plan',
+  key: 'diet-template-diet-plan',
+  permission_slugs: [],
+}
 const WORKOUT: RouterMenuProps = {
   id: 25,
   path: '/workout',
@@ -232,6 +268,16 @@ const SUBSCRIPTIONS_DETAILS: RouterMenuProps = {
   key: 'subscriptions-details',
   permission_slugs: [],
 }
+const REMINDER_SETTINGS: RouterMenuProps = {
+  id: 292,
+  path: '/users/:id/reminders',
+  parent_id: 2,
+  isDetails: true,
+  icon: 'user',
+  label: 'Reminder Settings',
+  key: 'reminders-details',
+  permission_slugs: [],
+}
 
 // Plan Details base route
 const PLAN_DETAILS: RouterMenuProps = {
@@ -302,7 +348,7 @@ const MEALS: RouterMenuProps = {
   id: 48,
   path: '/meals',
   parent_id: null,
-  label: 'Meals',
+  label: 'Food',
   key: 'meals',
   icon: 'meal-icon',
   permission_slugs: ['superadmin', 'nutritionist'],
@@ -312,7 +358,7 @@ const MEALS_DETAILS: RouterMenuProps = {
   id: 30,
   path: '/meals/:id',
   parent_id: 21,
-  label: 'Meals Details',
+  label: 'Food Details',
   key: 'meals-details',
   permission_slugs: [],
   isSidebarMenu: true,
@@ -410,6 +456,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   PLANS,
   CATEGORIES,
   CATEGORIES_DETAILS,
+  DIET_TEMPLATE,
   WORKOUT,
   YOGA,
   MEDITATION,
@@ -428,6 +475,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   YOGAPLAN_DETAILS,
   WORKOUT_PLAN_DETAILS,
   SUBSCRIPTIONS_DETAILS,
+  REMINDER_SETTINGS,
   DIET_DETAILS,
   RECIPE_DETAILS,
   MEALS_DETAILS,
@@ -443,4 +491,6 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   YOGA_DETAILS,
   MEDITATION_DETAILS,
   MEDITATIONPLAN,
+  DIET_TEMPLATE_DETAILS,
+  DIET_TEMPLATE_DIET_PLAN,
 }

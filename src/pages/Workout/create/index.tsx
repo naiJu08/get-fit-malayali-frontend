@@ -95,12 +95,24 @@ export default function CreateAdmin({
     //   })
   }
 
+  const getReadableFileName = (value?: string) => {
+    if (!value) {
+      return ''
+    }
+    const segments = String(value).split('/')
+    const raw = segments[segments.length - 1] || String(value)
+    const sanitized = raw.split('?')[0].split('#')[0]
+    try {
+      return decodeURIComponent(sanitized)
+    } catch {
+      return sanitized
+    }
+  }
+
   // Used to show existing video file in edit mode (based on video_url from API)
   const existingVideoFile = rowData?.video_url
     ? {
-        name:
-          String(rowData.video_url).split('/').pop() ||
-          String(rowData.video_url),
+        name: getReadableFileName(rowData.video_url),
         link: rowData.video_url,
       }
     : undefined
@@ -108,9 +120,7 @@ export default function CreateAdmin({
   // Used to show existing thumbnail image in edit mode (based on thumbnail_url from API)
   const existingThumbnailFile = rowData?.thumbnail_url
     ? {
-        name:
-          String(rowData.thumbnail_url).split('/').pop() ||
-          String(rowData.thumbnail_url),
+        name: getReadableFileName(rowData.thumbnail_url),
         link: rowData.thumbnail_url,
       }
     : undefined

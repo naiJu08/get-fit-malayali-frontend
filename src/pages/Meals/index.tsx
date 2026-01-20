@@ -35,7 +35,7 @@ export default function Meals() {
     ordering,
   }
 
-  const headerProps = { actionTitle: 'Create Meal' }
+  const headerProps = { actionTitle: 'Create Food' }
 
   // TODO: adjust this to your desired create flow
   const openDrawer = () => setCreateOpen(true)
@@ -136,7 +136,7 @@ export default function Meals() {
   return (
     <div>
       <ListingHeader
-        data={{ title: 'Meals', icon: 'meal-icon' }}
+        data={{ title: 'Food', icon: 'meal-icon' }}
         onActionClick={isNutritionist ? undefined : openDrawer}
         actionProps={isNutritionist ? undefined : headerProps}
         checkPermission={
@@ -154,7 +154,7 @@ export default function Meals() {
               : calcWindowHeight(150)
           }
           search
-          searchPlaceholder="Search Meal Name"
+          searchPlaceholder="Search Food Name"
           isLoading={isFetching}
           sortType={pageParams.sortType}
           sortColumn={pageParams.sortColumn}
@@ -237,7 +237,7 @@ export default function Meals() {
         loading={deleteMealMutation.isLoading}
         title={'Are you sure?'}
         subTitle={
-          'Do you really want to delete this meal? This process cannot be undone.'
+          'Do you really want to delete this Food? This process cannot be undone.'
         }
         confirmLabel="Delete"
         cancelLabel="Cancel"

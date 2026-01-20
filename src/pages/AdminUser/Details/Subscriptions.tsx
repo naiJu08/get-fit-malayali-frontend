@@ -1,5 +1,5 @@
 import moment from 'moment'
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import type { DragEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import InfoBox from '../../../components/app/alertBox/infoBox'
@@ -90,6 +90,7 @@ export default function Subscriptions({
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
+  const [workoutCounts, setWorkoutCounts] = useState<Record<string, number>>({})
   const [wpPage, setWpPage] = useState<number>(1)
   const [wpPerPage] = useState<number>(9999)
   const [wpSearch, setWpSearch] = useState<string>('')
@@ -143,11 +144,39 @@ export default function Subscriptions({
       })),
     [normalizedCategories]
   )
+  const subcategoryParentMap = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        categoryId: number | string | undefined
+        categoryName: string
+        label: string
+      }
+    > = {}
+
+    categoryOptions.forEach((cat: any) => {
+      const subs = Array.isArray(cat?.subcategories) ? cat.subcategories : []
+
+      subs.forEach((sub: any) => {
+        const subId = sub?.id ?? sub?.value
+        if (subId === undefined || subId === null) return
+
+        map[String(subId)] = {
+          categoryId: cat?.id,
+          categoryName: cat?.name ?? '',
+          label: sub?.name ?? sub?.value ?? sub?.label ?? '',
+        }
+      })
+    })
+
+    return map
+  }, [categoryOptions])
   const [selectedCategoryId, setSelectedCategoryId] = useState<
     number | string | undefined
   >(undefined)
   const [selectedCategoryName, setSelectedCategoryName] = useState<string>('')
   const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
+  const prefillAppliedRef = useRef(false)
   const selectedSubcategoryIds = useMemo(
     () =>
       (selectedSubcategories || [])
@@ -299,6 +328,9 @@ export default function Subscriptions({
 
     return String(rawSub || 'Others')
   }
+
+  const getWorkoutSelectableId = (item: any) =>
+    item?.workout_id || item?.workout?.id || item?.id || item?.workoutId
 
   const getMeditationId = (meditation: any) => {
     if (!meditation) return undefined
@@ -546,6 +578,202 @@ export default function Subscriptions({
     return statusColor(cell?.meta)
   }
 
+  const decrementWorkoutCount = (workout: any) => {
+    const workoutId = getWorkoutSelectableId(workout)
+    if (workoutId == null) return
+    const key = String(workoutId)
+    if (
+      !selectedWorkouts.some((w) => String(getWorkoutSelectableId(w)) === key)
+    )
+      return
+
+    setWorkoutCounts((prev) => {
+      const current = prev[key] ?? 1
+      if (current <= 1) return prev
+      return {
+        ...prev,
+        [key]: Math.max(1, current - 1),
+      }
+    })
+  }
+
+  const incrementWorkoutCount = (workout: any) => {
+    const workoutId = getWorkoutSelectableId(workout)
+    if (workoutId == null) return
+    const key = String(workoutId)
+    if (
+      !selectedWorkouts.some((w) => String(getWorkoutSelectableId(w)) === key)
+    )
+      return
+
+    setWorkoutCounts((prev) => ({
+      ...prev,
+      [key]: Math.max(1, (prev[key] ?? 1) + 1),
+    }))
+  }
+
+  const previouslySubmittedSelection = useMemo(() => {
+    const exercises = dayDetail?.workout_plan?.exercises
+    if (!Array.isArray(exercises) || exercises.length === 0) return null
+
+    const buckets: Record<
+      string,
+      {
+        categoryId: number | string | undefined
+        categoryName: string
+        subs: Map<string, { id: any; value: string }>
+      }
+    > = {}
+
+    const getSubcategoryIdFromExercise = (exercise: any) => {
+      const candidates = [
+        exercise?.subcategory_id,
+        exercise?.category?.id,
+        exercise?.category_id,
+        exercise?.workout?.subcategory_id,
+        exercise?.workout?.subcategory?.id,
+        exercise?.workout?.category?.id,
+        exercise?.workout?.category_id,
+      ]
+
+      return candidates.find(
+        (candidate) =>
+          candidate !== undefined && candidate !== null && candidate !== ''
+      )
+    }
+
+    const getCategoryInfoFromExercise = (exercise: any) => {
+      const sources = [
+        exercise?.category?.main_category,
+        exercise?.workout?.category?.main_category,
+        exercise?.category?.parent,
+        exercise?.workout?.category?.parent,
+      ].filter(Boolean)
+
+      const primary = sources[0] as any
+
+      const idCandidates = [
+        primary?.id,
+        exercise?.category?.main_category_id,
+        exercise?.workout?.category?.main_category_id,
+        exercise?.category?.parent_id,
+        exercise?.workout?.category?.parent_id,
+        exercise?.workout?.main_category_id,
+      ]
+
+      const categoryId = idCandidates.find(
+        (candidate) =>
+          candidate !== undefined && candidate !== null && candidate !== ''
+      )
+
+      const categoryName =
+        primary?.name ??
+        exercise?.category?.main_category?.name ??
+        exercise?.category?.main_category_name ??
+        exercise?.workout?.category?.main_category?.name ??
+        exercise?.workout?.category?.parent?.name ??
+        ''
+
+      return {
+        categoryId,
+        categoryName,
+      }
+    }
+
+    const getSubcategoryLabelFromExercise = (exercise: any) =>
+      exercise?.category?.name ??
+      exercise?.workout?.subcategory?.name ??
+      exercise?.workout?.category?.name ??
+      exercise?.workout?.subcategory_name ??
+      exercise?.category_name ??
+      ''
+
+    exercises.forEach((exercise: any) => {
+      const subId = getSubcategoryIdFromExercise(exercise)
+      if (subId === undefined) return
+
+      const mapMeta = subcategoryParentMap[String(subId)]
+      const catInfo = mapMeta?.categoryId
+        ? {
+            categoryId: mapMeta.categoryId,
+            categoryName: mapMeta.categoryName,
+          }
+        : getCategoryInfoFromExercise(exercise)
+
+      if (
+        catInfo.categoryId === undefined ||
+        catInfo.categoryId === null ||
+        catInfo.categoryId === ''
+      )
+        return
+
+      const bucketKey = String(catInfo.categoryId)
+      if (!buckets[bucketKey]) {
+        buckets[bucketKey] = {
+          categoryId: catInfo.categoryId,
+          categoryName: catInfo.categoryName || '',
+          subs: new Map(),
+        }
+      }
+
+      const label =
+        getSubcategoryLabelFromExercise(exercise) || mapMeta?.label || ''
+
+      buckets[bucketKey].subs.set(String(subId), {
+        id: subId,
+        value: label || mapMeta?.label || '',
+      })
+    })
+
+    const bucketList = Object.values(buckets)
+    if (!bucketList.length) return null
+
+    bucketList.sort((a, b) => b.subs.size - a.subs.size)
+    const preferred = bucketList[0]
+
+    if (!preferred.categoryId) return null
+
+    return {
+      categoryId: preferred.categoryId,
+      categoryName: preferred.categoryName,
+      subcategories: Array.from(preferred.subs.values()),
+    }
+  }, [dayDetail?.workout_plan?.exercises, subcategoryParentMap])
+
+  useEffect(() => {
+    setSelectedCategoryId(undefined)
+    setSelectedCategoryName('')
+    setSelectedSubcategories([])
+    prefillAppliedRef.current = false
+  }, [dayDetail?.workout_plan?.id])
+
+  useEffect(() => {
+    if (!assignOpen) return
+    if (!previouslySubmittedSelection || prefillAppliedRef.current) return
+
+    const { categoryId, categoryName, subcategories } =
+      previouslySubmittedSelection
+
+    if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
+      setSelectedCategoryId(categoryId)
+
+      const resolvedCategoryName =
+        categoryName && categoryName.length > 0
+          ? categoryName
+          : (categoryOptions.find(
+              (cat: any) => String(cat?.id) === String(categoryId)
+            )?.name ?? '')
+
+      setSelectedCategoryName(resolvedCategoryName)
+    }
+
+    if (Array.isArray(subcategories) && subcategories.length > 0) {
+      setSelectedSubcategories(subcategories)
+    }
+
+    prefillAppliedRef.current = true
+  }, [assignOpen, previouslySubmittedSelection, categoryOptions])
+
   const openDayDetail = async (dateStr: string) => {
     if (!user?.id || !dateStr) return
     try {
@@ -573,6 +801,7 @@ export default function Subscriptions({
       dayDetail.workout_plan.exercises.forEach((ex: any) => {
         const workoutId = ex?.workout_id || ex?.workout?.id || ex?.id
         if (!workoutId || map.has(workoutId)) return
+        const repsValue = Number(ex?.reps ?? ex?.workout?.reps)
         map.set(workoutId, {
           id: workoutId,
           name:
@@ -590,12 +819,37 @@ export default function Subscriptions({
           category_name: ex?.workout?.category_name || ex?.category_name,
           subcategory_name:
             ex?.workout?.subcategory_name || ex?.subcategory_name,
+          reps: Number.isFinite(repsValue) && repsValue > 0 ? repsValue : 1,
         })
       })
     }
 
     setSelectedWorkouts(Array.from(map.values()))
   }, [assignOpen, dayDetail?.workout_plan?.exercises])
+
+  useEffect(() => {
+    if (!Array.isArray(selectedWorkouts) || selectedWorkouts.length === 0) {
+      if (Object.keys(workoutCounts).length === 0) return
+      setWorkoutCounts({})
+      return
+    }
+
+    setWorkoutCounts((prev) => {
+      const next: Record<string, number> = {}
+      selectedWorkouts.forEach((w: any) => {
+        const id = getWorkoutSelectableId(w)
+        if (id == null) return
+        const key = String(id)
+        const fallbackReps = (() => {
+          const direct = Number(w?.reps)
+          if (Number.isFinite(direct) && direct > 0) return direct
+          return null
+        })()
+        next[key] = Math.max(1, prev[key] ?? fallbackReps ?? 1)
+      })
+      return next
+    })
+  }, [selectedWorkouts])
 
   useEffect(() => {
     if (!yogaAssignOpen) return
@@ -639,6 +893,7 @@ export default function Subscriptions({
       setReviewOpen(false)
       setSelectedWorkouts([])
       setDragIndex(null)
+      setWorkoutCounts({})
       setYogaAssignOpen(false)
       setYogaReviewOpen(false)
       setSelectedYogas([])
@@ -692,19 +947,29 @@ export default function Subscriptions({
   }
 
   const normalizeExercisePayload = (items: any[]) => {
+    let sequence = 0
     return items.reduce(
       (
-        acc: { workout_id: number | string; sequence_number: number }[],
-        item: any,
-        idx: number
+        acc: {
+          workout_id: number | string
+          sequence_number: number
+          reps: number
+        }[],
+        item: any
       ) => {
-        const workoutId =
-          item?.workout_id || item?.workout?.id || item?.id || item?.workoutId
+        const workoutId = getWorkoutSelectableId(item)
         if (workoutId == null) return acc
+
+        const key = String(workoutId)
+        const reps = Math.max(1, workoutCounts[key] ?? 1)
+        sequence += 1
+
         acc.push({
           workout_id: workoutId,
-          sequence_number: idx + 1,
+          sequence_number: sequence,
+          reps,
         })
+
         return acc
       },
       []
@@ -730,6 +995,7 @@ export default function Subscriptions({
       })
       await refreshDayDetail()
       setSelectedWorkouts([])
+      setWorkoutCounts({})
       setReviewOpen(false)
       enqueueSnackbar('Workout plan updated successfully', {
         variant: 'success',
@@ -1573,6 +1839,13 @@ export default function Subscriptions({
                           const url = w?.video_url || ''
                           const embed = getEmbedUrl(url)
                           const checked = isSelected(w?.id)
+                          const workoutId = getWorkoutSelectableId(w)
+                          const count =
+                            workoutId != null
+                              ? (workoutCounts[String(workoutId)] ??
+                                (checked ? 1 : 0))
+                              : 0
+                          const canAdjust = checked && workoutId != null
 
                           return (
                             <div
@@ -1612,16 +1885,48 @@ export default function Subscriptions({
                                 </div>
                               )}
 
-                              <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
-                                <div className="font-medium line-clamp-1">
-                                  {w?.name || 'Untitled'}
+                              <div className="px-3 py-2 text-sm flex flex-col gap-2">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="font-medium line-clamp-1 flex-1 text-left">
+                                    {w?.name || 'Untitled'}
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleSelected(w)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="cursor-pointer"
+                                  />
                                 </div>
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => toggleSelected(w)}
-                                  className="cursor-pointer"
-                                />
+                                <div className="flex items-center gap-2 justify-center">
+                                  <button
+                                    type="button"
+                                    className="w-7 h-7 border rounded flex items-center justify-center text-lg leading-none disabled:opacity-40 disabled:cursor-not-allowed"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      e.preventDefault()
+                                      decrementWorkoutCount(w)
+                                    }}
+                                    disabled={!canAdjust || count <= 1}
+                                  >
+                                    −
+                                  </button>
+                                  <span className="text-base font-semibold w-5 text-center">
+                                    {count}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="w-7 h-7 border rounded flex items-center justify-center text-lg leading-none disabled:opacity-40 disabled:cursor-not-allowed"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      e.preventDefault()
+                                      incrementWorkoutCount(w)
+                                    }}
+                                    disabled={!canAdjust}
+                                  >
+                                    +
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )
@@ -2445,6 +2750,7 @@ export default function Subscriptions({
                 dayDetailTab={dayDetailTab}
                 onChangeTab={(tabId) => setDayDetailTab(tabId)}
                 isNutritionist={isNutritionist}
+                subscriptionId={overview?.subscription?.id}
                 onEditWorkoutPlan={() => {
                   setDragIndex(null)
                   setReviewOpen(false)
