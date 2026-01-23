@@ -77,7 +77,7 @@ function DietPlanContent({
   const columns: TableColumns[] = useMemo(
     () => [
       {
-        title: 'Day',
+        title: 'Day Number',
         field: 'day_number',
         resizable: true,
         isVisible: true,
@@ -96,13 +96,13 @@ function DietPlanContent({
         sortKey: 'day_number',
       },
       {
-        title: 'Sequence',
-        field: 'sequence_number',
+        title: 'Day',
+        field: 'day_name',
         resizable: true,
         isVisible: true,
         customCell: true,
-        renderCell: (row: any) => ({ cell: row?.sequence_number ?? '' }),
-        sortKey: 'sequence_number',
+        renderCell: (row: any) => ({ cell: row?.day_name ?? '' }),
+        sortKey: 'day_name',
       },
       {
         title: 'Meal Time',

@@ -27,8 +27,11 @@ const fetchData = async (input: QueryParams) => {
   const response = await getData(url)
   return response
 }
-export const useMeditationList = (input: QueryParams) => {
-  return useQuery(['meditation_list', input], () => fetchData(input))
+export const useMeditationList = (
+  input: QueryParams,
+  options?: Parameters<typeof useQuery>[2]
+) => {
+  return useQuery(['meditation_list', input], () => fetchData(input), options)
 }
 export const deActivateAdmin = (id?: string) => {
   return updateFromData(`${apiUrl.ADMIN_USER}/${id}/status`, {})

@@ -131,6 +131,11 @@ export interface TextFieldProps {
   toLowercase?: boolean
 }
 
+export interface AspectRatioSpec {
+  width: number
+  height: number
+}
+
 export interface FileUploadProps {
   id: string
   name: string
@@ -156,6 +161,10 @@ export interface FileUploadProps {
   needConfirmation?: boolean
   setAttachmentName?: (value: any) => void
   accept?: string
+  aspectRatio?: AspectRatioSpec
+  requiredWidth?: number
+  requiredHeight?: number
+  dimensionLabel?: string
 }
 
 export interface FieldViewProps {
@@ -490,6 +499,10 @@ export interface FormBuilderProps {
   subData?: any[]
   toLowercase?: boolean
   labelAddon?: ReactNode
+  aspectRatio?: AspectRatioSpec
+  requiredWidth?: number
+  requiredHeight?: number
+  dimensionLabel?: string
 }
 interface Content {
   cell: ReactNode | string

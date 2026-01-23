@@ -31,6 +31,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
   setAttachmentName,
   accept = '*',
   subName,
+  aspectRatio,
+  requiredWidth,
+  requiredHeight,
+  dimensionLabel,
 }) => {
   const getErrors = (err: any) => {
     let errMsg = ''
@@ -66,7 +70,71 @@ const FileUpload: React.FC<FileUploadProps> = ({
       setAttachmentName?.('')
     }
   }
-  const handleFileChange = (e: any) => {
+  const getImageDimensions = (file: File) => {
+    return new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const img = new Image()
+        img.onload = () => {
+          resolve({ width: img.naturalWidth, height: img.naturalHeight })
+        }
+        img.onerror = reject
+        img.src = event?.target?.result as string
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const validateImageDimensions = async (file: File) => {
+    if (!file || !file.type?.startsWith('image/')) return true
+    if (!aspectRatio && !requiredWidth && !requiredHeight) return true
+
+    try {
+      const { width, height } = await getImageDimensions(file)
+
+      if (requiredWidth && width !== requiredWidth) {
+        enqueueSnackbar(
+          `Image must be ${requiredWidth}px wide. Uploaded width is ${width}px.`,
+          { variant: 'error' }
+        )
+        return false
+      }
+
+      if (requiredHeight && height !== requiredHeight) {
+        enqueueSnackbar(
+          `Image must be ${requiredHeight}px tall. Uploaded height is ${height}px.`,
+          { variant: 'error' }
+        )
+        return false
+      }
+
+      if (aspectRatio) {
+        const expected = aspectRatio.width / aspectRatio.height
+        const actual = width / height
+        const tolerance = 0.01
+        if (Math.abs(actual - expected) > tolerance) {
+          const label =
+            dimensionLabel ||
+            `Aspect ratio ${aspectRatio.width}:${aspectRatio.height}`
+          enqueueSnackbar(
+            `Image must follow ${label}. Uploaded image is ${width}x${height}px.`,
+            { variant: 'error' }
+          )
+          return false
+        }
+      }
+
+      return true
+    } catch (error) {
+      enqueueSnackbar('Unable to validate image dimensions.', {
+        variant: 'error',
+      })
+      return false
+    }
+  }
+
+  const handleFileChange = async (e: any) => {
     if (e.target.files.length) {
       let isValid = true
       if (supportedFiles?.length) {
@@ -82,10 +150,18 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
           setFile([...existingFiles, ...filesArray])
         } else {
-          if (e?.target?.files[0].size < 5250000) {
+          const selectedFile = e?.target?.files[0]
+          if (selectedFile.size < 5250000) {
+            const dimensionsValid = await validateImageDimensions(selectedFile)
+            if (!dimensionsValid) {
+              e.target.value = ''
+              setFile('')
+              setAttachmentName?.('')
+              return
+            }
             onChange?.(e)
-            setFile(e?.target?.files[0])
-            setAttachmentName?.(e?.target?.files[0]?.name)
+            setFile(selectedFile)
+            setAttachmentName?.(selectedFile?.name)
           } else {
             enqueueSnackbar('Maximum file size 5mb', { variant: 'error' })
             setFile('')
@@ -191,6 +267,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
             </div>
           </label>
         </div>
+        {(dimensionLabel ||
+          aspectRatio ||
+          (requiredWidth && requiredHeight)) && (
+          <p className="text-xxs text-gray-500 mt-1">
+            {dimensionLabel ||
+              `Recommended: ${aspectRatio ? `${aspectRatio.width}:${aspectRatio.height}` : ''} ${requiredWidth && requiredHeight ? `(${requiredWidth}x${requiredHeight}px)` : ''}`}
+          </p>
+        )}
         {errors && errors[name] && (
           <div className="text-error text-error-label mt-[1px]">
             {getErrors(errors[name])}
