@@ -20,6 +20,7 @@ import {
 import { CategorySchema, formSchema } from './create/schema'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import FormBuilder from '../../components/app/formBuilder'
+import CreateCategory from './create'
 
 const SUBCATEGORY_ROWS = 10
 
@@ -41,28 +42,25 @@ export default function CategoryDetails() {
   const [subcategoryToDelete, setSubcategoryToDelete] = useState<any>(null)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isDeletingSubcategory, setIsDeletingSubcategory] = useState(false)
+  const [editCategoryModalOpen, setEditCategoryModalOpen] = useState(false)
 
-  useEffect(() => {
-    let mounted = true
-    const run = async () => {
-      try {
-        setLoading(true)
-        const res = await getCategoriesDetails(String(id))
-        if (!mounted) return
-        setData(res)
-      } catch (e: any) {
-        if (!mounted) return
-        setError(e?.response?.data?.message || 'Failed to load user')
-      } finally {
-        if (!mounted) return
-        setLoading(false)
-      }
-    }
-    if (id) run()
-    return () => {
-      mounted = false
+  const loadCategoryDetails = useCallback(async () => {
+    if (!id) return
+    try {
+      setLoading(true)
+      const res = await getCategoriesDetails(String(id))
+      setData(res)
+      setError('')
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'Failed to load user')
+    } finally {
+      setLoading(false)
     }
   }, [id])
+
+  useEffect(() => {
+    loadCategoryDetails()
+  }, [loadCategoryDetails])
 
   const fetchSubCategories = useCallback(
     async (page = subPage, perPage = subRowsPerPage) => {
@@ -289,6 +287,18 @@ export default function CategoryDetails() {
         )}
         {!loading && !error && (
           <>
+            {category?.id && (
+              <div className="flex justify-end mb-4">
+                <button
+                  type="button"
+                  className="inline-flex items-center rounded-lg bg-primaryGreen text-white px-4 py-2 text-sm font-medium hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"
+                  onClick={() => setEditCategoryModalOpen(true)}
+                >
+                  <Icons name="edit" />
+                  <span className="ml-2">Edit Category</span>
+                </button>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DetailItem
                 label="Name"
@@ -432,6 +442,14 @@ export default function CategoryDetails() {
         subTitle="Do you really want to delete this subcategory? This action cannot be undone."
         confirmLabel="Delete"
         cancelLabel="Cancel"
+      />
+
+      <CreateCategory
+        isDrawerOpen={editCategoryModalOpen}
+        handleClose={() => setEditCategoryModalOpen(false)}
+        handleRefresh={() => loadCategoryDetails()}
+        edit
+        rowData={category}
       />
     </>
   )

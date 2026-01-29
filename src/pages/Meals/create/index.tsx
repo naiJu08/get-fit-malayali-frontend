@@ -297,7 +297,7 @@ export default function CreateMeal({
       isOpen={isDrawerOpen}
       onClose={handleClose}
       title={edit ? 'Edit Food' : 'Create Food'}
-      actionLabel={edit ? 'Save' : 'Create'}
+      actionLabel={edit ? 'Save' : 'Save'}
       onSubmit={handleSubmit(onSubmit)}
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"

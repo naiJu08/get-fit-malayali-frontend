@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 
 import Icons from '../../components/common/icons'
@@ -13,6 +13,7 @@ import Clients from './Details/Clients'
 import Reports from './Details/Reports'
 import ReminderSettings from './Details/ReminderSettings'
 import { useAuthStore } from '../../store/authStore'
+import CreateAdmin from './create'
 
 export default function UserDetails() {
   const { id } = useParams()
@@ -25,28 +26,27 @@ export default function UserDetails() {
   const [subscriptionId, setSubscriptionId] = useState<string | number | null>(
     null
   )
+  const [editModalOpen, setEditModalOpen] = useState(false)
 
-  useEffect(() => {
-    let mounted = true
-    const run = async () => {
+  const refreshUserDetails = useCallback(() => {
+    if (!id) return
+    ;(async () => {
       try {
         setLoading(true)
         const res = await getAdminDetails(String(id))
-        if (!mounted) return
         setData(res)
+        setError('')
       } catch (e: any) {
-        if (!mounted) return
         setError(e?.response?.data?.message || 'Failed to load user')
       } finally {
-        if (!mounted) return
         setLoading(false)
       }
-    }
-    if (id) run()
-    return () => {
-      mounted = false
-    }
+    })()
   }, [id])
+
+  useEffect(() => {
+    refreshUserDetails()
+  }, [refreshUserDetails, id])
 
   const user = data?.user || data || {}
   const isNutritionist = (() => {
@@ -138,82 +138,94 @@ export default function UserDetails() {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() =>
-              navigate(
-                pathBase === '/users/nutritionist'
-                  ? '/users/nutritionist'
-                  : '/users'
-              )
-            }
-            aria-label="Back"
-          >
-            <Icons name="left-arrow-icon" />
-          </button>
-          <h1 className="text-xl font-semibold">
-            {isNutritionist ? 'Nutritionist Details' : 'User Details'}
-          </h1>
+    <>
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() =>
+                navigate(
+                  pathBase === '/users/nutritionist'
+                    ? '/users/nutritionist'
+                    : '/users'
+                )
+              }
+              aria-label="Back"
+            >
+              <Icons name="left-arrow-icon" />
+            </button>
+            <h1 className="text-xl font-semibold">
+              {isNutritionist ? 'Nutritionist Details' : 'User Details'}
+            </h1>
+          </div>
         </div>
-      </div>
 
-      <TabContainer
-        data={tabs as any}
-        activeTab={urlTab}
-        onClick={(item: any) => handleTabClick(item)}
-      >
-        <Tab id="details">
-          <DetailsInfo
-            user={user}
-            loading={loading}
-            error={error}
-            isNutritionist={isNutritionist}
-          />
-        </Tab>
-        {!isNutritionist && (
-          <Tab id="subscriptions">
-            <Subscriptions
-              id={String(id)}
+        <TabContainer
+          data={tabs as any}
+          activeTab={urlTab}
+          onClick={(item: any) => handleTabClick(item)}
+        >
+          <Tab id="details">
+            <DetailsInfo
               user={user}
               loading={loading}
               error={error}
-              onRefresh={(fresh: any) => fresh && setData(fresh)}
+              isNutritionist={isNutritionist}
+              onEdit={() => setEditModalOpen(true)}
             />
           </Tab>
-        )}
-        {!isNutritionist && (
-          <Tab id="body">
-            <BodyMeasurements user={user} subscriptionId={subscriptionId} />
-          </Tab>
-        )}
-        {/* {!isNutritionist && (
-          <Tab id="body-composition">
-            <BodyComposition user={user} subscriptionId={subscriptionId} />
-          </Tab>
-        )} */}
-        {!isNutritionist && (
-          <Tab id="vitals">
-            <Vitals user={user} subscriptionId={subscriptionId} />
-          </Tab>
-        )}
-        {!isNutritionist && (
-          <Tab id="reminders">
-            <ReminderSettings subscriptionId={subscriptionId} />
-          </Tab>
-        )}
-        {!isNutritionist && loginRole !== 'nutritionist' && (
-          <Tab id="reports">
-            <Reports user={user} subscriptionId={subscriptionId} />
-          </Tab>
-        )}
-        {isNutritionist && (
-          <Tab id="clients">
-            <Clients user={user} />
-          </Tab>
-        )}
-      </TabContainer>
-    </div>
+          {!isNutritionist && (
+            <Tab id="subscriptions">
+              <Subscriptions
+                id={String(id)}
+                user={user}
+                loading={loading}
+                error={error}
+                onRefresh={(fresh: any) => fresh && setData(fresh)}
+              />
+            </Tab>
+          )}
+          {!isNutritionist && (
+            <Tab id="body">
+              <BodyMeasurements user={user} subscriptionId={subscriptionId} />
+            </Tab>
+          )}
+          {/* {!isNutritionist && (
+            <Tab id="body-composition">
+              <BodyComposition user={user} subscriptionId={subscriptionId} />
+            </Tab>
+          )} */}
+          {!isNutritionist && (
+            <Tab id="vitals">
+              <Vitals user={user} subscriptionId={subscriptionId} />
+            </Tab>
+          )}
+          {!isNutritionist && (
+            <Tab id="reminders">
+              <ReminderSettings subscriptionId={subscriptionId} />
+            </Tab>
+          )}
+          {!isNutritionist && loginRole !== 'nutritionist' && (
+            <Tab id="reports">
+              <Reports user={user} subscriptionId={subscriptionId} />
+            </Tab>
+          )}
+          {isNutritionist && (
+            <Tab id="clients">
+              <Clients user={user} />
+            </Tab>
+          )}
+        </TabContainer>
+      </div>
+
+      <CreateAdmin
+        isDrawerOpen={editModalOpen}
+        handleClose={() => setEditModalOpen(false)}
+        handleRefresh={() => refreshUserDetails()}
+        edit
+        rowData={{ user }}
+        activeRole={isNutritionist ? 'nutritionist' : 'user'}
+      />
+    </>
   )
 }

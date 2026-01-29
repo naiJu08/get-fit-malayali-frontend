@@ -18,6 +18,7 @@ import {
   getActivePlanOverview,
   getOverviewDetail,
   freezeSubscription,
+  unfreezeSubscription,
   workoutOverridesBulk,
   meditationOverridesBulk,
   yogaOverridesBulk,
@@ -67,6 +68,7 @@ export default function Subscriptions({
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [toggleFreezeOpen, setToggleFreezeOpen] = useState(false)
   const [toggleFreezeRow, setToggleFreezeRow] = useState<any>(null)
+  const [freezeMode, setFreezeMode] = useState<'freeze' | 'unfreeze'>('freeze')
   const [loader, setLoader] = useState(false)
   const [freezeForm, setFreezeForm] = useState<{
     reason: string
@@ -198,6 +200,15 @@ export default function Subscriptions({
   >({})
   const prefillAppliedRef = useRef(false)
   const lastPrefillSignatureRef = useRef('')
+  const selectAllNextWorkoutsRef = useRef(false)
+  const pendingPrefillCategoryRef = useRef<string>('')
+  const pendingPrefillSubcategoriesRef = useRef<
+    | {
+        id: any
+        value: string
+      }[]
+    | null
+  >(null)
   const selectedSubcategoryIds = useMemo(
     () =>
       (selectedSubcategories || [])
@@ -414,6 +425,22 @@ export default function Subscriptions({
 
   const getWorkoutSelectableId = (item: any) =>
     item?.workout_id || item?.workout?.id || item?.id || item?.workoutId
+
+  const collectAllVisibleWorkouts = useCallback((list: any[]) => {
+    if (!Array.isArray(list) || list.length === 0) return []
+    const unique = new Map<string, any>()
+
+    list.forEach((item: any) => {
+      const workoutId = getWorkoutSelectableId(item)
+      if (workoutId == null) return
+      const key = String(workoutId)
+      if (!unique.has(key)) {
+        unique.set(key, item)
+      }
+    })
+
+    return Array.from(unique.values())
+  }, [])
 
   const getMeditationId = (meditation: any) => {
     if (!meditation) return undefined
@@ -669,8 +696,8 @@ export default function Subscriptions({
     if (!cell?.inRange)
       return 'text-gray-400 bg-white border-gray-200 opacity-70 cursor-not-allowed'
     if (cell?.meta?.freeze)
-      return 'bg-gradient-to-br from-red-600 to-red-600 text-white border-red-300 shadow-sm cursor-not-allowed'
-    return statusColor(cell?.meta)
+      return 'bg-gradient-to-br from-red-600 to-red-600 text-white border-red-300 shadow-sm cursor-pointer'
+    return `${statusColor(cell?.meta)} cursor-pointer`
   }
 
   const decrementWorkoutCount = (workout: any) => {
@@ -980,6 +1007,7 @@ export default function Subscriptions({
 
   useEffect(() => {
     if (!assignOpen) return
+    if (prefillAppliedRef.current) return
     if (!selectionCandidate) return
 
     if (
@@ -1042,20 +1070,46 @@ export default function Subscriptions({
 
     lastPrefillSignatureRef.current = selectionSignature
     prefillAppliedRef.current = true
-  }, [
-    assignOpen,
-    selectionCandidate,
-    selectionSignature,
-    categoryOptions,
-    updateSubcategoryLookup,
-  ])
+  }, [assignOpen, selectionCandidate, selectionSignature])
 
   useEffect(() => {
     if (!assignOpen) {
       prefillAppliedRef.current = false
       lastPrefillSignatureRef.current = ''
+      setSelectedCategoryId(undefined)
+      setSelectedCategoryName('')
+      setSelectedSubcategories([])
+      pendingPrefillCategoryRef.current = ''
+      pendingPrefillSubcategoriesRef.current = null
     }
   }, [assignOpen])
+
+  useEffect(() => {
+    if (!assignOpen) return
+    if (workoutsLoading) return
+    if (!Array.isArray(workouts) || workouts.length === 0) return
+    const pendingCategoryKey = pendingPrefillCategoryRef.current
+    const pendingSubcategories = pendingPrefillSubcategoriesRef.current
+    if (!pendingCategoryKey || !pendingSubcategories?.length) return
+    if (String(selectedCategoryId ?? '') !== pendingCategoryKey) return
+    if (selectedSubcategories?.length) {
+      pendingPrefillCategoryRef.current = ''
+      pendingPrefillSubcategoriesRef.current = null
+      return
+    }
+
+    updateSubcategoryLookup(pendingSubcategories)
+    setSelectedSubcategories(pendingSubcategories)
+    pendingPrefillCategoryRef.current = ''
+    pendingPrefillSubcategoriesRef.current = null
+  }, [
+    assignOpen,
+    workoutsLoading,
+    workouts,
+    selectedCategoryId,
+    selectedSubcategories,
+    updateSubcategoryLookup,
+  ])
 
   useEffect(() => {
     if (!assignOpen) return
@@ -1070,6 +1124,23 @@ export default function Subscriptions({
       setSelectedCategoryName(match.name)
     }
   }, [assignOpen, selectedCategoryId, selectedCategoryName, categoryOptions])
+
+  useEffect(() => {
+    if (!assignOpen) {
+      selectAllNextWorkoutsRef.current = false
+      return
+    }
+    if (workoutsLoading) return
+    if (!selectAllNextWorkoutsRef.current) return
+    if (!Array.isArray(workouts) || workouts.length === 0) {
+      setSelectedWorkouts([])
+      selectAllNextWorkoutsRef.current = false
+      return
+    }
+
+    setSelectedWorkouts(collectAllVisibleWorkouts(workouts))
+    selectAllNextWorkoutsRef.current = false
+  }, [assignOpen, workoutsLoading, workouts])
 
   const openDayDetail = async (dateStr: string) => {
     if (!user?.id || !dateStr) return
@@ -1547,37 +1618,62 @@ export default function Subscriptions({
     setFreezeForm((prev) => ({ ...prev, [data.name]: data.value }))
   }
 
+  const resetFreezeForm = () => {
+    setFreezeForm({ reason: '', start_date: '', end_date: '' })
+  }
+
+  const closeFreezeDialog = () => {
+    setToggleFreezeOpen(false)
+    setToggleFreezeRow(null)
+    setFreezeMode('freeze')
+    resetFreezeForm()
+  }
+
   const handleConfirmToggleFreeze = async () => {
+    const sid = String(toggleFreezeRow?.id || overview?.subscription?.id || '')
+    if (!sid) {
+      enqueueSnackbar('Missing subscription id', { variant: 'error' })
+      return
+    }
+
     try {
       setLoader(true)
-      const isAlreadyFrozen = isFrozen(toggleFreezeRow)
-      if (!isAlreadyFrozen) {
-        const sid = String(
-          toggleFreezeRow?.id || overview?.subscription?.id || ''
-        )
-        if (!sid) throw new Error('Missing subscription id')
+      if (freezeMode === 'freeze') {
         await freezeSubscription(sid, {
           reason: freezeForm.reason || undefined,
           start_date: freezeForm.start_date || undefined,
           end_date: freezeForm.end_date || undefined,
         })
-        try {
-          const res = await getActivePlanOverview(user.id)
-          setOverview(res)
-        } catch {}
-        try {
-          const fresh = await getAdminDetails(String(id))
-          onRefresh(fresh)
-        } catch {}
         enqueueSnackbar('Subscription frozen successfully', {
           variant: 'success',
         })
       } else {
-        // TODO: implement unfreeze subscription API when available
-        enqueueSnackbar('Unfreeze API not implemented', { variant: 'warning' })
+        await unfreezeSubscription(sid)
+        enqueueSnackbar('Subscription unfrozen successfully', {
+          variant: 'success',
+        })
       }
-      setToggleFreezeOpen(false)
-      setToggleFreezeRow(null)
+
+      try {
+        const res = await getActivePlanOverview(user.id)
+        setOverview(res)
+      } catch {}
+      try {
+        const fresh = await getAdminDetails(String(id))
+        onRefresh(fresh)
+      } catch {}
+      closeFreezeDialog()
+    } catch (error: any) {
+      const resp = error?.response?.data
+      const messageFromResponse =
+        resp?.message ||
+        resp?.error ||
+        (Array.isArray(resp?.errors) ? resp.errors.join(', ') : null) ||
+        resp?.detail ||
+        error?.message
+      enqueueSnackbar(messageFromResponse || 'Failed to update subscription', {
+        variant: 'error',
+      })
     } finally {
       setLoader(false)
     }
@@ -1809,6 +1905,9 @@ export default function Subscriptions({
                         : 'Freeze Subscription'
                     }
                     onClick={() => {
+                      setFreezeMode(
+                        isFrozen(overview?.subscription) ? 'unfreeze' : 'freeze'
+                      )
                       setToggleFreezeRow(overview?.subscription)
                       setToggleFreezeOpen(true)
                       setFreezeForm({
@@ -1886,30 +1985,41 @@ export default function Subscriptions({
                               {m.cells.map((c: any) => (
                                 <div
                                   key={c.key}
-                                  className={`relative h-44 border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)} ${c?.inRange && !c?.meta?.freeze ? 'cursor-pointer' : ''}`}
+                                  className={`relative h-44 border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)}`}
                                   title={
                                     c?.meta?.date
                                       ? `${c.meta.date}  •  Diet: ${c?.meta?.diet_summary?.total_items ?? 0}  •  Workout: ${c?.meta?.workout_summary?.total_exercises ?? 0}  •  Yoga: ${c?.meta?.yoga_summary?.total_exercises ?? 0}  •  Meditation: ${c?.meta?.meditation_summary?.total_items ?? 0}`
                                       : ''
                                   }
-                                  role={
-                                    c?.inRange && !c?.meta?.freeze
-                                      ? 'button'
-                                      : undefined
-                                  }
-                                  tabIndex={
-                                    c?.inRange && !c?.meta?.freeze ? 0 : -1
-                                  }
-                                  onClick={() =>
-                                    c?.inRange &&
-                                    !c?.meta?.freeze &&
+                                  role={c?.inRange ? 'button' : undefined}
+                                  tabIndex={c?.inRange ? 0 : -1}
+                                  onClick={() => {
+                                    if (!c?.inRange) return
+                                    if (c?.meta?.freeze) {
+                                      setFreezeMode('unfreeze')
+                                      setToggleFreezeRow({
+                                        ...overview?.subscription,
+                                        freeze_date: c?.meta?.date || c.key,
+                                      })
+                                      setToggleFreezeOpen(true)
+                                      return
+                                    }
                                     openDayDetail(c?.meta?.date || c.key)
-                                  }
+                                  }}
                                   onKeyDown={(e) => {
-                                    if (!c?.inRange || c?.meta?.freeze) return
+                                    if (!c?.inRange) return
                                     if (e.key === 'Enter' || e.key === ' ') {
                                       e.preventDefault()
-                                      openDayDetail(c?.meta?.date || c.key)
+                                      if (c?.meta?.freeze) {
+                                        setFreezeMode('unfreeze')
+                                        setToggleFreezeRow({
+                                          ...overview?.subscription,
+                                          freeze_date: c?.meta?.date || c.key,
+                                        })
+                                        setToggleFreezeOpen(true)
+                                      } else {
+                                        openDayDetail(c?.meta?.date || c.key)
+                                      }
                                     }
                                   }}
                                 >
@@ -2037,9 +2147,33 @@ export default function Subscriptions({
                     onChange={(option: any) => {
                       const id = option?.id ?? option?.value ?? ''
                       const name = option?.name ?? option?.label ?? ''
+                      const prevIdKey = String(selectedCategoryId ?? '')
+                      const nextIdKey = String(id || '')
+                      const categoryActuallyChanged = prevIdKey !== nextIdKey
+                      const matchedCategory = categoryOptions.find(
+                        (cat: any) => String(cat?.id ?? '') === nextIdKey
+                      )
+                      const normalizedPrefillSubcategories =
+                        id && matchedCategory
+                          ? (deriveSubcategorySelection(
+                              matchedCategory?.subcategories || []
+                            ) as { id: any; value: string }[])
+                          : []
                       setSelectedCategoryId(id || undefined)
                       setSelectedCategoryName(name || '')
+                      if (id && normalizedPrefillSubcategories.length) {
+                        pendingPrefillCategoryRef.current = nextIdKey
+                        pendingPrefillSubcategoriesRef.current =
+                          normalizedPrefillSubcategories
+                      } else {
+                        pendingPrefillCategoryRef.current = ''
+                        pendingPrefillSubcategoriesRef.current = null
+                      }
                       setSelectedSubcategories([])
+                      if (assignOpen && categoryActuallyChanged) {
+                        selectAllNextWorkoutsRef.current = true
+                        setSelectedWorkouts([])
+                      }
                     }}
                   />
                 </div>
@@ -2079,7 +2213,27 @@ export default function Subscriptions({
                     }}
                     onChange={(value?: any | any[]) => {
                       const normalized = deriveSubcategorySelection(value)
+                      const prevKey = (selectedSubcategories || [])
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(Boolean)
+                        .sort()
+                        .join('|')
+                      const nextKey = (normalized || [])
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(Boolean)
+                        .sort()
+                        .join('|')
+
+                      if (prevKey === nextKey) {
+                        setSelectedSubcategories(normalized)
+                        return
+                      }
+
                       setSelectedSubcategories(normalized)
+                      if (assignOpen) {
+                        selectAllNextWorkoutsRef.current = true
+                        setSelectedWorkouts([])
+                      }
                     }}
                   />
                 </div>
@@ -2900,22 +3054,21 @@ export default function Subscriptions({
 
       <DialogModal
         isOpen={toggleFreezeOpen}
-        onClose={() => setToggleFreezeOpen(false)}
+        onClose={closeFreezeDialog}
         title={
-          isFrozen(toggleFreezeRow)
+          freezeMode === 'unfreeze'
             ? 'Unfreeze Subscription'
             : 'Freeze Subscription'
         }
         onSubmit={handleConfirmToggleFreeze}
         secondaryAction={() => {
-          setToggleFreezeOpen(false)
-          setToggleFreezeRow(null)
+          closeFreezeDialog()
         }}
         secondaryActionLabel="Cancel"
-        actionLabel={isFrozen(toggleFreezeRow) ? 'Unfreeze' : 'Freeze'}
+        actionLabel={freezeMode === 'unfreeze' ? 'Unfreeze' : 'Freeze'}
         actionLoader={loader}
         body={
-          isFrozen(toggleFreezeRow) ? (
+          freezeMode === 'unfreeze' ? (
             <InfoBox content={'Do you want to unfreeze this subscription?'} />
           ) : (
             <div className="flex flex-col gap-3">

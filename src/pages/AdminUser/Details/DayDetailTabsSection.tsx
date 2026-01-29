@@ -1,3 +1,4 @@
+import moment from 'moment'
 import {
   useEffect,
   useMemo,
@@ -121,6 +122,24 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     }
   }
 
+  const formatTimestamp = (value?: string | number | Date | null) => {
+    if (!value) return '--'
+    if (typeof value === 'string') {
+      const [datePart] = value.split('T')
+      if (datePart) return datePart
+    }
+    const normalizedDate =
+      typeof value === 'number'
+        ? new Date(Number(value))
+        : typeof value === 'string'
+          ? new Date(value)
+          : value
+    if (!(normalizedDate instanceof Date) || isNaN(normalizedDate.getTime())) {
+      return '--'
+    }
+    return moment(normalizedDate).format('DD-MM-YYYY')
+  }
+
   return (
     <>
       <TabContainer
@@ -166,18 +185,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     )
                       ? d.item_statuses.not_taken_mandatory_item_ids.length
                       : 0
-                    const mealStatus = String(
-                      d?.actions?.status || ''
-                    ).toLowerCase()
-                    const mealStatusClass =
-                      mealStatus === 'completed'
-                        ? 'text-green-600'
-                        : mealStatus === 'missed' || mealStatus === 'failed'
-                          ? 'text-red-600'
-                          : mealStatus === 'today' ||
-                              mealStatus === 'in_progress'
-                            ? 'text-amber-600'
-                            : 'text-gray-700'
+
                     const mealLabel =
                       d?.meal_name ||
                       d?.notes ||
@@ -197,14 +205,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                             </span>
                             <span className="text-gray-600">{mealLabel}</span>
                             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
-                              {d?.day_name ? (
-                                <span className="flex items-center gap-1">
-                                  <span className="text-gray-400">Day:</span>
-                                  <span className="font-medium text-gray-700">
-                                    {d.day_name}
-                                  </span>
-                                </span>
-                              ) : null}
                               {typeof d?.sequence_number === 'number' ? (
                                 <span className="flex items-center gap-1">
                                   <span className="text-gray-400">
@@ -242,57 +242,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                             </div>
                           </div>
                         </div>
-
-                        {d?.actions && (
-                          <div className="mt-1 flex flex-col gap-0.5 border-t pt-1 text-[11px] text-gray-600">
-                            <div className="">
-                              <span className="text-gray-500">Status</span>
-                              <span
-                                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${mealStatusClass}`}
-                              >
-                                {mealStatus
-                                  ? mealStatus.charAt(0).toUpperCase() +
-                                    mealStatus.slice(1)
-                                  : '--'}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">
-                                Action date:{' '}
-                              </span>
-                              <span>{d.actions.action_date || '--'}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">
-                                Completed at:{' '}
-                              </span>
-                              <span>{d.actions.completed_at || '--'}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">
-                                Duration sec:{' '}
-                              </span>
-                              <span>{d.actions.duration_seconds ?? '--'}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Repeats: </span>
-                              <span>{d.actions.repeat_count ?? '--'}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Watched %: </span>
-                              <span>
-                                {d.actions.video_watch_percentage ?? '--'}
-                              </span>
-                            </div>
-                            {d.actions.notes && (
-                              <div>
-                                <span className="text-gray-500">Notes: </span>
-                                <span>{d.actions.notes}</span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
                         {Array.isArray(d?.items) && d.items.length > 0 ? (
                           <div className="mt-1 border-t pt-1 space-y-1 text-[11px] text-gray-700">
                             {d.items.map((it: any) => {
@@ -384,7 +333,9 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                           Action date :{' '}
                                         </span>
                                         <span>
-                                          {it.actions.action_date || '--'}
+                                          {formatTimestamp(
+                                            it.actions.action_date
+                                          )}
                                         </span>
                                       </div>
                                       <div>
@@ -392,32 +343,9 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                           Completed at :{' '}
                                         </span>
                                         <span>
-                                          {it.actions.completed_at || '--'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Duration sec :{' '}
-                                        </span>
-                                        <span>
-                                          {it.actions.duration_seconds ?? '--'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Repeats :{' '}
-                                        </span>
-                                        <span>
-                                          {it.actions.repeat_count ?? '--'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Watched % :{' '}
-                                        </span>
-                                        <span>
-                                          {it.actions.video_watch_percentage ??
-                                            '--'}
+                                          {formatTimestamp(
+                                            it.actions.completed_at
+                                          )}
                                         </span>
                                       </div>
                                       {it.actions.notes && (
@@ -673,10 +601,9 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                             >
                               <div className="flex flex-col">
                                 <span className="font-medium">
-                                  {ex?.yoga_name ||
-                                    ex?.title ||
-                                    ex?.name ||
-                                    '--'}
+                                  {formatTitleCase(
+                                    ex?.yoga_name || ex?.title || ex?.name
+                                  ) || '--'}
                                 </span>
                                 {ex?.video_url && (
                                   <a
@@ -740,17 +667,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                         </span>
                                         <span className="font-medium text-gray-800">
                                           {action.duration_seconds}
-                                        </span>
-                                      </div>
-                                    )}
-                                    {typeof action.repeat_count ===
-                                      'number' && (
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Repeats:{' '}
-                                        </span>
-                                        <span className="font-medium text-gray-800">
-                                          {action.repeat_count}
                                         </span>
                                       </div>
                                     )}
@@ -838,7 +754,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       >
                         <div className="flex flex-col">
                           <span className="font-medium">
-                            {m?.title || '--'}
+                            {formatTitleCase(m?.title || '--')}
                           </span>
                           {m?.description && (
                             <span className="text-gray-600">
@@ -902,16 +818,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                   </span>
                                   <span className="font-medium text-gray-800">
                                     {action.duration_seconds}
-                                  </span>
-                                </div>
-                              )}
-                              {typeof action.repeat_count === 'number' && (
-                                <div>
-                                  <span className="text-gray-500">
-                                    Repeats:{' '}
-                                  </span>
-                                  <span className="font-medium text-gray-800">
-                                    {action.repeat_count}
                                   </span>
                                 </div>
                               )}
@@ -979,6 +885,18 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 }
 
 export default DayDetailTabsSection
+
+const formatTitleCase = (value?: string | null) => {
+  if (!value) return ''
+  return value
+    .split(' ')
+    .filter((segment) => segment.trim())
+    .map((segment) => {
+      const lower = segment.toLowerCase()
+      return lower.charAt(0).toUpperCase() + lower.slice(1)
+    })
+    .join(' ')
+}
 
 interface AssignTemplateModalProps {
   isOpen: boolean

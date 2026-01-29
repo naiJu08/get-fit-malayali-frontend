@@ -6,7 +6,7 @@ import ToggleSwitch from '../../../components/common/inputs/ToggleSwitch'
 import { planFormSchema, PlanSchema } from './schema'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
-import { useCreatePlan, useUpdatePlan } from '../api'
+import { useCreatePlan, useUpdatePlan, usePlan } from '../api'
 
 type Props = {
   isDrawerOpen: boolean
@@ -22,7 +22,7 @@ type Props = {
 export default function CreatePlan({
   isDrawerOpen,
   handleClose,
-  // handleRefresh,
+  handleRefresh,
   edit,
   rowData,
   viewMode,
@@ -39,6 +39,16 @@ export default function CreatePlan({
   const { mutate: createPlanMutate } = useCreatePlan()
   const { mutate: updatePlanMutate } = useUpdatePlan()
   const queryClient = useQueryClient()
+  const editingPlanId = edit
+    ? (rowData?.plan?.id ?? rowData?.plan_id ?? rowData?.id)
+    : undefined
+  const { data: latestPlanData } = usePlan(editingPlanId)
+  const resolvedPlan = edit
+    ? ((latestPlanData as any)?.plan ??
+      latestPlanData ??
+      rowData?.plan ??
+      rowData)
+    : undefined
   const onSubmit = (values: PlanSchema | any) => {
     // Do not send status from the form; backend will use its default or preserve existing
     // const { active: _omitActive, ...rest } = values || {}
@@ -72,33 +82,46 @@ export default function CreatePlan({
     if (edit && rowData?.plan?.id) {
       updatePlanMutate(
         { id: rowData.plan.id, payload: fd },
-        { onSuccess: () => handleClose() }
+        {
+          onSuccess: () => {
+            if (editingPlanId) {
+              queryClient.invalidateQueries(['plan_detail', editingPlanId])
+            }
+            queryClient.invalidateQueries(['plans_list'])
+            handleRefresh?.()
+            handleClose()
+          },
+        }
       )
     } else {
       createPlanMutate(fd, {
         onSuccess: () => {
           // Refresh the listing and close
           queryClient.invalidateQueries(['plans_list'])
+          handleRefresh?.()
           handleClose()
         },
       })
     }
   }
   useEffect(() => {
-    if (isDrawerOpen && edit && rowData) {
+    if (!isDrawerOpen) return
+    if (edit && resolvedPlan) {
       reset({
-        name: rowData?.plan?.name ?? '',
-        category: rowData?.plan?.category ?? '',
-        description: rowData?.plan?.description ?? '',
-        duration_days: rowData?.plan?.duration_days ?? 0,
-        fees: rowData?.plan?.fees ?? 0,
-        yoga_included: Boolean(rowData?.plan?.yoga_included ?? false),
+        name: resolvedPlan?.name ?? '',
+        category: resolvedPlan?.category ?? '',
+        description: resolvedPlan?.description ?? '',
+        duration_days: resolvedPlan?.duration_days ?? 0,
+        fees: resolvedPlan?.fees ?? 0,
+        yoga_included: Boolean(resolvedPlan?.yoga_included ?? false),
         meditation_included: Boolean(
-          rowData?.plan?.meditation_included ?? false
+          resolvedPlan?.meditation_included ?? false
         ),
         thumbnail: null,
       })
-    } else if (isDrawerOpen && !edit) {
+      return
+    }
+    if (isDrawerOpen && !edit) {
       reset({
         name: '',
         category: '',
@@ -110,7 +133,7 @@ export default function CreatePlan({
         thumbnail: '',
       })
     }
-  }, [isDrawerOpen, edit, rowData, reset])
+  }, [isDrawerOpen, edit, resolvedPlan, reset])
 
   const getReadableFileName = (value?: string) => {
     if (!value) {
@@ -139,10 +162,10 @@ export default function CreatePlan({
     placeholder,
     ...(required ? { required: true } : {}),
   })
-  const existingImageFile = rowData?.plan?.thumbnail_url
+  const existingImageFile = (resolvedPlan as any)?.thumbnail_url
     ? {
-        name: getReadableFileName(rowData.plan.thumbnail_url),
-        link: rowData.plan.thumbnail_url,
+        name: getReadableFileName((resolvedPlan as any)?.thumbnail_url),
+        link: (resolvedPlan as any)?.thumbnail_url,
       }
     : undefined
 
@@ -189,6 +212,7 @@ export default function CreatePlan({
         true,
         'textarea'
       ),
+      maxLength: 250,
     },
 
     {
@@ -243,7 +267,7 @@ export default function CreatePlan({
       isOpen={isDrawerOpen}
       onClose={handleClose}
       title={edit ? 'Edit Plan' : viewMode ? 'View Plan' : 'Create Plan'}
-      actionLabel={viewMode ? 'Edit' : edit ? 'Save' : 'Create'}
+      actionLabel={viewMode ? 'Edit' : edit ? 'Save' : 'Save'}
       onSubmit={viewMode ? handleChangeMode : handleSubmit(onSubmit)}
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"

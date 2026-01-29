@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { usePlan } from '../api'
 import Icons from '../../../components/common/icons'
@@ -8,6 +8,7 @@ import DietPlanIndex from './DietPlan'
 import YogaPlanIndex from './YogaPlan'
 import MeditationPlanIndex from './MeditationPlan'
 import DetailsInfo from './DetailsInfo'
+import CreatePlan from '../create'
 import { Tab, TabContainer } from '../../../components/common/tab'
 
 function WorkoutTab(props: { planName?: string; planId?: string | number }) {
@@ -42,7 +43,8 @@ function PlanDetailsContent() {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
-  const { data, isLoading, isError, error } = usePlan(id as string)
+  const { data, isLoading, isError, error, refetch } = usePlan(id as string)
+  const [editModalOpen, setEditModalOpen] = useState(false)
 
   const plan = (data as any)?.plan ?? (data as any) ?? {}
 
@@ -132,6 +134,7 @@ function PlanDetailsContent() {
             plan={plan}
             loading={isLoading as boolean}
             error={(isError ? (error as any)?.message : '') as string}
+            onEdit={() => setEditModalOpen(true)}
           />
         </Tab>
         <Tab id="workout-plan">
@@ -163,6 +166,14 @@ function PlanDetailsContent() {
           <InfoBox content={(error as any)?.message || 'Failed to load plan'} />
         </div>
       )}
+
+      <CreatePlan
+        isDrawerOpen={editModalOpen}
+        handleClose={() => setEditModalOpen(false)}
+        handleRefresh={() => refetch()}
+        edit
+        rowData={{ plan }}
+      />
     </div>
   )
 }

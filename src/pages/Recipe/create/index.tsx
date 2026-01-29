@@ -350,7 +350,7 @@ export default function CreateRecipe({
       isOpen={isDrawerOpen}
       onClose={handleClose}
       title={edit ? 'Edit Recipe' : 'Create Recipe'}
-      actionLabel={edit ? 'Save' : 'Create'}
+      actionLabel={edit ? 'Save' : 'Save'}
       onSubmit={handleSubmit(onSubmit)}
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"

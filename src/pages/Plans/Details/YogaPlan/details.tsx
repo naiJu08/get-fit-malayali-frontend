@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 
 import Icons from '../../../../components/common/icons'
@@ -269,6 +269,7 @@ export default function YogaPlanDetails() {
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
   const [autoSelectEnabled, setAutoSelectEnabled] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<string>('')
+  const selectAllNextYogasRef = useRef(false)
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const { mutateAsync: addYogaExerciseAsync } = useAddYogaExercise()
@@ -423,6 +424,35 @@ export default function YogaPlanDetails() {
       setAutoSelectEnabled(true)
     }
   }, [assignOpen, yp?.exercises, selectedWorkouts.length, autoSelectEnabled])
+
+  useEffect(() => {
+    if (!assignOpen) {
+      selectAllNextYogasRef.current = false
+      return
+    }
+    if (yogasLoading) return
+    if (!selectAllNextYogasRef.current) return
+
+    if (!Array.isArray(yogas) || yogas.length === 0) {
+      setSelectedWorkouts([])
+      selectAllNextYogasRef.current = false
+      return
+    }
+
+    const unique = new Map<string, any>()
+    yogas.forEach((item: any) => {
+      const normalized = toSelectableYoga(item)
+      const normalizedId = normalized?.id
+      if (normalizedId == null) return
+      const key = String(normalizedId)
+      if (!unique.has(key)) {
+        unique.set(key, normalized)
+      }
+    })
+
+    setSelectedWorkouts(Array.from(unique.values()))
+    selectAllNextYogasRef.current = false
+  }, [assignOpen, yogasLoading, yogas, toSelectableYoga])
 
   useEffect(() => {
     if (!assignOpen || !autoSelectEnabled || yogasLoading) return
@@ -619,7 +649,16 @@ export default function YogaPlanDetails() {
                     className="border rounded px-2 py-1 text-sm"
                     value={categoryFilter}
                     onChange={(e) => {
-                      setCategoryFilter(e.target.value)
+                      const nextCategory = e.target.value
+                      const changed =
+                        String(nextCategory ?? '') !==
+                        String(categoryFilter ?? '')
+                      setCategoryFilter(nextCategory)
+                      if (assignOpen && changed) {
+                        selectAllNextYogasRef.current = true
+                        setSelectedWorkouts([])
+                        setAutoSelectEnabled(false)
+                      }
                     }}
                   >
                     <option value="">All</option>

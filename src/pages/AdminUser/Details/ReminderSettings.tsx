@@ -280,17 +280,8 @@ const ReminderSettings = ({ subscriptionId }: ReminderSettingsProps) => {
                           {meta.label}
                         </p>
                       </div>
-                      {/* TIME */}
-                      <div className="flex items-center justify-center gap-2">
-                        <p className="text-xs uppercase tracking-wide text-gray-500">
-                          {!isSleepReminder ? 'Time:' : 'Bed Time:'}
-                        </p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {formatTime(reminder?.time_of_day)}
-                        </p>
-                      </div>
 
-                      {/* WAKE UP — SAME AS TIME */}
+                      {/* TIME */}
                       {!isWorkoutReminder && (
                         <div className="flex items-center justify-center gap-2">
                           <p className="text-xs uppercase tracking-wide text-gray-500">
@@ -301,6 +292,16 @@ const ReminderSettings = ({ subscriptionId }: ReminderSettingsProps) => {
                           </p>
                         </div>
                       )}
+
+                      <div className="flex items-center justify-center gap-2">
+                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                          {!isSleepReminder ? 'Time:' : 'Bed Time:'}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatTime(reminder?.time_of_day)}
+                        </p>
+                      </div>
+
                       {!isSleepReminder && !isWorkoutReminder && (
                         <>
                           <div className="flex items-center justify-center gap-2">

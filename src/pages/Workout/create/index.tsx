@@ -108,7 +108,22 @@ export default function CreateAdmin({
       return sanitized
     }
   }
+  const formatVideoDurationLabel = (durationMs: number | null) => {
+    if (durationMs === null) return ''
+    const totalSeconds = Math.max(0, Math.round(durationMs / 1000))
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    const paddedSeconds = seconds.toString().padStart(2, '0')
+    return `Duration: ${minutes}:${paddedSeconds}`
+  }
 
+  const parseDurationMinutesToMs = (value?: string | number | null) => {
+    if (value === null || value === undefined) return null
+    const numeric =
+      typeof value === 'number' ? value : parseFloat(String(value))
+    if (Number.isNaN(numeric)) return null
+    return Math.max(0, numeric) * 60000
+  }
   // Used to show existing video file in edit mode (based on video_url from API)
   const existingVideoFile = rowData?.video_url
     ? {
@@ -402,6 +417,9 @@ export default function CreateAdmin({
       {
         name: 'video_file',
         label: 'Video File',
+        labelAddon: videoDurationMs
+          ? formatVideoDurationLabel(videoDurationMs)
+          : '',
         id: 'video_file',
         type: 'file_upload',
         placeholder: 'Upload video file',
@@ -428,8 +446,44 @@ export default function CreateAdmin({
   )
 
   useEffect(() => {
+    const fallbackFromExistingDuration = () => {
+      const fallbackMs = parseDurationMinutesToMs(rowData?.duration_minutes)
+      setVideoDurationMs(fallbackMs)
+    }
+
     if (!watchedVideoFile) {
-      setVideoDurationMs(null)
+      if (rowData?.video_url) {
+        const videoElement = document.createElement('video')
+        videoElement.preload = 'metadata'
+        videoElement.crossOrigin = 'anonymous'
+        videoElement.src = rowData.video_url
+
+        const handleLoadedMetadata = () => {
+          const durationSeconds = videoElement.duration
+          if (!Number.isNaN(durationSeconds)) {
+            setVideoDurationMs(durationSeconds * 1000)
+          } else {
+            fallbackFromExistingDuration()
+          }
+        }
+
+        const handleError = () => {
+          fallbackFromExistingDuration()
+        }
+
+        videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+        videoElement.addEventListener('error', handleError)
+
+        return () => {
+          videoElement.removeEventListener(
+            'loadedmetadata',
+            handleLoadedMetadata
+          )
+          videoElement.removeEventListener('error', handleError)
+        }
+      }
+
+      fallbackFromExistingDuration()
       return
     }
 
@@ -448,16 +502,23 @@ export default function CreateAdmin({
         URL.revokeObjectURL(objectUrl)
       }
 
+      const handleError = () => {
+        fallbackFromExistingDuration()
+        URL.revokeObjectURL(objectUrl)
+      }
+
       videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+      videoElement.addEventListener('error', handleError)
 
       return () => {
         videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        videoElement.removeEventListener('error', handleError)
         URL.revokeObjectURL(objectUrl)
       }
-    } else {
-      setVideoDurationMs(null)
     }
-  }, [watchedVideoFile])
+
+    fallbackFromExistingDuration()
+  }, [watchedVideoFile, rowData?.video_url, rowData?.duration_minutes])
   // const onSubmit = (details: any) => {
   //   // Ensure a video file is always present (for both create and edit)
   //   if (!details?.video_file && !rowData?.video_url) {
@@ -537,10 +598,11 @@ export default function CreateAdmin({
 
     // Duration
     if (videoDurationMs !== null) {
-      fd.append(
-        'workout[duration_minutes]',
-        (videoDurationMs / 60000).toFixed(2)
-      )
+      const totalSeconds = Math.max(0, Math.round(videoDurationMs / 1000))
+      const minutes = Math.floor(totalSeconds / 60)
+      const seconds = totalSeconds % 60
+      const paddedSeconds = seconds.toString().padStart(2, '0')
+      fd.append('workout[duration_minutes]', `${minutes}.${paddedSeconds}`)
     }
 
     if (rowData?.id) {
@@ -642,11 +704,7 @@ export default function CreateAdmin({
                 </FormProvider>
                 {videoDurationMs !== null && (
                   <div className="text-sm text-primaryText">
-                    {(() => {
-                      const minutes = videoDurationMs / 60000
-                      const formatted = minutes.toFixed(2).padStart(5, '0')
-                      return `Video duration: ${formatted} minutes`
-                    })()}
+                    {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
                   </div>
                 )}
               </>

@@ -19,6 +19,108 @@ import {
   formSchemaNutritionistEdit,
 } from './schema'
 
+type MedicalConditionOption = {
+  id: string
+  name: string
+}
+
+const isMedicalConditionOption = (
+  option: MedicalConditionOption | null
+): option is MedicalConditionOption => Boolean(option)
+
+const medicalConditionOptions: MedicalConditionOption[] = [
+  { id: 'None', name: 'None' },
+  { id: 'PCOD', name: 'PCOD' },
+  { id: 'Diabetes', name: 'Diabetes' },
+  { id: 'Hypertension', name: 'Hypertension' },
+  { id: 'Other', name: 'Other' },
+]
+
+const matchMedicalCondition = (
+  value: string
+): MedicalConditionOption | null => {
+  const normalized = value?.trim?.().toLowerCase()
+  if (!normalized) return null
+  const match = medicalConditionOptions.find((option) => {
+    const name = option.name?.toLowerCase?.()
+    const id = option.id?.toString?.().toLowerCase?.()
+    return name === normalized || id === normalized
+  })
+  return match ? { ...match } : null
+}
+
+const normalizeMedicalConditions = (value: any): MedicalConditionOption[] => {
+  const toOption = (
+    entry: any,
+    index: number
+  ): MedicalConditionOption | null => {
+    if (typeof entry === 'string') {
+      const match = matchMedicalCondition(entry)
+      if (match) return match
+      const trimmed = entry.trim()
+      if (!trimmed) return null
+      return { id: `${trimmed}-${index}`, name: trimmed }
+    }
+    if (entry && typeof entry === 'object') {
+      const label = entry.name ?? entry.label ?? entry.value ?? entry.id ?? ''
+      if (typeof label === 'string' && label.trim()) {
+        const match = matchMedicalCondition(label)
+        if (match) return match
+        return { id: entry.id ?? `${label}-${index}`, name: label }
+      }
+      if (entry.id !== undefined && entry.id !== null) {
+        const idString = String(entry.id)
+        const match = matchMedicalCondition(idString)
+        if (match) return match
+        return { id: entry.id, name: idString }
+      }
+    }
+    return null
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry, index) => toOption(entry, index))
+      .filter(isMedicalConditionOption)
+  }
+
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((entry, index) => toOption(entry, index))
+      .filter(isMedicalConditionOption)
+  }
+
+  if (value && typeof value === 'object') {
+    return normalizeMedicalConditions([value])
+  }
+
+  return []
+}
+
+const medicalConditionsToPayload = (value: any): string => {
+  if (!value) return ''
+  const values = Array.isArray(value) ? value : [value]
+  return values
+    .map((entry) => {
+      if (typeof entry === 'string') return entry.trim()
+      if (entry && typeof entry === 'object') {
+        if (typeof entry.name === 'string' && entry.name.trim()) {
+          return entry.name.trim()
+        }
+        if (entry.value !== undefined && entry.value !== null) {
+          return String(entry.value).trim()
+        }
+        if (entry.id !== undefined && entry.id !== null) {
+          return String(entry.id).trim()
+        }
+      }
+      return ''
+    })
+    .filter((entry) => entry)
+    .join(',')
+}
+
 type Props = {
   isDrawerOpen: boolean
   disabled?: boolean
@@ -166,6 +268,7 @@ export default function CreateAdmin({
       label: 'Date of Birth',
       type: 'date',
       required: true,
+      maxDate: moment().subtract(18, 'years').toDate(),
     },
     {
       name: 'status',
@@ -216,7 +319,7 @@ export default function CreateAdmin({
               },
             ],
             type: 'custom_select',
-            placeholder: 'Select Lifestyle',
+            placeholder: 'Select lifestyle',
             async: false,
             initialLoad: true,
           },
@@ -254,7 +357,7 @@ export default function CreateAdmin({
               { id: 'Pescatarian', name: 'Pescatarian' },
             ],
             type: 'custom_select',
-            placeholder: 'Select Food Preference',
+            placeholder: 'Select food preference',
             async: false,
             initialLoad: true,
           },
@@ -264,17 +367,13 @@ export default function CreateAdmin({
             id: 'medical_conditions',
             desc: 'name',
             descId: 'id',
-            data: [
-              { id: 'None', name: 'None' },
-              { id: 'PCOD', name: 'PCOD' },
-              { id: 'Diabetes', name: 'Diabetes' },
-              { id: 'Hypertension', name: 'Hypertension' },
-              { id: 'Other', name: 'Other' },
-            ],
-            type: 'custom_select',
-            placeholder: 'Select Medical Condition',
+            data: medicalConditionOptions,
+            getData: () => medicalConditionOptions,
+            type: 'multi_select',
+            placeholder: 'Select medical conditions',
             async: false,
             initialLoad: true,
+            isMultiple: true,
           },
           {
             name: 'food_allergies',
@@ -295,7 +394,7 @@ export default function CreateAdmin({
               { id: 'Other', name: 'Other' },
             ],
             type: 'custom_select',
-            placeholder: 'Select Food Allergy',
+            placeholder: 'Select food allergy',
             async: false,
             initialLoad: true,
           },
@@ -326,7 +425,7 @@ export default function CreateAdmin({
       lifestyle: '',
       goal: '',
       food_preferences: '',
-      medical_conditions: '',
+      medical_conditions: [],
       food_allergies: '',
       ethnicity: '',
       status: '',
@@ -350,7 +449,7 @@ export default function CreateAdmin({
       lifestyle: '',
       goal: '',
       food_preferences: '',
-      medical_conditions: '',
+      medical_conditions: [],
       ethnicity: '',
       status: '',
     } as any)
@@ -401,7 +500,9 @@ export default function CreateAdmin({
           lifestyle: rowData?.user?.lifestyle ?? '',
           goal: rowData?.user?.goal ?? '',
           food_preferences: rowData?.user?.food_preferences ?? '',
-          medical_conditions: rowData?.user?.medical_conditions ?? '',
+          medical_conditions: normalizeMedicalConditions(
+            rowData?.user?.medical_conditions
+          ),
           food_allergies: rowData?.user?.food_allergies ?? '',
           ethnicity: rowData?.user?.ethnicity ?? '',
           status:
@@ -594,12 +695,9 @@ export default function CreateAdmin({
               details?.food_preferences?.id ??
               '')
             : (details?.food_preferences ?? ''),
-        medical_conditions:
-          typeof details?.medical_conditions === 'object'
-            ? (details?.medical_conditions?.name ??
-              details?.medical_conditions?.id ??
-              '')
-            : (details?.medical_conditions ?? ''),
+        medical_conditions: medicalConditionsToPayload(
+          details?.medical_conditions
+        ),
         food_allergies:
           typeof details?.food_allergies === 'object'
             ? (details?.food_allergies?.name ??
@@ -611,66 +709,95 @@ export default function CreateAdmin({
       },
     }
 
-    const extractEmailErrorMessage = (apiData: any) => {
-      const takeFirstString = (v: any): string => {
-        if (!v) return ''
-        if (typeof v === 'string') return v
-        if (Array.isArray(v)) {
-          const first = v.find((x) => typeof x === 'string')
-          return first ? String(first) : ''
+    const takeFirstString = (v: any): string => {
+      if (!v) return ''
+      if (typeof v === 'string') return v
+      if (Array.isArray(v)) {
+        for (const item of v) {
+          const str = takeFirstString(item)
+          if (str) return str
         }
-        if (typeof v === 'object') {
-          if (typeof v.message === 'string') return v.message
-          if (typeof v.error === 'string') return v.error
+        return ''
+      }
+      if (typeof v === 'object') {
+        if (typeof v.message === 'string') return v.message
+        if (typeof v.error === 'string') return v.error
+      }
+      return ''
+    }
+
+    const extractFieldErrorMessage = (
+      apiData: any,
+      fieldKeywords: string[]
+    ) => {
+      if (!apiData || !fieldKeywords.length) return ''
+      const normalized = fieldKeywords
+        .map((keyword) => keyword?.toLowerCase?.())
+        .filter(Boolean) as string[]
+
+      const includesKeyword = (text: string) => {
+        const lowerText = text.toLowerCase()
+        return normalized.some((keyword) => lowerText.includes(keyword))
+      }
+
+      const readFromObject = (source: any): string => {
+        if (!source || typeof source !== 'object') return ''
+        const entries = Object.entries(source)
+        for (const [key, value] of entries) {
+          if (typeof key === 'string' && includesKeyword(key)) {
+            const msg = takeFirstString(value)
+            if (msg) return msg
+          }
+        }
+        for (const [, value] of entries) {
+          if (Array.isArray(value)) {
+            for (const item of value) {
+              if (typeof item === 'string' && includesKeyword(item)) return item
+              const nested = readFromObject(item)
+              if (nested) return nested
+            }
+          } else if (typeof value === 'object') {
+            const nested = readFromObject(value)
+            if (nested) return nested
+          } else if (typeof value === 'string' && includesKeyword(value)) {
+            return value
+          }
         }
         return ''
       }
 
-      const direct =
-        takeFirstString(apiData?.errors?.email) ||
-        takeFirstString(apiData?.error?.email) ||
-        takeFirstString(apiData?.error?.errors?.email) ||
-        takeFirstString(apiData?.error?.errors?.[0]) ||
-        takeFirstString(apiData?.error?.errors) ||
-        takeFirstString(apiData?.errors?.[0]) ||
-        takeFirstString(apiData?.errors) ||
-        takeFirstString(apiData?.error) ||
-        takeFirstString(apiData?.message) ||
-        takeFirstString(apiData?.error?.message)
-      if (direct) return direct
-
-      const errorsObj = apiData?.errors
-      if (
-        errorsObj &&
-        typeof errorsObj === 'object' &&
-        !Array.isArray(errorsObj)
-      ) {
-        for (const k of Object.keys(errorsObj)) {
-          if (String(k).toLowerCase().includes('email')) {
-            const m = takeFirstString((errorsObj as any)[k])
-            if (m) return m
-          }
+      const containers = [
+        apiData?.errors,
+        apiData?.error?.errors,
+        apiData?.error,
+      ]
+      for (const container of containers) {
+        if (!container) continue
+        if (typeof container === 'string' && includesKeyword(container)) {
+          return container
         }
+        if (Array.isArray(container)) {
+          for (const entry of container) {
+            if (typeof entry === 'string' && includesKeyword(entry))
+              return entry
+            const msg = readFromObject(entry)
+            if (msg) return msg
+          }
+          continue
+        }
+        const msg = readFromObject(container)
+        if (msg) return msg
       }
 
-      const msgText =
-        takeFirstString(apiData?.message) ||
-        takeFirstString(apiData?.error?.message)
-      if (msgText && msgText.toLowerCase().includes('email')) return msgText
-
-      // fallback: backend may send a generic duplicate message without the word "email"
-      const generic =
-        takeFirstString(apiData?.message) ||
-        takeFirstString(apiData?.detail) ||
-        takeFirstString(apiData?.error?.message)
-      if (generic) {
-        const g = generic.toLowerCase()
-        if (
-          g.includes('taken') ||
-          g.includes('already') ||
-          g.includes('exists')
-        ) {
-          return generic
+      const genericSources = [
+        apiData?.message,
+        apiData?.error?.message,
+        apiData?.detail,
+      ]
+      for (const source of genericSources) {
+        const text = takeFirstString(source)
+        if (text && includesKeyword(text)) {
+          return text
         }
       }
 
@@ -686,25 +813,66 @@ export default function CreateAdmin({
     } catch (error: any) {
       const apiData = (error?.response?.data ?? error?.data ?? error) as any
       const statusCode: number | undefined = error?.response?.status
-      const msg =
-        extractEmailErrorMessage(apiData) ||
-        (typeof error?.message === 'string' ? error.message : '')
-      const fallbackMsg =
-        statusCode === 409 || statusCode === 422
+      const phoneErrorMessage = extractFieldErrorMessage(apiData, [
+        'phone',
+        'mobile',
+      ])
+      const emailErrorMessage = extractFieldErrorMessage(apiData, [
+        'email',
+        'username',
+      ])
+      const fallbackEmailMsg =
+        !phoneErrorMessage &&
+        !emailErrorMessage &&
+        (statusCode === 409 || statusCode === 422)
           ? 'Email has already been taken.'
           : ''
+      const finalEmailMsg =
+        emailErrorMessage ||
+        fallbackEmailMsg ||
+        (typeof error?.message === 'string' &&
+        error?.message?.toLowerCase?.().includes('email')
+          ? error.message
+          : '')
 
-      const finalMsg = msg || fallbackMsg
+      if (phoneErrorMessage) {
+        ;(methods as any).setError?.(
+          'phone',
+          {
+            type: 'server',
+            message: String(phoneErrorMessage),
+          },
+          { shouldFocus: true }
+        )
+      }
 
-      if (finalMsg) {
+      if (finalEmailMsg) {
         ;(methods as any).setError?.(
           'email',
           {
             type: 'server',
-            message: String(finalMsg),
+            message: String(finalEmailMsg),
           },
-          { shouldFocus: true }
+          { shouldFocus: !phoneErrorMessage }
         )
+      }
+
+      if (!phoneErrorMessage && !finalEmailMsg) {
+        const genericError =
+          takeFirstString(apiData?.message) ||
+          takeFirstString(apiData?.error?.message) ||
+          takeFirstString(apiData?.detail) ||
+          (typeof error?.message === 'string' ? error.message : '')
+        if (genericError) {
+          ;(methods as any).setError?.(
+            'email',
+            {
+              type: 'server',
+              message: String(genericError),
+            },
+            { shouldFocus: true }
+          )
+        }
       }
     }
   }
@@ -797,7 +965,12 @@ export default function CreateAdmin({
             {!viewMode ? (
               <>
                 <FormProvider {...methods}>
-                  <FormBuilder data={formBuilderProps} edit={true} spacing />
+                  <FormBuilder
+                    data={formBuilderProps}
+                    edit={true}
+                    spacing
+                    fromPopup
+                  />
                 </FormProvider>
               </>
             ) : (

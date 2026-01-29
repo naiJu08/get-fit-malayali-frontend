@@ -75,8 +75,11 @@ export default function CreateAdmin({
   }
   const formatVideoDurationLabel = (durationMs: number | null) => {
     if (durationMs === null) return ''
-    const minutes = durationMs / 60000
-    return `Duration: ${minutes.toFixed(2)} min`
+    const totalSeconds = Math.max(0, Math.round(durationMs / 1000))
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    const paddedSeconds = seconds.toString().padStart(2, '0')
+    return `Duration: ${minutes}:${paddedSeconds}`
   }
   const handleDeleteFile = () => {
     console.log('handle delete')
@@ -249,11 +252,14 @@ export default function CreateAdmin({
     const fd = new FormData()
     fd.append('meditation[title]', details?.title ?? '')
     fd.append('meditation[description]', details?.description ?? '')
-    if (videoDurationMs !== null) {
-      const durationMinutes = videoDurationMs / 60000
-      fd.append('meditation[duration_minutes]', durationMinutes.toFixed(2))
-    }
 
+    if (videoDurationMs !== null) {
+      const totalSeconds = Math.max(0, Math.round(videoDurationMs / 1000))
+      const minutes = Math.floor(totalSeconds / 60)
+      const seconds = totalSeconds % 60
+      const paddedSeconds = seconds.toString().padStart(2, '0')
+      fd.append('meditation[duration_minutes]', `${minutes}.${paddedSeconds}`)
+    }
     const hasNewVideoFile = details?.video_file instanceof File
 
     if (!hasNewVideoFile && !rowData?.id) {

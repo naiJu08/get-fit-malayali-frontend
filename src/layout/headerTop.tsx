@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 
-// import Icons from '../components/common/icons'
+import Icons from '../components/common/icons'
 import { useAuthStore } from '../store/authStore'
 import { useDomainManageStore } from '../store/domainManageStore'
 import { useAccreditationFilterStore } from '../store/filterSore/accreditationStore'
@@ -49,12 +49,20 @@ const HeaderTop = () => {
   }
   return (
     <div className="h-[64px] fixed w-full top-0 left-0 z-30 flex items-center justify-between bg-white border-formBorder border-b pe-5">
-      <div className="w-[220px] ps-5 flex justify-between">
+      <div className="w-[220px] ps-5 flex items-center justify-between">
         {layoutType === 'sideNav' ? (
-          <div
+          <button
+            type="button"
             onClick={() => setExpand(!expand)}
-            className="h-6 w-6 fill-grey-medium cursor-pointer"
-          ></div>
+            aria-label={expand ? 'Collapse sidebar' : 'Expand sidebar'}
+            className="flex mr-2 h-6 w-6 items-center justify-center rounded hover:bg-grey-light/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primaryBlue/40"
+          >
+            <div
+              className={`transition-transform duration-200 ${expand ? 'rotate-180' : ''}`}
+            >
+              <Icons name="header-side-arrow" />
+            </div>
+          </button>
         ) : (
           ''
         )}
