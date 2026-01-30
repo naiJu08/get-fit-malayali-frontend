@@ -25,6 +25,7 @@ interface DayDetailTabsSectionProps {
   onEditYogaPlan: () => void
   onEditMeditationPlan: () => void
   subscriptionId?: string | number | null
+  refreshDayDetail?: () => Promise<void> | void
 }
 
 const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
@@ -36,6 +37,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   onEditYogaPlan,
   onEditMeditationPlan,
   subscriptionId: parentSubscriptionId,
+  refreshDayDetail,
 }) => {
   const [assignTemplateOpen, setAssignTemplateOpen] = useState(false)
   const [templateSearch, setTemplateSearch] = useState('')
@@ -60,11 +62,19 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
         payload: { diet_plan_template_id: number }
       }) => assignDietPlanTemplate(subId, payload),
       {
-        onSuccess: () => {
+        onSuccess: async () => {
           enqueueSnackbar('Template assigned successfully', {
             variant: 'success',
           })
           handleAssignTemplateClose()
+          try {
+            await refreshDayDetail?.()
+          } catch (err) {
+            console.error(
+              'Failed to refresh day detail after template assign',
+              err
+            )
+          }
         },
         onError: (error: any) => {
           enqueueSnackbar(
@@ -164,7 +174,12 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     onClick={() => setAssignTemplateOpen(true)}
                   >
                     <Icons name="template-icon" />
-                    <span>Assign Template</span>
+                    <span>
+                      {Array.isArray(dayDetail?.diet_plans) &&
+                      dayDetail.diet_plans.length > 0
+                        ? 'Update'
+                        : 'Assign Template'}
+                    </span>
                   </button>
                 )}
               </div>

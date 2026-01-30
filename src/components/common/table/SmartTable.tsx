@@ -7,7 +7,7 @@ type Action = {
   title: string
   icon: React.ReactNode
   toolTip?: string
-  action: (row: any) => void
+  action: (row: any) => void | Promise<void>
   hide?: (row: any) => boolean
   variant?: 'primary' | 'secondary' | 'danger' | 'success'
 }
@@ -110,13 +110,25 @@ const SmartTable: React.FC<SmartTableProps> = ({
     handleColumnSort(col.sortKey || col.field, next)
   }
 
+  const collapseExternalActionBar = () => {
+    setSelectedRow(null)
+    setSelectedRowKey(null)
+  }
+
   const handleActionClick = (action: Action, row: any) => {
     // Trigger animation
     setActionAnimation(`${action.title}-${row[dataRowKey]}`)
     setTimeout(() => setActionAnimation(null), 600)
 
     // Execute action
-    action.action(row)
+    const result = action.action(row)
+    if (result && typeof (result as Promise<void>).then === 'function') {
+      ;(result as Promise<void>)
+        .catch(() => null)
+        .finally(() => collapseExternalActionBar())
+    } else {
+      collapseExternalActionBar()
+    }
   }
 
   const getActionVariantStyles = (variant: Action['variant'] = 'secondary') => {

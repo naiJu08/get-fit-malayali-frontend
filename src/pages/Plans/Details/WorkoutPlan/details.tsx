@@ -159,18 +159,35 @@ function AssignTabContent({
       )}
       {!loading && !error && (
         <>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div className="text-md font-semibold">Exercises</div>
-            {!isNutritionist &&
-              exercises.length > 0 &&
-              selectedExerciseIds.length > 0 && (
-                <button
-                  className="px-3 py-1 text-xs border rounded  btn-primary"
-                  onClick={handleRemoveSelected}
-                >
-                  Remove Exercise
-                </button>
-              )}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-4 text-[11px] text-gray-600 ml-auto justify-end">
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  Repetitions
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  Intensity
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  Duration
+                </span>
+              </div>
+
+              {!isNutritionist &&
+                exercises.length > 0 &&
+                selectedExerciseIds.length > 0 && (
+                  <button
+                    className="px-3 py-1 text-xs border rounded btn-primary"
+                    onClick={handleRemoveSelected}
+                  >
+                    Remove Exercise
+                  </button>
+                )}
+            </div>
           </div>
           {exercises.length > 0 ? (
             <div className="flex flex-col gap-4">
@@ -197,43 +214,54 @@ function AssignTabContent({
                           key={ex?.id}
                           className="border rounded bg-white overflow-hidden w-full"
                         >
-                          {embed ? (
-                            <div className="w-full h-36 bg-black/5">
+                          {/* VIDEO BOX */}
+                          <div className="relative w-full h-36 bg-black/5">
+                            {embed ? (
                               <iframe
                                 src={embed}
-                                title={`Workout Video ${
-                                  ex?.workout_id ?? ex?.id
-                                }`}
+                                title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
                                 className="w-full h-full"
                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allowFullScreen
                               />
-                            </div>
-                          ) : url ? (
-                            <video
-                              className="w-full h-32 object-cover rounded"
-                              src={String(url)}
-                              muted
-                              controls
-                            />
-                          ) : (
-                            <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                              No video
-                            </div>
-                          )}
-                          <div className="px-2 py-2 text-xs flex flex-col gap-2">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="font-medium line-clamp-1 flex-1">
-                                {ex?.workout_name || 'Untitled'}
+                            ) : url ? (
+                              <video
+                                className="w-full h-full object-cover"
+                                src={String(url)}
+                                muted
+                                controls
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                                No video
                               </div>
-                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-semibold px-2 py-0.5">
+                            )}
+
+                            <div className="absolute top-2 right-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                              <span className="items-center gap-1 rounded-sm bg-blue-600/90 text-white px-2 py-0.5 font-semibold backdrop-blur">
                                 <Icons name="repeat" className="w-3 h-3" />
-                                Reps: {ex?.reps}
+                                {ex?.reps ?? '--'}
+                              </span>
+                              <span className="items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                                <Icons name="activity" className="w-3 h-3" />
+                                {ex?.intensity_level
+                                  ? ex.intensity_level
+                                  : '--'}
+                              </span>
+                              <span className="items-center gap-1 rounded-sm bg-green-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
+                                <Icons name="clock" className="w-3 h-3" />
+                                {ex?.duration_minutes
+                                  ? `${ex.duration_minutes}s`
+                                  : '--'}
                               </span>
                             </div>
-                            {typeof ex?.reps !== 'undefined' && (
-                              <div className="flex justify-end"></div>
-                            )}
+                          </div>
+
+                          {/* TITLE BELOW VIDEO */}
+                          <div className="px-2 py-2 text-xs">
+                            <div className="font-medium line-clamp-1">
+                              {ex?.workout_name || 'Untitled'}
+                            </div>
                           </div>
                         </div>
                       )
@@ -1277,6 +1305,20 @@ export default function WorkoutPlanDetails() {
                 </div>
               </div>
             </div>
+            <div className="flex flex-wrap items-center gap-4 text-[11px] text-gray-600 self-end justify-end w-full">
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                Repetitions
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                Intensity
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                Duration
+              </span>
+            </div>
             {workoutsLoading && (
               <div className="text-xs text-gray-500 p-2">Loading...</div>
             )}
@@ -1337,27 +1379,50 @@ export default function WorkoutPlanDetails() {
                                 }
                               }}
                             >
-                              {embed ? (
-                                <div className="w-full h-40 bg-black/5">
+                              <div className="relative w-full h-40 bg-black/5">
+                                {embed ? (
                                   <iframe
                                     src={embed}
                                     title={`Workout Video ${w?.id}`}
                                     className="w-full h-full"
                                     allowFullScreen
                                   />
+                                ) : url ? (
+                                  <video
+                                    className="w-full h-full object-cover"
+                                    src={String(url)}
+                                    muted
+                                    controls
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                                    No video
+                                  </div>
+                                )}
+
+                                <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                                  <span className="items-center gap-1 rounded-sm bg-blue-600/90 text-white px-2 py-0.5 font-semibold backdrop-blur">
+                                    <Icons name="repeat" className="w-3 h-3" />
+                                    {count > 0 ? count : '--'}
+                                  </span>
+                                  <span className="items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                                    <Icons
+                                      name="activity"
+                                      className="w-3 h-3"
+                                    />
+                                    {w?.intensity_level ||
+                                      w?.workout?.intensity_level ||
+                                      '--'}
+                                  </span>
+                                  <span className="items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
+                                    <Icons name="clock" className="w-3 h-3" />
+                                    {w?.duration_minutes ||
+                                    w?.workout?.duration_minutes
+                                      ? `${w?.duration_minutes || w?.workout?.duration_minutes}s`
+                                      : '--'}
+                                  </span>
                                 </div>
-                              ) : url ? (
-                                <video
-                                  className="w-full h-32 object-cover"
-                                  src={String(url)}
-                                  muted
-                                  controls
-                                />
-                              ) : (
-                                <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                                  No video
-                                </div>
-                              )}
+                              </div>
 
                               <div className="px-3 py-2 text-sm flex flex-col gap-2">
                                 <div className="flex items-center justify-between gap-3">
@@ -1488,24 +1553,72 @@ export default function WorkoutPlanDetails() {
                               </span>
                             </div>
 
-                            {embed ? (
-                              <iframe
-                                className="w-full h-30"
-                                src={embed}
-                                allowFullScreen
-                              ></iframe>
-                            ) : url ? (
-                              <video
-                                src={url}
-                                controls
-                                muted
-                                className="w-full h-30 object-cover"
-                              />
-                            ) : (
-                              <div className="text-sm text-gray-500 italic">
-                                No video URL available.
+                            <div className="relative w-full h-30 bg-black/5">
+                              {embed ? (
+                                <iframe
+                                  className="w-full h-full"
+                                  src={embed}
+                                  allowFullScreen
+                                ></iframe>
+                              ) : url ? (
+                                <video
+                                  src={url}
+                                  controls
+                                  muted
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-sm text-gray-500 italic">
+                                  No video URL available.
+                                </div>
+                              )}
+
+                              <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                                {(() => {
+                                  const workoutId = getWorkoutSelectableId(w)
+                                  const repsValue =
+                                    workoutId != null
+                                      ? (workoutCounts[String(workoutId)] ??
+                                        w?.reps ??
+                                        1)
+                                      : (w?.reps ?? 1)
+                                  const intensityLabel =
+                                    w?.intensity_level ||
+                                    w?.workout?.intensity_level ||
+                                    '--'
+                                  const durationValue =
+                                    w?.duration_minutes ||
+                                    w?.workout?.duration_minutes
+                                  return (
+                                    <>
+                                      <span className="inline-flex items-center gap-1 rounded-sm bg-blue-600/90 text-white px-2 py-0.5 font-semibold backdrop-blur">
+                                        <Icons
+                                          name="repeat"
+                                          className="w-3 h-3"
+                                        />
+                                        {repsValue || '--'}
+                                      </span>
+                                      <span className="inline-flex items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                                        <Icons
+                                          name="activity"
+                                          className="w-3 h-3"
+                                        />
+                                        {intensityLabel}
+                                      </span>
+                                      <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
+                                        <Icons
+                                          name="clock"
+                                          className="w-3 h-3"
+                                        />
+                                        {durationValue
+                                          ? `${durationValue}s`
+                                          : '--'}
+                                      </span>
+                                    </>
+                                  )
+                                })()}
                               </div>
-                            )}
+                            </div>
 
                             <div className="px-4 py-2 text-xs text-gray-600">
                               Hold and drag to rearrange
