@@ -232,7 +232,7 @@ export default function MeditationPlanIndex({ planName }: Props) {
             )}
 
             {!medLoading && meditations.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-4">
                 {meditations.map((m: any) => {
                   const url = m?.video_url || m?.meditation_video_url || ''
                   const embed = getEmbedUrl(url)
@@ -275,7 +275,7 @@ export default function MeditationPlanIndex({ planName }: Props) {
                           No video
                         </div>
                       )}
-                      <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
+                      <div className="px-3 py-5 text-sm flex items-start justify-between gap-2">
                         <div className="font-medium line-clamp-1">{title}</div>
                         <input
                           type="checkbox"
@@ -489,7 +489,7 @@ function AssignedMeditationsSection({
         </div>
       )}
       {!loading && assigned.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 place-items-stretch">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-3 place-items-stretch">
           {assigned
             .slice()
             .sort(
@@ -530,7 +530,7 @@ function AssignedMeditationsSection({
                     </div>
                   )}
 
-                  <div className="px-2 py-1 text-xs flex items-center justify-between gap-2">
+                  <div className="px-2 py-3 text-xs flex items-center justify-between gap-2">
                     <div className="font-medium line-clamp-1">{title}</div>
                     {!isNutritionist && (
                       <input

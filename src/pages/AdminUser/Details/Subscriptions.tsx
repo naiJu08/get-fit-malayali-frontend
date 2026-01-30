@@ -30,6 +30,8 @@ import { getData } from '../../../apis/api.helpers'
 import { getWorkoutPlanSubcategories } from '../../Plans/Details/WorkoutPlan/api'
 import DayDetailTabsSection from './DayDetailTabsSection'
 
+type DayDetailTab = 'diet' | 'workout' | 'yoga' | 'meditation'
+
 const YOGA_CATEGORY_OPTIONS: { label: string; value: string }[] = [
   { label: 'Basic', value: 'basic' },
   { label: 'Intermediate', value: 'intermediate' },
@@ -64,7 +66,7 @@ export default function Subscriptions({
   const [dayDetailOpen, setDayDetailOpen] = useState(false)
   const [dayDetail, setDayDetail] = useState<any>(null)
   const [dayDetailLoading, setDayDetailLoading] = useState(false)
-  const [dayDetailTab, setDayDetailTab] = useState<string>('diet')
+  const [dayDetailTab, setDayDetailTab] = useState<DayDetailTab>('diet')
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [toggleFreezeOpen, setToggleFreezeOpen] = useState(false)
   const [toggleFreezeRow, setToggleFreezeRow] = useState<any>(null)
@@ -1142,12 +1144,15 @@ export default function Subscriptions({
     selectAllNextWorkoutsRef.current = false
   }, [assignOpen, workoutsLoading, workouts])
 
-  const openDayDetail = async (dateStr: string) => {
+  const openDayDetail = async (
+    dateStr: string,
+    focusTab: DayDetailTab = 'diet'
+  ) => {
     if (!user?.id || !dateStr) return
     try {
       setSelectedDate(dateStr)
       setDayDetailOpen(true)
-      setDayDetailTab('diet')
+      setDayDetailTab(focusTab)
       setDayDetailLoading(true)
       const res = await getOverviewDetail(String(user.id), dateStr)
       setDayDetail(res)
@@ -2036,34 +2041,74 @@ export default function Subscriptions({
                                     </div>
                                     {c?.inRange && c?.meta ? (
                                       <div className="mt-1 text-[10px] leading-4">
-                                        <div className="flex items-center justify-between border rounded-[5px] bg-red-100 text-black px-2 py-1">
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            openDayDetail(
+                                              c?.meta?.date || c.key,
+                                              'diet'
+                                            )
+                                          }}
+                                          className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 text-left bg-red-100 hover:bg-red-200"
+                                        >
                                           <span>Diet</span>
                                           <span className="font-medium">
                                             {c?.meta?.diet_summary
                                               ?.total_items ?? 0}
                                           </span>
-                                        </div>
-                                        <div className="flex items-center justify-between border rounded-[5px] bg-violet-200 text-black px-2 py-1 mt-2">
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            openDayDetail(
+                                              c?.meta?.date || c.key,
+                                              'workout'
+                                            )
+                                          }}
+                                          className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-violet-200 hover:bg-violet-300"
+                                        >
                                           <span>Workout</span>
                                           <span className="font-medium">
                                             {c?.meta?.workout_summary
                                               ?.total_exercises ?? 0}
                                           </span>
-                                        </div>
-                                        <div className="flex items-center justify-between border rounded-[5px] bg-green-200 text-black px-2 py-1 mt-2">
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            openDayDetail(
+                                              c?.meta?.date || c.key,
+                                              'yoga'
+                                            )
+                                          }}
+                                          className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-green-200 hover:bg-green-300"
+                                        >
                                           <span>Yoga</span>
                                           <span className="font-medium">
                                             {c?.meta?.yoga_summary
                                               ?.total_exercises ?? 0}
                                           </span>
-                                        </div>
-                                        <div className="flex items-center justify-between border rounded-[5px] bg-blue-200 text-black px-2 py-1 mt-2">
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            openDayDetail(
+                                              c?.meta?.date || c.key,
+                                              'meditation'
+                                            )
+                                          }}
+                                          className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-blue-200 hover:bg-blue-300"
+                                        >
                                           <span>Meditation</span>
                                           <span className="font-medium">
                                             {c?.meta?.meditation_summary
                                               ?.total_items ?? 0}
                                           </span>
-                                        </div>
+                                        </button>
                                       </div>
                                     ) : null}
                                   </div>
@@ -3195,7 +3240,7 @@ export default function Subscriptions({
               <DayDetailTabsSection
                 dayDetail={dayDetail}
                 dayDetailTab={dayDetailTab}
-                onChangeTab={(tabId) => setDayDetailTab(tabId)}
+                onChangeTab={(tabId) => setDayDetailTab(tabId as DayDetailTab)}
                 isNutritionist={isNutritionist}
                 subscriptionId={overview?.subscription?.id}
                 onEditWorkoutPlan={() => {

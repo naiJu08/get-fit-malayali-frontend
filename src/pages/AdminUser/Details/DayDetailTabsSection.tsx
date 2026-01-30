@@ -389,7 +389,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     onClick={onEditWorkoutPlan}
                   >
                     <Icons name="edit" />
-                    <span>Edit Workout Plan</span>
+                    <span>Update</span>
                   </button>
                 )}
               </div>
@@ -558,7 +558,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     onClick={onEditYogaPlan}
                   >
                     <Icons name="edit" />
-                    <span>Update Yoga Plan</span>
+                    <span>Update</span>
                   </button>
                 )}
               </div>
@@ -724,7 +724,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       onClick={onEditMeditationPlan}
                     >
                       <Icons name="edit" />
-                      <span>Update Meditation Plan</span>
+                      <span>Update</span>
                     </button>
                   )}
               </div>

@@ -145,7 +145,7 @@ function AssignTabContent({
               )}
           </div>
           {exercises.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 place-items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-3 place-items-stretch">
               {exercises.map((ex: any) => {
                 const rawUrl =
                   ex?.video_url ||
@@ -641,8 +641,7 @@ export default function YogaPlanDetails() {
         <div className="w-full">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-              <div className="text-sm font-medium">Yoga</div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 ml-auto">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs text-gray-600">Category</label>
                   <select
