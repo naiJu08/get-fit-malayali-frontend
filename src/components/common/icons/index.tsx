@@ -184,6 +184,7 @@ import WeightIcon from './WeightIcon'
 import HeightIcon from './HeightIcon'
 import ExerciseIcon from './ExerciseIcon'
 import HeaderSideArrow from './HeaderArrow'
+import HamburgerIcon from './Hamburger'
 // import ExerciseIcon from './ExerciseIcon'
 
 const Icons: React.FC<IconsProps> = ({
@@ -559,6 +560,8 @@ const Icons: React.FC<IconsProps> = ({
         return <ExerciseIcon />
       case 'header-side-arrow':
         return <HeaderSideArrow />
+      case 'hamburger-icon':
+        return <HamburgerIcon />
       default:
         return <></>
     }

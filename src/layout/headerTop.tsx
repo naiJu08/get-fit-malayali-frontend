@@ -55,26 +55,28 @@ const HeaderTop = () => {
             type="button"
             onClick={() => setExpand(!expand)}
             aria-label={expand ? 'Collapse sidebar' : 'Expand sidebar'}
-            className="flex mr-2 h-6 w-6 items-center justify-center rounded hover:bg-grey-light/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primaryBlue/40"
+            className="flex mr-2 h-8 w-8 items-center justify-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primaryBlue/40"
           >
             <div
               className={`transition-transform duration-200 ${expand ? 'rotate-180' : ''}`}
             >
-              <Icons name="header-side-arrow" />
+              <Icons name="hamburger-icon" />
             </div>
           </button>
         ) : (
           ''
         )}
-        <Link to={handleReturnPath()}>
-          <div className="flex items-center gap-2 w-auto">
-            <img
-              className="h-10 w-auto object-contain"
-              src="/logo-hori.png"
-              alt="Get Fit Malayali"
-            />
-          </div>
-        </Link>
+        {(layoutType !== 'sideNav' || expand) && (
+          <Link to={handleReturnPath()}>
+            <div className="flex items-center gap-2 w-auto">
+              <img
+                className="h-10 w-auto object-contain"
+                src="/logo-hori.png"
+                alt="Get Fit Malayali"
+              />
+            </div>
+          </Link>
+        )}
       </div>
       {layoutType === 'headerNav' && <HeaderTab />}
       <div className="flex gap-2 items-center">
