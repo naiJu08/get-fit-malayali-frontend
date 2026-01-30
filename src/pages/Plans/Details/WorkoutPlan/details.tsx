@@ -1,4 +1,3 @@
-// import moment from 'moment'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 
@@ -83,16 +82,6 @@ function AssignTabContent({
   const { enqueueSnackbar } = useSnackbarManager()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
-
-  const toggleSelectedExercise = (workoutId: any) => {
-    if (!workoutId) return
-    setSelectedExerciseIds((prev) =>
-      prev.includes(workoutId)
-        ? prev.filter((x) => x !== workoutId)
-        : [...prev, workoutId]
-    )
-  }
-
   const handleRemoveSelected = async () => {
     if (!wp?.id || selectedExerciseIds.length === 0) return
     try {
@@ -124,10 +113,6 @@ function AssignTabContent({
             )
         )
     : []
-
-  const getWorkoutSelectableId = (ex: any) =>
-    ex?.workout_id || ex?.workout?.id || ex?.id || ex?.workoutId
-
   const groupedAssignedExercises = useMemo(() => {
     if (!Array.isArray(exercises) || exercises.length === 0) return []
 
@@ -207,9 +192,6 @@ function AssignTabContent({
                         ''
                       const url = String(rawUrl || '')
                       const embed = getEmbedUrl(url)
-                      const workoutIdForEx = getWorkoutSelectableId(ex)
-                      const checked =
-                        selectedExerciseIds.includes(workoutIdForEx)
                       return (
                         <div
                           key={ex?.id}
@@ -244,24 +226,13 @@ function AssignTabContent({
                               <div className="font-medium line-clamp-1 flex-1">
                                 {ex?.workout_name || 'Untitled'}
                               </div>
-                              {!isNutritionist && (
-                                <input
-                                  type="checkbox"
-                                  className="shrink-0"
-                                  checked={checked}
-                                  onChange={() =>
-                                    toggleSelectedExercise(workoutIdForEx)
-                                  }
-                                />
-                              )}
+                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-semibold px-2 py-0.5">
+                                <Icons name="repeat" className="w-3 h-3" />
+                                Reps: {ex?.reps}
+                              </span>
                             </div>
                             {typeof ex?.reps !== 'undefined' && (
-                              <div className="flex justify-end">
-                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-semibold px-2 py-0.5">
-                                  <Icons name="repeat" className="w-3 h-3" />
-                                  Reps: {ex?.reps}
-                                </span>
-                              </div>
+                              <div className="flex justify-end"></div>
                             )}
                           </div>
                         </div>
@@ -371,14 +342,27 @@ export default function WorkoutPlanDetails() {
   const [subcategoryLookup, setSubcategoryLookup] = useState<
     Record<string, any>
   >({})
+  const [workoutFiltersEnabled, setWorkoutFiltersEnabled] = useState(false)
   const prefillAppliedRef = useRef(false)
+  const drawerSelectionInitializedRef = useRef(false)
+  const selectAllNextWorkoutsRef = useRef(false)
   const wp = data?.workout_plan || data || {}
+
+  const categoryAutocompleteValue = useMemo(() => {
+    if (!selectedCategoryId) return ''
+    const match = categoryOptions.find(
+      (cat: any) => String(cat?.id) === String(selectedCategoryId)
+    )
+    if (match?.name) return match.name
+    return selectedCategoryName
+  }, [categoryOptions, selectedCategoryId, selectedCategoryName])
 
   useEffect(() => {
     setSelectedCategoryId(undefined)
     setSelectedCategoryName('')
     setSelectedSubcategories([])
     prefillAppliedRef.current = false
+    drawerSelectionInitializedRef.current = false
   }, [wp?.id])
 
   const refreshDetails = useCallback(async () => {
@@ -400,9 +384,20 @@ export default function WorkoutPlanDetails() {
     setSelectedCategoryId(undefined)
     setSelectedCategoryName('')
     setSelectedSubcategories([])
+    setWorkoutFiltersEnabled(false)
     prefillAppliedRef.current = false
+    drawerSelectionInitializedRef.current = false
+    selectAllNextWorkoutsRef.current = false
     await refreshDetails()
   }, [refreshDetails])
+
+  useEffect(() => {
+    if (!assignOpen) {
+      drawerSelectionInitializedRef.current = false
+      selectAllNextWorkoutsRef.current = false
+      setWorkoutFiltersEnabled(false)
+    }
+  }, [assignOpen])
 
   useEffect(() => {
     let mounted = true
@@ -577,6 +572,7 @@ export default function WorkoutPlanDetails() {
   }, [])
 
   useEffect(() => {
+    if (!assignOpen) return
     if (!previouslySubmittedSelection || prefillAppliedRef.current) return
 
     const { categoryId, categoryName, subcategories } =
@@ -593,15 +589,22 @@ export default function WorkoutPlanDetails() {
             )?.name ?? '')
 
       setSelectedCategoryName(resolvedCategoryName)
+      setWorkoutFiltersEnabled(true)
     }
 
     if (Array.isArray(subcategories) && subcategories.length > 0) {
       setSelectedSubcategories(subcategories)
       updateSubcategoryLookup(subcategories)
+      setWorkoutFiltersEnabled(true)
     }
 
     prefillAppliedRef.current = true
-  }, [previouslySubmittedSelection, categoryOptions, updateSubcategoryLookup])
+  }, [
+    assignOpen,
+    previouslySubmittedSelection,
+    categoryOptions,
+    updateSubcategoryLookup,
+  ])
 
   const assignedRepsMap = useMemo(() => {
     const map = new Map<string, number>()
@@ -711,48 +714,105 @@ export default function WorkoutPlanDetails() {
       search: wpSearch,
     }
 
-    if (selectedCategoryId) {
+    if (workoutFiltersEnabled && selectedCategoryId) {
       params.category_id = selectedCategoryId
     }
 
-    if (selectedSubcategoryIds.length) {
+    if (workoutFiltersEnabled && selectedSubcategoryIds.length) {
       params.subcategory_ids = selectedSubcategoryIds.join(',')
     }
 
+    console.log('🔍 Workout API Params:', {
+      params,
+      workoutFiltersEnabled,
+      selectedCategoryId,
+      selectedSubcategoryIds,
+      assignOpen,
+    })
+
     return params
-  }, [wpPage, wpPerPage, wpSearch, selectedCategoryId, selectedSubcategoryIds])
+  }, [
+    wpPage,
+    wpPerPage,
+    wpSearch,
+    selectedCategoryId,
+    selectedSubcategoryIds,
+    workoutFiltersEnabled,
+  ])
 
   // Load workouts for assignment from backend with category/subcategory filters
   const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList(
-    workoutListParams as any
+    workoutListParams as any,
+    {
+      enabled: assignOpen,
+    }
   )
 
   const workouts = (workoutsResp as any)?.workouts ?? []
 
   useEffect(() => {
-    if (!assignOpen) return
-    if (!Array.isArray(workouts)) {
-      setSelectedWorkouts([])
-      return
+    if (!assignOpen) {
+      setWorkoutFiltersEnabled(false)
     }
+  }, [assignOpen])
+
+  const collectAllVisibleWorkouts = useCallback((list: any[]) => {
+    if (!Array.isArray(list) || list.length === 0) return []
+    const map = new Map<string, any>()
+    list.forEach((item: any) => {
+      const workoutId = getWorkoutSelectableId(item)
+      if (workoutId == null) return
+      const key = String(workoutId)
+      if (!map.has(key)) {
+        map.set(key, item)
+      }
+    })
+    return Array.from(map.values())
+  }, [])
+
+  const requestSelectAllForNextWorkouts = useCallback(
+    (applyImmediately = false) => {
+      selectAllNextWorkoutsRef.current = true
+
+      if (!applyImmediately) return
+
+      if (!assignOpen || workoutsLoading) return
+
+      if (!Array.isArray(workouts) || workouts.length === 0) {
+        setSelectedWorkouts([])
+        selectAllNextWorkoutsRef.current = false
+        return
+      }
+
+      setSelectedWorkouts(collectAllVisibleWorkouts(workouts))
+      selectAllNextWorkoutsRef.current = false
+    },
+    [assignOpen, workoutsLoading, workouts, collectAllVisibleWorkouts]
+  )
+  useEffect(() => {
+    if (!assignOpen) return
+    if (drawerSelectionInitializedRef.current) return
 
     const hasExistingAssignments = assignedWorkoutMap.size > 0
 
     if (hasExistingAssignments) {
-      const matchedFromList = workouts.filter((w: any) =>
-        assignedWorkoutMap.has(String(w?.id))
-      )
+      const matchedFromList = Array.isArray(workouts)
+        ? workouts.filter((w: any) => assignedWorkoutMap.has(String(w?.id)))
+        : []
 
-      if (matchedFromList.length > 0) {
-        setSelectedWorkouts(matchedFromList.map(applyAssignedReps))
-        return
-      }
+      const nextSelection =
+        matchedFromList.length > 0
+          ? matchedFromList.map(applyAssignedReps)
+          : Array.from(assignedWorkoutMap.values())
 
-      setSelectedWorkouts(Array.from(assignedWorkoutMap.values()))
+      setSelectedWorkouts(nextSelection)
+      drawerSelectionInitializedRef.current = true
       return
     }
 
-    // Default behavior for brand new plans with no assignments: select all
+    if (!Array.isArray(workouts) || workouts.length === 0) return
+
+    // Default behavior for brand new plans with no assignments: select all once
     const map = new Map<any, any>()
     workouts.forEach((w: any) => {
       if (w && w.id != null) {
@@ -761,11 +821,24 @@ export default function WorkoutPlanDetails() {
     })
 
     setSelectedWorkouts(Array.from(map.values()))
-  }, [assignOpen, workouts, assignedWorkoutMap])
+    drawerSelectionInitializedRef.current = true
+  }, [assignOpen, workouts, assignedWorkoutMap, applyAssignedReps])
 
-  // You can proceed to Review if either:
-  // - at least one workout is explicitly selected by the user.
-  const canProceedToReview = selectedWorkouts.length > 0
+  useEffect(() => {
+    if (!assignOpen) return
+    if (workoutsLoading) return
+    if (!selectAllNextWorkoutsRef.current) return
+
+    if (!Array.isArray(workouts) || workouts.length === 0) {
+      setSelectedWorkouts([])
+      selectAllNextWorkoutsRef.current = false
+      return
+    }
+
+    setSelectedWorkouts(collectAllVisibleWorkouts(workouts))
+    selectAllNextWorkoutsRef.current = false
+  }, [assignOpen, workoutsLoading, workouts, collectAllVisibleWorkouts])
+
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
     if (!u) return ''
@@ -937,6 +1010,8 @@ export default function WorkoutPlanDetails() {
       // selection is now derived in the workouts/useEffect above
     }
   }, [assignOpen, wp?.exercises, selectedWorkouts.length])
+
+  const canProceedToReview = selectedWorkouts.length > 0
 
   const handleNext = () => {
     // Only move to Review drawer if there is at least one explicitly
@@ -1139,15 +1214,7 @@ export default function WorkoutPlanDetails() {
                     descId="id"
                     type="custom_search_select"
                     data={categoryOptions}
-                    value={(() => {
-                      if (!selectedCategoryId) return ''
-                      const match = categoryOptions.find(
-                        (cat: any) =>
-                          String(cat?.id) === String(selectedCategoryId)
-                      )
-                      if (match?.name) return match.name
-                      return selectedCategoryName
-                    })()}
+                    value={categoryAutocompleteValue}
                     name="assign_category"
                     onChange={(option: any) => {
                       const id = option?.id ?? option?.value ?? ''
@@ -1156,6 +1223,11 @@ export default function WorkoutPlanDetails() {
                       setSelectedCategoryId(id || undefined)
                       setSelectedCategoryName(name || '')
                       setSelectedSubcategories([])
+                      setWpPage(1)
+                      if (id) {
+                        setWorkoutFiltersEnabled(true)
+                      }
+                      requestSelectAllForNextWorkouts()
                     }}
                   />
                 </div>
@@ -1196,12 +1268,15 @@ export default function WorkoutPlanDetails() {
                     onChange={(value?: any | any[]) => {
                       const normalized = deriveSubcategorySelection(value)
                       setSelectedSubcategories(normalized)
+                      if (normalized.length > 0) {
+                        setWorkoutFiltersEnabled(true)
+                      }
+                      requestSelectAllForNextWorkouts()
                     }}
                   />
                 </div>
               </div>
             </div>
-
             {workoutsLoading && (
               <div className="text-xs text-gray-500 p-2">Loading...</div>
             )}

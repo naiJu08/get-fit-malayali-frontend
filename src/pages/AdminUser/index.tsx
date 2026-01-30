@@ -623,6 +623,7 @@ export default function AdminUser() {
           /> */}
 
           <CreateAdmin
+            key={`${activeRole}-${edit ? 'edit' : 'create'}-${viewMode ? 'view' : 'form'}`}
             isDrawerOpen={createOpen}
             rowData={rowData}
             edit={edit}

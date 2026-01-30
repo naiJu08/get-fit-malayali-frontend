@@ -5,6 +5,21 @@ import noLeadingSpaces from '../../../utilities/noLeadingSpaces'
 const passerror =
   'Password should contain at least one uppercase letter, one lowercase letter, one digit, and one special character, with a minimum length of eight characters, and must not contain any spaces.'
 
+const selectLikeOptionSchema = z
+  .object({
+    id: z.union([z.string(), z.number()]).optional(),
+    name: z.string().optional(),
+    label: z.string().optional(),
+    value: z.union([z.string(), z.number()]).optional(),
+  })
+  .passthrough()
+
+const medicalConditionsFieldSchema = z.union([
+  z.string(),
+  selectLikeOptionSchema,
+  z.array(z.union([z.string(), selectLikeOptionSchema])),
+])
+
 export const formSchema = z
   .object({
     name: z
@@ -60,10 +75,13 @@ export const formSchema = z
       .refine((val) => val !== null && val !== undefined && val !== '', {
         message: 'Required.',
       }),
-    date_of_birth: z.union([
-      z.string().min(1, { message: 'Required.' }),
-      z.date({ invalid_type_error: 'Required.' }),
-    ]),
+    date_of_birth: z.preprocess(
+      (val) => (val === null || val === undefined ? '' : val),
+      z.union([
+        z.string().min(1, { message: 'Required.' }),
+        z.date({ invalid_type_error: 'Required.' }),
+      ])
+    ),
     height: z.preprocess(
       (val: unknown) => {
         if (typeof val === 'number') return val
@@ -103,7 +121,7 @@ export const formSchema = z
     lifestyle: z.string().optional(),
     goal: z.string().optional(),
     food_preferences: z.string().optional(),
-    medical_conditions: z.string().optional(),
+    medical_conditions: medicalConditionsFieldSchema.optional(),
     food_allergies: z.string().optional(),
     ethnicity: z.string().optional(),
     status: z.union([z.number(), z.string()]).optional(),
@@ -176,10 +194,13 @@ export const formSchemaNutritionist = z
       .refine((val) => val !== null && val !== undefined && val !== '', {
         message: 'Required.',
       }),
-    date_of_birth: z.union([
-      z.string().min(1, { message: 'Required.' }),
-      z.date({ invalid_type_error: 'Required.' }),
-    ]),
+    date_of_birth: z.preprocess(
+      (val) => (val === null || val === undefined ? '' : val),
+      z.union([
+        z.string().min(1, { message: 'Required.' }),
+        z.date({ invalid_type_error: 'Required.' }),
+      ])
+    ),
     // Optional fields for Nutritionist
     height: z
       .number()
@@ -194,7 +215,7 @@ export const formSchemaNutritionist = z
     lifestyle: z.string().optional(),
     goal: z.string().optional(),
     food_preferences: z.string().optional(),
-    medical_conditions: z.string().optional(),
+    medical_conditions: medicalConditionsFieldSchema.optional(),
     food_allergies: z.string().optional(),
     ethnicity: z.string().optional(),
   })
@@ -282,7 +303,7 @@ export const formSchemaNutritionistEdit = z
     lifestyle: z.string().optional(),
     goal: z.string().optional(),
     food_preferences: z.string().optional(),
-    medical_conditions: z.string().optional(),
+    medical_conditions: medicalConditionsFieldSchema.optional(),
     food_allergies: z.string().optional(),
     ethnicity: z.string().optional(),
     status: z.union([z.number(), z.string()]).optional(),

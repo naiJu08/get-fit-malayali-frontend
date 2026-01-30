@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 
 import Icons from '../../../../../components/common/icons'
 import InfoBox from '../../../../../components/app/alertBox/infoBox'
 import { getDietPlanDetails } from '../api'
+import DietPlanForm from '../create'
 
 export default function DietPlanDetails() {
   const { id } = useParams()
@@ -11,28 +12,25 @@ export default function DietPlanDetails() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
+  const [editOpen, setEditOpen] = useState(false)
 
-  useEffect(() => {
-    let mounted = true
-    const run = async () => {
-      try {
-        setLoading(true)
-        const res = await getDietPlanDetails(String(id))
-        if (!mounted) return
-        setData(res)
-      } catch (e: any) {
-        if (!mounted) return
-        setError(e?.response?.data?.message || 'Failed to load diet plan')
-      } finally {
-        if (!mounted) return
-        setLoading(false)
-      }
-    }
-    if (id) run()
-    return () => {
-      mounted = false
+  const loadDietPlan = useCallback(async () => {
+    if (!id) return
+    try {
+      setLoading(true)
+      const res = await getDietPlanDetails(String(id))
+      setData(res)
+      setError('')
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'Failed to load diet plan')
+    } finally {
+      setLoading(false)
     }
   }, [id])
+
+  useEffect(() => {
+    loadDietPlan()
+  }, [loadDietPlan])
 
   const dp = data?.diet_plan || data || {}
 
@@ -54,6 +52,16 @@ export default function DietPlanDetails() {
           </button>
           <h1 className="text-xl font-semibold">Diet Plan Details</h1>
         </div>
+        {dp?.id && (
+          <button
+            type="button"
+            className="inline-flex items-center rounded-lg bg-primaryGreen text-white px-4 py-2 text-sm font-medium hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"
+            onClick={() => setEditOpen(true)}
+          >
+            <Icons name="edit" />
+            <span className="ml-2">Edit Diet Plan</span>
+          </button>
+        )}
       </div>
 
       {loading && (
@@ -239,6 +247,17 @@ export default function DietPlanDetails() {
           )}
         </>
       )}
+
+      <DietPlanForm
+        isOpen={editOpen}
+        handleClose={() => {
+          setEditOpen(false)
+          loadDietPlan()
+        }}
+        edit
+        rowData={dp}
+        planId={dp?.diet_plan_template_id ?? dp?.plan_id}
+      />
     </div>
   )
 }

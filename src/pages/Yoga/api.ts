@@ -27,8 +27,11 @@ const fetchData = async (input: QueryParams) => {
   const response = await getData(url)
   return response
 }
-export const useYogaList = (input: QueryParams) => {
-  return useQuery(['yoga_list', input], () => fetchData(input))
+export const useYogaList = (
+  input: QueryParams,
+  options?: Parameters<typeof useQuery>[2]
+) => {
+  return useQuery(['yoga_list', input], () => fetchData(input), options)
 }
 export const deActivateAdmin = (id?: string) => {
   return updateFromData(`${apiUrl.ADMIN_USER}/${id}/status`, {})

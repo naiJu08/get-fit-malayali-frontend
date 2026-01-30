@@ -100,6 +100,10 @@ export const freezeSubscription = (
 ) => {
   return postData(`${apiUrl.SUBSCRIPTIONS}/${id}/freeze`, payload)
 }
+
+export const unfreezeSubscription = (id: string | number) => {
+  return postData(`${apiUrl.SUBSCRIPTIONS}/${id}/unfreeze`, {})
+}
 export const workoutOverridesBulk = (
   subscriptionId: string | number,
   payload: {
@@ -411,12 +415,14 @@ export const createClientReport = (payload: {
 }
 
 // User reminders
-const fetchUserReminders = async (input: { user_id?: string | number }) => {
-  if (!input?.user_id) {
+const fetchUserReminders = async (input: {
+  subscription_id?: string | number
+}) => {
+  if (!input?.subscription_id) {
     return { items: [], meta: {} }
   }
   const params = new URLSearchParams()
-  params.set('user_id', String(input.user_id))
+  params.set('subscription_id', String(input.subscription_id))
   const url = `${apiUrl.USER_REMINDERS}?${params.toString()}`
   const response: any = await getData(url)
   const items = Array.isArray(response?.reminders) ? response.reminders : []
@@ -424,9 +430,11 @@ const fetchUserReminders = async (input: { user_id?: string | number }) => {
   return { items, meta }
 }
 
-export const useUserReminders = (input: { user_id?: string | number }) => {
+export const useUserReminders = (input: {
+  subscription_id?: string | number
+}) => {
   return useQuery(['user_reminders', input], () => fetchUserReminders(input), {
-    enabled: !!input?.user_id,
+    enabled: !!input?.subscription_id,
   })
 }
 

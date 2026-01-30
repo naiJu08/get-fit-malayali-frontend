@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Button from '../../../components/common/buttons/Button'
 import Icons from '../../../components/common/icons'
 import SmartTable from '../../../components/common/table/SmartTable'
@@ -14,9 +15,30 @@ import { DialogModal } from '../../../components/common'
 import { useSnackbarManager } from '../../../components/common/snackbar'
 import moment from 'moment'
 
+const formatTitleCase = (value?: string | null) => {
+  if (!value) return ''
+  return value
+    .split(' ')
+    .filter((segment) => segment.trim())
+    .map((segment) => {
+      const lower = segment.toLowerCase()
+      return lower.charAt(0).toUpperCase() + lower.slice(1)
+    })
+    .join(' ')
+}
+
 export default function Clients({ user }: { user: any }) {
+  const navigate = useNavigate()
   const [clientsPage, setClientsPage] = useState(1)
   const [clientsPageSize, setClientsPageSize] = useState(10)
+  const isNutritionistSuspended = (() => {
+    const status = user?.status
+    if (status === 1 || status === '1') return true
+    if (typeof status === 'string') {
+      return status.toLowerCase() === 'suspended'
+    }
+    return false
+  })()
   const {
     data: assignedData,
     isFetching: clientsLoading,
@@ -34,8 +56,8 @@ export default function Clients({ user }: { user: any }) {
       field: 'user_name',
       customCell: true,
       renderCell: (row: any) => ({
-        cell: row?.user_name,
-        toolTip: row?.user_name,
+        cell: formatTitleCase(row?.user_name),
+        toolTip: formatTitleCase(row?.user_name),
       }),
       sortable: false,
       resizable: true,
@@ -105,6 +127,12 @@ export default function Clients({ user }: { user: any }) {
     }
   }
 
+  const handleViewClient = (row: any) => {
+    const userId = row?.user_id ?? row?.user?.id ?? row?.user?.user_id
+    if (!userId) return
+    navigate(`/users/${userId}/details`)
+  }
+
   const handleUnassignClient = async (row: any) => {
     if (!row?.id) return
     try {
@@ -130,16 +158,18 @@ export default function Clients({ user }: { user: any }) {
 
   return (
     <>
-      <div className="flex justify-end mb-3">
-        <Button
-          className="primaryButton"
-          label="Assign Client"
-          onClick={() => {
-            setSelectedClient(null)
-            setAssignOpen(true)
-          }}
-        />
-      </div>
+      {!isNutritionistSuspended && (
+        <div className="flex justify-end mb-3">
+          <Button
+            className="primaryButton"
+            label="Assign Client"
+            onClick={() => {
+              setSelectedClient(null)
+              setAssignOpen(true)
+            }}
+          />
+        </div>
+      )}
       <SmartTable
         data={assignedClients}
         dataRowKey="id"
@@ -148,8 +178,8 @@ export default function Clients({ user }: { user: any }) {
         isLoading={clientsLoading || unassigning}
         height={
           assignedClients?.length === 0
-            ? calcWindowHeight(218)
-            : calcWindowHeight(150)
+            ? calcWindowHeight(200)
+            : calcWindowHeight(270)
         }
         emptyTitle="No clients to display"
         emptySubTitle={''}
@@ -157,6 +187,12 @@ export default function Clients({ user }: { user: any }) {
         pagination={true}
         externalActions={true}
         actionProps={[
+          {
+            icon: <Icons name="eye" />,
+            title: 'View',
+            toolTip: 'View Client',
+            action: (row: any) => handleViewClient(row),
+          },
           {
             icon: <Icons name="delete" />,
             title: 'Unassign',

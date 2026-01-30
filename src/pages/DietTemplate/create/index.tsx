@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import moment from 'moment'
 // import moment from 'moment'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { DefaultValues, FormProvider, useForm } from 'react-hook-form'
 
 import InfoBox from '../../../components/app/alertBox/infoBox'
@@ -81,12 +81,13 @@ export default function CreateAdmin({
     console.log('handle delete')
   }
 
-  const existingThumbnailFile = rowData?.thumbnail_url
-    ? {
-        name: decodeFileName(rowData.thumbnail_url),
-        link: rowData.thumbnail_url,
-      }
-    : undefined
+  const existingThumbnailFile = useMemo(() => {
+    if (!edit || !rowData?.thumbnail_url) return undefined
+    return {
+      name: decodeFileName(rowData.thumbnail_url),
+      link: rowData.thumbnail_url,
+    }
+  }, [decodeFileName, edit, rowData?.thumbnail_url])
 
   const methods = useForm<TemplateSchema>({
     resolver: zodResolver(edit ? editFormSchema : formSchema),
@@ -122,6 +123,9 @@ export default function CreateAdmin({
     { ...textField('name', 'Name', 'Enter name', true) },
     {
       ...textField('duration_days', 'Duration (Days)', 'Enter duration', true),
+      type: 'number',
+      allowPositiveOnly: true,
+      inputMode: 'numeric',
     },
     {
       name: 'description',
@@ -180,15 +184,13 @@ export default function CreateAdmin({
     } else {
       mutate(fd)
     }
-    setValue(
-      'duration_days',
-      undefined as unknown as TemplateSchema['duration_days'],
-      {
+    ;['duration_days', 'thumbnail'].forEach((field) => {
+      setValue(field as keyof TemplateSchema, undefined, {
         shouldDirty: false,
         shouldValidate: false,
         shouldTouch: false,
-      }
-    )
+      })
+    })
   }
 
   const viewHeaderData = {

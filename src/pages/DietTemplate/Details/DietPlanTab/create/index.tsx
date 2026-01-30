@@ -278,6 +278,16 @@ export default function DietPlanForm({
     }
   }
 
+  const dayNameOptions = [
+    { id: 'sunday', name: 'Sunday', value: 'Sunday' },
+    { id: 'monday', name: 'Monday', value: 'Monday' },
+    { id: 'tuesday', name: 'Tuesday', value: 'Tuesday' },
+    { id: 'wednesday', name: 'Wednesday', value: 'Wednesday' },
+    { id: 'thursday', name: 'Thursday', value: 'Thursday' },
+    { id: 'friday', name: 'Friday', value: 'Friday' },
+    { id: 'saturday', name: 'Saturday', value: 'Saturday' },
+  ]
+
   const mealTimeOptions = [
     { id: 'Morning drink', name: 'Morning drink', value: 'Morning drink' },
     { id: 'Breakfast', name: 'Breakfast', value: 'Breakfast' },
@@ -334,8 +344,12 @@ export default function DietPlanForm({
     {
       name: 'day_name',
       label: 'Day Name',
-      type: 'text',
-      placeholder: 'Enter day name',
+      type: 'custom_search_select',
+      desc: 'name',
+      descId: 'id',
+      id: 'day_name_id',
+      placeholder: 'Select day name',
+      data: dayNameOptions,
       required: true,
     },
     {
@@ -351,13 +365,6 @@ export default function DietPlanForm({
       required: true,
       disabled: !!edit,
       onChange: handleMealTimeChange,
-    },
-    {
-      name: 'sequence_number',
-      label: 'Sequence Number',
-      type: 'text',
-      placeholder: 'Enter sequence number',
-      required: true,
     },
     {
       name: 'notes',

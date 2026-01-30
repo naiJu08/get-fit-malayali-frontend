@@ -43,11 +43,14 @@ export default function DetailsInfo({
   plan,
   loading,
   error,
+  onEdit,
 }: {
   plan: any
   loading: boolean
   error: string
+  onEdit?: () => void
 }) {
+  const canEdit = typeof onEdit === 'function' && Boolean(plan?.id)
   return (
     <>
       {loading && (
@@ -61,56 +64,69 @@ export default function DetailsInfo({
         </div>
       )}
       {!loading && !error && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <DetailItem label="Name" value={capitalizeFirst(plan?.name)} />
-          <DetailItem label="Category" value={plan?.category} />
-          <DetailItem label="Description" value={plan?.description} />
-          <DetailItem
-            label="Duration (days)"
-            value={safeStr(plan?.duration_days)}
-          />
-          <DetailItem label="Active" value={mapActive(plan?.active)} />
-          <DetailItem label="Fees" value={renderFees(plan?.fees)} />
-          <DetailItem
-            label="Workout Plans"
-            value={safeStr(plan?.workout_plans_count)}
-          />
-          <DetailItem
-            label="Diet Plans"
-            value={safeStr(plan?.diet_plans_count)}
-          />
-          <DetailItem
-            label="Yoga Plans"
-            value={safeStr(plan?.yoga_plans_count)}
-          />
-          <div className="min-h-[200px]">
+        <div className="flex flex-col gap-4">
+          {canEdit && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => onEdit?.()}
+                className="px-3 py-1.5 rounded-md bg-primaryGreen text-white text-sm font-medium hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"
+              >
+                Edit plan
+              </button>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <DetailItem label="Name" value={capitalizeFirst(plan?.name)} />
+            <DetailItem label="Category" value={plan?.category} />
+            <DetailItem label="Description" value={plan?.description} />
             <DetailItem
-              label="Meditation Plans"
-              value={safeStr(plan?.meditations_count)}
+              label="Duration (days)"
+              value={safeStr(plan?.duration_days)}
             />
-          </div>
-          <div className="min-h-[200px]">
+            <DetailItem label="Active" value={mapActive(plan?.active)} />
+            <DetailItem label="Fees" value={renderFees(plan?.fees)} />
             <DetailItem
-              label="Subscribers"
-              value={safeStr(plan?.subscribers_count)}
+              label="Workout Plans"
+              value={safeStr(plan?.workout_plans_count)}
             />
-          </div>
+            <DetailItem
+              label="Diet Plans"
+              value={safeStr(plan?.diet_plans_count)}
+            />
+            <DetailItem
+              label="Yoga Plans"
+              value={safeStr(plan?.yoga_plans_count)}
+            />
+            <div className="min-h-[200px]">
+              <DetailItem
+                label="Meditation Plans"
+                value={safeStr(plan?.meditations_count)}
+              />
+            </div>
+            <div className="min-h-[200px]">
+              <DetailItem
+                label="Subscribers"
+                value={safeStr(plan?.subscribers_count)}
+              />
+            </div>
 
-          {/* <DetailItem label="Yoga" value={plan?.yoga_included} /> */}
-          <div className="border rounded-lg p-3 bg-white max-h-[150px]">
-            <div className="text-xs text-gray-500 mb-1">Thumbnail</div>
-            <div className="text-sm">
-              {plan?.thumbnail_url ? (
-                <div className="w-[100px] h-[100px] overflow-hidden rounded-md border">
-                  <img
-                    className="w-full h-full object-cover"
-                    src={plan.thumbnail_url}
-                    alt="Plan thumbnail"
-                  />
-                </div>
-              ) : (
-                <span>--</span>
-              )}
+            {/* <DetailItem label="Yoga" value={plan?.yoga_included} /> */}
+            <div className="border rounded-lg p-3 bg-white max-h-[150px]">
+              <div className="text-xs text-gray-500 mb-1">Thumbnail</div>
+              <div className="text-sm">
+                {plan?.thumbnail_url ? (
+                  <div className="w-[100px] h-[100px] overflow-hidden rounded-md border">
+                    <img
+                      className="w-full h-full object-cover"
+                      src={plan.thumbnail_url}
+                      alt="Plan thumbnail"
+                    />
+                  </div>
+                ) : (
+                  <span>--</span>
+                )}
+              </div>
             </div>
           </div>
         </div>

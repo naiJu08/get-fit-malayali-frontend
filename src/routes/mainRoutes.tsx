@@ -357,6 +357,14 @@ export default function MainRoutes() {
       />
       <Route
         element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/reminders"
+      />
+      <Route
+        element={
           <UserRoute slug_key="DISCOUNT_SAMPLE">
             <Discount />
           </UserRoute>

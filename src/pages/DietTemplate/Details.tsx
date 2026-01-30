@@ -6,6 +6,7 @@ import { getTemplateDetails } from './api'
 import { Tab, TabContainer } from '../../components/common/tab'
 import DetailTab from './Details/DetailTab'
 import DietPlanTab from './Details/DietPlanTab'
+import CreateDietTemplate from './create'
 
 export default function DietTemplateDetails() {
   const { id } = useParams()
@@ -14,6 +15,7 @@ export default function DietTemplateDetails() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
+  const [editModalOpen, setEditModalOpen] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -61,32 +63,52 @@ export default function DietTemplateDetails() {
   }, [id, location.pathname, navigate])
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <button onClick={() => navigate('/diet-template')} aria-label="Back">
-            <Icons name="left-arrow-icon" />
-          </button>
-          <h1 className="text-xl font-semibold">Diet Template Details</h1>
+    <>
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/diet-template')}
+              aria-label="Back"
+            >
+              <Icons name="left-arrow-icon" />
+            </button>
+            <h1 className="text-xl font-semibold">Diet Template Details</h1>
+          </div>
         </div>
+
+        <TabContainer
+          data={tabs}
+          activeTab={activeTab}
+          onClick={(tab) => {
+            const basePath = `/diet-template/${id}`
+            if (tab.id === 'details') navigate(basePath)
+            else navigate(`${basePath}/${tab.id}`)
+          }}
+        >
+          <Tab id="details">
+            <DetailTab
+              template={template}
+              loading={loading}
+              error={error}
+              onEdit={() => setEditModalOpen(true)}
+            />
+          </Tab>
+          <Tab id="diet-plan">
+            <DietPlanTab template={template} loading={loading} error={error} />
+          </Tab>
+        </TabContainer>
       </div>
 
-      <TabContainer
-        data={tabs}
-        activeTab={activeTab}
-        onClick={(tab) => {
-          const basePath = `/diet-template/${id}`
-          if (tab.id === 'details') navigate(basePath)
-          else navigate(`${basePath}/${tab.id}`)
+      <CreateDietTemplate
+        isDrawerOpen={editModalOpen}
+        handleClose={() => setEditModalOpen(false)}
+        handleRefresh={() => {
+          getTemplateDetails(String(id)).then((res) => setData(res))
         }}
-      >
-        <Tab id="details">
-          <DetailTab template={template} loading={loading} error={error} />
-        </Tab>
-        <Tab id="diet-plan">
-          <DietPlanTab template={template} loading={loading} error={error} />
-        </Tab>
-      </TabContainer>
-    </div>
+        edit
+        rowData={template}
+      />
+    </>
   )
 }

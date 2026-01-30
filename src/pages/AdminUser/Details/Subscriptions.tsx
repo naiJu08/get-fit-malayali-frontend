@@ -1,5 +1,5 @@
 import moment from 'moment'
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import type { DragEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import InfoBox from '../../../components/app/alertBox/infoBox'
@@ -18,6 +18,7 @@ import {
   getActivePlanOverview,
   getOverviewDetail,
   freezeSubscription,
+  unfreezeSubscription,
   workoutOverridesBulk,
   meditationOverridesBulk,
   yogaOverridesBulk,
@@ -67,6 +68,7 @@ export default function Subscriptions({
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [toggleFreezeOpen, setToggleFreezeOpen] = useState(false)
   const [toggleFreezeRow, setToggleFreezeRow] = useState<any>(null)
+  const [freezeMode, setFreezeMode] = useState<'freeze' | 'unfreeze'>('freeze')
   const [loader, setLoader] = useState(false)
   const [freezeForm, setFreezeForm] = useState<{
     reason: string
@@ -111,7 +113,14 @@ export default function Subscriptions({
   const [medSearch, setMedSearch] = useState<string>('')
   const [medAssigning, setMedAssigning] = useState(false)
   const [medDragIndex, setMedDragIndex] = useState<number | null>(null)
-  const { data: plansList } = usePlans({ page: 1, per_page: 100 } as any)
+  const shouldLoadPlans = drawerOpen
+  const shouldLoadWorkouts = assignOpen
+  const shouldLoadYoga = yogaAssignOpen
+  const shouldLoadMeditations = medAssignOpen
+  const { data: plansList } = usePlans({ page: 1, per_page: 100 } as any, {
+    enabled: shouldLoadPlans,
+    staleTime: 5 * 60 * 1000,
+  })
   const allPlans: any[] = (
     (plansList?.plans || plansList?.items || []) as any[]
   ).filter((p: any) => p?.active)
@@ -175,8 +184,31 @@ export default function Subscriptions({
     number | string | undefined
   >(undefined)
   const [selectedCategoryName, setSelectedCategoryName] = useState<string>('')
+  const categoryAutocompleteValue = useMemo(() => {
+    if (selectedCategoryName && selectedCategoryName.length > 0) {
+      return selectedCategoryName
+    }
+    if (!selectedCategoryId) return ''
+    const match = categoryOptions.find(
+      (cat: any) => String(cat?.id) === String(selectedCategoryId)
+    )
+    return match?.name ?? ''
+  }, [selectedCategoryId, selectedCategoryName, categoryOptions])
   const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
+  const [subcategoryLookup, setSubcategoryLookup] = useState<
+    Record<string, { id: any; value: string }>
+  >({})
   const prefillAppliedRef = useRef(false)
+  const lastPrefillSignatureRef = useRef('')
+  const selectAllNextWorkoutsRef = useRef(false)
+  const pendingPrefillCategoryRef = useRef<string>('')
+  const pendingPrefillSubcategoriesRef = useRef<
+    | {
+        id: any
+        value: string
+      }[]
+    | null
+  >(null)
   const selectedSubcategoryIds = useMemo(
     () =>
       (selectedSubcategories || [])
@@ -184,6 +216,51 @@ export default function Subscriptions({
         .filter((id: any) => id != null),
     [selectedSubcategories]
   )
+  const normalizedSelectedSubcategories = useMemo(() => {
+    if (!selectedSubcategories?.length) return []
+    return selectedSubcategories
+      .map((item: any) => {
+        if (!item) return null
+        const key = item?.id ?? item?.value ?? item
+        if (key === undefined || key === null) return null
+        const cached = subcategoryLookup[String(key)]
+        if (cached) return cached
+        const label =
+          item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
+        return {
+          id: key,
+          value: label,
+        }
+      })
+      .filter(Boolean)
+  }, [selectedSubcategories, subcategoryLookup])
+  const deriveSubcategorySelection = useCallback((value?: any | any[]) => {
+    if (!value) return []
+    const list = Array.isArray(value) ? value : [value]
+    return list
+      .map((item) => {
+        if (!item) return null
+        const id = item?.id ?? item?.value ?? item
+        if (id === undefined || id === null) return null
+        const label =
+          item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
+        return { id, value: label }
+      })
+      .filter(Boolean)
+  }, [])
+  const updateSubcategoryLookup = useCallback((options: any[]) => {
+    if (!Array.isArray(options) || options.length === 0) return
+    setSubcategoryLookup((prev) => {
+      const next = { ...prev }
+      options.forEach((opt: any) => {
+        const id = opt?.id ?? opt?.value ?? opt
+        if (id === undefined || id === null) return
+        const label = opt?.value ?? opt?.name ?? opt?.label ?? ''
+        next[String(id)] = { id, value: label }
+      })
+      return next
+    })
+  }, [])
   const workoutListParams = useMemo(() => {
     const params: any = {
       page: wpPage,
@@ -199,18 +276,30 @@ export default function Subscriptions({
     return params
   }, [wpPage, wpPerPage, wpSearch, selectedCategoryId, selectedSubcategoryIds])
   const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList(
-    workoutListParams as any
+    workoutListParams as any,
+    {
+      enabled: shouldLoadWorkouts,
+      keepPreviousData: true,
+      staleTime: 5 * 60 * 1000,
+    }
   )
   const workouts = workoutsResp?.workouts ?? []
   const {
     data: medResp,
     isFetching: medLoading,
     refetch: refetchMeditationsList,
-  } = useMeditationList({
-    page: medPage,
-    per_page: medPerPage,
-    search: medSearch,
-  } as any)
+  } = useMeditationList(
+    {
+      page: medPage,
+      per_page: medPerPage,
+      search: medSearch,
+    } as any,
+    {
+      enabled: shouldLoadMeditations,
+      keepPreviousData: true,
+      staleTime: 5 * 60 * 1000,
+    }
+  )
   const meditations = medResp?.meditations ?? medResp?.items ?? []
   const medMeta = medResp?.meta ?? {}
   const yogaListParams = useMemo(() => {
@@ -224,7 +313,12 @@ export default function Subscriptions({
     return params
   }, [yogaCategoryFilter])
   const { data: yogasResp, isFetching: yogasLoading } = useYogaList(
-    yogaListParams as any
+    yogaListParams as any,
+    {
+      enabled: shouldLoadYoga,
+      keepPreviousData: true,
+      staleTime: 5 * 60 * 1000,
+    }
   )
   const yogas = yogasResp?.yogas ?? yogasResp?.items ?? []
   const sortedMeditations = useMemo(() => {
@@ -332,6 +426,22 @@ export default function Subscriptions({
   const getWorkoutSelectableId = (item: any) =>
     item?.workout_id || item?.workout?.id || item?.id || item?.workoutId
 
+  const collectAllVisibleWorkouts = useCallback((list: any[]) => {
+    if (!Array.isArray(list) || list.length === 0) return []
+    const unique = new Map<string, any>()
+
+    list.forEach((item: any) => {
+      const workoutId = getWorkoutSelectableId(item)
+      if (workoutId == null) return
+      const key = String(workoutId)
+      if (!unique.has(key)) {
+        unique.set(key, item)
+      }
+    })
+
+    return Array.from(unique.values())
+  }, [])
+
   const getMeditationId = (meditation: any) => {
     if (!meditation) return undefined
     return (
@@ -393,6 +503,18 @@ export default function Subscriptions({
       }))
       .sort((a, b) => a.priority - b.priority)
   }, [selectedWorkouts])
+
+  const workoutsById = useMemo(() => {
+    const map = new Map<string, any>()
+    if (Array.isArray(workouts)) {
+      workouts.forEach((workout: any) => {
+        const id = getWorkoutSelectableId(workout)
+        if (id == null) return
+        map.set(String(id), workout)
+      })
+    }
+    return map
+  }, [workouts])
 
   const canProceedToReview = selectedWorkouts.length > 0
   const medCanProceedToReview = selectedMeditations.length > 0
@@ -574,8 +696,8 @@ export default function Subscriptions({
     if (!cell?.inRange)
       return 'text-gray-400 bg-white border-gray-200 opacity-70 cursor-not-allowed'
     if (cell?.meta?.freeze)
-      return 'bg-gradient-to-br from-red-600 to-red-600 text-white border-red-300 shadow-sm cursor-not-allowed'
-    return statusColor(cell?.meta)
+      return 'bg-gradient-to-br from-red-600 to-red-600 text-white border-red-300 shadow-sm cursor-pointer'
+    return `${statusColor(cell?.meta)} cursor-pointer`
   }
 
   const decrementWorkoutCount = (workout: any) => {
@@ -610,6 +732,109 @@ export default function Subscriptions({
       ...prev,
       [key]: Math.max(1, (prev[key] ?? 1) + 1),
     }))
+  }
+
+  const previouslyAssignedWorkoutIds = useMemo(() => {
+    if (!Array.isArray(dayDetail?.workout_plan?.exercises)) return []
+
+    return dayDetail.workout_plan.exercises
+      .map((exercise: any) => getWorkoutSelectableId(exercise))
+      .filter((id: unknown): id is number | string => id != null)
+  }, [dayDetail?.workout_plan?.exercises])
+
+  const workoutPrefillFromApi = useMemo(() => {
+    if (previouslyAssignedWorkoutIds.length === 0 || workoutsById.size === 0)
+      return null
+
+    type Bucket = {
+      categoryId: number | string
+      categoryName: string
+      subs: Map<string, { id: any; value: string }>
+      weight: number
+    }
+
+    const buckets = new Map<string, Bucket>()
+
+    previouslyAssignedWorkoutIds.forEach((workoutId: number | string) => {
+      const workout = workoutsById.get(String(workoutId))
+      if (!workout) return
+
+      const subId =
+        workout?.category?.id ??
+        workout?.subcategory?.id ??
+        workout?.subcategory_id ??
+        workout?.category_id
+
+      const subMeta =
+        subId != null ? subcategoryParentMap[String(subId)] : undefined
+
+      const mainCategoryId =
+        workout?.category?.main_category?.id ??
+        subMeta?.categoryId ??
+        workout?.category?.main_category_id ??
+        workout?.category?.parent_id
+
+      if (mainCategoryId === undefined || mainCategoryId === null) return
+
+      const bucketKey = String(mainCategoryId)
+
+      if (!buckets.has(bucketKey)) {
+        buckets.set(bucketKey, {
+          categoryId: mainCategoryId,
+          categoryName:
+            workout?.category?.main_category?.name ??
+            subMeta?.categoryName ??
+            workout?.category?.main_category_name ??
+            workout?.category?.parent?.name ??
+            '',
+          subs: new Map(),
+          weight: 0,
+        })
+      }
+
+      const bucket = buckets.get(bucketKey)!
+      bucket.weight += 1
+
+      if (
+        subId !== undefined &&
+        subId !== null &&
+        subId !== '' &&
+        !bucket.subs.has(String(subId))
+      ) {
+        const fallbackLabel =
+          subMeta?.label ??
+          workout?.category?.name ??
+          workout?.subcategory?.name ??
+          workout?.subcategory_name ??
+          ''
+
+        bucket.subs.set(String(subId), {
+          id: subId,
+          value: fallbackLabel || `Subcategory ${subId}`,
+        })
+      }
+    })
+
+    if (!buckets.size) return null
+
+    const preferred = Array.from(buckets.values()).sort((a, b) => {
+      if (b.weight === a.weight) {
+        return b.subs.size - a.subs.size
+      }
+      return b.weight - a.weight
+    })[0]
+
+    return {
+      categoryId: preferred.categoryId,
+      categoryName: preferred.categoryName,
+      subcategories: Array.from(preferred.subs.values()),
+    }
+  }, [previouslyAssignedWorkoutIds, workoutsById, subcategoryParentMap])
+
+  type PrefillSelection = {
+    categoryId: number | string
+    categoryName: string
+    subcategories: { id: any; value: string }[]
   }
 
   const previouslySubmittedSelection = useMemo(() => {
@@ -740,39 +965,182 @@ export default function Subscriptions({
     }
   }, [dayDetail?.workout_plan?.exercises, subcategoryParentMap])
 
+  const selectionCandidate: PrefillSelection | null = useMemo(() => {
+    if (workoutPrefillFromApi) return workoutPrefillFromApi
+    if (!previouslySubmittedSelection) return null
+    const fallbackSubs = Array.isArray(
+      previouslySubmittedSelection.subcategories
+    )
+      ? previouslySubmittedSelection.subcategories
+      : []
+
+    return {
+      categoryId: previouslySubmittedSelection.categoryId,
+      categoryName: previouslySubmittedSelection.categoryName,
+      subcategories: fallbackSubs,
+    }
+  }, [workoutPrefillFromApi, previouslySubmittedSelection])
+
+  const selectionSignature = useMemo(() => {
+    if (!selectionCandidate) return ''
+    const subIds = Array.isArray(selectionCandidate.subcategories)
+      ? selectionCandidate.subcategories
+          .map((sub) =>
+            sub?.id === undefined || sub?.id === null ? '' : String(sub.id)
+          )
+          .filter(Boolean)
+          .sort()
+          .join('|')
+      : ''
+
+    return `${selectionCandidate.categoryId ?? ''}::${subIds}`
+  }, [selectionCandidate])
+
   useEffect(() => {
     setSelectedCategoryId(undefined)
     setSelectedCategoryName('')
     setSelectedSubcategories([])
+    setSubcategoryLookup({})
     prefillAppliedRef.current = false
+    lastPrefillSignatureRef.current = ''
   }, [dayDetail?.workout_plan?.id])
 
   useEffect(() => {
     if (!assignOpen) return
-    if (!previouslySubmittedSelection || prefillAppliedRef.current) return
+    if (prefillAppliedRef.current) return
+    if (!selectionCandidate) return
 
-    const { categoryId, categoryName, subcategories } =
-      previouslySubmittedSelection
+    if (
+      prefillAppliedRef.current &&
+      lastPrefillSignatureRef.current === selectionSignature
+    ) {
+      return
+    }
+
+    const categoryId = selectionCandidate.categoryId
+    const categoryName = selectionCandidate.categoryName
+    const subcategories = selectionCandidate.subcategories || []
+
+    const resolvedCategoryName =
+      categoryName && categoryName.length > 0
+        ? categoryName
+        : (categoryOptions.find(
+            (cat: any) => String(cat?.id ?? '') === String(categoryId ?? '')
+          )?.name ?? '')
+
+    const applySubcategoriesIfChanged = () => {
+      if (!Array.isArray(subcategories) || subcategories.length === 0) return
+
+      setSelectedSubcategories((prev) => {
+        const prevKey = prev
+          .map((item: any) => String(item?.id ?? ''))
+          .filter(Boolean)
+          .sort()
+          .join('|')
+        const nextKey = subcategories
+          .map((item: any) => String(item?.id ?? ''))
+          .filter(Boolean)
+          .sort()
+          .join('|')
+
+        if (prevKey === nextKey) {
+          return prev
+        }
+
+        updateSubcategoryLookup(subcategories)
+        return subcategories
+      })
+    }
 
     if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
-      setSelectedCategoryId(categoryId)
+      setSelectedCategoryId((prev) => {
+        if (String(prev ?? '') === String(categoryId ?? '')) {
+          return prev
+        }
+        return categoryId
+      })
 
-      const resolvedCategoryName =
-        categoryName && categoryName.length > 0
-          ? categoryName
-          : (categoryOptions.find(
-              (cat: any) => String(cat?.id) === String(categoryId)
-            )?.name ?? '')
+      setSelectedCategoryName((prev) => {
+        if (prev === resolvedCategoryName) return prev
+        return resolvedCategoryName
+      })
 
-      setSelectedCategoryName(resolvedCategoryName)
+      applySubcategoriesIfChanged()
     }
 
-    if (Array.isArray(subcategories) && subcategories.length > 0) {
-      setSelectedSubcategories(subcategories)
-    }
-
+    lastPrefillSignatureRef.current = selectionSignature
     prefillAppliedRef.current = true
-  }, [assignOpen, previouslySubmittedSelection, categoryOptions])
+  }, [assignOpen, selectionCandidate, selectionSignature])
+
+  useEffect(() => {
+    if (!assignOpen) {
+      prefillAppliedRef.current = false
+      lastPrefillSignatureRef.current = ''
+      setSelectedCategoryId(undefined)
+      setSelectedCategoryName('')
+      setSelectedSubcategories([])
+      pendingPrefillCategoryRef.current = ''
+      pendingPrefillSubcategoriesRef.current = null
+    }
+  }, [assignOpen])
+
+  useEffect(() => {
+    if (!assignOpen) return
+    if (workoutsLoading) return
+    if (!Array.isArray(workouts) || workouts.length === 0) return
+    const pendingCategoryKey = pendingPrefillCategoryRef.current
+    const pendingSubcategories = pendingPrefillSubcategoriesRef.current
+    if (!pendingCategoryKey || !pendingSubcategories?.length) return
+    if (String(selectedCategoryId ?? '') !== pendingCategoryKey) return
+    if (selectedSubcategories?.length) {
+      pendingPrefillCategoryRef.current = ''
+      pendingPrefillSubcategoriesRef.current = null
+      return
+    }
+
+    updateSubcategoryLookup(pendingSubcategories)
+    setSelectedSubcategories(pendingSubcategories)
+    pendingPrefillCategoryRef.current = ''
+    pendingPrefillSubcategoriesRef.current = null
+  }, [
+    assignOpen,
+    workoutsLoading,
+    workouts,
+    selectedCategoryId,
+    selectedSubcategories,
+    updateSubcategoryLookup,
+  ])
+
+  useEffect(() => {
+    if (!assignOpen) return
+    if (!selectedCategoryId) return
+    if (selectedCategoryName && selectedCategoryName.length > 0) return
+    if (!Array.isArray(categoryOptions) || categoryOptions.length === 0) return
+
+    const match = categoryOptions.find(
+      (cat: any) => String(cat?.id) === String(selectedCategoryId)
+    )
+    if (match?.name) {
+      setSelectedCategoryName(match.name)
+    }
+  }, [assignOpen, selectedCategoryId, selectedCategoryName, categoryOptions])
+
+  useEffect(() => {
+    if (!assignOpen) {
+      selectAllNextWorkoutsRef.current = false
+      return
+    }
+    if (workoutsLoading) return
+    if (!selectAllNextWorkoutsRef.current) return
+    if (!Array.isArray(workouts) || workouts.length === 0) {
+      setSelectedWorkouts([])
+      selectAllNextWorkoutsRef.current = false
+      return
+    }
+
+    setSelectedWorkouts(collectAllVisibleWorkouts(workouts))
+    selectAllNextWorkoutsRef.current = false
+  }, [assignOpen, workoutsLoading, workouts])
 
   const openDayDetail = async (dateStr: string) => {
     if (!user?.id || !dateStr) return
@@ -1250,37 +1618,62 @@ export default function Subscriptions({
     setFreezeForm((prev) => ({ ...prev, [data.name]: data.value }))
   }
 
+  const resetFreezeForm = () => {
+    setFreezeForm({ reason: '', start_date: '', end_date: '' })
+  }
+
+  const closeFreezeDialog = () => {
+    setToggleFreezeOpen(false)
+    setToggleFreezeRow(null)
+    setFreezeMode('freeze')
+    resetFreezeForm()
+  }
+
   const handleConfirmToggleFreeze = async () => {
+    const sid = String(toggleFreezeRow?.id || overview?.subscription?.id || '')
+    if (!sid) {
+      enqueueSnackbar('Missing subscription id', { variant: 'error' })
+      return
+    }
+
     try {
       setLoader(true)
-      const isAlreadyFrozen = isFrozen(toggleFreezeRow)
-      if (!isAlreadyFrozen) {
-        const sid = String(
-          toggleFreezeRow?.id || overview?.subscription?.id || ''
-        )
-        if (!sid) throw new Error('Missing subscription id')
+      if (freezeMode === 'freeze') {
         await freezeSubscription(sid, {
           reason: freezeForm.reason || undefined,
           start_date: freezeForm.start_date || undefined,
           end_date: freezeForm.end_date || undefined,
         })
-        try {
-          const res = await getActivePlanOverview(user.id)
-          setOverview(res)
-        } catch {}
-        try {
-          const fresh = await getAdminDetails(String(id))
-          onRefresh(fresh)
-        } catch {}
         enqueueSnackbar('Subscription frozen successfully', {
           variant: 'success',
         })
       } else {
-        // TODO: implement unfreeze subscription API when available
-        enqueueSnackbar('Unfreeze API not implemented', { variant: 'warning' })
+        await unfreezeSubscription(sid)
+        enqueueSnackbar('Subscription unfrozen successfully', {
+          variant: 'success',
+        })
       }
-      setToggleFreezeOpen(false)
-      setToggleFreezeRow(null)
+
+      try {
+        const res = await getActivePlanOverview(user.id)
+        setOverview(res)
+      } catch {}
+      try {
+        const fresh = await getAdminDetails(String(id))
+        onRefresh(fresh)
+      } catch {}
+      closeFreezeDialog()
+    } catch (error: any) {
+      const resp = error?.response?.data
+      const messageFromResponse =
+        resp?.message ||
+        resp?.error ||
+        (Array.isArray(resp?.errors) ? resp.errors.join(', ') : null) ||
+        resp?.detail ||
+        error?.message
+      enqueueSnackbar(messageFromResponse || 'Failed to update subscription', {
+        variant: 'error',
+      })
     } finally {
       setLoader(false)
     }
@@ -1512,6 +1905,9 @@ export default function Subscriptions({
                         : 'Freeze Subscription'
                     }
                     onClick={() => {
+                      setFreezeMode(
+                        isFrozen(overview?.subscription) ? 'unfreeze' : 'freeze'
+                      )
                       setToggleFreezeRow(overview?.subscription)
                       setToggleFreezeOpen(true)
                       setFreezeForm({
@@ -1589,30 +1985,41 @@ export default function Subscriptions({
                               {m.cells.map((c: any) => (
                                 <div
                                   key={c.key}
-                                  className={`relative h-44 border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)} ${c?.inRange && !c?.meta?.freeze ? 'cursor-pointer' : ''}`}
+                                  className={`relative h-44 border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)}`}
                                   title={
                                     c?.meta?.date
                                       ? `${c.meta.date}  •  Diet: ${c?.meta?.diet_summary?.total_items ?? 0}  •  Workout: ${c?.meta?.workout_summary?.total_exercises ?? 0}  •  Yoga: ${c?.meta?.yoga_summary?.total_exercises ?? 0}  •  Meditation: ${c?.meta?.meditation_summary?.total_items ?? 0}`
                                       : ''
                                   }
-                                  role={
-                                    c?.inRange && !c?.meta?.freeze
-                                      ? 'button'
-                                      : undefined
-                                  }
-                                  tabIndex={
-                                    c?.inRange && !c?.meta?.freeze ? 0 : -1
-                                  }
-                                  onClick={() =>
-                                    c?.inRange &&
-                                    !c?.meta?.freeze &&
+                                  role={c?.inRange ? 'button' : undefined}
+                                  tabIndex={c?.inRange ? 0 : -1}
+                                  onClick={() => {
+                                    if (!c?.inRange) return
+                                    if (c?.meta?.freeze) {
+                                      setFreezeMode('unfreeze')
+                                      setToggleFreezeRow({
+                                        ...overview?.subscription,
+                                        freeze_date: c?.meta?.date || c.key,
+                                      })
+                                      setToggleFreezeOpen(true)
+                                      return
+                                    }
                                     openDayDetail(c?.meta?.date || c.key)
-                                  }
+                                  }}
                                   onKeyDown={(e) => {
-                                    if (!c?.inRange || c?.meta?.freeze) return
+                                    if (!c?.inRange) return
                                     if (e.key === 'Enter' || e.key === ' ') {
                                       e.preventDefault()
-                                      openDayDetail(c?.meta?.date || c.key)
+                                      if (c?.meta?.freeze) {
+                                        setFreezeMode('unfreeze')
+                                        setToggleFreezeRow({
+                                          ...overview?.subscription,
+                                          freeze_date: c?.meta?.date || c.key,
+                                        })
+                                        setToggleFreezeOpen(true)
+                                      } else {
+                                        openDayDetail(c?.meta?.date || c.key)
+                                      }
                                     }
                                   }}
                                 >
@@ -1735,14 +2142,38 @@ export default function Subscriptions({
                     descId="id"
                     type="custom_search_select"
                     data={categoryOptions}
-                    value={selectedCategoryName}
+                    value={categoryAutocompleteValue}
                     name="assign_category"
                     onChange={(option: any) => {
                       const id = option?.id ?? option?.value ?? ''
                       const name = option?.name ?? option?.label ?? ''
+                      const prevIdKey = String(selectedCategoryId ?? '')
+                      const nextIdKey = String(id || '')
+                      const categoryActuallyChanged = prevIdKey !== nextIdKey
+                      const matchedCategory = categoryOptions.find(
+                        (cat: any) => String(cat?.id ?? '') === nextIdKey
+                      )
+                      const normalizedPrefillSubcategories =
+                        id && matchedCategory
+                          ? (deriveSubcategorySelection(
+                              matchedCategory?.subcategories || []
+                            ) as { id: any; value: string }[])
+                          : []
                       setSelectedCategoryId(id || undefined)
                       setSelectedCategoryName(name || '')
+                      if (id && normalizedPrefillSubcategories.length) {
+                        pendingPrefillCategoryRef.current = nextIdKey
+                        pendingPrefillSubcategoriesRef.current =
+                          normalizedPrefillSubcategories
+                      } else {
+                        pendingPrefillCategoryRef.current = ''
+                        pendingPrefillSubcategoriesRef.current = null
+                      }
                       setSelectedSubcategories([])
+                      if (assignOpen && categoryActuallyChanged) {
+                        selectAllNextWorkoutsRef.current = true
+                        setSelectedWorkouts([])
+                      }
                     }}
                   />
                 </div>
@@ -1753,7 +2184,7 @@ export default function Subscriptions({
                     descId="id"
                     type="auto_suggestion"
                     isMultiple={true}
-                    selectedItems={selectedSubcategories}
+                    selectedItems={normalizedSelectedSubcategories}
                     value={''}
                     async={true}
                     initialLoad={true}
@@ -1776,15 +2207,32 @@ export default function Subscriptions({
                         )
                       }
 
+                      updateSubcategoryLookup(options)
+
                       return options
                     }}
                     onChange={(value?: any | any[]) => {
-                      if (!value) {
-                        setSelectedSubcategories([])
-                      } else if (Array.isArray(value)) {
-                        setSelectedSubcategories(value)
-                      } else {
-                        setSelectedSubcategories([value])
+                      const normalized = deriveSubcategorySelection(value)
+                      const prevKey = (selectedSubcategories || [])
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(Boolean)
+                        .sort()
+                        .join('|')
+                      const nextKey = (normalized || [])
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(Boolean)
+                        .sort()
+                        .join('|')
+
+                      if (prevKey === nextKey) {
+                        setSelectedSubcategories(normalized)
+                        return
+                      }
+
+                      setSelectedSubcategories(normalized)
+                      if (assignOpen) {
+                        selectAllNextWorkoutsRef.current = true
+                        setSelectedWorkouts([])
                       }
                     }}
                   />
@@ -2099,7 +2547,7 @@ export default function Subscriptions({
             )}
 
             {!yogasLoading && yogas.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
                 {yogas.map((y: any) => {
                   const url = y?.video_url || ''
                   const embed = getEmbedUrl(url)
@@ -2131,7 +2579,7 @@ export default function Subscriptions({
                         </div>
                       ) : url ? (
                         <video
-                          className="w-full h-32 object-cover rounded"
+                          className="w-full h-32 object-cover"
                           src={String(url)}
                           muted
                           controls
@@ -2606,22 +3054,21 @@ export default function Subscriptions({
 
       <DialogModal
         isOpen={toggleFreezeOpen}
-        onClose={() => setToggleFreezeOpen(false)}
+        onClose={closeFreezeDialog}
         title={
-          isFrozen(toggleFreezeRow)
+          freezeMode === 'unfreeze'
             ? 'Unfreeze Subscription'
             : 'Freeze Subscription'
         }
         onSubmit={handleConfirmToggleFreeze}
         secondaryAction={() => {
-          setToggleFreezeOpen(false)
-          setToggleFreezeRow(null)
+          closeFreezeDialog()
         }}
         secondaryActionLabel="Cancel"
-        actionLabel={isFrozen(toggleFreezeRow) ? 'Unfreeze' : 'Freeze'}
+        actionLabel={freezeMode === 'unfreeze' ? 'Unfreeze' : 'Freeze'}
         actionLoader={loader}
         body={
-          isFrozen(toggleFreezeRow) ? (
+          freezeMode === 'unfreeze' ? (
             <InfoBox content={'Do you want to unfreeze this subscription?'} />
           ) : (
             <div className="flex flex-col gap-3">

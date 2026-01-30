@@ -633,6 +633,10 @@ const FormBuilder: React.FC<Props> = (props) => {
                     accept={field.accept}
                     required={field?.required}
                     disabled={field?.disabled ?? isEditable()}
+                    aspectRatio={field.aspectRatio}
+                    requiredWidth={field.requiredWidth}
+                    requiredHeight={field.requiredHeight}
+                    dimensionLabel={field.dimensionLabel}
                   />
                 </>
               )

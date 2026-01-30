@@ -76,9 +76,11 @@ export default function CreateAdmin({
   }
   const formatVideoDurationLabel = (durationMs: number | null) => {
     if (durationMs === null) return ''
-    const minutes = durationMs / 60000
-    const formatted = minutes.toFixed(2)
-    return `Duration: ${formatted} min`
+    const totalSeconds = Math.max(0, Math.round(durationMs / 1000))
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    const paddedSeconds = seconds.toString().padStart(2, '0')
+    return `Duration: ${minutes}:${paddedSeconds}`
   }
   const [deleteModal, setDeleteModal] = useState(false)
   const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null)
@@ -370,8 +372,11 @@ export default function CreateAdmin({
     }
 
     if (videoDurationMs !== null) {
-      const durationMinutes = videoDurationMs / 60000
-      fd.append('yoga[duration_minutes]', durationMinutes.toFixed(2))
+      const totalSeconds = Math.max(0, Math.round(videoDurationMs / 1000))
+      const minutes = Math.floor(totalSeconds / 60)
+      const seconds = totalSeconds % 60
+      const paddedSeconds = seconds.toString().padStart(2, '0')
+      fd.append('yoga[duration_minutes]', `${minutes}.${paddedSeconds}`)
     }
 
     if (rowData?.id) {

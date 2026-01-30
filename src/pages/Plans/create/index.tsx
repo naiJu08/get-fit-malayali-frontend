@@ -1,164 +1,4 @@
-// import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
-// import moment from 'moment'
-// // import moment from 'moment'
-// import { useEffect, useState } from 'react'
-// import { FormProvider, useForm } from 'react-hook-form'
-
-// import InfoBox from '../../../components/app/alertBox/infoBox'
-// import FormBuilder from '../../../components/app/formBuilder'
-// import { DialogModal } from '../../../components/common'
-// import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
-// import { humanizeDatetime } from '../../../utilities/format'
-// // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
-// // import FormFieldView from '../../../components/common/inputs/FormFieldView'
-// import { getRoles, useCreateAdmin, useUpdateAdmin } from '../api'
-// import { ACCEPTED_IMAGE_TYPES, AdminSchema, formSchema } from './schema'
-
-// type Props = {
-//   isDrawerOpen: boolean
-//   disabled?: boolean
-//   handleClose: () => void
-//   handleRefresh?: () => void
-//   paramsId?: any
-//   handleCallback?: () => void
-//   model_name?: string
-//   rowData?: any
-//   isOwnTask?: boolean
-//   isGeneral?: boolean
-//   viewMode?: boolean
-//   setViewMode?: (value: boolean) => void
-//   edit?: boolean
-//   hasPermission?: boolean
-//   setEdit?: (value: boolean) => void
-//   subSection?: boolean
-//   setEditViewIndicator?: (value: boolean) => void
-//   editViewIndicator?: boolean
-// }
-
-// export default function CreatePlan({
-//   isDrawerOpen,
-//   handleClose,
-//   handleRefresh,
-//   edit,
-//   viewMode,
-//   setViewMode,
-//   setEdit,
-//   rowData,
-//   setEditViewIndicator,
-// }: Props) {
-//   const textField = (
-//     name: string,
-//     label: string,
-//     placeholder: string,
-//     required = false,
-//     disabled = false
-//   ) => ({
-//     name,
-//     label,
-//     id: name,
-//     type: 'text',
-//     placeholder,
-//     ...(required ? { required: true } : {}),
-//     ...(disabled ? { disabled: true } : {}),
-//   })
-//   const [roleData, setRoleData] = useState<any[]>([])
-//   const [deleteModal, setDeleteModal] = useState(false)
-//   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
-
-//   useEffect(() => {
-//     if (isDrawerOpen) {
-//       getRoleData()
-//     }
-//   }, [isDrawerOpen])
-
-//   const statusData = [
-//     {
-//       id: '1',
-//       name: 'Active',
-//     },
-//     {
-//       id: '2',
-//       name: 'Inactive',
-//     },
-//   ]
-//   // useEffect(() => {
-//   //   const intervalId = setTimeout(() => {
-//   //     SetProfileLoading(false)
-//   //   }, 2000)
-
-//   //   return () => clearTimeout(intervalId)
-//   // }, [])
-
-//   const handleDeleteFile = () => {
-//     console.log('handle delete')
-//     // deleteAssessorImage(rowData?.user?.id)
-//     //   .then((res: any) => {
-//     //     enqueueSnackbar(res.message ? res.message : 'Deleted Successfully', {
-//     //       variant: 'success',
-//     //     })
-//     //     handleRefresh?.()
-//     //     setDeleteModal(false)
-//     //   })
-//     //   .catch((err: any) => {
-//     //     enqueueSnackbar(
-//     //       err?.response?.data?.error?.message || err?.response?.data?.message,
-//     //       { variant: 'error' }
-//     //     )
-//     //   })
-//   }
-//   const getRoleData = async () => {
-//     try {
-//       const res = await getRoles()
-//       const items = res?.items ?? []
-//       const a = items?.map((item: any) => ({
-//         ...item,
-//         role: item?.name,
-//         name: item?.name,
-//         id: item?.id,
-//       }))
-//       setRoleData(a ?? [])
-//     } catch (e) {
-//       setRoleData([])
-//     }
-//   }
-//   const formBuilderProps = [
-//     {
-//       ...textField('first_name', 'First Name', 'Enter First Name', true),
-//       value: rowData?.user?.first_name,
-//       hidden: false,
-//     },
-//     {
-//       ...textField('last_name', 'Last Name', 'Enter Last Name', true),
-//       value: rowData?.user?.last_name,
-//       hidden: false,
-//     },
-//     {
-//       ...textField('job_title', 'Job Title', 'Enter Job Title', false),
-//       value: rowData?.user?.job_title,
-//       hidden: false,
-//     },
-//     {
-//       ...textField('email', 'Email', 'Enter Email', true),
-//       type: 'email',
-//       value: rowData?.user?.username,
-//       hidden: false,
-//       disabled: edit,
-//       toLowercase: true,
-//     },
-//     {
-//       ...textField('password', 'Password', 'Enter Password', false),
-//       type: 'password',
-//       hidden: viewMode || edit ? true : false,
-//     },
-//     {
-//       name: 'role',
-//       label: 'Job Role',
-//       required: true,
-//       // getData: getRoleData,
-//       id: 'role_id',
-//       desc: 'name',
-//       descId: 'id',
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useEffect } from 'react'
@@ -166,8 +6,7 @@ import ToggleSwitch from '../../../components/common/inputs/ToggleSwitch'
 import { planFormSchema, PlanSchema } from './schema'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
-// import InfoBox from '../../../components/app/alertBox/infoBox'
-import { useCreatePlan, useUpdatePlan } from '../api'
+import { useCreatePlan, useUpdatePlan, usePlan } from '../api'
 
 type Props = {
   isDrawerOpen: boolean
@@ -183,7 +22,7 @@ type Props = {
 export default function CreatePlan({
   isDrawerOpen,
   handleClose,
-  // handleRefresh,
+  handleRefresh,
   edit,
   rowData,
   viewMode,
@@ -200,6 +39,16 @@ export default function CreatePlan({
   const { mutate: createPlanMutate } = useCreatePlan()
   const { mutate: updatePlanMutate } = useUpdatePlan()
   const queryClient = useQueryClient()
+  const editingPlanId = edit
+    ? (rowData?.plan?.id ?? rowData?.plan_id ?? rowData?.id)
+    : undefined
+  const { data: latestPlanData } = usePlan(editingPlanId)
+  const resolvedPlan = edit
+    ? ((latestPlanData as any)?.plan ??
+      latestPlanData ??
+      rowData?.plan ??
+      rowData)
+    : undefined
   const onSubmit = (values: PlanSchema | any) => {
     // Do not send status from the form; backend will use its default or preserve existing
     // const { active: _omitActive, ...rest } = values || {}
@@ -233,33 +82,46 @@ export default function CreatePlan({
     if (edit && rowData?.plan?.id) {
       updatePlanMutate(
         { id: rowData.plan.id, payload: fd },
-        { onSuccess: () => handleClose() }
+        {
+          onSuccess: () => {
+            if (editingPlanId) {
+              queryClient.invalidateQueries(['plan_detail', editingPlanId])
+            }
+            queryClient.invalidateQueries(['plans_list'])
+            handleRefresh?.()
+            handleClose()
+          },
+        }
       )
     } else {
       createPlanMutate(fd, {
         onSuccess: () => {
           // Refresh the listing and close
           queryClient.invalidateQueries(['plans_list'])
+          handleRefresh?.()
           handleClose()
         },
       })
     }
   }
   useEffect(() => {
-    if (isDrawerOpen && edit && rowData) {
+    if (!isDrawerOpen) return
+    if (edit && resolvedPlan) {
       reset({
-        name: rowData?.plan?.name ?? '',
-        category: rowData?.plan?.category ?? '',
-        description: rowData?.plan?.description ?? '',
-        duration_days: rowData?.plan?.duration_days ?? 0,
-        fees: rowData?.plan?.fees ?? 0,
-        yoga_included: Boolean(rowData?.plan?.yoga_included ?? false),
+        name: resolvedPlan?.name ?? '',
+        category: resolvedPlan?.category ?? '',
+        description: resolvedPlan?.description ?? '',
+        duration_days: resolvedPlan?.duration_days ?? 0,
+        fees: resolvedPlan?.fees ?? 0,
+        yoga_included: Boolean(resolvedPlan?.yoga_included ?? false),
         meditation_included: Boolean(
-          rowData?.plan?.meditation_included ?? false
+          resolvedPlan?.meditation_included ?? false
         ),
         thumbnail: null,
       })
-    } else if (isDrawerOpen && !edit) {
+      return
+    }
+    if (isDrawerOpen && !edit) {
       reset({
         name: '',
         category: '',
@@ -271,7 +133,7 @@ export default function CreatePlan({
         thumbnail: '',
       })
     }
-  }, [isDrawerOpen, edit, rowData, reset])
+  }, [isDrawerOpen, edit, resolvedPlan, reset])
 
   const getReadableFileName = (value?: string) => {
     if (!value) {
@@ -300,10 +162,10 @@ export default function CreatePlan({
     placeholder,
     ...(required ? { required: true } : {}),
   })
-  const existingImageFile = rowData?.plan?.thumbnail_url
+  const existingImageFile = (resolvedPlan as any)?.thumbnail_url
     ? {
-        name: getReadableFileName(rowData.plan.thumbnail_url),
-        link: rowData.plan.thumbnail_url,
+        name: getReadableFileName((resolvedPlan as any)?.thumbnail_url),
+        link: (resolvedPlan as any)?.thumbnail_url,
       }
     : undefined
 
@@ -350,6 +212,7 @@ export default function CreatePlan({
         true,
         'textarea'
       ),
+      maxLength: 250,
     },
 
     {
@@ -366,10 +229,14 @@ export default function CreatePlan({
         'image/jpg',
         'image/webp',
       ],
-      acceptedFiles: 'PNG, JPG, JPEG, WEBP (Max 5 MB)',
+      acceptedFiles: 'PNG, JPG, JPEG, WEBP',
       fileSize: 5,
       selectedFiles: existingImageFile,
       subName: 'thumbnail',
+      aspectRatio: { width: 16, height: 9 },
+      requiredWidth: 1600,
+      requiredHeight: 900,
+      dimensionLabel: 'Recommended size: 1600x900px (16:9)',
     },
   ]
 
@@ -400,7 +267,7 @@ export default function CreatePlan({
       isOpen={isDrawerOpen}
       onClose={handleClose}
       title={edit ? 'Edit Plan' : viewMode ? 'View Plan' : 'Create Plan'}
-      actionLabel={viewMode ? 'Edit' : edit ? 'Update' : 'Create'}
+      actionLabel={viewMode ? 'Edit' : edit ? 'Save' : 'Save'}
       onSubmit={viewMode ? handleChangeMode : handleSubmit(onSubmit)}
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"

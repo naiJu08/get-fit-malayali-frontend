@@ -1,28 +1,46 @@
+import moment from 'moment'
 import { useMemo } from 'react'
 import Icons from '../../../components/common/icons'
 import { useUserReminders } from '../api'
 
 interface ReminderSettingsProps {
-  userId?: string | number
+  subscriptionId?: string | number | null
 }
 
-const REMINDER_COPY: Record<
-  string,
-  { label: string; hint: string; icon: string }
-> = {
+const deriveReminderMoment = (reminder: any) => {
+  const candidates = [
+    reminder?.date,
+    reminder?.reminder_date,
+    reminder?.schedule_date,
+    reminder?.scheduled_for,
+    reminder?.start_date,
+    reminder?.end_date,
+    reminder?.created_at,
+    reminder?.updated_at,
+  ]
+
+  for (const candidate of candidates) {
+    if (!candidate) continue
+    const parsed = moment(candidate)
+    if (parsed.isValid()) {
+      return parsed
+    }
+  }
+
+  return null
+}
+
+const REMINDER_COPY: Record<string, { label: string; icon: string }> = {
   water: {
     label: 'Hydration Breaks',
-    hint: 'Keeps the user sipping through the day',
     icon: 'water-bottle-icon',
   },
   workout: {
-    label: 'Workout Alarm',
-    hint: 'Nudges the user to move and train',
+    label: 'Workout',
     icon: 'exercise-icon',
   },
   sleep: {
-    label: 'Sleep Wind-down',
-    hint: 'Guides the user into a calm bedtime routine',
+    label: 'Sleep',
     icon: 'sleep-time-icon',
   },
 }
@@ -46,10 +64,80 @@ const capitalize = (val?: string | null) => {
   return val.charAt(0).toUpperCase() + val.slice(1)
 }
 
-const ReminderSettings = ({ userId }: ReminderSettingsProps) => {
-  const { data, isLoading, error } = useUserReminders({ user_id: userId })
+type ReminderWithMoment = {
+  reminder: any
+  scheduleMoment: moment.Moment | null
+  timestamp: number
+}
 
-  const reminders = data?.items ?? []
+type ReminderGroup = {
+  dateKey: string
+  timestamp: number
+  scheduleMoment: moment.Moment | null
+  reminders: ReminderWithMoment[]
+}
+
+type ReminderGroupAccumulator = Record<
+  string,
+  {
+    timestamp: number
+    scheduleMoment: moment.Moment | null
+    reminders: ReminderWithMoment[]
+  }
+>
+
+const ReminderSettings = ({ subscriptionId }: ReminderSettingsProps) => {
+  const { data, isLoading, error } = useUserReminders({
+    subscription_id: subscriptionId ?? undefined,
+  })
+
+  const reminders: any[] = data?.items ?? []
+
+  const reminderGroups = useMemo(() => {
+    if (reminders.length === 0) return []
+
+    const grouped = reminders.reduce(
+      (acc: ReminderGroupAccumulator, reminder: any) => {
+        const scheduleMoment = deriveReminderMoment(reminder)
+        const timestamp = scheduleMoment ? scheduleMoment.valueOf() : 0
+        const dateKey = scheduleMoment
+          ? scheduleMoment.clone().startOf('day').format('YYYY-MM-DD')
+          : 'unscheduled'
+
+        if (!acc[dateKey]) {
+          acc[dateKey] = {
+            timestamp,
+            scheduleMoment,
+            reminders: [] as {
+              reminder: any
+              scheduleMoment: moment.Moment | null
+              timestamp: number
+            }[],
+          }
+        }
+
+        acc[dateKey].reminders.push({ reminder, scheduleMoment, timestamp })
+
+        if (timestamp > acc[dateKey].timestamp) {
+          acc[dateKey].timestamp = timestamp
+          acc[dateKey].scheduleMoment = scheduleMoment
+        }
+        return acc
+      },
+      {} as ReminderGroupAccumulator
+    )
+
+    const groups: ReminderGroup[] = Object.entries(grouped).map(
+      ([dateKey, payload]) => ({
+        dateKey,
+        timestamp: payload.timestamp,
+        scheduleMoment: payload.scheduleMoment,
+        reminders: payload.reminders,
+      })
+    )
+
+    return groups.sort((a, b) => b.timestamp - a.timestamp)
+  }, [reminders])
 
   const summary = useMemo(() => {
     const total = reminders.length
@@ -60,16 +148,16 @@ const ReminderSettings = ({ userId }: ReminderSettingsProps) => {
     return { total, active, types }
   }, [reminders])
 
-  if (!userId) {
+  if (!subscriptionId) {
     return (
       <div className="rounded-xl border bg-white p-6 text-sm text-gray-500">
-        User details not available.
+        Subscription details not available.
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-1">
       <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-100 bg-gradient-to-r from-slate-900 to-slate-700 p-5 text-white shadow-sm sm:grid-cols-3">
         <div>
           <p className="text-xs text-white/60">Total reminders</p>
@@ -95,84 +183,155 @@ const ReminderSettings = ({ userId }: ReminderSettingsProps) => {
         </div>
       )}
 
-      {!isLoading && reminders.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {reminders.map((reminder: any) => {
-            const typeKey = String(reminder?.reminder_type || '').toLowerCase()
-            const meta = REMINDER_COPY[typeKey] ?? {
-              label: capitalize(reminder?.reminder_type) || 'Reminder',
-              hint: 'User configured reminder',
-              icon: 'notification-icon',
-            }
-            const isActive = Boolean(reminder?.active)
-            const showInterval = reminder?.interval_minutes
-            return (
-              <div
-                key={reminder?.id}
-                className="group flex flex-col gap-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-4">
-                    <span className="flex h-32 w-32 items-center justify-center rounded-2xl bg-gradient-to-br text-blue-700">
-                      <Icons name={meta.icon} />
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900">
-                        {meta.label}
-                      </p>
-                      <p className="text-xs text-gray-500">{meta.hint}</p>
-                    </div>
-                  </div>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                      isActive
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-gray-100 text-gray-500'
-                    }`}
-                  >
-                    {isActive ? 'Active' : 'Paused'}
-                  </span>
+      {!isLoading && reminderGroups.length > 0 && (
+        <div className="flex flex-col gap-6">
+          {reminderGroups.map((group: ReminderGroup) => (
+            <div key={group.dateKey} className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-100 bg-white px-4 py-3 shadow-lg mt-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-gray-500">
+                    Schedule Date
+                  </p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {group.scheduleMoment
+                      ? group.scheduleMoment.format('dddd, MMM DD, YYYY')
+                      : 'Unscheduled'}
+                  </p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl bg-gray-50 p-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
-                      Time of day
-                    </p>
-                    <p className="text-base font-semibold text-gray-800">
-                      {formatTime(reminder?.time_of_day)}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-gray-50 p-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
-                      Interval
-                    </p>
-                    <p className="text-base font-semibold text-gray-800">
-                      {showInterval
-                        ? `${reminder.interval_minutes} mins`
-                        : '--'}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-gray-50 p-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
-                      Start
-                    </p>
-                    <p className="text-base font-semibold text-gray-800">
-                      {formatTime(reminder?.start_time)}
-                    </p>
-                  </div>
-                  <div className="rounded-xl bg-gray-50 p-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-500">
-                      End
-                    </p>
-                    <p className="text-base font-semibold text-gray-800">
-                      {formatTime(reminder?.end_time)}
-                    </p>
-                  </div>
-                </div>
+                <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  {group.reminders.length}{' '}
+                  {group.reminders.length === 1 ? 'Reminder' : 'Reminders'}
+                </span>
               </div>
-            )
-          })}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+                {group.reminders.map(({ reminder }: ReminderWithMoment) => {
+                  const typeKey = String(
+                    reminder?.reminder_type || ''
+                  ).toLowerCase()
+                  const meta = REMINDER_COPY[typeKey] ?? {
+                    label: capitalize(reminder?.reminder_type) || 'Reminder',
+                    hint: 'User configured reminder',
+                    icon: 'notification-icon',
+                  }
+                  const isWorkoutReminder = typeKey === 'workout'
+                  const isSleepReminder = typeKey === 'sleep'
+                  const isActive = Boolean(reminder?.active)
+                  const showInterval = reminder?.interval_minutes
+
+                  const detailRows: {
+                    key: string
+                    label: string
+                    value: string
+                  }[] = []
+
+                  if (!isWorkoutReminder) {
+                    detailRows.push({
+                      key: 'wake',
+                      label: 'Wake Up',
+                      value: formatTime(reminder?.start_time),
+                    })
+                  }
+
+                  if (!isSleepReminder && !isWorkoutReminder) {
+                    detailRows.push({
+                      key: 'interval',
+                      label: 'Interval',
+                      value: showInterval
+                        ? `${reminder.interval_minutes} mins`
+                        : '--',
+                    })
+                    detailRows.push({
+                      key: 'end',
+                      label: 'End',
+                      value: formatTime(reminder?.end_time),
+                    })
+                  }
+
+                  return (
+                    <div
+                      key={reminder?.id}
+                      className="relative flex h-full min-h-[310px] flex-col gap-1 rounded-2xl border border-gray-100 bg-disabledText p-6 shadow-sm transition-shadow duration-150 hover:shadow-md"
+                    >
+                      {/* STATUS — TOP RIGHT */}
+                      <span
+                        className={`absolute right-3 top-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                          isActive
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-gray-200 text-gray-500'
+                        }`}
+                      >
+                        {isActive ? 'Active' : 'Paused'}
+                      </span>
+
+                      {/* ICON */}
+                      <div className="flex justify-center pt-16">
+                        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-blue-700 shadow">
+                          <Icons name={meta.icon} />
+                        </span>
+                      </div>
+
+                      {/* TYPE */}
+                      <div className="mt-10 flex items-center justify-center gap-2">
+                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                          Type:
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {meta.label}
+                        </p>
+                      </div>
+
+                      {/* TIME */}
+                      {!isWorkoutReminder && (
+                        <div className="flex items-center justify-center gap-2">
+                          <p className="text-xs uppercase tracking-wide text-gray-500">
+                            Wake Up:
+                          </p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {formatTime(reminder?.start_time)}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-center gap-2">
+                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                          {!isSleepReminder ? 'Time:' : 'Bed Time:'}
+                        </p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {formatTime(reminder?.time_of_day)}
+                        </p>
+                      </div>
+
+                      {!isSleepReminder && !isWorkoutReminder && (
+                        <>
+                          <div className="flex items-center justify-center gap-2">
+                            <p className="text-xs uppercase tracking-wide text-gray-500">
+                              Interval
+                            </p>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {showInterval
+                                ? `${reminder.interval_minutes} mins`
+                                : '--'}
+                            </p>
+                          </div>
+                          <div className="flex items-center justify-center gap-2">
+                            <p className="text-xs uppercase tracking-wide text-gray-500">
+                              End
+                            </p>
+                            <p className="text-sm font-semibold text-gray-900">
+                              {showInterval
+                                ? `${reminder.end_time} mins`
+                                : '--'}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>
