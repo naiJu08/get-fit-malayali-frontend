@@ -82,16 +82,6 @@ function AssignTabContent({
   const { enqueueSnackbar } = useSnackbarManager()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
-
-  const toggleSelectedExercise = (workoutId: any) => {
-    if (!workoutId) return
-    setSelectedExerciseIds((prev) =>
-      prev.includes(workoutId)
-        ? prev.filter((x) => x !== workoutId)
-        : [...prev, workoutId]
-    )
-  }
-
   const handleRemoveSelected = async () => {
     if (!wp?.id || selectedExerciseIds.length === 0) return
     try {
@@ -123,10 +113,6 @@ function AssignTabContent({
             )
         )
     : []
-
-  const getWorkoutSelectableId = (ex: any) =>
-    ex?.workout_id || ex?.workout?.id || ex?.id || ex?.workoutId
-
   const groupedAssignedExercises = useMemo(() => {
     if (!Array.isArray(exercises) || exercises.length === 0) return []
 
@@ -206,9 +192,6 @@ function AssignTabContent({
                         ''
                       const url = String(rawUrl || '')
                       const embed = getEmbedUrl(url)
-                      const workoutIdForEx = getWorkoutSelectableId(ex)
-                      const checked =
-                        selectedExerciseIds.includes(workoutIdForEx)
                       return (
                         <div
                           key={ex?.id}
@@ -243,24 +226,13 @@ function AssignTabContent({
                               <div className="font-medium line-clamp-1 flex-1">
                                 {ex?.workout_name || 'Untitled'}
                               </div>
-                              {!isNutritionist && (
-                                <input
-                                  type="checkbox"
-                                  className="shrink-0"
-                                  checked={checked}
-                                  onChange={() =>
-                                    toggleSelectedExercise(workoutIdForEx)
-                                  }
-                                />
-                              )}
+                              <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-semibold px-2 py-0.5">
+                                <Icons name="repeat" className="w-3 h-3" />
+                                Reps: {ex?.reps}
+                              </span>
                             </div>
                             {typeof ex?.reps !== 'undefined' && (
-                              <div className="flex justify-end">
-                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-semibold px-2 py-0.5">
-                                  <Icons name="repeat" className="w-3 h-3" />
-                                  Reps: {ex?.reps}
-                                </span>
-                              </div>
+                              <div className="flex justify-end"></div>
                             )}
                           </div>
                         </div>
@@ -370,6 +342,7 @@ export default function WorkoutPlanDetails() {
   const [subcategoryLookup, setSubcategoryLookup] = useState<
     Record<string, any>
   >({})
+  const [workoutFiltersEnabled, setWorkoutFiltersEnabled] = useState(false)
   const prefillAppliedRef = useRef(false)
   const drawerSelectionInitializedRef = useRef(false)
   const selectAllNextWorkoutsRef = useRef(false)
@@ -411,6 +384,7 @@ export default function WorkoutPlanDetails() {
     setSelectedCategoryId(undefined)
     setSelectedCategoryName('')
     setSelectedSubcategories([])
+    setWorkoutFiltersEnabled(false)
     prefillAppliedRef.current = false
     drawerSelectionInitializedRef.current = false
     selectAllNextWorkoutsRef.current = false
@@ -421,6 +395,7 @@ export default function WorkoutPlanDetails() {
     if (!assignOpen) {
       drawerSelectionInitializedRef.current = false
       selectAllNextWorkoutsRef.current = false
+      setWorkoutFiltersEnabled(false)
     }
   }, [assignOpen])
 
@@ -597,6 +572,7 @@ export default function WorkoutPlanDetails() {
   }, [])
 
   useEffect(() => {
+    if (!assignOpen) return
     if (!previouslySubmittedSelection || prefillAppliedRef.current) return
 
     const { categoryId, categoryName, subcategories } =
@@ -613,15 +589,22 @@ export default function WorkoutPlanDetails() {
             )?.name ?? '')
 
       setSelectedCategoryName(resolvedCategoryName)
+      setWorkoutFiltersEnabled(true)
     }
 
     if (Array.isArray(subcategories) && subcategories.length > 0) {
       setSelectedSubcategories(subcategories)
       updateSubcategoryLookup(subcategories)
+      setWorkoutFiltersEnabled(true)
     }
 
     prefillAppliedRef.current = true
-  }, [previouslySubmittedSelection, categoryOptions, updateSubcategoryLookup])
+  }, [
+    assignOpen,
+    previouslySubmittedSelection,
+    categoryOptions,
+    updateSubcategoryLookup,
+  ])
 
   const assignedRepsMap = useMemo(() => {
     const map = new Map<string, number>()
@@ -731,23 +714,47 @@ export default function WorkoutPlanDetails() {
       search: wpSearch,
     }
 
-    if (selectedCategoryId) {
+    if (workoutFiltersEnabled && selectedCategoryId) {
       params.category_id = selectedCategoryId
     }
 
-    if (selectedSubcategoryIds.length) {
+    if (workoutFiltersEnabled && selectedSubcategoryIds.length) {
       params.subcategory_ids = selectedSubcategoryIds.join(',')
     }
 
+    console.log('🔍 Workout API Params:', {
+      params,
+      workoutFiltersEnabled,
+      selectedCategoryId,
+      selectedSubcategoryIds,
+      assignOpen,
+    })
+
     return params
-  }, [wpPage, wpPerPage, wpSearch, selectedCategoryId, selectedSubcategoryIds])
+  }, [
+    wpPage,
+    wpPerPage,
+    wpSearch,
+    selectedCategoryId,
+    selectedSubcategoryIds,
+    workoutFiltersEnabled,
+  ])
 
   // Load workouts for assignment from backend with category/subcategory filters
   const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList(
-    workoutListParams as any
+    workoutListParams as any,
+    {
+      enabled: assignOpen,
+    }
   )
 
   const workouts = (workoutsResp as any)?.workouts ?? []
+
+  useEffect(() => {
+    if (!assignOpen) {
+      setWorkoutFiltersEnabled(false)
+    }
+  }, [assignOpen])
 
   const collectAllVisibleWorkouts = useCallback((list: any[]) => {
     if (!Array.isArray(list) || list.length === 0) return []
@@ -782,16 +789,6 @@ export default function WorkoutPlanDetails() {
     },
     [assignOpen, workoutsLoading, workouts, collectAllVisibleWorkouts]
   )
-
-  const handleClearWorkoutFilters = useCallback(() => {
-    setSelectedCategoryId(undefined)
-    setSelectedCategoryName('')
-    setSelectedSubcategories([])
-    setWpSearch('')
-    setWpPage(1)
-    requestSelectAllForNextWorkouts()
-  }, [requestSelectAllForNextWorkouts])
-
   useEffect(() => {
     if (!assignOpen) return
     if (drawerSelectionInitializedRef.current) return
@@ -1227,6 +1224,9 @@ export default function WorkoutPlanDetails() {
                       setSelectedCategoryName(name || '')
                       setSelectedSubcategories([])
                       setWpPage(1)
+                      if (id) {
+                        setWorkoutFiltersEnabled(true)
+                      }
                       requestSelectAllForNextWorkouts()
                     }}
                   />
@@ -1268,32 +1268,15 @@ export default function WorkoutPlanDetails() {
                     onChange={(value?: any | any[]) => {
                       const normalized = deriveSubcategorySelection(value)
                       setSelectedSubcategories(normalized)
+                      if (normalized.length > 0) {
+                        setWorkoutFiltersEnabled(true)
+                      }
                       requestSelectAllForNextWorkouts()
                     }}
                   />
                 </div>
               </div>
             </div>
-
-            <div className="flex flex-col md:flex-row md:items-center gap-2">
-              <input
-                value={wpSearch}
-                onChange={(e) => {
-                  setWpSearch(e.target.value)
-                  setWpPage(1)
-                }}
-                placeholder="Search workouts..."
-                className="border rounded px-2 py-1 text-sm w-full md:w-auto"
-              />
-              <button
-                type="button"
-                onClick={handleClearWorkoutFilters}
-                className="text-xs px-3 py-1 border rounded md:w-auto"
-              >
-                Clear filters
-              </button>
-            </div>
-
             {workoutsLoading && (
               <div className="text-xs text-gray-500 p-2">Loading...</div>
             )}

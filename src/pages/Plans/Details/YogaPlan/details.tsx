@@ -680,7 +680,7 @@ export default function YogaPlanDetails() {
             )}
 
             {!yogasLoading && yogas.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
                 {yogas.map((w: any) => {
                   const url = w?.video_url || ''
                   const embed = getEmbedUrl(url)
@@ -712,7 +712,7 @@ export default function YogaPlanDetails() {
                         </div>
                       ) : url ? (
                         <video
-                          className="w-full h-32 object-cover rounded"
+                          className="w-full h-32 object-cover"
                           src={String(url)}
                           muted
                           controls
