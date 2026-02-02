@@ -105,7 +105,8 @@ export default function CreateRecipe({
   const fiber = methods.watch('fiber')
 
   // Meal categories & serving units (reused from Meals)
-  const { data: mealCategoriesData } = useMealCategories()
+  const mealCategoriesQuery = useMealCategories()
+  const mealCategoriesData = mealCategoriesQuery?.data
   const rawMealCategories =
     (mealCategoriesData as any)?.meal_categories ?? (mealCategoriesData as any)
   const mealCategoryList = Array.isArray(rawMealCategories)
@@ -120,7 +121,8 @@ export default function CreateRecipe({
     | number
     | undefined
 
-  const { data: servingUnitsData } = useServingUnits(selectedMealCategoryId)
+  const servingUnitsQuery = useServingUnits(selectedMealCategoryId)
+  const servingUnitsData = servingUnitsQuery?.data
   const rawServingUnits =
     (servingUnitsData as any)?.serving_units ?? (servingUnitsData as any)
   const servingUnitList = Array.isArray(rawServingUnits) ? rawServingUnits : []
