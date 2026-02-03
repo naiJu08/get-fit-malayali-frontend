@@ -3,10 +3,6 @@ import { useMemo } from 'react'
 import Icons from '../../../components/common/icons'
 import { useUserReminders } from '../api'
 
-interface ReminderSettingsProps {
-  subscriptionId?: string | number | null
-}
-
 const deriveReminderMoment = (reminder: any) => {
   const candidates = [
     reminder?.date,
@@ -86,10 +82,8 @@ type ReminderGroupAccumulator = Record<
   }
 >
 
-const ReminderSettings = ({ subscriptionId }: ReminderSettingsProps) => {
-  const { data, isLoading, error } = useUserReminders({
-    subscription_id: subscriptionId ?? undefined,
-  })
+const ReminderSettings = () => {
+  const { data, isLoading, error } = useUserReminders()
 
   const reminders: any[] = data?.items ?? []
 
@@ -147,14 +141,6 @@ const ReminderSettings = ({ subscriptionId }: ReminderSettingsProps) => {
     )
     return { total, active, types }
   }, [reminders])
-
-  if (!subscriptionId) {
-    return (
-      <div className="rounded-xl border bg-white p-6 text-sm text-gray-500">
-        Subscription details not available.
-      </div>
-    )
-  }
 
   return (
     <div className="flex flex-col gap-1">

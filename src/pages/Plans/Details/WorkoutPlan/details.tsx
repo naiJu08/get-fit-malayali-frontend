@@ -21,6 +21,7 @@ import { useAddExercises } from './api'
 import { TabContainer } from '../../../../components/common'
 import apiUrl from '../../../../apis/api.url'
 import { getData } from '../../../../apis/api.helpers'
+import WorkoutPlanForm from './create'
 
 const getWorkoutSelectableId = (item: any) =>
   item?.workout_id || item?.workout?.id || item?.id || item?.workoutId
@@ -300,6 +301,7 @@ export default function WorkoutPlanDetails() {
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [dragGroup, setDragGroup] = useState<string | null>(null)
+  const [editPlanOpen, setEditPlanOpen] = useState(false)
   // const { mutateAsync: addExerciseAsync } = useAddExercise()
   const { mutateAsync: addExercisesAsync } = useAddExercises()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
@@ -374,6 +376,7 @@ export default function WorkoutPlanDetails() {
   const prefillAppliedRef = useRef(false)
   const drawerSelectionInitializedRef = useRef(false)
   const selectAllNextWorkoutsRef = useRef(false)
+  const userSelectionTouchedRef = useRef(false)
   const wp = data?.workout_plan || data || {}
 
   const categoryAutocompleteValue = useMemo(() => {
@@ -416,6 +419,7 @@ export default function WorkoutPlanDetails() {
     prefillAppliedRef.current = false
     drawerSelectionInitializedRef.current = false
     selectAllNextWorkoutsRef.current = false
+    userSelectionTouchedRef.current = false
     await refreshDetails()
   }, [refreshDetails])
 
@@ -617,13 +621,11 @@ export default function WorkoutPlanDetails() {
             )?.name ?? '')
 
       setSelectedCategoryName(resolvedCategoryName)
-      setWorkoutFiltersEnabled(true)
     }
 
     if (Array.isArray(subcategories) && subcategories.length > 0) {
       setSelectedSubcategories(subcategories)
       updateSubcategoryLookup(subcategories)
-      setWorkoutFiltersEnabled(true)
     }
 
     prefillAppliedRef.current = true
@@ -800,6 +802,10 @@ export default function WorkoutPlanDetails() {
 
   const requestSelectAllForNextWorkouts = useCallback(
     (applyImmediately = false) => {
+      if (userSelectionTouchedRef.current) {
+        selectAllNextWorkoutsRef.current = false
+        return
+      }
       selectAllNextWorkoutsRef.current = true
 
       if (!applyImmediately) return
@@ -809,11 +815,13 @@ export default function WorkoutPlanDetails() {
       if (!Array.isArray(workouts) || workouts.length === 0) {
         setSelectedWorkouts([])
         selectAllNextWorkoutsRef.current = false
+        userSelectionTouchedRef.current = false
         return
       }
 
       setSelectedWorkouts(collectAllVisibleWorkouts(workouts))
       selectAllNextWorkoutsRef.current = false
+      userSelectionTouchedRef.current = false
     },
     [assignOpen, workoutsLoading, workouts, collectAllVisibleWorkouts]
   )
@@ -834,6 +842,7 @@ export default function WorkoutPlanDetails() {
           : Array.from(assignedWorkoutMap.values())
 
       setSelectedWorkouts(nextSelection)
+      userSelectionTouchedRef.current = false
       drawerSelectionInitializedRef.current = true
       return
     }
@@ -849,6 +858,7 @@ export default function WorkoutPlanDetails() {
     })
 
     setSelectedWorkouts(Array.from(map.values()))
+    userSelectionTouchedRef.current = false
     drawerSelectionInitializedRef.current = true
   }, [assignOpen, workouts, assignedWorkoutMap, applyAssignedReps])
 
@@ -860,11 +870,18 @@ export default function WorkoutPlanDetails() {
     if (!Array.isArray(workouts) || workouts.length === 0) {
       setSelectedWorkouts([])
       selectAllNextWorkoutsRef.current = false
+      userSelectionTouchedRef.current = false
+      return
+    }
+
+    if (userSelectionTouchedRef.current) {
+      selectAllNextWorkoutsRef.current = false
       return
     }
 
     setSelectedWorkouts(collectAllVisibleWorkouts(workouts))
     selectAllNextWorkoutsRef.current = false
+    userSelectionTouchedRef.current = false
   }, [assignOpen, workoutsLoading, workouts, collectAllVisibleWorkouts])
 
   const getEmbedUrl = (url?: string) => {
@@ -885,15 +902,36 @@ export default function WorkoutPlanDetails() {
     return ''
   }
 
-  const getWorkoutGroupKey = (w: any) => {
-    const rawSub =
+  const getWorkoutGroupLabels = (w: any) => {
+    const main =
+      w?.category?.main_category?.name ??
+      w?.category?.parent?.name ??
+      w?.category?.main_category_name ??
+      w?.category?.parent_name ??
+      w?.workout?.category?.main_category?.name ??
+      w?.workout?.category?.parent?.name ??
+      w?.category?.name ??
+      w?.category_name ??
+      'Others'
+
+    const sub =
       w?.subcategory?.name ??
       w?.subcategory_name ??
-      w?.subcategory ??
+      w?.workout?.subcategory?.name ??
+      w?.workout?.subcategory_name ??
+      w?.workout?.category?.name ??
       w?.category?.name ??
       'Others'
 
-    return String(rawSub || 'Others')
+    return {
+      main: String(main || 'Others'),
+      sub: String(sub || 'Others'),
+    }
+  }
+
+  const getWorkoutGroupKey = (w: any) => {
+    const { main, sub } = getWorkoutGroupLabels(w)
+    return `${main}::${sub}`
   }
 
   // Group workouts by subcategory for the Assign drawer so that
@@ -910,17 +948,25 @@ export default function WorkoutPlanDetails() {
       return pa < pb ? -1 : 1
     })
 
-    const groups = new Map<string, any[]>()
+    const groups = new Map<
+      string,
+      { main: string; sub: string; items: any[] }
+    >()
 
     sorted.forEach((w: any) => {
       const key = getWorkoutGroupKey(w)
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push(w)
+      if (!groups.has(key)) {
+        const labels = getWorkoutGroupLabels(w)
+        groups.set(key, { main: labels.main, sub: labels.sub, items: [] })
+      }
+      groups.get(key)!.items.push(w)
     })
 
-    return Array.from(groups.entries()).map(([name, items]) => ({
-      name,
-      items,
+    return Array.from(groups.values()).map((group) => ({
+      name: group.sub,
+      mainName: group.main,
+      legend: `${group.main} - ${group.sub}`,
+      items: group.items,
     }))
   }, [workouts])
 
@@ -930,13 +976,19 @@ export default function WorkoutPlanDetails() {
     if (!Array.isArray(selectedWorkouts) || selectedWorkouts.length === 0)
       return []
 
-    const groups = new Map<string, any[]>()
+    const groups = new Map<
+      string,
+      { main: string; sub: string; items: any[] }
+    >()
     const priorities = new Map<string, number>()
 
     selectedWorkouts.forEach((w: any) => {
       const key = getWorkoutGroupKey(w)
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push(w)
+      if (!groups.has(key)) {
+        const labels = getWorkoutGroupLabels(w)
+        groups.set(key, { main: labels.main, sub: labels.sub, items: [] })
+      }
+      groups.get(key)!.items.push(w)
 
       // Capture the category priority for this group (first value wins).
       if (!priorities.has(key)) {
@@ -946,16 +998,19 @@ export default function WorkoutPlanDetails() {
     })
 
     return Array.from(groups.entries())
-      .map(([name, items]) => ({
-        name,
-        items,
-        priority: priorities.get(name) ?? 9999,
+      .map(([key, value]) => ({
+        name: value.sub,
+        legend: `${value.main} - ${value.sub}`,
+        mainName: value.main,
+        items: value.items,
+        priority: priorities.get(key) ?? 9999,
       }))
       .sort((a, b) => a.priority - b.priority)
   }, [selectedWorkouts])
 
   const isSelected = (id: any) => selectedWorkouts.some((w) => w?.id === id)
   const toggleSelected = (w: any) => {
+    userSelectionTouchedRef.current = true
     setSelectedWorkouts((prev) =>
       prev.some((x) => x?.id === w?.id)
         ? prev.filter((x) => x?.id !== w?.id)
@@ -1111,6 +1166,7 @@ export default function WorkoutPlanDetails() {
       await refreshDetails()
       setSelectedWorkouts([])
       setWorkoutCounts({})
+      userSelectionTouchedRef.current = false
       setReviewOpen(false)
       setSearchParams({ tab: 'assign' })
       enqueueSnackbar('Exercises replaced successfully', { variant: 'success' })
@@ -1142,6 +1198,7 @@ export default function WorkoutPlanDetails() {
       setDragGroup(null)
       return
     }
+    userSelectionTouchedRef.current = true
     setSelectedWorkouts((prev) => {
       const next = prev.slice()
       const [item] = next.splice(dragIndex, 1)
@@ -1189,6 +1246,7 @@ export default function WorkoutPlanDetails() {
           { id: 'details', label: 'Details' },
           { id: 'assign', label: 'Exercises' },
         ]
+
         return (
           <div className="no-tab-bg mb-4">
             <TabContainer
@@ -1200,6 +1258,16 @@ export default function WorkoutPlanDetails() {
                 setSearchParams(next === 'assign' ? { tab: 'assign' } : {})
               }}
             >
+              {currentTab === 'details' && !isNutritionist && (
+                <div className="flex justify-end mb-4">
+                  <button
+                    className="px-4 py-2 text-sm border rounded btn-primary"
+                    onClick={() => setEditPlanOpen(true)}
+                  >
+                    Edit Plan
+                  </button>
+                </div>
+              )}
               <Tab id="details">
                 <DetailsTabContent wp={wp} loading={loading} error={error} />
               </Tab>
@@ -1486,6 +1554,7 @@ export default function WorkoutPlanDetails() {
         handleClose={() => {
           setReviewOpen(false)
           setSelectedWorkouts([])
+          userSelectionTouchedRef.current = false
           setDragIndex(null)
           setDragGroup(null)
         }}
@@ -1638,6 +1707,21 @@ export default function WorkoutPlanDetails() {
           )}
         </div>
       </CustomDrawer>
+
+      <WorkoutPlanForm
+        isOpen={editPlanOpen}
+        handleClose={() => {
+          setEditPlanOpen(false)
+          refreshDetails()
+        }}
+        edit
+        rowData={wp}
+        planId={wp?.plan_id}
+        onSuccess={(res?: any) => {
+          const msg = res?.message || 'Workout plan updated successfully'
+          enqueueSnackbar(msg, { variant: 'success' })
+        }}
+      />
     </div>
   )
 }

@@ -4,7 +4,9 @@ import InfoBox from '../../../components/app/alertBox/infoBox'
 function capitalizeWord(v: any) {
   const s = safeStr(v)
   if (s === '--') return s
-  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+  return s
+    .toLowerCase()
+    .replace(/\b([a-z])/gi, (letter) => letter.toUpperCase())
 }
 function mapGender(g: any) {
   if (g === 0 || g === '0') return 'Male'

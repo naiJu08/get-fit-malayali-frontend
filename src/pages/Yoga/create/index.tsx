@@ -76,7 +76,7 @@ export default function CreateAdmin({
   }
   const formatVideoDurationLabel = (durationMs: number | null) => {
     if (durationMs === null) return ''
-    const totalSeconds = Math.max(0, Math.round(durationMs / 1000))
+    const totalSeconds = Math.max(0, Math.floor(durationMs / 1000))
     const minutes = Math.floor(totalSeconds / 60)
     const seconds = totalSeconds % 60
     const paddedSeconds = seconds.toString().padStart(2, '0')
@@ -372,7 +372,7 @@ export default function CreateAdmin({
     }
 
     if (videoDurationMs !== null) {
-      const totalSeconds = Math.max(0, Math.round(videoDurationMs / 1000))
+      const totalSeconds = Math.max(0, Math.floor(videoDurationMs / 1000))
       const minutes = Math.floor(totalSeconds / 60)
       const seconds = totalSeconds % 60
       const paddedSeconds = seconds.toString().padStart(2, '0')

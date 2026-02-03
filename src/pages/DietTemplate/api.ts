@@ -28,7 +28,9 @@ const fetchData = async (input: QueryParams) => {
   return response
 }
 export const useTemplateList = (input: QueryParams) => {
-  return useQuery(['diet_template_list', input], () => fetchData(input))
+  return useQuery(['diet_template_list', input], () => fetchData(input), {
+    keepPreviousData: true,
+  })
 }
 export const deActivateAdmin = (id?: string) => {
   return updateFromData(`${apiUrl.ADMIN_USER}/${id}/status`, {})

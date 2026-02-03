@@ -35,7 +35,7 @@ export default function CreatePlan({
     reValidateMode: 'onChange',
   })
 
-  const { handleSubmit, reset } = methods
+  const { handleSubmit, reset, setError, clearErrors } = methods
   const { mutate: createPlanMutate } = useCreatePlan()
   const { mutate: updatePlanMutate } = useUpdatePlan()
   const queryClient = useQueryClient()
@@ -53,6 +53,19 @@ export default function CreatePlan({
     // Do not send status from the form; backend will use its default or preserve existing
     // const { active: _omitActive, ...rest } = values || {}
     // const payload = { plan: { ...values } }
+    const thumbVal: any = values.thumbnail
+    const hasNewThumbnail = thumbVal && typeof thumbVal !== 'string'
+    const hasExistingThumbnail = Boolean(existingImageFile?.link)
+
+    if (!hasNewThumbnail && !hasExistingThumbnail) {
+      setError('thumbnail' as any, {
+        type: 'manual',
+        message: 'Thumbnail is required.',
+      })
+      return
+    }
+    clearErrors?.('thumbnail' as any)
+
     const fd = new FormData()
 
     const catVal: any = values.category
@@ -74,9 +87,8 @@ export default function CreatePlan({
     const meditationIncluded = Boolean(values.meditation_included)
     fd.append('plan[meditation_included]', String(meditationIncluded))
 
-    const thumbVal: any = values.thumbnail
     // Only append if a new File is provided (not just an existing URL/string)
-    if (thumbVal && typeof thumbVal !== 'string') {
+    if (hasNewThumbnail) {
       fd.append('plan[thumbnail]', thumbVal) // field name as backend expects
     }
     if (edit && rowData?.plan?.id) {

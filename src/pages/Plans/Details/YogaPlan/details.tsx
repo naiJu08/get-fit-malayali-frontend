@@ -16,6 +16,7 @@ import { TabItemProps } from '../../../../common/types'
 import { useYogaList } from '../../../Yoga/api'
 import { useSnackbarManager } from '../../../../components/common/snackbar'
 import { useAuthStore } from '../../../../store/authStore'
+import YogaPlanForm from './create'
 
 const YOGA_CATEGORY_OPTIONS: { label: string; value: string }[] = [
   { label: 'Basic', value: 'basic' },
@@ -133,6 +134,12 @@ function AssignTabContent({
         <>
           <div className="flex items-center justify-between mb-3">
             <div className="text-md font-semibold">Exercises</div>
+            <div className="flex items-center gap-2 text-[11px] text-gray-600">
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                Duration
+              </span>
+            </div>
             {!isNutritionist &&
               exercises.length > 0 &&
               selectedExerciseIds.length > 0 && (
@@ -156,13 +163,14 @@ function AssignTabContent({
                 const embed = getEmbedUrl(url)
                 const yogaIdForEx = ex?.yoga_id || ex?.yoga?.id || ex?.id
                 const checked = selectedExerciseIds.includes(yogaIdForEx)
+                const durationLabel = getYogaDurationLabel(ex)
                 return (
                   <div
                     key={ex?.id}
                     className="border rounded bg-white overflow-hidden w-full"
                   >
-                    {embed ? (
-                      <div className="w-full h-36 bg-black/5">
+                    <div className="relative w-full h-36 bg-black/5">
+                      {embed ? (
                         <iframe
                           src={embed}
                           title={`Yoga Video ${ex?.yoga_id ?? ex?.workout_id ?? ex?.id}`}
@@ -170,26 +178,36 @@ function AssignTabContent({
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                           allowFullScreen
                         />
-                      </div>
-                    ) : url ? (
-                      <video
-                        className="w-full h-32 object-cover rounded"
-                        src={String(url)}
-                        muted
-                        controls
-                      />
-                    ) : (
-                      <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                        No video
-                      </div>
-                    )}
+                      ) : url ? (
+                        <video
+                          className="w-full h-full object-cover rounded"
+                          src={String(url)}
+                          muted
+                          controls
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                          No video
+                        </div>
+                      )}
+
+                      {durationLabel && (
+                        <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                          <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
+                            <span className="w-2 h-2 rounded-full bg-white" />
+                            {durationLabel}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     <div className="px-2 py-1 text-xs flex items-center justify-between gap-2">
                       <div className="font-medium line-clamp-1">
-                        {ex?.workout_name ||
-                          ex?.name ||
-                          ex?.title ||
-                          ex?.yoga_name ||
-                          'Untitled'}
+                        {getYogaDisplayName(
+                          ex?.workout_name ||
+                            ex?.name ||
+                            ex?.title ||
+                            ex?.yoga_name
+                        )}
                       </div>
                       {!isNutritionist && (
                         <input
@@ -272,6 +290,7 @@ export default function YogaPlanDetails() {
   const selectAllNextYogasRef = useRef(false)
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [editPlanOpen, setEditPlanOpen] = useState(false)
   const { mutateAsync: addYogaExerciseAsync } = useAddYogaExercise()
   const { mutateAsync: addYogaExercisesAsync } = useAddYogaExercises()
   const { enqueueSnackbar } = useSnackbarManager()
@@ -350,12 +369,9 @@ export default function YogaPlanDetails() {
 
   const toSelectableYoga = (yoga: any) => ({
     id: yoga?.id,
-    name:
-      yoga?.name ||
-      yoga?.title ||
-      yoga?.yoga_name ||
-      yoga?.workout_name ||
-      'Untitled',
+    name: getYogaDisplayName(
+      yoga?.name || yoga?.title || yoga?.yoga_name || yoga?.workout_name
+    ),
     video_url:
       yoga?.video_url ||
       yoga?.yoga?.video_url ||
@@ -390,12 +406,13 @@ export default function YogaPlanDetails() {
         if (!exId || map.has(exId)) return
         map.set(exId, {
           id: exId,
-          name:
+          name: getYogaDisplayName(
             ex?.workout_name ||
-            ex?.yoga_name ||
-            ex?.name ||
-            ex?.title ||
-            ex?.yoga?.name,
+              ex?.yoga_name ||
+              ex?.name ||
+              ex?.title ||
+              ex?.yoga?.name
+          ),
           video_url:
             ex?.video_url ||
             ex?.workout_video_url ||
@@ -608,6 +625,16 @@ export default function YogaPlanDetails() {
             setSearchParams(next === 'assign' ? { tab: 'assign' } : {})
           }}
         >
+          {currentTab === 'details' && !isNutritionist && (
+            <div className="flex justify-end mb-4">
+              <button
+                className="px-4 py-2 text-sm border rounded btn-primary"
+                onClick={() => setEditPlanOpen(true)}
+              >
+                Edit Plan
+              </button>
+            </div>
+          )}
           <Tab id="details">
             <DetailsTabContent yp={yp} loading={loading} error={error} />
           </Tab>
@@ -640,34 +667,41 @@ export default function YogaPlanDetails() {
       >
         <div className="w-full">
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-              <div className="flex items-center gap-2 ml-auto">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs text-gray-600">Category</label>
-                  <select
-                    className="border rounded px-2 py-1 text-sm"
-                    value={categoryFilter}
-                    onChange={(e) => {
-                      const nextCategory = e.target.value
-                      const changed =
-                        String(nextCategory ?? '') !==
-                        String(categoryFilter ?? '')
-                      setCategoryFilter(nextCategory)
-                      if (assignOpen && changed) {
-                        selectAllNextYogasRef.current = true
-                        setSelectedWorkouts([])
-                        setAutoSelectEnabled(false)
-                      }
-                    }}
-                  >
-                    <option value="">All</option>
-                    {YOGA_CATEGORY_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="flex flex-col md:flex-row md:items-end gap-4 md:ml-auto">
+              {/* Duration */}
+              <div className="flex items-center gap-2 text-[11px] text-gray-600 mb-1">
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  Duration
+                </span>
+              </div>
+
+              {/* Category */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-600">Category</label>
+                <select
+                  className="border rounded px-2 py-1 text-sm"
+                  value={categoryFilter}
+                  onChange={(e) => {
+                    const nextCategory = e.target.value
+                    const changed =
+                      String(nextCategory ?? '') !==
+                      String(categoryFilter ?? '')
+                    setCategoryFilter(nextCategory)
+                    if (assignOpen && changed) {
+                      selectAllNextYogasRef.current = true
+                      setSelectedWorkouts([])
+                      setAutoSelectEnabled(false)
+                    }
+                  }}
+                >
+                  <option value="">All</option>
+                  {YOGA_CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -684,6 +718,7 @@ export default function YogaPlanDetails() {
                   const url = w?.video_url || ''
                   const embed = getEmbedUrl(url)
                   const checked = isSelected(w?.id)
+                  const durationLabel = getYogaDurationLabel(w)
                   return (
                     <div
                       key={w?.id}
@@ -699,8 +734,8 @@ export default function YogaPlanDetails() {
                         }
                       }}
                     >
-                      {embed ? (
-                        <div className="w-full h-40 bg-black/5">
+                      <div className="relative w-full h-40 bg-black/5">
+                        {embed ? (
                           <iframe
                             src={embed}
                             title={`Yoga Video ${w?.id}`}
@@ -708,22 +743,36 @@ export default function YogaPlanDetails() {
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             allowFullScreen
                           />
-                        </div>
-                      ) : url ? (
-                        <video
-                          className="w-full h-32 object-cover"
-                          src={String(url)}
-                          muted
-                          controls
-                        />
-                      ) : (
-                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                          No video
-                        </div>
-                      )}
+                        ) : url ? (
+                          <video
+                            className="w-full h-full object-cover"
+                            src={String(url)}
+                            muted
+                            controls
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                            No video
+                          </div>
+                        )}
+
+                        {durationLabel && (
+                          <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                            <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
+                              <span className="w-2 h-2 rounded-full bg-white" />
+                              {durationLabel}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
                         <div className="font-medium line-clamp-1">
-                          {w?.name || 'Untitled'}
+                          {getYogaDisplayName(
+                            w?.name ||
+                              w?.title ||
+                              w?.yoga_name ||
+                              w?.workout_name
+                          )}
                         </div>
                         <input
                           type="checkbox"
@@ -778,7 +827,7 @@ export default function YogaPlanDetails() {
                   >
                     <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
                       <span className="line-clamp-1">
-                        {i + 1}. {w?.name}
+                        {i + 1}. {getYogaDisplayName(w?.name)}
                       </span>
                     </div>
 
@@ -815,6 +864,21 @@ export default function YogaPlanDetails() {
           )}
         </div>
       </CustomDrawer>
+
+      <YogaPlanForm
+        isOpen={editPlanOpen}
+        handleClose={() => {
+          setEditPlanOpen(false)
+          refreshDetails()
+        }}
+        edit
+        rowData={yp}
+        planId={yp?.plan_id}
+        onSuccess={(res?: any) => {
+          const msg = res?.message || 'Yoga plan updated successfully'
+          enqueueSnackbar(msg, { variant: 'success' })
+        }}
+      />
     </div>
   )
 }
@@ -831,6 +895,36 @@ function DetailItem({ label, value }: { label: string; value: any }) {
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
+}
+
+function getYogaDisplayName(value?: any) {
+  const raw =
+    value === null || value === undefined || value === ''
+      ? 'Untitled'
+      : String(value)
+  return raw.slice(0, 1).toUpperCase() + raw.slice(1).toLowerCase()
+}
+
+function getYogaDurationLabel(item: any) {
+  const raw =
+    item?.duration_minutes ??
+    item?.yoga_duration_minutes ??
+    item?.duration ??
+    item?.yoga?.duration_minutes ??
+    item?.workout_duration ??
+    item?.duration_min ??
+    item?.duration_minute
+
+  const value = raw === null || raw === undefined ? undefined : Number(raw)
+  if (value === undefined || Number.isNaN(value) || value <= 0) return null
+
+  if (value >= 1) {
+    const whole = Number.isInteger(value)
+    return `${whole ? value : value.toFixed(2)} min`
+  }
+
+  const seconds = Math.max(1, Math.round(value * 60))
+  return `${seconds} sec`
 }
 
 // import moment from 'moment'

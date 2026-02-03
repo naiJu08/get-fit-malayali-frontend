@@ -202,7 +202,7 @@ export default function UserDetails() {
           )}
           {!isNutritionist && (
             <Tab id="reminders">
-              <ReminderSettings subscriptionId={subscriptionId} />
+              <ReminderSettings />
             </Tab>
           )}
           {!isNutritionist && loginRole !== 'nutritionist' && (

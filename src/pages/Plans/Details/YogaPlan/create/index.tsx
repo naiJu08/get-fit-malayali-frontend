@@ -19,6 +19,7 @@ type Props = {
   edit?: boolean
   rowData?: any
   planId?: string | number
+  onSuccess?: (res?: any) => void
 }
 
 export default function YogaPlanForm({
@@ -27,6 +28,7 @@ export default function YogaPlanForm({
   edit,
   rowData,
   planId,
+  onSuccess,
 }: Props) {
   const { data: detailData } = useYogaPlanDetail(edit ? rowData?.id : undefined)
 
@@ -74,6 +76,11 @@ export default function YogaPlanForm({
     reset,
   ])
 
+  const handleSuccess = (res?: any) => {
+    onSuccess?.(res)
+    handleClose()
+  }
+
   const onSubmit = (values: YogaPlanSchema) => {
     const payload = {
       yoga_plan: {
@@ -88,10 +95,18 @@ export default function YogaPlanForm({
     if (edit && rowData?.id) {
       updateMutate(
         { id: rowData.id, payload },
-        { onSuccess: () => handleClose() }
+        {
+          onSuccess: (res?: any) => {
+            handleSuccess(res)
+          },
+        }
       )
     } else {
-      createMutate(payload, { onSuccess: () => handleClose() })
+      createMutate(payload, {
+        onSuccess: (res?: any) => {
+          handleSuccess(res)
+        },
+      })
     }
   }
 
