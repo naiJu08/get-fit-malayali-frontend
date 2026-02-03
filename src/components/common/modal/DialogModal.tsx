@@ -101,6 +101,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
               ? 'w-[400px] max-w-full'
               : 'modal-small md:w-11/12 lg:w-9/12 xl:w-7/12 2xl:w-6/12'
           }  ${className}`}
+          onClick={(event) => event.stopPropagation()}
         >
           <div
             className={`
@@ -116,7 +117,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
               translate
               max-h-[97vh]
               shadow-popupShadow
-              overflow-hidden
+              overflow-y-auto
               rounded-xl
               relative
               flex

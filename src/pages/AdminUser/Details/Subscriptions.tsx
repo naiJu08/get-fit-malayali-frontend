@@ -1831,7 +1831,9 @@ export default function Subscriptions({
               </div>
             )}
           <div
-            className={`relative border rounded-lg p-4 pt-6 ${subscribedPlan ? 'mt-4' : ''}`}
+            className={`relative border rounded-lg p-4 pt-6 h-full min-h-[calc(100vh-200px)] ${
+              subscribedPlan ? 'mt-4' : ''
+            }`}
           >
             <div className="absolute -top-3 left-3 px-2 z-10 bg-mainBgColor">
               <span className="text-lg font-medium text-gray-700">
@@ -1841,7 +1843,7 @@ export default function Subscriptions({
               </span>
             </div>
             {hasPlanOverview || subscribedPlan ? (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 h-full">
                 <div className="border rounded-lg p-3 bg-white flex items-start justify-between gap-4">
                   <div>
                     <div className="text-sm font-medium mb-1">
@@ -1923,7 +1925,7 @@ export default function Subscriptions({
                     }}
                   />
                 </div>
-                <div className="bg-white border border-gray-300 rounded-lg p-3">
+                <div className="bg-white border border-gray-300 rounded-lg p-3 flex flex-col flex-1 min-h-[420px]">
                   <div className="flex items-center justify-between mb-3">
                     <div className="text-sm font-medium">Plan Calendar</div>
                     <div className="flex gap-3 text-xs">
@@ -1953,7 +1955,7 @@ export default function Subscriptions({
                   {!overviewLoading &&
                   overview?.subscription?.start_date &&
                   overview?.subscription?.end_date ? (
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 flex-1 overflow-hidden">
                       <div className="flex items-center justify-between">
                         <button
                           type="button"
@@ -1986,35 +1988,33 @@ export default function Subscriptions({
                                 </div>
                               ))}
                             </div>
-                            <div className="grid grid-cols-7">
-                              {m.cells.map((c: any) => (
-                                <div
-                                  key={c.key}
-                                  className={`relative h-44 border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)}`}
-                                  title={
-                                    c?.meta?.date
-                                      ? `${c.meta.date}  •  Diet: ${c?.meta?.diet_summary?.total_items ?? 0}  •  Workout: ${c?.meta?.workout_summary?.total_exercises ?? 0}  •  Yoga: ${c?.meta?.yoga_summary?.total_exercises ?? 0}  •  Meditation: ${c?.meta?.meditation_summary?.total_items ?? 0}`
-                                      : ''
-                                  }
-                                  role={c?.inRange ? 'button' : undefined}
-                                  tabIndex={c?.inRange ? 0 : -1}
-                                  onClick={() => {
-                                    if (!c?.inRange) return
-                                    if (c?.meta?.freeze) {
-                                      setFreezeMode('unfreeze')
-                                      setToggleFreezeRow({
-                                        ...overview?.subscription,
-                                        freeze_date: c?.meta?.date || c.key,
-                                      })
-                                      setToggleFreezeOpen(true)
-                                      return
+                            <div className="flex-1 overflow-auto">
+                              <div className="grid grid-cols-7 auto-rows-fr gap-px">
+                                {m.cells.map((c: any) => (
+                                  <div
+                                    key={c.key}
+                                    className={`relative min-h-[180px] border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)}`}
+                                    title={
+                                      c?.meta?.date
+                                        ? `${c.meta.date}  •  Diet: ${
+                                            c?.meta?.diet_summary
+                                              ?.total_items ?? 0
+                                          }  •  Workout: ${
+                                            c?.meta?.workout_summary
+                                              ?.total_exercises ?? 0
+                                          }  •  Yoga: ${
+                                            c?.meta?.yoga_summary
+                                              ?.total_exercises ?? 0
+                                          }  •  Meditation: ${
+                                            c?.meta?.meditation_summary
+                                              ?.total_items ?? 0
+                                          }`
+                                        : ''
                                     }
-                                    openDayDetail(c?.meta?.date || c.key)
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (!c?.inRange) return
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                      e.preventDefault()
+                                    role={c?.inRange ? 'button' : undefined}
+                                    tabIndex={c?.inRange ? 0 : -1}
+                                    onClick={() => {
+                                      if (!c?.inRange) return
                                       if (c?.meta?.freeze) {
                                         setFreezeMode('unfreeze')
                                         setToggleFreezeRow({
@@ -2022,98 +2022,114 @@ export default function Subscriptions({
                                           freeze_date: c?.meta?.date || c.key,
                                         })
                                         setToggleFreezeOpen(true)
-                                      } else {
-                                        openDayDetail(c?.meta?.date || c.key)
+                                        return
                                       }
-                                    }
-                                  }}
-                                >
-                                  <div className="flex flex-col h-full w-full">
-                                    <div className="flex justify-between">
-                                      <div className="text-[12px] font-medium">
-                                        {c?.label ?? ''}
-                                      </div>
-                                      {c?.meta?.day_number ? (
+                                      openDayDetail(c?.meta?.date || c.key)
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (!c?.inRange) return
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault()
+                                        if (c?.meta?.freeze) {
+                                          setFreezeMode('unfreeze')
+                                          setToggleFreezeRow({
+                                            ...overview?.subscription,
+                                            freeze_date: c?.meta?.date || c.key,
+                                          })
+                                          setToggleFreezeOpen(true)
+                                        } else {
+                                          openDayDetail(c?.meta?.date || c.key)
+                                        }
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex flex-col h-full w-full">
+                                      <div className="flex justify-between">
                                         <div className="text-[12px] font-medium">
-                                          Day - {c?.meta?.day_number}
+                                          {c?.label ?? ''}
+                                        </div>
+                                        {c?.meta?.day_number ? (
+                                          <div className="text-[12px] font-medium">
+                                            Day - {c?.meta?.day_number}
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                      {c?.inRange && c?.meta ? (
+                                        <div className="mt-1 text-[10px] leading-4">
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              openDayDetail(
+                                                c?.meta?.date || c.key,
+                                                'diet'
+                                              )
+                                            }}
+                                            className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 text-left bg-red-100 hover:bg-red-200"
+                                          >
+                                            <span>Diet</span>
+                                            <span className="font-medium">
+                                              {c?.meta?.diet_summary
+                                                ?.total_items ?? 0}
+                                            </span>
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              openDayDetail(
+                                                c?.meta?.date || c.key,
+                                                'workout'
+                                              )
+                                            }}
+                                            className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-violet-200 hover:bg-violet-300"
+                                          >
+                                            <span>Workout</span>
+                                            <span className="font-medium">
+                                              {c?.meta?.workout_summary
+                                                ?.total_exercises ?? 0}
+                                            </span>
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              openDayDetail(
+                                                c?.meta?.date || c.key,
+                                                'yoga'
+                                              )
+                                            }}
+                                            className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-green-200 hover:bg-green-300"
+                                          >
+                                            <span>Yoga</span>
+                                            <span className="font-medium">
+                                              {c?.meta?.yoga_summary
+                                                ?.total_exercises ?? 0}
+                                            </span>
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              openDayDetail(
+                                                c?.meta?.date || c.key,
+                                                'meditation'
+                                              )
+                                            }}
+                                            className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-blue-200 hover:bg-blue-300"
+                                          >
+                                            <span>Meditation</span>
+                                            <span className="font-medium">
+                                              {c?.meta?.meditation_summary
+                                                ?.total_items ?? 0}
+                                            </span>
+                                          </button>
                                         </div>
                                       ) : null}
                                     </div>
-                                    {c?.inRange && c?.meta ? (
-                                      <div className="mt-1 text-[10px] leading-4">
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            openDayDetail(
-                                              c?.meta?.date || c.key,
-                                              'diet'
-                                            )
-                                          }}
-                                          className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 text-left bg-red-100 hover:bg-red-200"
-                                        >
-                                          <span>Diet</span>
-                                          <span className="font-medium">
-                                            {c?.meta?.diet_summary
-                                              ?.total_items ?? 0}
-                                          </span>
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            openDayDetail(
-                                              c?.meta?.date || c.key,
-                                              'workout'
-                                            )
-                                          }}
-                                          className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-violet-200 hover:bg-violet-300"
-                                        >
-                                          <span>Workout</span>
-                                          <span className="font-medium">
-                                            {c?.meta?.workout_summary
-                                              ?.total_exercises ?? 0}
-                                          </span>
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            openDayDetail(
-                                              c?.meta?.date || c.key,
-                                              'yoga'
-                                            )
-                                          }}
-                                          className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-green-200 hover:bg-green-300"
-                                        >
-                                          <span>Yoga</span>
-                                          <span className="font-medium">
-                                            {c?.meta?.yoga_summary
-                                              ?.total_exercises ?? 0}
-                                          </span>
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            openDayDetail(
-                                              c?.meta?.date || c.key,
-                                              'meditation'
-                                            )
-                                          }}
-                                          className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-blue-200 hover:bg-blue-300"
-                                        >
-                                          <span>Meditation</span>
-                                          <span className="font-medium">
-                                            {c?.meta?.meditation_summary
-                                              ?.total_items ?? 0}
-                                          </span>
-                                        </button>
-                                      </div>
-                                    ) : null}
                                   </div>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
                           </>
                         )
@@ -2601,7 +2617,11 @@ export default function Subscriptions({
           <div className="flex flex-col gap-3">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
               <div className="text-sm font-medium">Yoga</div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-end gap-4 w-full md:w-auto">
+                <div className="flex items-center gap-1 text-[11px] text-gray-600">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  Duration
+                </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs text-gray-600">Category</label>
                   <select
@@ -2635,6 +2655,7 @@ export default function Subscriptions({
                   const url = y?.video_url || ''
                   const embed = getEmbedUrl(url)
                   const checked = isYogaSelected(y?.id)
+                  const durationLabel = getYogaDurationLabel(y)
                   return (
                     <div
                       key={y?.id}
@@ -2650,8 +2671,8 @@ export default function Subscriptions({
                         }
                       }}
                     >
-                      {embed ? (
-                        <div className="w-full h-40 bg-black/5">
+                      <div className="relative w-full h-40 bg-black/5">
+                        {embed ? (
                           <iframe
                             src={embed}
                             title={`Yoga Video ${y?.id}`}
@@ -2659,22 +2680,31 @@ export default function Subscriptions({
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             allowFullScreen
                           />
-                        </div>
-                      ) : url ? (
-                        <video
-                          className="w-full h-32 object-cover"
-                          src={String(url)}
-                          muted
-                          controls
-                        />
-                      ) : (
-                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                          No video
-                        </div>
-                      )}
+                        ) : url ? (
+                          <video
+                            className="w-full h-full object-cover"
+                            src={String(url)}
+                            muted
+                            controls
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                            No video
+                          </div>
+                        )}
+
+                        {durationLabel && (
+                          <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                            <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                              <span className="w-2 h-2 rounded-full bg-white" />
+                              {durationLabel}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
                         <div className="font-medium line-clamp-1">
-                          {y?.name || y?.title || 'Untitled'}
+                          {formatYogaName(y?.name || y?.title)}
                         </div>
                         <input
                           type="checkbox"
@@ -2718,7 +2748,7 @@ export default function Subscriptions({
             </span>
           </h2>
           {selectedYogas.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-5">
               {selectedYogas.map((y, i) => {
                 const embed = getEmbedUrl(y?.video_url)
                 const url = y?.video_url || ''
@@ -2733,7 +2763,7 @@ export default function Subscriptions({
                   >
                     <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
                       <span className="line-clamp-1">
-                        {i + 1}. {y?.name || y?.title || 'Untitled'}
+                        {i + 1}. {formatYogaName(y?.name || y?.title)}
                       </span>
                     </div>
 
@@ -2827,13 +2857,14 @@ export default function Subscriptions({
             )}
 
             {!medLoading && sortedMeditations.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-4">
                 {sortedMeditations.map((m: any) => {
                   const url = m?.video_url || m?.meditation_video_url || ''
                   const embed = getEmbedUrl(url)
                   const medId = getMeditationId(m)
                   const checked = isMeditationSelected(medId)
-                  const title = m?.name || m?.title || 'Untitled'
+                  const title = formatMeditationName(m?.name || m?.title)
+                  const durationLabel = getMeditationDurationLabel(m)
                   return (
                     <div
                       key={medId ?? m?.id}
@@ -2849,8 +2880,8 @@ export default function Subscriptions({
                         }
                       }}
                     >
-                      {embed ? (
-                        <div className="w-full h-40 bg-black/5">
+                      <div className="relative w-full h-40 bg-black/5">
+                        {embed ? (
                           <iframe
                             src={embed}
                             title={`Meditation Video ${medId}`}
@@ -2858,19 +2889,28 @@ export default function Subscriptions({
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             allowFullScreen
                           />
-                        </div>
-                      ) : url ? (
-                        <video
-                          className="w-full h-32 object-cover"
-                          src={String(url)}
-                          muted
-                          controls
-                        />
-                      ) : (
-                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                          No video
-                        </div>
-                      )}
+                        ) : url ? (
+                          <video
+                            className="w-full h-full object-cover"
+                            src={String(url)}
+                            muted
+                            controls
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                            No video
+                          </div>
+                        )}
+
+                        {durationLabel && (
+                          <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                            <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                              <span className="w-2 h-2 rounded-full bg-white" />
+                              {durationLabel}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                       <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
                         <div className="font-medium line-clamp-1">{title}</div>
                         <input
@@ -2941,12 +2981,12 @@ export default function Subscriptions({
             </span>
           </h2>
           {selectedMeditations.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-5">
               {selectedMeditations.map((m: any, i: number) => {
                 const rawUrl = m?.video_url || m?.meditation_video_url || ''
                 const url = String(rawUrl || '')
                 const embed = getEmbedUrl(url)
-                const title = m?.name || m?.title || 'Untitled'
+                const title = formatMeditationName(m?.name || m?.title)
                 const medId = getMeditationId(m) ?? `${title}-${i}`
                 return (
                   <div
@@ -3315,4 +3355,62 @@ export default function Subscriptions({
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
+}
+
+function formatYogaName(value?: any) {
+  const raw =
+    value === null || value === undefined || value === ''
+      ? 'Untitled'
+      : String(value)
+  return raw.slice(0, 1).toUpperCase() + raw.slice(1).toLowerCase()
+}
+
+function getYogaDurationLabel(item: any) {
+  const raw =
+    item?.duration_minutes ??
+    item?.yoga_duration_minutes ??
+    item?.duration ??
+    item?.yoga?.duration_minutes ??
+    item?.workout_duration ??
+    item?.duration_min ??
+    item?.duration_minute
+
+  const value = raw === null || raw === undefined ? undefined : Number(raw)
+  if (value === undefined || Number.isNaN(value) || value <= 0) return null
+
+  if (value >= 1) {
+    const whole = Number.isInteger(value)
+    return `${whole ? value : value.toFixed(2)} min`
+  }
+
+  const seconds = Math.max(1, Math.round(value * 60))
+  return `${seconds} sec`
+}
+
+function formatMeditationName(value?: any) {
+  const raw =
+    value === null || value === undefined || value === ''
+      ? 'Untitled'
+      : String(value)
+  return raw.slice(0, 1).toUpperCase() + raw.slice(1).toLowerCase()
+}
+
+function getMeditationDurationLabel(item: any) {
+  const raw =
+    item?.duration_minutes ??
+    item?.meditation_duration_minutes ??
+    item?.meditation?.duration_minutes ??
+    item?.duration ??
+    item?.meditation_duration
+
+  const value = raw === null || raw === undefined ? undefined : Number(raw)
+  if (value === undefined || Number.isNaN(value) || value <= 0) return null
+
+  if (value >= 1) {
+    const whole = Number.isInteger(value)
+    return `${whole ? value : value.toFixed(2)} min`
+  }
+
+  const seconds = Math.max(1, Math.round(value * 60))
+  return `${seconds} sec`
 }

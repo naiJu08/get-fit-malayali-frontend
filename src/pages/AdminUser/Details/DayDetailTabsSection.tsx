@@ -7,6 +7,7 @@ import {
   type FC,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import Icons from '../../../components/common/icons'
 import { Tab, TabContainer } from '../../../components/common/tab'
 import DialogModal from '../../../components/common/modal/DialogModal'
@@ -28,6 +29,13 @@ interface DayDetailTabsSectionProps {
   refreshDayDetail?: () => Promise<void> | void
 }
 
+const formatMealName = (value?: string | null) => {
+  if (!value) return '--'
+  const trimmed = value.trim()
+  if (!trimmed) return '--'
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
+}
+
 const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   dayDetail,
   dayDetailTab,
@@ -42,8 +50,9 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   const [assignTemplateOpen, setAssignTemplateOpen] = useState(false)
   const [templateSearch, setTemplateSearch] = useState('')
   const [templatePage, setTemplatePage] = useState(1)
-  const TEMPLATE_PAGE_SIZE = 10
+  const [templatePerPage, setTemplatePerPage] = useState(10)
   const { enqueueSnackbar } = useSnackbarManager()
+  const navigate = useNavigate()
 
   const subscriptionId =
     parentSubscriptionId ??
@@ -87,13 +96,20 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
       }
     )
 
+  const templateName = dayDetail?.subscription?.diet_plan_template_name?.trim()
+  const templateId = dayDetail?.subscription?.diet_plan_template_id
+  const handleTemplateNameClick = () => {
+    if (!templateId) return
+    navigate(`/diet-template/${templateId}`)
+  }
+
   const templateListParams = useMemo(
     () => ({
       page: templatePage,
-      per_page: TEMPLATE_PAGE_SIZE,
+      per_page: templatePerPage,
       search: templateSearch || undefined,
     }),
-    [templatePage, templateSearch]
+    [templatePage, templatePerPage, templateSearch]
   )
 
   const { data: templateListData, isFetching: templateListLoading } =
@@ -166,7 +182,19 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
           <div className="max-h-[700px] overflow-y-auto">
             <div className="border rounded p-3 bg-white">
               <div className="flex items-center justify-between mb-2 gap-3">
-                <div className="text-sm font-semibold">Diet Plans</div>
+                <div className="text-sm font-semibold flex flex-col">
+                  {templateName ? (
+                    <button
+                      type="button"
+                      onClick={handleTemplateNameClick}
+                      className="text-left text-primary hover:underline"
+                    >
+                      {templateName}
+                    </button>
+                  ) : (
+                    <span>Diet Plans</span>
+                  )}
+                </div>
                 {!isNutritionist && (
                   <button
                     type="button"
@@ -215,10 +243,12 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex flex-col">
-                            <span className="font-medium">
+                            {/* <span className="font-medium">
                               {d?.meal_time || '--'}
+                            </span> */}
+                            <span className="text-gray-600 font-medium">
+                              {mealLabel}
                             </span>
-                            <span className="text-gray-600">{mealLabel}</span>
                             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
                               {typeof d?.sequence_number === 'number' ? (
                                 <span className="flex items-center gap-1">
@@ -295,7 +325,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                 >
                                   <div>
                                     <span className="font-medium">Meal : </span>
-                                    <span>{it?.meal_name || '--'}</span>
+                                    <span>{formatMealName(it?.meal_name)}</span>
                                   </div>
                                   <div>
                                     <span className="font-medium">
@@ -350,16 +380,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                         <span>
                                           {formatTimestamp(
                                             it.actions.action_date
-                                          )}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Completed at :{' '}
-                                        </span>
-                                        <span>
-                                          {formatTimestamp(
-                                            it.actions.completed_at
                                           )}
                                         </span>
                                       </div>
@@ -885,6 +905,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
             }}
             page={templatePage}
             onChangePage={setTemplatePage}
+            perPage={templatePerPage}
+            onChangePerPage={(value) => {
+              setTemplatePage(1)
+              setTemplatePerPage(value)
+            }}
             isLoading={templateListLoading}
             onAssign={handleAssignTemplate}
             isAssigning={assignTemplateLoading}
@@ -922,6 +947,8 @@ interface AssignTemplateModalProps {
   onSearchChange: (value: string) => void
   page: number
   onChangePage: (page: number) => void
+  perPage: number
+  onChangePerPage: (value: number) => void
   isLoading: boolean
   onAssign: (templateId: number) => Promise<void>
   isAssigning: boolean
@@ -936,13 +963,20 @@ const AssignTemplateModal: FC<AssignTemplateModalProps> = ({
   // onSearchChange,
   page,
   onChangePage,
+  perPage,
+  onChangePerPage,
   isLoading,
   onAssign,
   isAssigning,
 }) => {
   const templateList = Array.isArray(templates) ? templates : []
   const totalTemplates = Number(meta?.total_count ?? templateList.length)
-  const totalPages = Math.max(1, Number(meta?.total_pages ?? 1))
+  const normalizedPerPage = Math.max(
+    1,
+    Number(meta?.per_page ?? meta?.per_page_count ?? perPage ?? 10)
+  )
+  const totalPages = Math.max(1, Math.ceil(totalTemplates / normalizedPerPage))
+  const currentPage = Math.max(1, Number(meta?.current_page ?? page ?? 1))
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
     null
   )
@@ -952,14 +986,14 @@ const AssignTemplateModal: FC<AssignTemplateModalProps> = ({
   // }
 
   const handlePrev = () => {
-    if (page > 1) {
-      onChangePage(page - 1)
+    if (currentPage > 1) {
+      onChangePage(currentPage - 1)
     }
   }
 
   const handleNext = () => {
-    if (page < totalPages) {
-      onChangePage(page + 1)
+    if (currentPage < totalPages) {
+      onChangePage(currentPage + 1)
     }
   }
 
@@ -1012,7 +1046,7 @@ const AssignTemplateModal: FC<AssignTemplateModalProps> = ({
                   key={template?.id ?? template?.name}
                   className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-1 w-full sm:w-[55%] md:w-[60%] lg:w-[75%]">
                     <p className="text-sm font-semibold text-gray-900">
                       {template?.name || 'Untitled template'}
                     </p>
@@ -1056,13 +1090,30 @@ const AssignTemplateModal: FC<AssignTemplateModalProps> = ({
           </div>
           <div className="flex flex-col gap-2 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
             <span>
-              Page {page} of {totalPages}
+              Page {currentPage} of {totalPages}
             </span>
             <div className="flex gap-2">
+              <label className="flex items-center gap-2 text-xs text-gray-600">
+                <span>Rows per page</span>
+                <select
+                  className="border rounded px-2 py-1 text-xs"
+                  value={normalizedPerPage}
+                  onChange={(event) => {
+                    const value = Number(event.target.value)
+                    onChangePerPage(Math.max(1, value))
+                  }}
+                >
+                  {[10, 20, 30, 50, 100].map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <button
                 type="button"
                 onClick={handlePrev}
-                disabled={page <= 1}
+                disabled={currentPage <= 1}
                 className="rounded border border-gray-300 px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Previous
@@ -1070,7 +1121,7 @@ const AssignTemplateModal: FC<AssignTemplateModalProps> = ({
               <button
                 type="button"
                 onClick={handleNext}
-                disabled={page >= totalPages}
+                disabled={currentPage >= totalPages}
                 className="rounded border border-gray-300 px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Next

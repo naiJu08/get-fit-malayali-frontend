@@ -36,6 +36,65 @@ const medicalConditionOptions: MedicalConditionOption[] = [
   { id: 'Other', name: 'Other' },
 ]
 
+const isNoneMedicalCondition = (value: any) => {
+  if (!value) return false
+  const candidate =
+    typeof value === 'string'
+      ? value
+      : (value?.name ?? value?.label ?? value?.value ?? value?.id ?? '')
+  return String(candidate).trim().toLowerCase() === 'none'
+}
+
+const closeMedicalConditionsDropdown = () => {
+  if (typeof document === 'undefined') return
+  const container = document.querySelector('[data-testid="medical_conditions"]')
+  if (!container) return
+  const target =
+    (container.querySelector('input') as HTMLElement | null) ||
+    (container as HTMLElement)
+
+  const dropdownOpen = container.querySelector('.qbs-autocomplete-suggestions')
+  if (dropdownOpen) {
+    const toggleButton = container.querySelector(
+      'button[aria-label="toggle"]'
+    ) as HTMLButtonElement | null
+    toggleButton?.click()
+  }
+
+  target?.blur()
+  target?.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+  )
+}
+
+const STATUS_OPTIONS = [
+  { id: 0, name: 'Active' },
+  { id: 1, name: 'Inactive' },
+] as const
+
+type StatusOption = (typeof STATUS_OPTIONS)[number]
+
+const deriveStatusLabel = (value: any): StatusOption['name'] | '' => {
+  if (value && typeof value === 'object') {
+    const nested = value?.id ?? value?.value ?? value?.name
+    return deriveStatusLabel(nested)
+  }
+
+  if (value === 0 || value === '0') return STATUS_OPTIONS[0].name
+  if (value === 1 || value === '1') return STATUS_OPTIONS[1].name
+
+  const normalized = String(value ?? '')
+    .trim()
+    .toLowerCase()
+
+  if (!normalized) return ''
+  if (normalized === 'active') return STATUS_OPTIONS[0].name
+  if (normalized === 'inactive' || normalized === 'suspended')
+    return STATUS_OPTIONS[1].name
+
+  return ''
+}
+
 const matchMedicalCondition = (
   value: string
 ): MedicalConditionOption | null => {
@@ -276,10 +335,7 @@ export default function CreateAdmin({
       id: 'status',
       desc: 'name',
       descId: 'id',
-      data: [
-        { id: 0, name: 'Active' },
-        { id: 1, name: 'Inactive' },
-      ],
+      data: STATUS_OPTIONS,
       type: 'custom_select',
       placeholder: 'Select Status',
       async: false,
@@ -505,12 +561,7 @@ export default function CreateAdmin({
           ),
           food_allergies: rowData?.user?.food_allergies ?? '',
           ethnicity: rowData?.user?.ethnicity ?? '',
-          status:
-            rowData?.user?.status === 'Inactive' ||
-            rowData?.user?.status === 1 ||
-            rowData?.user?.status === '1'
-              ? 'Inactive'
-              : 'Active',
+          status: deriveStatusLabel(rowData?.user?.status),
         } as any)
       }
     }
@@ -574,6 +625,7 @@ export default function CreateAdmin({
   }, [isDrawerOpen])
   // Keep role label in sync with role_id at all times
   const roleIdValue = (methods as any).watch?.('role_id')
+  const medicalConditionsValue = (methods as any).watch?.('medical_conditions')
   useEffect(() => {
     if (!isDrawerOpen) return
     const id = roleIdValue
@@ -593,6 +645,25 @@ export default function CreateAdmin({
       }
     }
   }, [roleIdValue, isDrawerOpen])
+  useEffect(() => {
+    if (!isDrawerOpen) return
+    if (
+      !Array.isArray(medicalConditionsValue) ||
+      !medicalConditionsValue.length
+    )
+      return
+    const hasNoneSelected = medicalConditionsValue.some(isNoneMedicalCondition)
+    if (!hasNoneSelected) return
+
+    const onlyNone = medicalConditionsValue.filter(isNoneMedicalCondition)
+    if (onlyNone.length !== medicalConditionsValue.length) {
+      methods.setValue('medical_conditions' as any, onlyNone as any, {
+        shouldValidate: true,
+        shouldDirty: true,
+      })
+    }
+    closeMedicalConditionsDropdown()
+  }, [medicalConditionsValue, isDrawerOpen])
   const onSubmit = async (details: any) => {
     const pickId = (v: any, fallback = 0) => {
       if (v === null || v === undefined) return fallback

@@ -415,27 +415,19 @@ export const createClientReport = (payload: {
 }
 
 // User reminders
-const fetchUserReminders = async (input: {
-  subscription_id?: string | number
-}) => {
-  if (!input?.subscription_id) {
-    return { items: [], meta: {} }
-  }
-  const params = new URLSearchParams()
-  params.set('subscription_id', String(input.subscription_id))
-  const url = `${apiUrl.USER_REMINDERS}?${params.toString()}`
+const fetchUserReminders = async () => {
+  const url = apiUrl.USER_REMINDERS
   const response: any = await getData(url)
+
   const items = Array.isArray(response?.reminders) ? response.reminders : []
+
   const meta = response?.meta ?? {}
+
   return { items, meta }
 }
 
-export const useUserReminders = (input: {
-  subscription_id?: string | number
-}) => {
-  return useQuery(['user_reminders', input], () => fetchUserReminders(input), {
-    enabled: !!input?.subscription_id,
-  })
+export const useUserReminders = () => {
+  return useQuery(['user_reminders'], fetchUserReminders, {})
 }
 
 // Subscription-level report

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { usePlan } from '../api'
 import Icons from '../../../components/common/icons'
@@ -6,7 +6,9 @@ import InfoBox from '../../../components/app/alertBox/infoBox'
 import WorkoutPlanIndex from './WorkoutPlan'
 import DietPlanIndex from './DietPlan'
 import YogaPlanIndex from './YogaPlan'
-import MeditationPlanIndex from './MeditationPlan'
+import MeditationPlanIndex, {
+  MeditationAssignCTAConfig,
+} from './MeditationPlan'
 import DetailsInfo from './DetailsInfo'
 import CreatePlan from '../create'
 import { Tab, TabContainer } from '../../../components/common/tab'
@@ -26,9 +28,17 @@ function YogaTab(props: { planName?: string; planId?: string | number }) {
   return <YogaPlanIndex planName={planName} planId={planId} />
 }
 
-function MeditationTab(props: { planName?: string }) {
-  const { planName } = props
-  return <MeditationPlanIndex planName={planName} />
+function MeditationTab(props: {
+  planName?: string
+  registerAssignCTA?: (config: MeditationAssignCTAConfig | null) => void
+}) {
+  const { planName, registerAssignCTA } = props
+  return (
+    <MeditationPlanIndex
+      planName={planName}
+      registerAssignCTA={registerAssignCTA}
+    />
+  )
 }
 
 export default function PlanDetails() {
@@ -45,6 +55,15 @@ function PlanDetailsContent() {
   const location = useLocation()
   const { data, isLoading, isError, error, refetch } = usePlan(id as string)
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [meditationAssignCTA, setMeditationAssignCTA] =
+    useState<MeditationAssignCTAConfig | null>(null)
+
+  const handleMeditationAssignCTA = useCallback(
+    (config: MeditationAssignCTAConfig | null) => {
+      setMeditationAssignCTA(config)
+    },
+    []
+  )
 
   const plan = (data as any)?.plan ?? (data as any) ?? {}
 
@@ -108,6 +127,9 @@ function PlanDetailsContent() {
     navigate(`/plans/${id}`, { replace: true })
   }
 
+  const showMeditationAssignCTA =
+    activeTab === 'meditationplan' && meditationAssignCTA?.visible
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -117,6 +139,14 @@ function PlanDetailsContent() {
           </button>
           <h1 className="text-xl font-semibold">Plan Details</h1>
         </div>
+        {showMeditationAssignCTA && (
+          <button
+            className="px-3 py-1.5 text-sm border rounded btn-primary"
+            onClick={meditationAssignCTA?.handler}
+          >
+            Assign
+          </button>
+        )}
       </div>
 
       {/* <div className="no-tab-bg"> */}
@@ -150,7 +180,10 @@ function PlanDetailsContent() {
         )}
         {hasMeditationPlan && (
           <Tab id="meditationplan">
-            <MeditationTab planName={plan?.name} />
+            <MeditationTab
+              planName={plan?.name}
+              registerAssignCTA={handleMeditationAssignCTA}
+            />
           </Tab>
         )}
       </TabContainer>
