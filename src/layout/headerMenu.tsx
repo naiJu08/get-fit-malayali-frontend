@@ -11,7 +11,7 @@ type Props = {
   handleLogout: () => void
 }
 
-export default function HeaderMenu({ userData, handleLogout }: Props) {
+export default function HeaderMenu({ userData }: Props) {
   const [openMenu, setOpenMenu] = useState(false)
   const [openMyprofile, setOpenMyprofile] = useState(false)
   const [changePassword, setChangePassword] = useState(false)
@@ -81,10 +81,10 @@ export default function HeaderMenu({ userData, handleLogout }: Props) {
   //   }
   // }
 
-  const handleChangePassword = () => {
-    setOpenMenu(false)
-    setChangePassword(true)
-  }
+  // const handleChangePassword = () => {
+  //   setOpenMenu(false)
+  //   setChangePassword(true)
+  // }
   const handleClose = () => {
     setChangePassword(false)
   }
@@ -165,7 +165,7 @@ export default function HeaderMenu({ userData, handleLogout }: Props) {
             </div>
           </a>
 
-          <a
+          {/* <a
             href="#/"
             className={`p-2 leading-7 hover:bg-background `}
             onClick={() => {
@@ -179,9 +179,9 @@ export default function HeaderMenu({ userData, handleLogout }: Props) {
 
               <span className="pl-1.5 ">{'Change Password'}</span>
             </div>
-          </a>
+          </a> */}
 
-          <a
+          {/* <a
             href="#/"
             className={`p-2 leading-7`}
             onClick={() => {
@@ -195,7 +195,7 @@ export default function HeaderMenu({ userData, handleLogout }: Props) {
 
               <span className="pl-1.5 ">{'Log out'}</span>
             </div>
-          </a>
+          </a> */}
         </div>
       )}
       <ChangePassword

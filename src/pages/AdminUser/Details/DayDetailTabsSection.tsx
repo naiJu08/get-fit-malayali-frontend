@@ -1,5 +1,7 @@
 import moment from 'moment'
 import {
+  Fragment,
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -51,6 +53,72 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   const [templateSearch, setTemplateSearch] = useState('')
   const [templatePage, setTemplatePage] = useState(1)
   const [templatePerPage, setTemplatePerPage] = useState(10)
+  const [expandedDietItems, setExpandedDietItems] = useState<
+    Record<string, boolean>
+  >({})
+  const reloadPage = useCallback(() => {
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.location?.reload === 'function'
+    ) {
+      window.location.reload()
+    }
+  }, [])
+
+  const toggleDietItemDetails = (id: string) => {
+    setExpandedDietItems((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }))
+  }
+
+  const toggleAllDietItemDetails = (
+    items: { mealId: string | number; itemId: string | number }[] = [],
+    expand = true
+  ) => {
+    setExpandedDietItems((prev) => {
+      const next = expand ? { ...prev } : { ...prev }
+      items.forEach(({ mealId, itemId }) => {
+        const key = `${mealId}-${itemId}`
+        if (expand) {
+          next[key] = true
+        } else {
+          delete next[key]
+        }
+      })
+      return next
+    })
+  }
+
+  const dietItemKeys = useMemo(() => {
+    if (!Array.isArray(dayDetail?.diet_plans)) return []
+    const keys: { mealId: string | number; itemId: string | number }[] = []
+    dayDetail.diet_plans.forEach((plan: any) => {
+      if (Array.isArray(plan?.items)) {
+        plan.items.forEach((item: any) => {
+          if (item?.id) {
+            keys.push({
+              mealId: plan?.id ?? plan?.meal_id ?? 'meal',
+              itemId: item.id,
+            })
+          }
+        })
+      }
+    })
+    return keys
+  }, [dayDetail?.diet_plans])
+
+  const areAllDietItemsExpanded = useMemo(() => {
+    if (!dietItemKeys.length) return false
+    return dietItemKeys.every(
+      ({ mealId, itemId }) => expandedDietItems[`${mealId}-${itemId}`]
+    )
+  }, [dietItemKeys, expandedDietItems])
+
+  const handleToggleAllDietDetails = () => {
+    toggleAllDietItemDetails(dietItemKeys, !areAllDietItemsExpanded)
+  }
+
   const { enqueueSnackbar } = useSnackbarManager()
   const navigate = useNavigate()
 
@@ -84,6 +152,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
               err
             )
           }
+          reloadPage()
         },
         onError: (error: any) => {
           enqueueSnackbar(
@@ -166,15 +235,36 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     return moment(normalizedDate).format('DD-MM-YYYY')
   }
 
+  const hasYogaData = useMemo(() => {
+    if (!dayDetail?.yoga_plan) return false
+    if (Array.isArray(dayDetail?.yoga_plan?.exercises)) {
+      return dayDetail.yoga_plan.exercises.length > 0
+    }
+    return false
+  }, [dayDetail?.yoga_plan])
+
+  useEffect(() => {
+    if (!hasYogaData && dayDetailTab === 'yoga') {
+      onChangeTab('diet')
+    }
+  }, [hasYogaData, dayDetailTab, onChangeTab])
+
+  const tabsData = useMemo(() => {
+    const baseTabs = [
+      { label: 'Diet', id: 'diet' },
+      { label: 'Workout', id: 'workout' },
+    ]
+    if (hasYogaData) {
+      baseTabs.push({ label: 'Yoga', id: 'yoga' })
+    }
+    baseTabs.push({ label: 'Meditation', id: 'meditation' })
+    return baseTabs
+  }, [hasYogaData])
+
   return (
     <>
       <TabContainer
-        data={[
-          { label: 'Diet', id: 'diet' },
-          { label: 'Workout', id: 'workout' },
-          { label: 'Yoga', id: 'yoga' },
-          { label: 'Meditation', id: 'meditation' },
-        ]}
+        data={tabsData}
         activeTab={dayDetailTab}
         onClick={(item) => onChangeTab(String(item.id))}
       >
@@ -195,21 +285,40 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     <span>Diet Plans</span>
                   )}
                 </div>
-                {!isNutritionist && (
-                  <button
-                    type="button"
-                    className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
-                    onClick={() => setAssignTemplateOpen(true)}
-                  >
-                    <Icons name="template-icon" />
-                    <span>
-                      {Array.isArray(dayDetail?.diet_plans) &&
-                      dayDetail.diet_plans.length > 0
-                        ? 'Update'
-                        : 'Assign Template'}
-                    </span>
-                  </button>
-                )}
+                <div className="flex flex-col items-end gap-2">
+                  {!isNutritionist && (
+                    <button
+                      type="button"
+                      className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
+                      onClick={() => setAssignTemplateOpen(true)}
+                    >
+                      <Icons name="template-icon" />
+                      <span>
+                        {Array.isArray(dayDetail?.diet_plans) &&
+                        dayDetail.diet_plans.length > 0
+                          ? 'Update'
+                          : 'Assign Template'}
+                      </span>
+                    </button>
+                  )}
+                  {dietItemKeys.length > 0 && (
+                    <button
+                      type="button"
+                      className="group flex items-center gap-1 text-xs font-medium text-primary
+             transition-all hover:text-primaryGreen"
+                      onClick={handleToggleAllDietDetails}
+                    >
+                      <span className="group-hover:underline">
+                        {areAllDietItemsExpanded ? 'Collapse all' : 'View all'}
+                      </span>
+                      <Icons
+                        name="chevron-down"
+                        className={`w-3 h-3 transition-transform duration-200
+      ${areAllDietItemsExpanded ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                  )}
+                </div>
               </div>
               {Array.isArray(dayDetail?.diet_plans) &&
               dayDetail.diet_plans.length > 0 ? (
@@ -228,14 +337,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     )
                       ? d.item_statuses.not_taken_mandatory_item_ids.length
                       : 0
-
-                    const mealLabel =
-                      d?.meal_name ||
-                      d?.notes ||
-                      d?.day_name ||
-                      d?.meal_time ||
-                      'Meal'
-
                     return (
                       <div
                         key={`${d?.id}-${d?.sequence_number}`}
@@ -247,27 +348,15 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                               {d?.meal_time || '--'}
                             </span> */}
                             <span className="text-gray-600 font-medium">
-                              {mealLabel}
+                              {d.meal_time}
                             </span>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
-                              {typeof d?.sequence_number === 'number' ? (
-                                <span className="flex items-center gap-1">
-                                  <span className="text-gray-400">
-                                    Sequence:
-                                  </span>
-                                  <span className="font-medium text-gray-700">
-                                    {d.sequence_number}
-                                  </span>
-                                </span>
-                              ) : null}
-                            </div>
                             {d?.notes && (
                               <p className="text-[11px] text-gray-500 mt-1">
                                 {d.notes}
                               </p>
                             )}
                           </div>
-                          <div className="text-right text-[11px] text-gray-600 space-y-0.5">
+                          <div className="text-right text-[11px] text-gray-600 space-y-0.5 items-end flex flex-col">
                             <div>
                               <span className="text-gray-500">Calories: </span>
                               <span className="font-medium text-gray-800">
@@ -318,77 +407,104 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                 return it?.requirement || '--'
                               })()
 
+                              const dietItemKey = `${d?.id}-${it?.id}`
+                              const isExpanded =
+                                !!expandedDietItems[dietItemKey]
+
                               return (
                                 <div
                                   key={it?.id}
-                                  className="flex flex-col gap-0.5 rounded bg-gray-50 px-2 py-1 text-[10px] text-gray-600"
+                                  className="flex flex-col gap-1 rounded bg-gray-50 px-2 py-1 text-[10px] text-gray-600"
                                 >
-                                  <div>
-                                    <span className="font-medium">Meal : </span>
-                                    <span>{formatMealName(it?.meal_name)}</span>
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">
-                                      Quantity :{' '}
-                                    </span>
-                                    <span>
-                                      {it?.quantity} x {it?.serving_unit} (per{' '}
-                                      {it?.serving_quantity})
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="font-medium">
-                                      Requirement :{' '}
-                                    </span>
-                                    <span>{requirementText}</span>
-                                  </div>
-                                  {it?.per_serving && (
+                                  <div className="flex items-center justify-between">
                                     <div>
                                       <span className="font-medium">
-                                        Per serving :{' '}
+                                        Meal :{' '}
                                       </span>
                                       <span>
-                                        {it.per_serving.calories ?? '--'} kcal,
-                                        P {it.per_serving.protein ?? '--'}, C{' '}
-                                        {it.per_serving.carbs ?? '--'}, F{' '}
-                                        {it.per_serving.fat ?? '--'}, Fib{' '}
-                                        {it.per_serving.fiber ?? '--'}
+                                        {formatMealName(it?.meal_name)}
                                       </span>
                                     </div>
-                                  )}
-                                  {it?.actions && (
-                                    <div className="mt-0.5 flex flex-col gap-0.5 text-[10px] text-gray-600">
+                                    <button
+                                      type="button"
+                                      className="text-[10px] text-primary font-semibold hover:underline"
+                                      onClick={() =>
+                                        dietItemKey &&
+                                        toggleDietItemDetails(dietItemKey)
+                                      }
+                                    >
+                                      {isExpanded
+                                        ? 'Hide details'
+                                        : 'View details'}
+                                    </button>
+                                  </div>
+                                  {isExpanded && (
+                                    <div className="flex flex-col gap-0.5">
                                       <div>
-                                        <span className="text-gray-500">
-                                          Status :{' '}
-                                        </span>
-                                        <span
-                                          className={`font-semibold ${itemStatusClass}`}
-                                        >
-                                          {itemStatus
-                                            ? itemStatus
-                                                .charAt(0)
-                                                .toUpperCase() +
-                                              itemStatus.slice(1)
-                                            : '--'}
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Action date :{' '}
+                                        <span className="font-medium">
+                                          Quantity :{' '}
                                         </span>
                                         <span>
-                                          {formatTimestamp(
-                                            it.actions.action_date
-                                          )}
+                                          {it?.quantity} x {it?.serving_unit}{' '}
+                                          (per {it?.serving_quantity})
                                         </span>
                                       </div>
-                                      {it.actions.notes && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Requirement :{' '}
+                                        </span>
+                                        <span>{requirementText}</span>
+                                      </div>
+                                      {it?.per_serving && (
                                         <div>
-                                          <span className="text-gray-500">
-                                            Notes :{' '}
+                                          <span className="font-medium">
+                                            Per serving :{' '}
                                           </span>
-                                          <span>{it.actions.notes}</span>
+                                          <span>
+                                            {it.per_serving.calories ?? '--'}{' '}
+                                            kcal, P{' '}
+                                            {it.per_serving.protein ?? '--'}, C{' '}
+                                            {it.per_serving.carbs ?? '--'}, F{' '}
+                                            {it.per_serving.fat ?? '--'}, Fib{' '}
+                                            {it.per_serving.fiber ?? '--'}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {it?.actions && (
+                                        <div className="mt-0.5 flex flex-col gap-0.5 text-[10px] text-gray-600">
+                                          <div>
+                                            <span className="text-gray-500">
+                                              Status :{' '}
+                                            </span>
+                                            <span
+                                              className={`font-semibold ${itemStatusClass}`}
+                                            >
+                                              {itemStatus
+                                                ? itemStatus
+                                                    .charAt(0)
+                                                    .toUpperCase() +
+                                                  itemStatus.slice(1)
+                                                : '--'}
+                                            </span>
+                                          </div>
+                                          <div>
+                                            <span className="text-gray-500">
+                                              Action date :{' '}
+                                            </span>
+                                            <span>
+                                              {formatTimestamp(
+                                                it.actions.action_date
+                                              )}
+                                            </span>
+                                          </div>
+                                          {it.actions.notes && (
+                                            <div>
+                                              <span className="text-gray-500">
+                                                Notes :{' '}
+                                              </span>
+                                              <span>{it.actions.notes}</span>
+                                            </div>
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -582,169 +698,169 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
           </div>
         </Tab>
 
-        <Tab id="yoga">
-          <div className="max-h-[700px] overflow-y-auto">
-            <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
-              <div className="flex items-center justify-between mb-2 gap-3">
-                <div className="text-sm font-semibold">Yoga Plan</div>
-                {dayDetail?.yoga_plan && !isNutritionist && (
-                  <button
-                    className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
-                    onClick={onEditYogaPlan}
-                  >
-                    <Icons name="edit" />
-                    <span>Update</span>
-                  </button>
-                )}
-              </div>
-              {dayDetail?.yoga_plan ? (
-                <div className="flex flex-col gap-2 text-xs">
-                  <div className="mb-2">
-                    <div className="font-medium">
-                      {dayDetail?.yoga_plan?.title || 'Yoga Plan'}
-                    </div>
-                    {dayDetail?.yoga_plan?.description && (
-                      <div className="text-gray-600">
-                        {dayDetail.yoga_plan.description}
-                      </div>
-                    )}
-                  </div>
-                  {Array.isArray(dayDetail?.yoga_plan?.exercises) &&
-                  dayDetail.yoga_plan.exercises.length > 0 ? (
-                    <div className="flex flex-col gap-2">
-                      {dayDetail.yoga_plan.exercises.map(
-                        (ex: any, idx: number) => {
-                          const action = ex?.actions
-                          const yogaStatus = String(
-                            action?.status || ''
-                          ).toLowerCase()
-                          const yogaStatusClass =
-                            yogaStatus === 'completed'
-                              ? 'text-green-600'
-                              : yogaStatus === 'missed' ||
-                                  yogaStatus === 'failed'
-                                ? 'text-red-600'
-                                : yogaStatus === 'today' ||
-                                    yogaStatus === 'in_progress'
-                                  ? 'text-amber-600'
-                                  : 'text-gray-700'
-
-                          return (
-                            <div
-                              key={`${ex?.id}-${idx}`}
-                              className="flex items-center justify-between border rounded px-3 py-2"
-                            >
-                              <div className="flex flex-col">
-                                <span className="font-medium">
-                                  {formatTitleCase(
-                                    ex?.yoga_name || ex?.title || ex?.name
-                                  ) || '--'}
-                                </span>
-                                {ex?.video_url && (
-                                  <a
-                                    className="text-primaryBlue underline"
-                                    href={ex.video_url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                  >
-                                    Video
-                                  </a>
-                                )}
-                              </div>
-                              <div className="text-right text-[11px] text-gray-600 space-y-0.5">
-                                {ex?.yoga_duration_minutes ? (
-                                  <div>
-                                    Duration: {ex.yoga_duration_minutes}m
-                                  </div>
-                                ) : ex?.duration_minutes ? (
-                                  <div>Duration: {ex.duration_minutes}m</div>
-                                ) : null}
-                                {action && (
-                                  <>
-                                    {action.status && (
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Status:{' '}
-                                        </span>
-                                        <span
-                                          className={`font-semibold ${yogaStatusClass}`}
-                                        >
-                                          {yogaStatus
-                                            ? yogaStatus
-                                                .charAt(0)
-                                                .toUpperCase() +
-                                              yogaStatus.slice(1)
-                                            : '--'}
-                                        </span>
-                                      </div>
-                                    )}
-                                    {action.action_date && (
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Action date:{' '}
-                                        </span>
-                                        <span>{action.action_date}</span>
-                                      </div>
-                                    )}
-                                    {action.completed_at && (
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Completed at:{' '}
-                                        </span>
-                                        <span>{action.completed_at}</span>
-                                      </div>
-                                    )}
-                                    {typeof action.duration_seconds ===
-                                      'number' && (
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Duration sec:{' '}
-                                        </span>
-                                        <span className="font-medium text-gray-800">
-                                          {action.duration_seconds}
-                                        </span>
-                                      </div>
-                                    )}
-                                    {action.video_watch_percentage && (
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Watched %:{' '}
-                                        </span>
-                                        <span className="font-medium text-gray-800">
-                                          {action.video_watch_percentage}
-                                        </span>
-                                      </div>
-                                    )}
-                                    {action.notes && (
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Notes:{' '}
-                                        </span>
-                                        <span className="font-medium text-gray-800">
-                                          {action.notes}
-                                        </span>
-                                      </div>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          )
-                        }
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-gray-500">
-                      No yoga exercises.
-                    </div>
+        {dayDetail?.yoga_plan && (
+          <Tab id="yoga">
+            <div className="max-h-[700px] overflow-y-auto">
+              <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
+                <div className="flex items-center justify-between mb-2 gap-3">
+                  <div className="text-sm font-semibold">Yoga Plan</div>
+                  {dayDetail?.yoga_plan && !isNutritionist && (
+                    <button
+                      className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
+                      onClick={onEditYogaPlan}
+                    >
+                      <Icons name="edit" />
+                      <span>Update</span>
+                    </button>
                   )}
                 </div>
-              ) : (
-                <div className="text-xs text-gray-500">No yoga plan.</div>
-              )}
+                {dayDetail?.yoga_plan ? (
+                  <div className="flex flex-col gap-2 text-xs">
+                    <div className="mb-2">
+                      <div className="font-medium">
+                        {dayDetail?.yoga_plan?.title || 'Yoga Plan'}
+                      </div>
+                      {dayDetail?.yoga_plan?.description && (
+                        <div className="text-gray-600">
+                          {dayDetail.yoga_plan.description}
+                        </div>
+                      )}
+                    </div>
+                    {Array.isArray(dayDetail?.yoga_plan?.exercises) &&
+                    dayDetail.yoga_plan.exercises.length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        {dayDetail.yoga_plan.exercises.map(
+                          (ex: any, idx: number) => {
+                            const action = ex?.actions
+                            const yogaStatus = String(
+                              action?.status || ''
+                            ).toLowerCase()
+                            const yogaStatusClass =
+                              yogaStatus === 'completed'
+                                ? 'text-green-600'
+                                : yogaStatus === 'missed' ||
+                                    yogaStatus === 'failed'
+                                  ? 'text-red-600'
+                                  : yogaStatus === 'today' ||
+                                      yogaStatus === 'in_progress'
+                                    ? 'text-amber-600'
+                                    : 'text-gray-700'
+
+                            return (
+                              <div
+                                key={`${ex?.id}-${idx}`}
+                                className="flex items-center justify-between border rounded px-3 py-2"
+                              >
+                                <div className="flex flex-col">
+                                  <span className="font-medium">
+                                    {formatTitleCase(
+                                      ex?.yoga_name || ex?.title || ex?.name
+                                    ) || '--'}
+                                  </span>
+                                  {ex?.video_url && (
+                                    <a
+                                      className="text-primaryBlue underline"
+                                      href={ex.video_url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                    >
+                                      Video
+                                    </a>
+                                  )}
+                                </div>
+                                <div className="text-right text-[11px] text-gray-600 space-y-0.5">
+                                  {ex?.yoga_duration_minutes ? (
+                                    <div>
+                                      Duration: {ex.yoga_duration_minutes}m
+                                    </div>
+                                  ) : ex?.duration_minutes ? (
+                                    <div>Duration: {ex.duration_minutes}m</div>
+                                  ) : null}
+                                  {action && (
+                                    <>
+                                      {action.status && (
+                                        <div>
+                                          <span className="text-gray-500">
+                                            Status:{' '}
+                                          </span>
+                                          <span
+                                            className={`font-semibold ${yogaStatusClass}`}
+                                          >
+                                            {yogaStatus
+                                              ? yogaStatus
+                                                  .charAt(0)
+                                                  .toUpperCase() +
+                                                yogaStatus.slice(1)
+                                              : '--'}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {action.action_date && (
+                                        <div>
+                                          <span className="text-gray-500">
+                                            Action date:{' '}
+                                          </span>
+                                          <span>{action.action_date}</span>
+                                        </div>
+                                      )}
+                                      {action.completed_at && (
+                                        <div>
+                                          <span className="text-gray-500">
+                                            Completed at:{' '}
+                                          </span>
+                                          <span>{action.completed_at}</span>
+                                        </div>
+                                      )}
+                                      {typeof action.duration_seconds ===
+                                        'number' && (
+                                        <div>
+                                          <span className="text-gray-500">
+                                            Duration sec:{' '}
+                                          </span>
+                                          <span className="font-medium text-gray-800">
+                                            {action.duration_seconds}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {action.video_watch_percentage && (
+                                        <div>
+                                          <span className="text-gray-500">
+                                            Watched %:{' '}
+                                          </span>
+                                          <span className="font-medium text-gray-800">
+                                            {action.video_watch_percentage}
+                                          </span>
+                                        </div>
+                                      )}
+                                      {action.notes && (
+                                        <div>
+                                          <span className="text-gray-500">
+                                            Notes:{' '}
+                                          </span>
+                                          <span className="font-medium text-gray-800">
+                                            {action.notes}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          }
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500">No yoga.</div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500">No yoga plan.</div>
+                )}
+              </div>
             </div>
-          </div>
-        </Tab>
+          </Tab>
+        )}
 
         <Tab id="meditation">
           <div className="max-h-[700px] overflow-y-auto">
@@ -752,7 +868,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
               <div className="flex items-center justify-between mb-2 gap-3">
                 <div className="text-sm font-semibold">Meditation</div>
                 {Array.isArray(dayDetail?.meditations) &&
-                  dayDetail.meditations.length > 0 &&
+                  // dayDetail.meditations.length > 0 &&
                   !isNutritionist && (
                     <button
                       className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"

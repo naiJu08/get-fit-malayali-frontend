@@ -56,7 +56,10 @@ export default function CreateAdmin({
     ...(disabled ? { disabled: true } : {}),
   })
   const formBuilderProps = [
-    { ...textField('name', 'Name', 'Enter category name', true) },
+    {
+      ...textField('name', 'Name', 'Enter category name', true),
+      maxLength: 50,
+    },
     {
       name: 'description',
       label: 'Description',
@@ -64,6 +67,7 @@ export default function CreateAdmin({
       type: 'textarea',
       placeholder: 'Enter description',
       required: true,
+      maxLength: 255,
     },
   ]
 

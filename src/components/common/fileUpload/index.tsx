@@ -191,6 +191,43 @@ const FileUpload: React.FC<FileUploadProps> = ({
     setDeleteModal(false)
   }
   const { watch } = useFormContext()
+  const handleFilePreview = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const isBrowserFile = (input: unknown): input is File =>
+      typeof File !== 'undefined' && input instanceof File
+
+    let previewUrl = ''
+    let cleanup: (() => void) | undefined
+
+    if (file && typeof file === 'object') {
+      if (file?.link) {
+        previewUrl = file.link
+      } else if (isBrowserFile(file)) {
+        previewUrl = URL.createObjectURL(file)
+        cleanup = () => URL.revokeObjectURL(previewUrl)
+      }
+    }
+
+    if (!previewUrl) {
+      const watchedValue = watch(name) || (subName ? watch(subName) : '')
+      if (typeof watchedValue === 'string') {
+        previewUrl = watchedValue
+      }
+    }
+
+    if (!previewUrl) return
+
+    const opened = window.open(previewUrl, '_blank', 'noopener')
+    if (opened) {
+      opened.opener = null
+    }
+
+    if (cleanup) {
+      setTimeout(cleanup, 1000)
+    }
+  }
 
   return (
     <>
@@ -312,25 +349,17 @@ const FileUpload: React.FC<FileUploadProps> = ({
                 />
                 <a
                   href="#/"
-                  onClick={() =>
-                    typeof file === 'object' && file?.link
-                      ? window.open(file.link)
-                      : watch(name)
-                        ? window.open(watch(name))
-                        : ''
-                  }
+                  onClick={handleFilePreview}
                   className={`flex-1 text-sm font-medium overflow-hidden break-all ${disabled ? 'text-disabledText  cursor-not-allowed' : 'text-primaryText'}`}
                 >
                   {file?.name ?? watch(subName)}
                 </a>
-                {!disabled && handleDeleteFile ? (
+                {!disabled && (
                   <Icons
                     name="close"
                     onClick={() => handleClearFile(0, file)}
                     className="iconBlack iconWidthSm cursor-pointer"
                   />
-                ) : (
-                  ''
                 )}
               </div>
             )}

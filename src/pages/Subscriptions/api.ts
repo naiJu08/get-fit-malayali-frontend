@@ -57,8 +57,10 @@ export const freezeSubscription = (
   payload?: { reason?: string; start_date?: string; end_date?: string }
 ) => postData(`${apiUrl.SUBSCRIPTIONS}/${id}/freeze`, payload ?? {})
 
-export const unfreezeSubscription = (id: string) =>
-  postData(`${apiUrl.SUBSCRIPTIONS}/${id}/unfreeze`, {})
+export const unfreezeSubscription = (
+  id: string,
+  payload?: { unfreeze_dates?: string[] }
+) => postData(`${apiUrl.SUBSCRIPTIONS}/${id}/unfreeze`, payload ?? {})
 
 // Aliases to match AdminUser module API names so copied components work without refactor
 export const useAdminUser = (input: QueryParams) => useSubscriptions(input)
@@ -70,7 +72,10 @@ export const freezeUser = (
   id: string,
   payload?: { reason?: string; start_date?: string; end_date?: string }
 ) => freezeSubscription(id, payload)
-export const unfreezeUser = (id: string) => unfreezeSubscription(id)
+export const unfreezeUser = (
+  id: string,
+  payload?: { unfreeze_dates?: string[] }
+) => unfreezeSubscription(id, payload)
 
 export const createAdmin = (input: any) => createSubscription(input)
 

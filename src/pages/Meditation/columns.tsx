@@ -10,6 +10,13 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
+const truncateText = (value?: string, limit = 40) => {
+  if (!value) return ''
+  const trimmed = value.trim()
+  if (trimmed.length <= limit) return trimmed
+  return `${trimmed.slice(0, limit).trim()}…`
+}
+
 export const getColumns = ({
   onNameClick,
   disableNameLink = false,
@@ -124,7 +131,8 @@ export const getColumns = ({
       renderCell: (row: any) => {
         const value = getNestedProperty(row, 'title')
         const raw = typeof value === 'string' ? value : ''
-        const display = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : ''
+        const formatted = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : ''
+        const display = truncateText(formatted, 50)
         if (!disableNameLink && onNameClick) {
           return {
             cell: (
@@ -136,12 +144,12 @@ export const getColumns = ({
                 {display}
               </button>
             ),
-            toolTip: display,
+            toolTip: formatted,
           }
         }
         return {
           cell: <span>{display}</span>,
-          toolTip: display,
+          toolTip: formatted,
         }
       },
       customCell: true,
@@ -157,7 +165,15 @@ export const getColumns = ({
     {
       title: 'Description',
       field: 'description',
-      renderCell: createRenderCell('description'),
+      renderCell: (row: any) => {
+        const description = getNestedProperty(row, 'description')
+        const raw = typeof description === 'string' ? description : ''
+        const display = truncateText(raw, 80)
+        return {
+          cell: <span>{display}</span>,
+          toolTip: raw,
+        }
+      },
       customCell: true,
       ...defaultColumnProps,
     },
