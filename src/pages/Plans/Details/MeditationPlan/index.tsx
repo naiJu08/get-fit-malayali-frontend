@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import CustomDrawer from '../../../../components/common/drawer'
 import { useMeditationList } from '../../../Meditation/api'
-import { useAssignMeditations, useRemoveMeditationsFromPlan } from './api'
+import { useAssignMeditations } from './api'
 import { useAuthStore } from '../../../../store/authStore'
-import { useSnackbarManager } from '../../../../components/common/snackbar'
 import Icons from '../../../../components/common/icons'
 
 export type MeditationAssignCTAConfig = {
@@ -35,15 +34,6 @@ export default function MeditationPlanIndex({
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
 
-  useEffect(() => {
-    if (!assignOpen && !reviewOpen) {
-      setSelectedMeditations([])
-      setSearch('')
-      setPage(1)
-      setDragIndex(null)
-    }
-  }, [assignOpen, reviewOpen])
-
   const {
     data: medResp,
     isFetching: medLoading,
@@ -56,6 +46,25 @@ export default function MeditationPlanIndex({
   } as any)
   const meditations = medResp?.meditations ?? medResp?.items ?? []
 
+  const assignedMeditations = useMemo(() => {
+    if (!Array.isArray(meditations) || !planId) return []
+    const currentPlanId = String(planId)
+    return meditations
+      .map((m: any) => {
+        const plans = (m?.assigned_plans || []) as any[]
+        const match = plans.find(
+          (p: any) => String(p?.plan_id) === currentPlanId
+        )
+        if (!match) return null
+        return { ...m, sequence_number: match?.sequence_number }
+      })
+      .filter(Boolean)
+      .sort(
+        (a: any, b: any) =>
+          (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
+      )
+  }, [meditations, planId])
+
   const isSelected = (id: any) =>
     selectedMeditations.some((m) => String(m?.id) === String(id))
   const toggleSelected = (m: any) => {
@@ -67,32 +76,15 @@ export default function MeditationPlanIndex({
   }
 
   useEffect(() => {
-    if (assignOpen) {
-      setDragIndex(null)
-      setReviewOpen(false)
+    if (!assignOpen) return
 
-      // Pre-select currently assigned meditations when opening the drawer.
-      if (selectedMeditations.length === 0 && Array.isArray(meditations)) {
-        const currentPlanId = planId ? String(planId) : undefined
-        const assigned = (meditations || [])
-          .map((m: any) => {
-            const plans = (m?.assigned_plans || []) as any[]
-            const match = plans.find(
-              (p: any) => String(p?.plan_id) === currentPlanId
-            )
-            if (!match) return null
-            return { ...m, sequence_number: match?.sequence_number }
-          })
-          .filter((x: any) => x)
-          .slice()
-          .sort(
-            (a: any, b: any) =>
-              (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
-          )
-        if (assigned.length > 0) setSelectedMeditations(assigned)
-      }
+    setDragIndex(null)
+    setReviewOpen(false)
+
+    if (selectedMeditations.length === 0 && assignedMeditations.length > 0) {
+      setSelectedMeditations(assignedMeditations)
     }
-  }, [assignOpen, meditations, planId, selectedMeditations.length])
+  }, [assignOpen, assignedMeditations, selectedMeditations.length])
 
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
@@ -202,6 +194,8 @@ export default function MeditationPlanIndex({
           setAssignOpen(false)
           setSearch('')
           setPage(1)
+          setDragIndex(null)
+          setSelectedMeditations(assignedMeditations)
         }}
         className="w-screen max-w-[100vw]"
         unmountOnClose
@@ -365,7 +359,7 @@ export default function MeditationPlanIndex({
         open={reviewOpen}
         handleClose={() => {
           setReviewOpen(false)
-          setSelectedMeditations([])
+          setAssignOpen(true)
           setDragIndex(null)
         }}
         className="w-screen max-w-[100vw] h-screen"
@@ -376,15 +370,16 @@ export default function MeditationPlanIndex({
         actionLoader={assigning}
         actionLabel={'Confirm'}
       >
-        <div className="mt-4">
+        <div className="">
           <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
-            <span className="text-blue-600 text-xl">🎬</span>
-            <span className="text-gray-600  bg-clip-text ">
-              Drag and drop the videos below into the order you want them to
-              appear in the meditation plan, then click{' '}
-              <span className="font-semibold">Assign</span> to save this
-              sequence.
-            </span>
+            {selectedMeditations.length > 1 && (
+              <span className="text-gray-600  bg-clip-text ">
+                Drag and drop the videos below into the order you want them to
+                appear in the meditation plan, then click{' '}
+                <span className="font-semibold">Assign</span> to save this
+                sequence.
+              </span>
+            )}
           </h2>
           {selectedMeditations.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-5">
@@ -393,7 +388,6 @@ export default function MeditationPlanIndex({
                 const url = String(rawUrl || '')
                 const embed = getEmbedUrl(url)
                 const title = formatMeditationName(m?.name || m?.title)
-                const durationLabel = getMeditationDurationLabel(m)
                 return (
                   <div
                     key={m?.id ?? `${title}-${i}`}
@@ -428,20 +422,13 @@ export default function MeditationPlanIndex({
                           No video URL available.
                         </div>
                       )}
-
-                      {durationLabel && (
-                        <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
-                          <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-500 text-white px-2 py-0.5 font-medium backdrop-blur">
-                            <span className="w-2 h-2 rounded-full bg-white" />
-                            {durationLabel}
-                          </span>
-                        </div>
-                      )}
                     </div>
 
-                    <div className="px-4 py-2 text-xs text-gray-600 flex flex-col gap-1">
-                      <span>Hold and drag to rearrange</span>
-                    </div>
+                    {selectedMeditations.length > 1 && (
+                      <div className="px-4 py-2 text-xs text-gray-600 flex flex-col gap-1">
+                        <span>Hold and drag to rearrange</span>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -462,7 +449,7 @@ function formatMeditationName(value?: any) {
     value === null || value === undefined || value === ''
       ? 'Untitled'
       : String(value)
-  return raw.slice(0, 1).toUpperCase() + raw.slice(1).toLowerCase()
+  return raw.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 function getMeditationDurationLabel(item: any) {
@@ -490,8 +477,6 @@ function AssignedMeditationsSection({
   meditations,
   loading,
   getEmbedUrl,
-  isNutritionist,
-  refreshList,
 }: {
   planId?: string
   meditations: any[]
@@ -501,37 +486,6 @@ function AssignedMeditationsSection({
   refreshList: () => void
 }) {
   const currentPlanId = planId ? String(planId) : undefined
-  const [selectedMeditationIds, setSelectedMeditationIds] = useState<any[]>([])
-  const [removedMeditationIds, setRemovedMeditationIds] = useState<any[]>([])
-  const { enqueueSnackbar } = useSnackbarManager()
-  const { mutateAsync: removeMeditationsAsync } = useRemoveMeditationsFromPlan()
-
-  const toggleSelectedMeditation = (meditationId: any) => {
-    if (!meditationId) return
-    setSelectedMeditationIds((prev) =>
-      prev.includes(meditationId)
-        ? prev.filter((x) => x !== meditationId)
-        : [...prev, meditationId]
-    )
-  }
-
-  const handleRemoveSelected = async () => {
-    if (!planId || selectedMeditationIds.length === 0) return
-    try {
-      const res: any = await removeMeditationsAsync({
-        planId,
-        meditationIds: selectedMeditationIds,
-      })
-      setRemovedMeditationIds((prev) => [...prev, ...selectedMeditationIds])
-      setSelectedMeditationIds([])
-      const msg = res?.message || 'Meditations removed successfully'
-      enqueueSnackbar(msg, { variant: 'success' })
-      refreshList?.()
-    } catch (e: any) {
-      console.error(e)
-    }
-  }
-
   const assigned = (meditations || [])
     .map((m: any) => {
       const plans = (m?.assigned_plans || []) as any[]
@@ -543,22 +497,11 @@ function AssignedMeditationsSection({
       }
     })
     .filter((x: any) => x)
-    .filter((m: any) => !removedMeditationIds.includes(m?.id))
 
   return (
     <div className="border rounded p-3">
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm font-semibold">Meditations</div>
-        {!isNutritionist &&
-          assigned.length > 0 &&
-          selectedMeditationIds.length > 0 && (
-            <button
-              className="px-3 py-1 text-xs border rounded  btn-primary"
-              onClick={handleRemoveSelected}
-            >
-              Remove Meditation
-            </button>
-          )}
       </div>
       {loading && (
         <div className="text-xs text-gray-500">
@@ -585,8 +528,6 @@ function AssignedMeditationsSection({
               const embed = getEmbedUrl(url)
               const title = formatMeditationName(m?.name || m?.title)
               const durationLabel = getMeditationDurationLabel(m)
-              const meditationId = m?.id
-              const checked = selectedMeditationIds.includes(meditationId)
               return (
                 <div
                   key={m?.id ?? `${title}-${i}`}
@@ -642,18 +583,6 @@ function AssignedMeditationsSection({
 
                   <div className="px-2 py-3 text-xs flex flex-col gap-1">
                     <div className="font-medium line-clamp-1">{title}</div>
-                    {!isNutritionist && (
-                      <div className="flex justify-end">
-                        <input
-                          type="checkbox"
-                          className="shrink-0"
-                          checked={checked}
-                          onChange={() =>
-                            toggleSelectedMeditation(meditationId)
-                          }
-                        />
-                      </div>
-                    )}
                   </div>
                 </div>
               )

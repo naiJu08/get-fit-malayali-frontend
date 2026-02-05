@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 
 import Icons from '../../../../components/common/icons'
@@ -74,47 +74,12 @@ function AssignTabContent({
   // selectedWorkouts,
   getEmbedUrl,
 }: any) {
-  const [selectedExerciseIds, setSelectedExerciseIds] = useState<any[]>([])
-  const [removedExerciseIds, setRemovedExerciseIds] = useState<any[]>([])
-  const { enqueueSnackbar } = useSnackbarManager()
-  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
-  const isNutritionist = roleName === 'nutritionist'
-
-  const toggleSelectedExercise = (yogaId: any) => {
-    if (!yogaId) return
-    setSelectedExerciseIds((prev) =>
-      prev.includes(yogaId)
-        ? prev.filter((x) => x !== yogaId)
-        : [...prev, yogaId]
-    )
-  }
-
-  const handleRemoveSelected = async () => {
-    if (!yp?.id || selectedExerciseIds.length === 0) return
-    try {
-      const res: any = await deleteYogaPlanExercise(yp.id, selectedExerciseIds)
-      setRemovedExerciseIds((prev) => [...prev, ...selectedExerciseIds])
-      setSelectedExerciseIds([])
-      const msg = res?.message || 'Exercises removed successfully'
-      enqueueSnackbar(msg, { variant: 'success' })
-    } catch (e: any) {
-      enqueueSnackbar(
-        e?.response?.data?.message || 'Failed to remove exercises',
-        { variant: 'error' }
-      )
-    }
-  }
-
   const exercises = Array.isArray(yp?.exercises)
     ? yp.exercises
         .slice()
         .sort(
           (a: any, b: any) =>
             (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
-        )
-        .filter(
-          (ex: any) =>
-            !removedExerciseIds.includes(ex?.yoga_id || ex?.yoga?.id || ex?.id)
         )
     : []
 
@@ -140,16 +105,6 @@ function AssignTabContent({
                 Duration
               </span>
             </div>
-            {!isNutritionist &&
-              exercises.length > 0 &&
-              selectedExerciseIds.length > 0 && (
-                <button
-                  className="px-3 py-1 text-xs border rounded  btn-primary"
-                  onClick={handleRemoveSelected}
-                >
-                  Remove Exercise
-                </button>
-              )}
           </div>
           {exercises.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-3 place-items-stretch">
@@ -161,8 +116,6 @@ function AssignTabContent({
                   ''
                 const url = String(rawUrl || '')
                 const embed = getEmbedUrl(url)
-                const yogaIdForEx = ex?.yoga_id || ex?.yoga?.id || ex?.id
-                const checked = selectedExerciseIds.includes(yogaIdForEx)
                 const durationLabel = getYogaDurationLabel(ex)
                 return (
                   <div
@@ -209,14 +162,6 @@ function AssignTabContent({
                             ex?.yoga_name
                         )}
                       </div>
-                      {!isNutritionist && (
-                        <input
-                          type="checkbox"
-                          className="shrink-0"
-                          checked={checked}
-                          onChange={() => toggleSelectedExercise(yogaIdForEx)}
-                        />
-                      )}
                     </div>
                   </div>
                 )
@@ -285,6 +230,7 @@ export default function YogaPlanDetails() {
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
+  const canReorderYogas = selectedWorkouts.length > 1
   const [autoSelectEnabled, setAutoSelectEnabled] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const selectAllNextYogasRef = useRef(false)
@@ -329,6 +275,35 @@ export default function YogaPlanDetails() {
       setLoading(false)
     }
   }
+
+  const submittedWorkouts = useMemo(() => {
+    if (!Array.isArray(yp?.exercises) || yp.exercises.length === 0) return []
+
+    const map = new Map<any, any>()
+    yp.exercises.forEach((ex: any) => {
+      const exId = ex?.yoga_id || ex?.yoga?.id || ex?.id
+      if (!exId || map.has(exId)) return
+
+      map.set(exId, {
+        id: exId,
+        name: getYogaDisplayName(
+          ex?.workout_name ||
+            ex?.yoga_name ||
+            ex?.name ||
+            ex?.title ||
+            ex?.yoga?.name
+        ),
+        video_url:
+          ex?.video_url ||
+          ex?.workout_video_url ||
+          ex?.workout?.video_url ||
+          ex?.yoga?.video_url ||
+          '',
+      })
+    })
+
+    return Array.from(map.values())
+  }, [yp?.exercises])
 
   // Load yogas for assignment
   const yogaListParams: any = {
@@ -396,39 +371,14 @@ export default function YogaPlanDetails() {
     setDragIndex(null)
     setReviewOpen(false)
 
-    const hasPrefills =
-      Array.isArray(yp?.exercises) && (yp?.exercises?.length ?? 0) > 0
+    const hasPrefills = submittedWorkouts.length > 0
 
     if (selectedWorkouts.length === 0 && hasPrefills) {
-      const map = new Map<any, any>()
-      yp?.exercises?.forEach((ex: any) => {
-        const exId = ex?.yoga_id || ex?.yoga?.id || ex?.id
-        if (!exId || map.has(exId)) return
-        map.set(exId, {
-          id: exId,
-          name: getYogaDisplayName(
-            ex?.workout_name ||
-              ex?.yoga_name ||
-              ex?.name ||
-              ex?.title ||
-              ex?.yoga?.name
-          ),
-          video_url:
-            ex?.video_url ||
-            ex?.workout_video_url ||
-            ex?.workout?.video_url ||
-            ex?.yoga?.video_url ||
-            '',
-        })
-      })
-      const prefills = Array.from(map.values())
-      if (prefills.length > 0) {
-        setSelectedWorkouts(prefills)
-        if (autoSelectEnabled) {
-          setAutoSelectEnabled(false)
-        }
-        return
+      setSelectedWorkouts(submittedWorkouts)
+      if (autoSelectEnabled) {
+        setAutoSelectEnabled(false)
       }
+      return
     }
 
     if (hasPrefills && autoSelectEnabled) {
@@ -440,7 +390,12 @@ export default function YogaPlanDetails() {
     ) {
       setAutoSelectEnabled(true)
     }
-  }, [assignOpen, yp?.exercises, selectedWorkouts.length, autoSelectEnabled])
+  }, [
+    assignOpen,
+    submittedWorkouts,
+    selectedWorkouts.length,
+    autoSelectEnabled,
+  ])
 
   useEffect(() => {
     if (!assignOpen) {
@@ -655,6 +610,8 @@ export default function YogaPlanDetails() {
         handleClose={() => {
           setAssignOpen(false)
           setCategoryFilter('')
+          setAutoSelectEnabled(false)
+          setSelectedWorkouts(submittedWorkouts)
         }}
         className="w-screen max-w-[100vw]"
         unmountOnClose
@@ -792,7 +749,10 @@ export default function YogaPlanDetails() {
 
       <CustomDrawer
         open={reviewOpen}
-        handleClose={() => setReviewOpen(false)}
+        handleClose={() => {
+          setReviewOpen(false)
+          setAssignOpen(true)
+        }}
         className="w-screen max-w-[100vw] h-screen"
         unmountOnClose
         title={'Review & Order Exercises'}
@@ -801,18 +761,19 @@ export default function YogaPlanDetails() {
         actionLoader={assigning}
         actionLabel={'Confirm'}
       >
-        <div className="mt-4">
+        <div className="">
           <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
-            <span className="text-blue-600 text-xl">🎬</span>
-            <span className="text-gray-600  bg-clip-text ">
-              Drag and drop the videos below into the order you want them to
-              appear in the yogaplan, then click{' '}
-              <span className="font-semibold">Assign</span> to save this
-              sequence.
-            </span>
+            {canReorderYogas && (
+              <span className="text-gray-600  bg-clip-text ">
+                Drag and drop the videos below into the order you want them to
+                appear in the yoga plan, then click{' '}
+                <span className="font-semibold">Assign</span> to save this
+                sequence.
+              </span>
+            )}
           </h2>
           {selectedWorkouts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-5">
               {selectedWorkouts.map((w, i) => {
                 const embed = getEmbedUrl(w?.video_url)
                 const url = w?.video_url || ''
@@ -850,9 +811,11 @@ export default function YogaPlanDetails() {
                       </div>
                     )}
 
-                    <div className="px-4 py-2 text-xs text-gray-600">
-                      Hold and drag to rearrange
-                    </div>
+                    {canReorderYogas && (
+                      <div className="px-4 py-2 text-xs text-gray-600">
+                        Hold and drag to rearrange
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -902,7 +865,8 @@ function getYogaDisplayName(value?: any) {
     value === null || value === undefined || value === ''
       ? 'Untitled'
       : String(value)
-  return raw.slice(0, 1).toUpperCase() + raw.slice(1).toLowerCase()
+  const lowered = raw.toLowerCase()
+  return lowered.replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 function getYogaDurationLabel(item: any) {
@@ -923,7 +887,16 @@ function getYogaDurationLabel(item: any) {
     return `${whole ? value : value.toFixed(2)} min`
   }
 
-  const seconds = Math.max(1, Math.round(value * 60))
+  // Backend sometimes sends sub-minute durations as 0.xx meaning xx seconds (e.g. 0.12 => 12 sec)
+  // while other times it's truly fractional minutes (e.g. 0.2 => 12 sec). Heuristic:
+  // if *100 looks like a reasonable seconds value and *60 looks too small, prefer *100.
+  let secondsFloat = value * 60
+  const secondsAlt = value * 100
+  if (secondsAlt >= 10 && secondsAlt <= 59 && secondsFloat < 10) {
+    secondsFloat = secondsAlt
+  }
+
+  const seconds = Math.max(1, Math.round(secondsFloat))
   return `${seconds} sec`
 }
 

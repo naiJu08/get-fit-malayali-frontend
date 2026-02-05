@@ -115,6 +115,14 @@ export default function Subscriptions({
   const [medSearch, setMedSearch] = useState<string>('')
   const [medAssigning, setMedAssigning] = useState(false)
   const [medDragIndex, setMedDragIndex] = useState<number | null>(null)
+  const refreshEntirePage = useCallback(() => {
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.location?.reload === 'function'
+    ) {
+      window.location.reload()
+    }
+  }, [])
   const shouldLoadPlans = drawerOpen
   const shouldLoadWorkouts = assignOpen
   const shouldLoadYoga = yogaAssignOpen
@@ -203,6 +211,8 @@ export default function Subscriptions({
   const prefillAppliedRef = useRef(false)
   const lastPrefillSignatureRef = useRef('')
   const selectAllNextWorkoutsRef = useRef(false)
+  const drawerSelectionInitializedRef = useRef(false)
+  const userSelectionTouchedRef = useRef(false)
   const pendingPrefillCategoryRef = useRef<string>('')
   const pendingPrefillSubcategoriesRef = useRef<
     | {
@@ -211,6 +221,8 @@ export default function Subscriptions({
       }[]
     | null
   >(null)
+  const yogaSelectionPrefilledRef = useRef(false)
+  const medSelectionPrefilledRef = useRef(false)
   const selectedSubcategoryIds = useMemo(
     () =>
       (selectedSubcategories || [])
@@ -394,6 +406,7 @@ export default function Subscriptions({
   const isSelected = (id: any) => selectedWorkouts.some((w) => w?.id === id)
   const toggleSelected = (w: any) => {
     if (!w?.id) return
+    userSelectionTouchedRef.current = true
     setSelectedWorkouts((prev) =>
       prev.some((x) => x?.id === w.id)
         ? prev.filter((x) => x?.id !== w.id)
@@ -402,6 +415,7 @@ export default function Subscriptions({
   }
 
   const yogaCanProceedToReview = selectedYogas.length > 0
+  const canReorderYogaSelections = selectedYogas.length > 1
   const isYogaSelected = (id: any) =>
     selectedYogas.some((y) => String(y?.id) === String(id))
   const toggleYogaSelected = (item: any) => {
@@ -506,6 +520,12 @@ export default function Subscriptions({
       .sort((a, b) => a.priority - b.priority)
   }, [selectedWorkouts])
 
+  const canReorderWorkoutGroups = useMemo(
+    () =>
+      groupedSelectedWorkouts.some((group) => (group?.items?.length ?? 0) > 1),
+    [groupedSelectedWorkouts]
+  )
+
   const workoutsById = useMemo(() => {
     const map = new Map<string, any>()
     if (Array.isArray(workouts)) {
@@ -520,6 +540,7 @@ export default function Subscriptions({
 
   const canProceedToReview = selectedWorkouts.length > 0
   const medCanProceedToReview = selectedMeditations.length > 0
+  const canReorderMeditations = selectedMeditations.length > 1
   const isMeditationSelected = (id: any) =>
     selectedMeditations.some((m) => String(getMeditationId(m)) === String(id))
   const toggleMeditationSelected = (meditation: any) => {
@@ -593,6 +614,36 @@ export default function Subscriptions({
       return val
     }
     return ''
+  }
+
+  const resolveUnfreezeDates = () => {
+    const candidates = [
+      toggleFreezeRow?.freeze_dates,
+      overview?.subscription?.freeze_dates,
+      toggleFreezeRow?.freeze_date,
+      toggleFreezeRow?.freeze_start_date,
+      toggleFreezeRow?.freeze_start,
+      toggleFreezeRow?.start_date,
+      overview?.subscription?.freeze_date,
+      overview?.subscription?.freeze_start_date,
+      overview?.subscription?.freeze_start,
+    ]
+
+    const uniqueDates = new Set<string>()
+
+    const appendDate = (value: any) => {
+      if (!value) return
+      const values = Array.isArray(value) ? value : [value]
+      values.forEach((item) => {
+        if (!item) return
+        const iso = toISODate(String(item))
+        if (iso) uniqueDates.add(iso)
+      })
+    }
+
+    candidates.forEach(appendDate)
+
+    return Array.from(uniqueDates)
   }
 
   const monthRange = () => {
@@ -1075,16 +1126,18 @@ export default function Subscriptions({
   }, [assignOpen, selectionCandidate, selectionSignature])
 
   useEffect(() => {
-    if (!assignOpen) {
-      prefillAppliedRef.current = false
-      lastPrefillSignatureRef.current = ''
-      setSelectedCategoryId(undefined)
-      setSelectedCategoryName('')
-      setSelectedSubcategories([])
-      pendingPrefillCategoryRef.current = ''
-      pendingPrefillSubcategoriesRef.current = null
-    }
-  }, [assignOpen])
+    if (assignOpen) return
+    if (reviewOpen) return
+    prefillAppliedRef.current = false
+    lastPrefillSignatureRef.current = ''
+    setSelectedCategoryId(undefined)
+    setSelectedCategoryName('')
+    setSelectedSubcategories([])
+    pendingPrefillCategoryRef.current = ''
+    pendingPrefillSubcategoriesRef.current = null
+    drawerSelectionInitializedRef.current = false
+    userSelectionTouchedRef.current = false
+  }, [assignOpen, reviewOpen])
 
   useEffect(() => {
     if (!assignOpen) return
@@ -1164,6 +1217,8 @@ export default function Subscriptions({
   }
   useEffect(() => {
     if (!assignOpen) return
+    if (drawerSelectionInitializedRef.current) return
+
     setDragIndex(null)
     setDragGroup(null)
     setReviewOpen(false)
@@ -1174,31 +1229,56 @@ export default function Subscriptions({
       dayDetail.workout_plan.exercises.forEach((ex: any) => {
         const workoutId = ex?.workout_id || ex?.workout?.id || ex?.id
         if (!workoutId || map.has(workoutId)) return
+        const canonical = workoutsById.get(String(workoutId))
         const repsValue = Number(ex?.reps ?? ex?.workout?.reps)
+        const category =
+          canonical?.category ?? ex?.workout?.category ?? ex?.category
+        const subcategory =
+          canonical?.subcategory ?? ex?.workout?.subcategory ?? ex?.subcategory
+        const categoryName =
+          canonical?.category_name ??
+          canonical?.category?.name ??
+          ex?.workout?.category_name ??
+          ex?.category_name
+        const subcategoryName =
+          canonical?.subcategory_name ??
+          canonical?.subcategory?.name ??
+          ex?.workout?.subcategory_name ??
+          ex?.subcategory_name
         map.set(workoutId, {
+          ...(canonical ?? {}),
           id: workoutId,
           name:
+            canonical?.name ||
             ex?.workout_name ||
             ex?.workout?.name ||
             ex?.name ||
             ex?.title ||
             'Workout',
           video_url:
+            canonical?.video_url ||
             ex?.video_url ||
             ex?.workout_video_url ||
             ex?.workout?.video_url ||
             '',
-          category: ex?.workout?.category || ex?.category,
-          category_name: ex?.workout?.category_name || ex?.category_name,
-          subcategory_name:
-            ex?.workout?.subcategory_name || ex?.subcategory_name,
+          category,
+          subcategory,
+          category_name: categoryName,
+          subcategory_name: subcategoryName,
           reps: Number.isFinite(repsValue) && repsValue > 0 ? repsValue : 1,
         })
       })
     }
 
-    setSelectedWorkouts(Array.from(map.values()))
-  }, [assignOpen, dayDetail?.workout_plan?.exercises])
+    const prefilledWorkouts = Array.from(map.values())
+    setSelectedWorkouts(prefilledWorkouts)
+
+    if (prefilledWorkouts.length === 0) {
+      selectAllNextWorkoutsRef.current = true
+    }
+
+    drawerSelectionInitializedRef.current = true
+  }, [assignOpen, dayDetail?.workout_plan?.exercises, workoutsById])
 
   useEffect(() => {
     if (!Array.isArray(selectedWorkouts) || selectedWorkouts.length === 0) {
@@ -1226,6 +1306,7 @@ export default function Subscriptions({
 
   useEffect(() => {
     if (!yogaAssignOpen) return
+    if (yogaSelectionPrefilledRef.current) return
     setYogaDragIndex(null)
     setYogaReviewOpen(false)
 
@@ -1238,10 +1319,16 @@ export default function Subscriptions({
       })
     }
     setSelectedYogas(Array.from(map.values()))
+    yogaSelectionPrefilledRef.current = true
   }, [dayDetail?.yoga_plan?.exercises, yogaAssignOpen])
 
   useEffect(() => {
+    yogaSelectionPrefilledRef.current = false
+  }, [dayDetail?.yoga_plan?.id])
+
+  useEffect(() => {
     if (!medAssignOpen) return
+    if (medSelectionPrefilledRef.current) return
     setMedDragIndex(null)
     setMedReviewOpen(false)
 
@@ -1258,7 +1345,12 @@ export default function Subscriptions({
       })
     }
     setSelectedMeditations(Array.from(map.values()))
+    medSelectionPrefilledRef.current = true
   }, [dayDetail?.meditations, medAssignOpen])
+
+  useEffect(() => {
+    medSelectionPrefilledRef.current = false
+  }, [dayDetail?.meditations, dayDetail?.plan_id])
 
   useEffect(() => {
     if (!dayDetailOpen) {
@@ -1270,11 +1362,13 @@ export default function Subscriptions({
       setYogaAssignOpen(false)
       setYogaReviewOpen(false)
       setSelectedYogas([])
+      yogaSelectionPrefilledRef.current = false
       setYogaDragIndex(null)
       setYogaCategoryFilter('')
       setMedAssignOpen(false)
       setMedReviewOpen(false)
       setSelectedMeditations([])
+      medSelectionPrefilledRef.current = false
       setMedDragIndex(null)
     }
   }, [dayDetailOpen])
@@ -1373,6 +1467,7 @@ export default function Subscriptions({
       enqueueSnackbar('Workout plan updated successfully', {
         variant: 'success',
       })
+      refreshEntirePage()
     } catch (error: any) {
       const resp = error?.response?.data
       const messageFromResponse =
@@ -1492,11 +1587,13 @@ export default function Subscriptions({
 
       await refreshDayDetail()
       setSelectedMeditations([])
+      medSelectionPrefilledRef.current = false
       setMedReviewOpen(false)
       enqueueSnackbar('Meditation plan updated successfully', {
         variant: 'success',
       })
       refetchMeditationsList?.()
+      refreshEntirePage()
     } catch (error: any) {
       const resp = error?.response?.data
       const messageFromResponse =
@@ -1550,8 +1647,10 @@ export default function Subscriptions({
 
       await refreshDayDetail()
       setSelectedYogas([])
+      yogaSelectionPrefilledRef.current = false
       setYogaReviewOpen(false)
       enqueueSnackbar('Yoga plan updated successfully', { variant: 'success' })
+      refreshEntirePage()
     } catch (error: any) {
       const resp = error?.response?.data
       const messageFromResponse =
@@ -1653,7 +1752,17 @@ export default function Subscriptions({
           variant: 'success',
         })
       } else {
-        await unfreezeSubscription(sid)
+        const unfreezeDates = resolveUnfreezeDates()
+        if (!unfreezeDates.length) {
+          enqueueSnackbar('Unable to determine freeze dates to unfreeze', {
+            variant: 'error',
+          })
+          return
+        }
+
+        await unfreezeSubscription(sid, {
+          unfreeze_dates: unfreezeDates,
+        })
         enqueueSnackbar('Subscription unfrozen successfully', {
           variant: 'success',
         })
@@ -2090,23 +2199,26 @@ export default function Subscriptions({
                                                 ?.total_exercises ?? 0}
                                             </span>
                                           </button>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              openDayDetail(
-                                                c?.meta?.date || c.key,
-                                                'yoga'
-                                              )
-                                            }}
-                                            className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-green-200 hover:bg-green-300"
-                                          >
-                                            <span>Yoga</span>
-                                            <span className="font-medium">
-                                              {c?.meta?.yoga_summary
-                                                ?.total_exercises ?? 0}
-                                            </span>
-                                          </button>
+                                          {(c?.meta?.yoga_summary
+                                            ?.total_exercises ?? 0) > 0 && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                openDayDetail(
+                                                  c?.meta?.date || c.key,
+                                                  'yoga'
+                                                )
+                                              }}
+                                              className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-green-200 hover:bg-green-300"
+                                            >
+                                              <span>Yoga</span>
+                                              <span className="font-medium">
+                                                {c?.meta?.yoga_summary
+                                                  ?.total_exercises ?? 0}
+                                              </span>
+                                            </button>
+                                          )}
                                           <button
                                             type="button"
                                             onClick={(e) => {
@@ -2478,7 +2590,7 @@ export default function Subscriptions({
         open={reviewOpen}
         handleClose={() => {
           setReviewOpen(false)
-          setSelectedWorkouts([])
+          setAssignOpen(true)
           setDragIndex(null)
           setDragGroup(null)
         }}
@@ -2490,30 +2602,17 @@ export default function Subscriptions({
         actionLoader={assigning}
         actionLabel={'Confirm'}
       >
-        <div className="mt-4">
+        <div className="">
           <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
-            <span className="text-blue-600 text-xl">🎬</span>
-            <span className="text-gray-600  bg-clip-text ">
-              Drag and drop the videos below into the order you want them to
-              appear in the workout plan, then click{' '}
-              <span className="font-semibold">Assign</span> to save this
-              sequence.
-            </span>
+            {canReorderWorkoutGroups && (
+              <span className="text-gray-600  bg-clip-text ">
+                Drag and drop the videos below into the order you want them to
+                appear in the workout plan, then click{' '}
+                <span className="font-semibold">Assign</span> to save this
+                sequence.
+              </span>
+            )}
           </h2>
-          <div className="flex items-center gap-4 text-[11px] text-gray-600 ml-auto justify-end mb-3">
-            <span className="inline-flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-              Repetitions
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-              Intensity
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              Duration
-            </span>
-          </div>
           {selectedWorkouts.length > 0 ? (
             <div className="flex flex-col gap-4">
               {groupedSelectedWorkouts.map((group) => {
@@ -2579,9 +2678,11 @@ export default function Subscriptions({
                               </div>
                             )}
 
-                            <div className="px-4 py-2 text-xs text-gray-600">
-                              Hold and drag to rearrange
-                            </div>
+                            {group.items.length > 1 && (
+                              <div className="px-4 py-2 text-xs text-gray-600">
+                                Hold and drag to rearrange
+                              </div>
+                            )}
                           </div>
                         )
                       })}
@@ -2603,6 +2704,8 @@ export default function Subscriptions({
         handleClose={() => {
           setYogaAssignOpen(false)
           setYogaCategoryFilter('')
+          setSelectedYogas([])
+          yogaSelectionPrefilledRef.current = false
         }}
         className="w-screen max-w-[100vw]"
         unmountOnClose
@@ -2726,7 +2829,7 @@ export default function Subscriptions({
         open={yogaReviewOpen}
         handleClose={() => {
           setYogaReviewOpen(false)
-          setSelectedYogas([])
+          setYogaAssignOpen(true)
           setYogaDragIndex(null)
         }}
         className="w-screen max-w-[100vw] h-screen"
@@ -2737,15 +2840,16 @@ export default function Subscriptions({
         actionLoader={yogaAssigning}
         actionLabel={'Confirm'}
       >
-        <div className="mt-4">
+        <div className="">
           <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
-            <span className="text-blue-600 text-xl">🧘</span>
-            <span className="text-gray-600  bg-clip-text ">
-              Drag and drop the videos below into the order you want them to
-              appear in the yoga plan, then click{' '}
-              <span className="font-semibold">Assign</span> to save this
-              sequence.
-            </span>
+            {canReorderYogaSelections && (
+              <span className="text-gray-600  bg-clip-text ">
+                Drag and drop the videos below into the order you want them to
+                appear in the yoga plan, then click{' '}
+                <span className="font-semibold">Assign</span> to save this
+                sequence.
+              </span>
+            )}
           </h2>
           {selectedYogas.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-5">
@@ -2786,9 +2890,11 @@ export default function Subscriptions({
                       </div>
                     )}
 
-                    <div className="px-4 py-2 text-xs text-gray-600">
-                      Hold and drag to rearrange
-                    </div>
+                    {selectedYogas.length > 1 && (
+                      <div className="px-4 py-2 text-xs text-gray-600">
+                        Hold and drag to rearrange
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -2807,6 +2913,8 @@ export default function Subscriptions({
           setMedAssignOpen(false)
           setMedSearch('')
           setMedPage(1)
+          setSelectedMeditations([])
+          medSelectionPrefilledRef.current = false
         }}
         className="w-screen max-w-[100vw]"
         unmountOnClose
@@ -2959,7 +3067,7 @@ export default function Subscriptions({
         open={medReviewOpen}
         handleClose={() => {
           setMedReviewOpen(false)
-          setSelectedMeditations([])
+          setMedAssignOpen(true)
           setMedDragIndex(null)
         }}
         className="w-screen max-w-[100vw] h-screen"
@@ -2970,15 +3078,16 @@ export default function Subscriptions({
         actionLoader={medAssigning}
         actionLabel={'Confirm'}
       >
-        <div className="mt-4">
+        <div className="">
           <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
-            <span className="text-blue-600 text-xl">🧘</span>
-            <span className="text-gray-600  bg-clip-text ">
-              Drag and drop the videos below into the order you want them to
-              appear in the meditation plan, then click{' '}
-              <span className="font-semibold">Assign</span> to save this
-              sequence.
-            </span>
+            {canReorderMeditations && (
+              <span className="text-gray-600  bg-clip-text ">
+                Drag and drop the videos below into the order you want them to
+                appear in the meditation plan, then click{' '}
+                <span className="font-semibold">Assign</span> to save this
+                sequence.
+              </span>
+            )}
           </h2>
           {selectedMeditations.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-5">
@@ -3022,9 +3131,11 @@ export default function Subscriptions({
                       </div>
                     )}
 
-                    <div className="px-4 py-2 text-xs text-gray-600">
-                      Hold and drag to rearrange
-                    </div>
+                    {canReorderMeditations && (
+                      <div className="px-4 py-2 text-xs text-gray-600">
+                        Hold and drag to rearrange
+                      </div>
+                    )}
                   </div>
                 )
               })}

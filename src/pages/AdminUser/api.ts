@@ -101,8 +101,16 @@ export const freezeSubscription = (
   return postData(`${apiUrl.SUBSCRIPTIONS}/${id}/freeze`, payload)
 }
 
-export const unfreezeSubscription = (id: string | number) => {
-  return postData(`${apiUrl.SUBSCRIPTIONS}/${id}/unfreeze`, {})
+export const unfreezeSubscription = (
+  id: string | number,
+  payload?: {
+    reason?: string
+    start_date?: string
+    end_date?: string
+    unfreeze_dates?: string[]
+  }
+) => {
+  return postData(`${apiUrl.SUBSCRIPTIONS}/${id}/unfreeze`, payload)
 }
 export const workoutOverridesBulk = (
   subscriptionId: string | number,

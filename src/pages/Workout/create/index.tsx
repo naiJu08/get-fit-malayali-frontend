@@ -348,7 +348,10 @@ export default function CreateAdmin({
 
   const formBuilderProps = useMemo(
     () => [
-      { ...textField('name', 'Name', 'Enter workout name', true) },
+      {
+        ...textField('name', 'Name', 'Enter workout name', true),
+        maxlength: 50,
+      },
       {
         name: 'intensity_level',
         label: 'Intensity Level',
@@ -395,6 +398,7 @@ export default function CreateAdmin({
         type: 'textarea',
         placeholder: 'Enter description',
         required: true,
+        maxlength: 250,
       },
       {
         name: 'thumbnail',

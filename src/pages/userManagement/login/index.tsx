@@ -3,7 +3,7 @@ import { createElement, useEffect, useState, type ComponentType } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import type { IconBaseProps, IconType } from 'react-icons'
-import { Link } from 'react-router-dom'
+// import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/common'
 import { useAppStore } from '../../../store/appStore'
@@ -290,7 +290,7 @@ export default function Login() {
                   />
 
                   {/* Forgot Password */}
-                  <div className="text-center">
+                  {/* <div className="text-center">
                     <Link
                       to="/forget-password"
                       className="inline-flex items-center text-red-600 hover:text-red-800 text-sm font-semibold transition-all duration-200 hover:underline"
@@ -310,12 +310,12 @@ export default function Login() {
                       </svg>
                       Forgot your password?
                     </Link>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
               {/* Additional Info */}
-              <div className="mt-4 text-center">
+              {/* <div className="mt-4 text-center">
                 <div className="bg-gradient-to-r from-transparent via-neutral-200 to-transparent h-px w-full mb-3"></div>
                 <p className="text-neutral-600 text-sm">
                   Don`t have an account?{' '}
@@ -326,7 +326,7 @@ export default function Login() {
                     Register
                   </Link>
                 </p>
-              </div>
+              </div> */}
 
               {/* Fitness Motivation */}
               <div className="mt-3 text-center">

@@ -110,7 +110,10 @@ export default function CreateAdmin({
   }
 
   const formBuilderProps = [
-    { ...textField('title', 'Title', 'Enter meditation title', true) },
+    {
+      ...textField('title', 'Title', 'Enter meditation title', true),
+      maxlength: 50,
+    },
     {
       name: 'description',
       label: 'Description',
@@ -118,6 +121,7 @@ export default function CreateAdmin({
       type: 'textarea',
       placeholder: 'Enter description',
       required: true,
+      maxlength: 250,
     },
     {
       name: 'video_file',

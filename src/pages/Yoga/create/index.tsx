@@ -135,7 +135,7 @@ export default function CreateAdmin({
   )
 
   const formBuilderProps = [
-    { ...textField('name', 'Name', 'Enter yoga name', true) },
+    { ...textField('name', 'Name', 'Enter yoga name', true), maxLength: 50 },
     {
       name: 'intensity_level',
       label: 'Intensity Level',
@@ -204,6 +204,7 @@ export default function CreateAdmin({
       type: 'textarea',
       placeholder: 'Enter description',
       required: true,
+      maxlength: 250,
     },
   ]
 

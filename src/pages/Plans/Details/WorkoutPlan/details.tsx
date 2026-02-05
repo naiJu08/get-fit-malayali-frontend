@@ -424,12 +424,12 @@ export default function WorkoutPlanDetails() {
   }, [refreshDetails])
 
   useEffect(() => {
-    if (!assignOpen) {
-      drawerSelectionInitializedRef.current = false
-      selectAllNextWorkoutsRef.current = false
-      setWorkoutFiltersEnabled(false)
-    }
-  }, [assignOpen])
+    if (assignOpen) return
+    if (reviewOpen) return
+    drawerSelectionInitializedRef.current = false
+    selectAllNextWorkoutsRef.current = false
+    setWorkoutFiltersEnabled(false)
+  }, [assignOpen, reviewOpen])
 
   useEffect(() => {
     let mounted = true
@@ -800,38 +800,15 @@ export default function WorkoutPlanDetails() {
     return Array.from(map.values())
   }, [])
 
-  const requestSelectAllForNextWorkouts = useCallback(
-    (applyImmediately = false) => {
-      if (userSelectionTouchedRef.current) {
-        selectAllNextWorkoutsRef.current = false
-        return
-      }
-      selectAllNextWorkoutsRef.current = true
-
-      if (!applyImmediately) return
-
-      if (!assignOpen || workoutsLoading) return
-
-      if (!Array.isArray(workouts) || workouts.length === 0) {
-        setSelectedWorkouts([])
-        selectAllNextWorkoutsRef.current = false
-        userSelectionTouchedRef.current = false
-        return
-      }
-
-      setSelectedWorkouts(collectAllVisibleWorkouts(workouts))
-      selectAllNextWorkoutsRef.current = false
-      userSelectionTouchedRef.current = false
-    },
-    [assignOpen, workoutsLoading, workouts, collectAllVisibleWorkouts]
-  )
   useEffect(() => {
     if (!assignOpen) return
+    if (loading) return
     if (drawerSelectionInitializedRef.current) return
 
-    const hasExistingAssignments = assignedWorkoutMap.size > 0
+    const hasExistingAssignments =
+      Array.isArray(wp?.exercises) && wp.exercises.length > 0
 
-    if (hasExistingAssignments) {
+    if (hasExistingAssignments && assignedWorkoutMap.size > 0) {
       const matchedFromList = Array.isArray(workouts)
         ? workouts.filter((w: any) => assignedWorkoutMap.has(String(w?.id)))
         : []
@@ -860,7 +837,14 @@ export default function WorkoutPlanDetails() {
     setSelectedWorkouts(Array.from(map.values()))
     userSelectionTouchedRef.current = false
     drawerSelectionInitializedRef.current = true
-  }, [assignOpen, workouts, assignedWorkoutMap, applyAssignedReps])
+  }, [
+    assignOpen,
+    workouts,
+    assignedWorkoutMap,
+    applyAssignedReps,
+    loading,
+    wp?.exercises,
+  ])
 
   useEffect(() => {
     if (!assignOpen) return
@@ -1007,6 +991,12 @@ export default function WorkoutPlanDetails() {
       }))
       .sort((a, b) => a.priority - b.priority)
   }, [selectedWorkouts])
+
+  const canReorderWorkoutGroups = useMemo(
+    () =>
+      groupedSelectedWorkouts.some((group) => (group?.items?.length ?? 0) > 1),
+    [groupedSelectedWorkouts]
+  )
 
   const isSelected = (id: any) => selectedWorkouts.some((w) => w?.id === id)
   const toggleSelected = (w: any) => {
@@ -1316,6 +1306,10 @@ export default function WorkoutPlanDetails() {
                       const id = option?.id ?? option?.value ?? ''
                       const name =
                         option?.name ?? option?.label ?? option?.value ?? ''
+                      const prevIdKey = String(selectedCategoryId ?? '')
+                      const nextIdKey = String(id || '')
+                      const categoryActuallyChanged = prevIdKey !== nextIdKey
+
                       setSelectedCategoryId(id || undefined)
                       setSelectedCategoryName(name || '')
                       setSelectedSubcategories([])
@@ -1323,7 +1317,11 @@ export default function WorkoutPlanDetails() {
                       if (id) {
                         setWorkoutFiltersEnabled(true)
                       }
-                      requestSelectAllForNextWorkouts()
+                      if (assignOpen && categoryActuallyChanged) {
+                        userSelectionTouchedRef.current = false
+                        selectAllNextWorkoutsRef.current = true
+                        setSelectedWorkouts([])
+                      }
                     }}
                   />
                 </div>
@@ -1363,11 +1361,27 @@ export default function WorkoutPlanDetails() {
                     }}
                     onChange={(value?: any | any[]) => {
                       const normalized = deriveSubcategorySelection(value)
+                      const prevKey = (selectedSubcategories || [])
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(Boolean)
+                        .sort()
+                        .join('|')
+                      const nextKey = (normalized || [])
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(Boolean)
+                        .sort()
+                        .join('|')
+
                       setSelectedSubcategories(normalized)
                       if (normalized.length > 0) {
                         setWorkoutFiltersEnabled(true)
                       }
-                      requestSelectAllForNextWorkouts()
+
+                      if (assignOpen && prevKey !== nextKey) {
+                        userSelectionTouchedRef.current = false
+                        selectAllNextWorkoutsRef.current = true
+                        setSelectedWorkouts([])
+                      }
                     }}
                   />
                 </div>
@@ -1553,8 +1567,7 @@ export default function WorkoutPlanDetails() {
         open={reviewOpen}
         handleClose={() => {
           setReviewOpen(false)
-          setSelectedWorkouts([])
-          userSelectionTouchedRef.current = false
+          setAssignOpen(true)
           setDragIndex(null)
           setDragGroup(null)
         }}
@@ -1566,15 +1579,16 @@ export default function WorkoutPlanDetails() {
         actionLoader={assigning}
         actionLabel={'Confirm'}
       >
-        <div className="mt-4">
+        <div className="">
           <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
-            <span className="text-blue-600 text-xl">🎬</span>
-            <span className="text-gray-600  bg-clip-text ">
-              Drag and drop the videos below into the order you want them to
-              appear in the workoutplan, then click{' '}
-              <span className="font-semibold">Assign</span> to save this
-              sequence.
-            </span>
+            {canReorderWorkoutGroups && (
+              <span className="text-gray-600  bg-clip-text ">
+                Drag and drop the videos below into the order you want them to
+                appear in the workout plan, then click{' '}
+                <span className="font-semibold">Assign</span> to save this
+                sequence.
+              </span>
+            )}
           </h2>
           {selectedWorkouts.length > 0 ? (
             <div className="flex flex-col gap-4">
@@ -1641,56 +1655,11 @@ export default function WorkoutPlanDetails() {
                                   No video URL available.
                                 </div>
                               )}
-
-                              <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
-                                {(() => {
-                                  const workoutId = getWorkoutSelectableId(w)
-                                  const repsValue =
-                                    workoutId != null
-                                      ? (workoutCounts[String(workoutId)] ??
-                                        w?.reps ??
-                                        1)
-                                      : (w?.reps ?? 1)
-                                  const intensityLabel =
-                                    w?.intensity_level ||
-                                    w?.workout?.intensity_level ||
-                                    '--'
-                                  const durationValue =
-                                    w?.duration_minutes ||
-                                    w?.workout?.duration_minutes
-                                  return (
-                                    <>
-                                      <span className="inline-flex items-center gap-1 rounded-sm bg-blue-600/90 text-white px-2 py-0.5 font-semibold backdrop-blur">
-                                        <Icons
-                                          name="repeat"
-                                          className="w-3 h-3"
-                                        />
-                                        {repsValue || '--'}
-                                      </span>
-                                      <span className="inline-flex items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
-                                        <Icons
-                                          name="activity"
-                                          className="w-3 h-3"
-                                        />
-                                        {intensityLabel}
-                                      </span>
-                                      <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
-                                        <Icons
-                                          name="clock"
-                                          className="w-3 h-3"
-                                        />
-                                        {durationValue
-                                          ? `${durationValue}s`
-                                          : '--'}
-                                      </span>
-                                    </>
-                                  )
-                                })()}
-                              </div>
                             </div>
 
                             <div className="px-4 py-2 text-xs text-gray-600">
-                              Hold and drag to rearrange
+                              {group.items.length > 1 &&
+                                'Hold and drag to rearrange'}
                             </div>
                           </div>
                         )
