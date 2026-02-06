@@ -136,6 +136,18 @@ export default function Subscriptions({
   ).filter((p: any) => p?.active)
   const { enqueueSnackbar } = useSnackbarManager()
   const hasPlanOverview = !!overview?.subscription
+  const { data: allWorkoutsResp, isLoading: allWorkoutsLoading } =
+    useWorkoutList(
+      {
+        page: 1,
+        per_page: 99999,
+      } as any,
+      {
+        enabled: dayDetailOpen,
+        staleTime: 5 * 60 * 1000,
+      }
+    )
+  const allWorkoutsForLookup = allWorkoutsResp?.workouts ?? []
   const { data: categoriesResponse } = useQuery(
     ['workout_categories_for_assign_admin'],
     () => getData(apiUrl.CATEGORIES),
@@ -528,15 +540,21 @@ export default function Subscriptions({
 
   const workoutsById = useMemo(() => {
     const map = new Map<string, any>()
-    if (Array.isArray(workouts)) {
-      workouts.forEach((workout: any) => {
+    if (Array.isArray(allWorkoutsForLookup)) {
+      allWorkoutsForLookup.forEach((workout: any) => {
         const id = getWorkoutSelectableId(workout)
         if (id == null) return
         map.set(String(id), workout)
       })
     }
+    console.log(
+      '[workoutsById] Total workouts in lookup:',
+      map.size,
+      'from allWorkoutsForLookup:',
+      allWorkoutsForLookup?.length
+    )
     return map
-  }, [workouts])
+  }, [allWorkoutsForLookup])
 
   const canProceedToReview = selectedWorkouts.length > 0
   const medCanProceedToReview = selectedMeditations.length > 0
@@ -1218,6 +1236,10 @@ export default function Subscriptions({
   useEffect(() => {
     if (!assignOpen) return
     if (drawerSelectionInitializedRef.current) return
+    if (allWorkoutsLoading) {
+      console.log('[Init] Waiting for all workouts to load...')
+      return
+    }
 
     setDragIndex(null)
     setDragGroup(null)
@@ -1226,26 +1248,69 @@ export default function Subscriptions({
     const map = new Map<any, any>()
 
     if (Array.isArray(dayDetail?.workout_plan?.exercises)) {
+      console.log(
+        '[Init] Starting to process',
+        dayDetail.workout_plan.exercises.length,
+        'exercises'
+      )
+      console.log('[Init] workoutsById has', workoutsById.size, 'workouts')
+
       dayDetail.workout_plan.exercises.forEach((ex: any) => {
         const workoutId = ex?.workout_id || ex?.workout?.id || ex?.id
         if (!workoutId || map.has(workoutId)) return
         const canonical = workoutsById.get(String(workoutId))
+        console.log(
+          '[Init] Workout ID:',
+          workoutId,
+          'Found canonical:',
+          !!canonical,
+          canonical ? `(${canonical.name})` : ''
+        )
         const repsValue = Number(ex?.reps ?? ex?.workout?.reps)
-        const category =
+
+        const categoryRaw =
           canonical?.category ?? ex?.workout?.category ?? ex?.category
-        const subcategory =
+        const subcategoryRaw =
           canonical?.subcategory ?? ex?.workout?.subcategory ?? ex?.subcategory
+
         const categoryName =
           canonical?.category_name ??
           canonical?.category?.name ??
           ex?.workout?.category_name ??
-          ex?.category_name
+          ex?.category_name ??
+          ex?.category?.name ??
+          (typeof ex?.category === 'string' ? ex.category : null)
+
         const subcategoryName =
           canonical?.subcategory_name ??
           canonical?.subcategory?.name ??
           ex?.workout?.subcategory_name ??
-          ex?.subcategory_name
-        map.set(workoutId, {
+          ex?.subcategory_name ??
+          ex?.subcategory?.name ??
+          (typeof ex?.subcategory === 'string' ? ex.subcategory : null)
+
+        let category = categoryRaw
+        let subcategory = subcategoryRaw
+
+        if (categoryRaw && typeof categoryRaw === 'object') {
+          category = { ...categoryRaw }
+          if (categoryName) {
+            category.name = categoryName
+          }
+        } else if (categoryName) {
+          category = { name: categoryName }
+        }
+
+        if (subcategoryRaw && typeof subcategoryRaw === 'object') {
+          subcategory = { ...subcategoryRaw }
+          if (subcategoryName) {
+            subcategory.name = subcategoryName
+          }
+        } else if (subcategoryName) {
+          subcategory = { name: subcategoryName }
+        }
+
+        const workoutData: any = {
           ...(canonical ?? {}),
           id: workoutId,
           name:
@@ -1261,12 +1326,23 @@ export default function Subscriptions({
             ex?.workout_video_url ||
             ex?.workout?.video_url ||
             '',
-          category,
-          subcategory,
-          category_name: categoryName,
-          subcategory_name: subcategoryName,
           reps: Number.isFinite(repsValue) && repsValue > 0 ? repsValue : 1,
-        })
+        }
+
+        if (category) {
+          workoutData.category = category
+        }
+        if (subcategory) {
+          workoutData.subcategory = subcategory
+        }
+        if (categoryName) {
+          workoutData.category_name = categoryName
+        }
+        if (subcategoryName) {
+          workoutData.subcategory_name = subcategoryName
+        }
+
+        map.set(workoutId, workoutData)
       })
     }
 
@@ -1278,7 +1354,12 @@ export default function Subscriptions({
     }
 
     drawerSelectionInitializedRef.current = true
-  }, [assignOpen, dayDetail?.workout_plan?.exercises, workoutsById])
+  }, [
+    assignOpen,
+    dayDetail?.workout_plan?.exercises,
+    workoutsById,
+    allWorkoutsLoading,
+  ])
 
   useEffect(() => {
     if (!Array.isArray(selectedWorkouts) || selectedWorkouts.length === 0) {

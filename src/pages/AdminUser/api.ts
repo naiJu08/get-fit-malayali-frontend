@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import {
   getData,
   postData,
+  updateData,
   updateFromData,
   deleteData,
 } from '../../apis/api.helpers'
@@ -452,6 +453,31 @@ export const useSubscriptionReport = (
     () => getSubscriptionReport(subscriptionId as string | number),
     {
       enabled: !!subscriptionId && (options?.enabled ?? true),
+    }
+  )
+}
+
+export const getUserAdditionalData = (userId: string | number) => {
+  return getData(`${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data`)
+}
+
+export const saveUserAdditionalData = (
+  userId: string | number,
+  payload: Record<string, any>
+) => {
+  return postData(`${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data`, {
+    additional_data: payload,
+  })
+}
+
+export const updateUserAdditionalData = (
+  userId: string | number,
+  payload: Record<string, any>
+) => {
+  return updateData(
+    `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data`,
+    {
+      additional_data: payload,
     }
   )
 }
