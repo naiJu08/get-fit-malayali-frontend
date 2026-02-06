@@ -12,6 +12,7 @@ import Vitals from './Details/Vitals'
 import Clients from './Details/Clients'
 import Reports from './Details/Reports'
 import ReminderSettings from './Details/ReminderSettings'
+import AdditionalInfo from './Details/AdditionalInfo'
 import { useAuthStore } from '../../store/authStore'
 import CreateAdmin from './create'
 
@@ -104,6 +105,7 @@ export default function UserDetails() {
     | 'vitals'
     | 'reports'
     | 'reminders'
+    | 'additional-info'
 
   useEffect(() => {
     if (location.pathname === `/users/${id}`) {
@@ -125,6 +127,7 @@ export default function UserDetails() {
             // { id: 'body-composition', label: 'Body composition' },
             { id: 'vitals', label: 'Vitals' },
             { id: 'reminders', label: 'Reminder settings' },
+            { id: 'additional-info', label: 'Additional information' },
             ...(loginRole !== 'nutritionist'
               ? [{ id: 'reports', label: 'Reports' }]
               : []),
@@ -203,6 +206,11 @@ export default function UserDetails() {
           {!isNutritionist && (
             <Tab id="reminders">
               <ReminderSettings />
+            </Tab>
+          )}
+          {!isNutritionist && (
+            <Tab id="additional-info">
+              <AdditionalInfo user={user} />
             </Tab>
           )}
           {!isNutritionist && loginRole !== 'nutritionist' && (

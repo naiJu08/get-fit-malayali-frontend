@@ -9,6 +9,7 @@ import SubscriptionBodyMeasurementsTab from './BodyMeasurementsTab'
 import SubscriptionVitalsTab from './VitalsTab'
 import Icons from '../../../components/common/icons'
 import ReminderSettings from '../../AdminUser/Details/ReminderSettings'
+import AdditionalInfoTab from './AdditionalInfoTab'
 
 export default function SubscriptionDetailsMain() {
   const { id } = useParams()
@@ -61,6 +62,7 @@ export default function SubscriptionDetailsMain() {
     { id: 'body', label: 'Body measurements' },
     // { id: 'body-composition', label: 'Body composition' },
     { id: 'vitals', label: 'Vitals' },
+    { id: 'additional-information', label: 'Additional information' },
     { id: 'reminders', label: 'Reminder settings' },
   ] as const
 
@@ -495,6 +497,10 @@ export default function SubscriptionDetailsMain() {
 
         <Tab id="vitals">
           <SubscriptionVitalsTab subscription={subscription} />
+        </Tab>
+
+        <Tab id="additional-information">
+          <AdditionalInfoTab subscription={subscription} />
         </Tab>
 
         <Tab id="reminders">

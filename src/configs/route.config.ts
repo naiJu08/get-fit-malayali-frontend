@@ -279,6 +279,17 @@ const REMINDER_SETTINGS: RouterMenuProps = {
   permission_slugs: [],
 }
 
+const USER_ADDITIONAL_INFO: RouterMenuProps = {
+  id: 293,
+  path: '/users/:id/additional-info',
+  parent_id: 2,
+  isDetails: true,
+  icon: 'user',
+  label: 'User Additional Info',
+  key: 'user-additional-info',
+  permission_slugs: [],
+}
+
 // Plan Details base route
 const PLAN_DETAILS: RouterMenuProps = {
   id: 22,
@@ -476,6 +487,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   WORKOUT_PLAN_DETAILS,
   SUBSCRIPTIONS_DETAILS,
   REMINDER_SETTINGS,
+  USER_ADDITIONAL_INFO,
   DIET_DETAILS,
   RECIPE_DETAILS,
   MEALS_DETAILS,

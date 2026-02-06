@@ -264,6 +264,14 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
+        path="/users/:id/additional-info"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
         path="/users/:id/vitals"
       />
       <Route
