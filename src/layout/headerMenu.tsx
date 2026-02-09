@@ -11,7 +11,7 @@ type Props = {
   handleLogout: () => void
 }
 
-export default function HeaderMenu({ userData }: Props) {
+export default function HeaderMenu({ userData, handleLogout }: Props) {
   const [openMenu, setOpenMenu] = useState(false)
   const [openMyprofile, setOpenMyprofile] = useState(false)
   const [changePassword, setChangePassword] = useState(false)
@@ -88,11 +88,11 @@ export default function HeaderMenu({ userData }: Props) {
   const handleClose = () => {
     setChangePassword(false)
   }
-  const handleMyProfile = () => {
-    setOpenMenu(false)
-    setOpenMyprofile(true)
-    setViewMode(true)
-  }
+  // const handleMyProfile = () => {
+  //   setOpenMenu(false)
+  //   setOpenMyprofile(true)
+  //   setViewMode(true)
+  // }
 
   return (
     <div
@@ -147,7 +147,7 @@ export default function HeaderMenu({ userData }: Props) {
             </div>
           </div> */}
 
-          <a
+          {/* <a
             href="#/"
             className={`p-2 leading-7 hover:bg-background `}
             // onClick={() => navigateToProfile()}
@@ -163,7 +163,7 @@ export default function HeaderMenu({ userData }: Props) {
 
               <span className="pl-1.5 ">{'My Profile'}</span>
             </div>
-          </a>
+          </a> */}
 
           {/* <a
             href="#/"
@@ -181,7 +181,7 @@ export default function HeaderMenu({ userData }: Props) {
             </div>
           </a> */}
 
-          {/* <a
+          <a
             href="#/"
             className={`p-2 leading-7`}
             onClick={() => {
@@ -195,7 +195,7 @@ export default function HeaderMenu({ userData }: Props) {
 
               <span className="pl-1.5 ">{'Log out'}</span>
             </div>
-          </a> */}
+          </a>
         </div>
       )}
       <ChangePassword
