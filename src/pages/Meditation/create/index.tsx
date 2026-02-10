@@ -70,10 +70,12 @@ export default function CreateAdmin({
 
   const parseDurationMinutesToMs = (value?: string | number | null) => {
     if (value === null || value === undefined) return null
-    const numeric =
-      typeof value === 'number' ? value : parseFloat(String(value))
-    if (Number.isNaN(numeric)) return null
-    return Math.max(0, numeric) * 60000
+    const strValue = String(value)
+    const parts = strValue.split('.')
+    const minutes = parseInt(parts[0] || '0', 10)
+    const seconds = parseInt(parts[1] || '0', 10)
+    if (Number.isNaN(minutes) || Number.isNaN(seconds)) return null
+    return Math.max(0, (minutes * 60 + seconds) * 1000)
   }
 
   const onSuccess = () => {
