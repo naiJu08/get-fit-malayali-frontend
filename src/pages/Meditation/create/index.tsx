@@ -1,17 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import moment from 'moment'
 // import moment from 'moment'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
-
-import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
-import { useSnackbarManager } from '../../../components/common/snackbar'
 import { humanizeDatetime } from '../../../utilities/format'
 import { useCreateMeditation, useUpdateMeditation } from '../api'
-import { MeditationSchema, editFormSchema, formSchema } from './schema'
+import { MeditationSchema, formSchema } from './schema'
 
 type Props = {
   isDrawerOpen: boolean
@@ -60,54 +57,38 @@ export default function CreateAdmin({
     ...(required ? { required: true } : {}),
     ...(disabled ? { disabled: true } : {}),
   })
-  const [deleteModal, setDeleteModal] = useState(false)
   const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null)
-  const { enqueueSnackbar } = useSnackbarManager()
 
-  const decodeFileName = (input?: string) => {
-    const raw = String(input ?? '')
-    const fallback = raw.split('/').pop() || raw
-    try {
-      return decodeURIComponent(fallback)
-    } catch {
-      return fallback
-    }
-  }
   const formatVideoDurationLabel = (durationMs: number | null) => {
     if (durationMs === null) return ''
     const totalSeconds = Math.max(0, Math.floor(durationMs / 1000))
     const minutes = Math.floor(totalSeconds / 60)
     const seconds = totalSeconds % 60
     const paddedSeconds = seconds.toString().padStart(2, '0')
-    return `Duration: ${minutes}:${paddedSeconds}`
+    return `${minutes}:${paddedSeconds}`
   }
-  const handleDeleteFile = () => {
-    console.log('handle delete')
-  }
-  const existingVideoFile = rowData?.video_url
-    ? {
-        name: decodeFileName(rowData.video_url),
-        link: rowData.video_url,
-      }
-    : undefined
 
-  const existingThumbnailFile = rowData?.thumbnail_url
-    ? {
-        name: decodeFileName(rowData.thumbnail_url),
-        link: rowData.thumbnail_url,
-      }
-    : undefined
+  const parseDurationMinutesToMs = (value?: string | number | null) => {
+    if (value === null || value === undefined) return null
+    const numeric =
+      typeof value === 'number' ? value : parseFloat(String(value))
+    if (Number.isNaN(numeric)) return null
+    return Math.max(0, numeric) * 60000
+  }
+
+  const onSuccess = () => {
+    handleSubmission()
+  }
+  const { mutate, isLoading: isCreating } = useCreateMeditation(onSuccess)
+  const { mutate: updateMutation, isLoading: isUpdating } =
+    useUpdateMeditation(onSuccess)
 
   const methods = useForm<MeditationSchema>({
-    resolver: zodResolver(edit ? editFormSchema : formSchema),
+    resolver: zodResolver(formSchema),
     mode: 'onChange',
     reValidateMode: 'onChange',
   })
-  const { handleSubmit, watch } = methods
-
-  const setVideoFileLabel = (value?: string) => {
-    methods.setValue('video_file_label', value ?? '', { shouldValidate: false })
-  }
+  const { handleSubmit, watch, setError, clearErrors } = methods
 
   const formBuilderProps = [
     {
@@ -126,18 +107,20 @@ export default function CreateAdmin({
     {
       name: 'video_file',
       label: 'Video File',
-      labelAddon: formatVideoDurationLabel(videoDurationMs),
       id: 'video_file',
       type: 'file_upload',
       placeholder: 'Upload video file',
-      required: !rowData?.id,
+      required: true,
       accept: 'video/*',
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
       acceptedFiles: 'MP4, MOV, AVI',
       fileSize: 5,
-      selectedFiles: existingVideoFile,
-      subName: 'video_file_label',
-      setAttachmentName: (value: string) => setVideoFileLabel(value),
+      selectedFiles: rowData?.video_file,
+      subName: 'video_file',
+      handleDeleteFile: () => {
+        methods.setValue('video_file', '')
+        setVideoDurationMs(null)
+      },
     },
     {
       name: 'thumbnail',
@@ -145,7 +128,6 @@ export default function CreateAdmin({
       id: 'thumbnail',
       type: 'file_upload',
       placeholder: 'Upload thumbnail image',
-      required: false,
       accept: 'image/*',
       supportedExtensions: [
         'image/png',
@@ -155,8 +137,11 @@ export default function CreateAdmin({
       ],
       acceptedFiles: 'PNG, JPG, JPEG, WEBP',
       fileSize: 5,
-      selectedFiles: existingThumbnailFile,
+      selectedFiles: rowData?.thumbnail,
       subName: 'thumbnail',
+      handleDeleteFile: () => {
+        methods.setValue('thumbnail', '')
+      },
     },
   ]
 
@@ -164,10 +149,8 @@ export default function CreateAdmin({
     methods.reset({
       title: '',
       description: '',
-      video_url: '',
       video_file: '',
       thumbnail: '',
-      video_file_label: '',
     } as any)
     setVideoDurationMs(null)
     handleClose()
@@ -177,10 +160,8 @@ export default function CreateAdmin({
     methods.reset({
       title: '',
       description: '',
-      video_url: '',
       video_file: '',
       thumbnail: '',
-      video_file_label: '',
     } as any)
 
     setVideoDurationMs(null)
@@ -192,70 +173,115 @@ export default function CreateAdmin({
       methods.reset({
         title: rowData?.title ?? '',
         description: rowData?.description ?? '',
-        video_url: rowData?.video_url ?? '',
-        video_file: null,
-        thumbnail: null,
-        video_file_label: existingVideoFile?.name ?? '',
+        video_file: rowData?.video_url ?? '',
+        thumbnail: rowData?.thumbnail_url ?? '',
       } as any)
     }
-  }, [
-    isDrawerOpen,
-    edit,
-    viewMode,
-    rowData,
-    // existingVideoFile,
-    // existingThumbnailFile,
-  ])
-  const onSuccess = () => {
-    handleSubmission()
-  }
-  const { mutate, isLoading: isCreating } = useCreateMeditation(onSuccess)
-  const { mutate: updateMutation, isLoading: isUpdating } =
-    useUpdateMeditation(onSuccess)
+  }, [isDrawerOpen, edit, viewMode, rowData, methods])
 
   const watchedVideoFile = watch('video_file')
-
-  const fallbackDurationMs = useMemo(() => {
-    if (!edit || viewMode) return null
-    const raw = rowData?.duration_minutes
-    const numeric =
-      typeof raw === 'number'
-        ? raw
-        : typeof raw === 'string'
-          ? parseFloat(raw)
-          : null
-    if (numeric === null || Number.isNaN(numeric)) {
-      return null
-    }
-    return numeric * 60000
-  }, [edit, viewMode, rowData?.duration_minutes])
-
   useEffect(() => {
-    if (!(watchedVideoFile instanceof File)) {
-      setVideoDurationMs(fallbackDurationMs)
+    const fallbackFromExistingDuration = () => {
+      const fallbackMs = parseDurationMinutesToMs(rowData?.duration_minutes)
+      setVideoDurationMs(fallbackMs)
+    }
+
+    if (!watchedVideoFile) {
+      if (rowData?.video_url) {
+        const videoElement = document.createElement('video')
+        videoElement.preload = 'metadata'
+        videoElement.crossOrigin = 'anonymous'
+        videoElement.src = rowData.video_url
+
+        const handleLoadedMetadata = () => {
+          const durationSeconds = videoElement.duration
+          if (!Number.isNaN(durationSeconds)) {
+            setVideoDurationMs(durationSeconds * 1000)
+          } else {
+            fallbackFromExistingDuration()
+          }
+        }
+
+        const handleError = () => {
+          fallbackFromExistingDuration()
+        }
+
+        videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+        videoElement.addEventListener('error', handleError)
+
+        return () => {
+          videoElement.removeEventListener(
+            'loadedmetadata',
+            handleLoadedMetadata
+          )
+          videoElement.removeEventListener('error', handleError)
+        }
+      }
+
+      fallbackFromExistingDuration()
       return
     }
 
-    const video = document.createElement('video')
-    const url = URL.createObjectURL(watchedVideoFile)
+    if (watchedVideoFile instanceof File) {
+      const videoElement = document.createElement('video')
+      videoElement.preload = 'metadata'
 
-    video.preload = 'metadata'
-    video.src = url
+      const objectUrl = URL.createObjectURL(watchedVideoFile)
+      videoElement.src = objectUrl
 
-    video.onloadedmetadata = () => {
-      setVideoDurationMs(video.duration * 1000)
-      URL.revokeObjectURL(url)
+      const handleLoadedMetadata = () => {
+        const durationSeconds = videoElement.duration
+        if (!isNaN(durationSeconds)) {
+          setVideoDurationMs(durationSeconds * 1000)
+        }
+        URL.revokeObjectURL(objectUrl)
+      }
+
+      const handleError = () => {
+        fallbackFromExistingDuration()
+        URL.revokeObjectURL(objectUrl)
+      }
+
+      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+      videoElement.addEventListener('error', handleError)
+
+      return () => {
+        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        videoElement.removeEventListener('error', handleError)
+        URL.revokeObjectURL(objectUrl)
+      }
     }
 
-    video.onerror = () => {
-      setVideoDurationMs(fallbackDurationMs)
-      URL.revokeObjectURL(url)
+    fallbackFromExistingDuration()
+  }, [watchedVideoFile, rowData?.video_url, rowData?.duration_minutes])
+  const onSubmit = (details: any) => {
+    const hasNewVideoFile = details?.video_file instanceof File
+    const hasExistingVideoUrl =
+      typeof details?.video_file === 'string' && details.video_file !== ''
+
+    if (!hasNewVideoFile && !hasExistingVideoUrl) {
+      setError('video_file', { type: 'manual', message: 'Video is required.' })
+      return
     }
-  }, [watchedVideoFile, fallbackDurationMs])
-  const onSubmit = async (details: any) => {
+
+    clearErrors('video_file')
     const fd = new FormData()
     fd.append('meditation[title]', details?.title ?? '')
     fd.append('meditation[description]', details?.description ?? '')
+
+    if (hasNewVideoFile) {
+      fd.append('video', details.video_file)
+    } else if (hasExistingVideoUrl) {
+      fd.append('meditation[video_url]', details.video_file)
+    }
+
+    const thumbVal = details?.thumbnail
+
+    if (thumbVal instanceof File) {
+      fd.append('meditation[thumbnail]', thumbVal)
+    } else if (thumbVal === '') {
+      fd.append('meditation[thumbnail]', null as any)
+    }
 
     if (videoDurationMs !== null) {
       const totalSeconds = Math.max(0, Math.floor(videoDurationMs / 1000))
@@ -264,22 +290,9 @@ export default function CreateAdmin({
       const paddedSeconds = seconds.toString().padStart(2, '0')
       fd.append('meditation[duration_minutes]', `${minutes}.${paddedSeconds}`)
     }
-    const hasNewVideoFile = details?.video_file instanceof File
 
-    if (!hasNewVideoFile && !rowData?.id) {
-      enqueueSnackbar('Video file is required.', { variant: 'error' })
-      return
-    }
-
-    if (hasNewVideoFile) {
-      fd.append('meditation[video]', details.video_file as File)
-    }
-
-    if (details?.thumbnail instanceof File) {
-      fd.append('meditation[thumbnail]', details.thumbnail)
-    }
     if (rowData?.id) {
-      updateMutation({ id: rowData?.id, data: fd })
+      updateMutation({ id: rowData.id, data: fd })
     } else {
       mutate(fd)
     }
@@ -339,18 +352,6 @@ export default function CreateAdmin({
   return (
     <>
       <DialogModal
-        isOpen={deleteModal}
-        onClose={() => setDeleteModal(false)}
-        title={'Delete File'}
-        onSubmit={() => handleDeleteFile()}
-        secondaryAction={() => setDeleteModal(false)}
-        secondaryActionLabel="No, Cancel"
-        actionLabel="Yes, I am"
-        body={
-          <InfoBox content={'Are you sure you want to delete this file ?'} />
-        }
-      />
-      <DialogModal
         isOpen={isDrawerOpen}
         onClose={() => handleClearAndClose()}
         title={
@@ -375,6 +376,15 @@ export default function CreateAdmin({
                 <FormProvider {...methods}>
                   <FormBuilder data={formBuilderProps} edit={true} spacing />
                 </FormProvider>
+
+                {videoDurationMs !== null &&
+                  (watchedVideoFile instanceof File ||
+                    (typeof watchedVideoFile === 'string' &&
+                      watchedVideoFile !== '')) && (
+                    <div className="text-sm text-primaryText">
+                      {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
+                    </div>
+                  )}
               </>
             ) : (
               <CustomeSideViewer

@@ -3,8 +3,6 @@ import moment from 'moment'
 // import moment from 'moment'
 import { useEffect, useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
-
-import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
@@ -61,28 +59,22 @@ export default function CreateAdmin({
     ...(required ? { required: true } : {}),
     ...(disabled ? { disabled: true } : {}),
   })
-  const getReadableFileName = (value?: string) => {
-    if (!value) {
-      return ''
-    }
-    const segments = String(value).split('/')
-    const rawName = segments[segments.length - 1] || String(value)
-    const sanitizedName = rawName.split('?')[0].split('#')[0]
-    try {
-      return decodeURIComponent(sanitizedName)
-    } catch {
-      return sanitizedName
-    }
-  }
   const formatVideoDurationLabel = (durationMs: number | null) => {
     if (durationMs === null) return ''
     const totalSeconds = Math.max(0, Math.floor(durationMs / 1000))
     const minutes = Math.floor(totalSeconds / 60)
     const seconds = totalSeconds % 60
     const paddedSeconds = seconds.toString().padStart(2, '0')
-    return `Duration: ${minutes}:${paddedSeconds}`
+    return `${minutes}:${paddedSeconds}`
   }
-  const [deleteModal, setDeleteModal] = useState(false)
+
+  const parseDurationMinutesToMs = (value?: string | number | null) => {
+    if (value === null || value === undefined) return null
+    const numeric =
+      typeof value === 'number' ? value : parseFloat(String(value))
+    if (Number.isNaN(numeric)) return null
+    return Math.max(0, numeric) * 60000
+  }
   const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null)
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
@@ -93,37 +85,6 @@ export default function CreateAdmin({
 
   //   return () => clearTimeout(intervalId)
   // }, [])
-
-  const handleDeleteFile = () => {
-    console.log('handle delete')
-    // deleteAssessorImage(rowData?.user?.id)
-    //   .then((res: any) => {
-    //     enqueueSnackbar(res.message ? res.message : 'Deleted Successfully', {
-    //       variant: 'success',
-    //     })
-    //     handleRefresh?.()
-    //     setDeleteModal(false)
-    //   })
-    //   .catch((err: any) => {
-    //     enqueueSnackbar(
-    //       err?.response?.data?.error?.message || err?.response?.data?.message,
-    //       { variant: 'error' }
-    //     )
-    //   })
-  }
-  const existingVideoFile = rowData?.video_url
-    ? {
-        name: getReadableFileName(rowData.video_url),
-        link: rowData.video_url,
-      }
-    : undefined
-
-  const existingThumbnailFile = rowData?.thumbnail_url
-    ? {
-        name: getReadableFileName(rowData.thumbnail_url),
-        link: rowData.thumbnail_url,
-      }
-    : undefined
 
   const categoryOptions = useMemo(
     () => [
@@ -162,22 +123,33 @@ export default function CreateAdmin({
       required: true,
       data: categoryOptions,
     },
-    // { ...textField('video_url', 'Video URL', 'https://...', true) },
+    {
+      name: 'description',
+      label: 'Description',
+      id: 'description',
+      type: 'textarea',
+      placeholder: 'Enter description',
+      required: true,
+      maxlength: 250,
+    },
     {
       name: 'video_file',
       label: 'Video File',
-      labelAddon: videoDurationMs
-        ? formatVideoDurationLabel(videoDurationMs)
-        : '',
       id: 'video_file',
       type: 'file_upload',
       placeholder: 'Upload video file',
       required: true,
       accept: 'video/*',
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
-      acceptedFiles: 'MP4, MOV, AVI (Max 5 MB)',
+      acceptedFiles: 'MP4, MOV, AVI',
       fileSize: 5,
-      selectedFiles: existingVideoFile,
+      selectedFiles: rowData?.video_file,
+      subName: 'video_file',
+      handleDeleteFile: () => {
+        methods.setValue('video_file', '')
+        methods.setValue('video_url', '')
+        setVideoDurationMs(null)
+      },
     },
     {
       name: 'thumbnail',
@@ -188,23 +160,17 @@ export default function CreateAdmin({
       accept: 'image/*',
       supportedExtensions: [
         'image/png',
-        'image/jpg',
         'image/jpeg',
+        'image/jpg',
         'image/webp',
       ],
       acceptedFiles: 'PNG, JPG, JPEG, WEBP',
       fileSize: 5,
-      selectedFiles: existingThumbnailFile,
+      selectedFiles: rowData?.thumbnail,
       subName: 'thumbnail',
-    },
-    {
-      name: 'description',
-      label: 'Description',
-      id: 'description',
-      type: 'textarea',
-      placeholder: 'Enter description',
-      required: true,
-      maxlength: 250,
+      handleDeleteFile: () => {
+        methods.setValue('thumbnail', '')
+      },
     },
   ]
 
@@ -243,6 +209,21 @@ export default function CreateAdmin({
     handleRefresh?.()
     handleClearAndClose()
   }
+
+  const onSuccess = () => {
+    handleSubmission()
+  }
+  const { mutate, isLoading: isCreating } = useCreateYoga(onSuccess)
+  const { mutate: updateMutation, isLoading: isUpdating } =
+    useUpdateYoga(onSuccess)
+
+  const methods = useForm<YogaSchema>({
+    resolver: zodResolver(formSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+  })
+  const { handleSubmit, watch, setError, clearErrors } = methods
+
   useEffect(() => {
     if (isDrawerOpen && edit && !viewMode && rowData) {
       const normalizedCategory =
@@ -256,95 +237,87 @@ export default function CreateAdmin({
         description: rowData?.description ?? '',
         intensity_level: rowData?.intensity_level ?? '',
         category: matchedCategory?.name ?? '',
-        video_url: rowData?.video_url ?? '',
-        video_file: existingVideoFile ?? '',
-        thumbnail: existingThumbnailFile ?? '',
+        video_file: rowData?.video_url ?? '',
+        thumbnail: rowData?.thumbnail_url ?? '',
       } as any)
     }
-  }, [isDrawerOpen, edit, viewMode, rowData])
-  const onSuccess = () => {
-    handleSubmission()
-  }
-  const { mutate, isLoading: isCreating } = useCreateYoga(onSuccess)
-  const { mutate: updateMutation, isLoading: isUpdating } =
-    useUpdateYoga(onSuccess)
-
-  const methods = useForm<YogaSchema>({
-    resolver: zodResolver(formSchema),
-    mode: 'onChange',
-    reValidateMode: 'onChange',
-  })
-  const { handleSubmit, watch } = methods
+  }, [isDrawerOpen, edit, viewMode, rowData, categoryOptions, methods])
 
   const watchedVideoFile = watch('video_file')
-
   useEffect(() => {
-    const fallbackDurationMs =
-      edit && !viewMode && typeof rowData?.duration_minutes === 'number'
-        ? rowData.duration_minutes * 60000
-        : null
+    const fallbackFromExistingDuration = () => {
+      const fallbackMs = parseDurationMinutesToMs(rowData?.duration_minutes)
+      setVideoDurationMs(fallbackMs)
+    }
 
     if (!watchedVideoFile) {
-      setVideoDurationMs(fallbackDurationMs)
+      if (rowData?.video_url) {
+        const videoElement = document.createElement('video')
+        videoElement.preload = 'metadata'
+        videoElement.crossOrigin = 'anonymous'
+        videoElement.src = rowData.video_url
+
+        const handleLoadedMetadata = () => {
+          const durationSeconds = videoElement.duration
+          if (!Number.isNaN(durationSeconds)) {
+            setVideoDurationMs(durationSeconds * 1000)
+          } else {
+            fallbackFromExistingDuration()
+          }
+        }
+
+        const handleError = () => {
+          fallbackFromExistingDuration()
+        }
+
+        videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+        videoElement.addEventListener('error', handleError)
+
+        return () => {
+          videoElement.removeEventListener(
+            'loadedmetadata',
+            handleLoadedMetadata
+          )
+          videoElement.removeEventListener('error', handleError)
+        }
+      }
+
+      fallbackFromExistingDuration()
       return
     }
 
-    const videoElement = document.createElement('video')
-    videoElement.preload = 'metadata'
-    let objectUrl: string | null = null
-
-    const clearObjectUrl = () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl)
-        objectUrl = null
-      }
-    }
-
-    const handleLoadedMetadata = () => {
-      const durationSeconds = videoElement.duration
-      if (!isNaN(durationSeconds)) {
-        setVideoDurationMs(durationSeconds * 1000)
-      } else {
-        setVideoDurationMs(fallbackDurationMs)
-      }
-      clearObjectUrl()
-    }
-
-    const handleError = () => {
-      setVideoDurationMs(fallbackDurationMs)
-      clearObjectUrl()
-    }
-
-    videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
-    videoElement.addEventListener('error', handleError)
-
     if (watchedVideoFile instanceof File) {
-      objectUrl = URL.createObjectURL(watchedVideoFile)
-      videoElement.src = objectUrl
-    } else {
-      const source =
-        typeof watchedVideoFile === 'string'
-          ? watchedVideoFile
-          : (watchedVideoFile?.link ?? '')
+      const videoElement = document.createElement('video')
+      videoElement.preload = 'metadata'
 
-      if (!source) {
-        setVideoDurationMs(fallbackDurationMs)
+      const objectUrl = URL.createObjectURL(watchedVideoFile)
+      videoElement.src = objectUrl
+
+      const handleLoadedMetadata = () => {
+        const durationSeconds = videoElement.duration
+        if (!isNaN(durationSeconds)) {
+          setVideoDurationMs(durationSeconds * 1000)
+        }
+        URL.revokeObjectURL(objectUrl)
+      }
+
+      const handleError = () => {
+        fallbackFromExistingDuration()
+        URL.revokeObjectURL(objectUrl)
+      }
+
+      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+      videoElement.addEventListener('error', handleError)
+
+      return () => {
         videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
         videoElement.removeEventListener('error', handleError)
-        return
+        URL.revokeObjectURL(objectUrl)
       }
-      videoElement.crossOrigin = 'anonymous'
-      videoElement.src = source
     }
 
-    return () => {
-      videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
-      videoElement.removeEventListener('error', handleError)
-      clearObjectUrl()
-    }
-  }, [watchedVideoFile, edit, viewMode, rowData?.duration_minutes])
-  const isFileInstance = (input: unknown): input is File =>
-    typeof File !== 'undefined' && input instanceof File
+    fallbackFromExistingDuration()
+  }, [watchedVideoFile, rowData?.video_url, rowData?.duration_minutes])
 
   const extractSelectValue = (val: any) => {
     if (!val) return ''
@@ -357,21 +330,47 @@ export default function CreateAdmin({
   }
 
   const onSubmit = (details: any) => {
+    const hasNewVideoFile = details?.video_file instanceof File
+    const hasExistingVideoUrl =
+      typeof details?.video_file === 'string' && details.video_file !== ''
+
+    // If user deleted video → both will be false
+    if (!hasNewVideoFile && !hasExistingVideoUrl) {
+      setError('video_file', { type: 'manual', message: 'Video is required.' })
+      return
+    }
+
+    clearErrors('video_file')
     const fd = new FormData()
     fd.append('yoga[name]', details?.name ?? '')
     fd.append('yoga[description]', details?.description ?? '')
     fd.append('yoga[intensity_level]', details?.intensity_level ?? '')
     fd.append('yoga[category]', extractSelectValue(details?.category))
     // fd.append('yoga[video_url]', details?.video_url ?? '')
-    if (details?.video_file instanceof File) {
-      fd.append('yoga[video_url]', details.video_file as any)
+    // CASE 1: user uploaded new video
+    if (hasNewVideoFile) {
+      fd.append('video', details.video_file)
     }
 
+    // CASE 2: keep existing video (edit mode, not deleted)
+    else if (hasExistingVideoUrl) {
+      fd.append('yoga[video_url]', details.video_file)
+    }
+
+    // Thumbnail handling
     const thumbVal = details?.thumbnail
-    if (isFileInstance(thumbVal)) {
+
+    // CASE 1: New thumbnail uploaded
+    if (thumbVal instanceof File) {
       fd.append('yoga[thumbnail]', thumbVal)
     }
 
+    // CASE 2: Thumbnail manually removed
+    else if (thumbVal === '') {
+      fd.append('yoga[thumbnail]', null as any)
+    }
+
+    // Duration
     if (videoDurationMs !== null) {
       const totalSeconds = Math.max(0, Math.floor(videoDurationMs / 1000))
       const minutes = Math.floor(totalSeconds / 60)
@@ -381,7 +380,7 @@ export default function CreateAdmin({
     }
 
     if (rowData?.id) {
-      updateMutation({ id: rowData?.id, data: fd })
+      updateMutation({ id: rowData.id, data: fd })
     } else {
       mutate(fd)
     }
@@ -441,18 +440,6 @@ export default function CreateAdmin({
   return (
     <>
       <DialogModal
-        isOpen={deleteModal}
-        onClose={() => setDeleteModal(false)}
-        title={'Delete File'}
-        onSubmit={() => handleDeleteFile()}
-        secondaryAction={() => setDeleteModal(false)}
-        secondaryActionLabel="No, Cancel"
-        actionLabel="Yes, I am"
-        body={
-          <InfoBox content={'Are you sure you want to delete this file ?'} />
-        }
-      />
-      <DialogModal
         isOpen={isDrawerOpen}
         onClose={() => handleClearAndClose()}
         title={edit ? 'Edit Yoga' : viewMode ? 'Yoga Details' : 'Create Yoga'}
@@ -467,9 +454,20 @@ export default function CreateAdmin({
         body={
           <div className="flex flex-col gap-4">
             {!viewMode ? (
-              <FormProvider {...methods}>
-                <FormBuilder data={formBuilderProps} edit={true} spacing />
-              </FormProvider>
+              <>
+                <FormProvider {...methods}>
+                  <FormBuilder data={formBuilderProps} edit={true} spacing />
+                </FormProvider>
+
+                {videoDurationMs !== null &&
+                  (watchedVideoFile instanceof File ||
+                    (typeof watchedVideoFile === 'string' &&
+                      watchedVideoFile !== '')) && (
+                    <div className="text-sm text-primaryText">
+                      {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
+                    </div>
+                  )}
+              </>
             ) : (
               <CustomeSideViewer
                 headerData={viewHeaderData}

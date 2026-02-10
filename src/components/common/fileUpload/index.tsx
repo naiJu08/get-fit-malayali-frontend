@@ -47,6 +47,8 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const [deleteModal, setDeleteModal] = useState(false)
   const [item, setItem] = useState<any>([])
   const { enqueueSnackbar } = useSnackbarManager()
+  const { setValue } = useFormContext()
+
   const handleClearFile = (indexToRemove?: number, item?: any) => {
     if (isMultiple) {
       const newFiles = file.filter(
@@ -63,11 +65,21 @@ const FileUpload: React.FC<FileUploadProps> = ({
         onChange?.('')
         setFile('')
         setAttachmentName?.('')
+        // Clear both name and subName fields in react-hook-form
+        setValue(name, '', { shouldValidate: false })
+        if (subName) {
+          setValue(subName, '', { shouldValidate: false })
+        }
       }
     } else {
       onChange?.('')
       setFile('')
       setAttachmentName?.('')
+      // Clear both name and subName fields in react-hook-form
+      setValue(name, '', { shouldValidate: false })
+      if (subName) {
+        setValue(subName, '', { shouldValidate: false })
+      }
     }
   }
   const getImageDimensions = (file: File) => {
@@ -187,7 +199,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
   }, [isMultiple, value])
   const handleDeleteConfirmation = () => {
     handleDeleteFile?.(item)
+    onChange?.('')
     setFile('')
+    setAttachmentName?.('')
+    // Clear both name and subName fields in react-hook-form
+    setValue(name, '', { shouldValidate: false })
+    if (subName) {
+      setValue(subName, '', { shouldValidate: false })
+    }
     setDeleteModal(false)
   }
   const { watch } = useFormContext()

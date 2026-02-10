@@ -453,23 +453,97 @@ function formatMeditationName(value?: any) {
 }
 
 function getMeditationDurationLabel(item: any) {
-  const raw =
+  const secondsCandidates = [
+    item?.duration_seconds,
+    item?.meditation_duration_seconds,
+    item?.duration_secs,
+  ]
+
+  for (const candidate of secondsCandidates) {
+    const parsed = toPositiveInteger(candidate)
+    if (parsed) {
+      return formatMeditationDuration(parsed)
+    }
+  }
+
+  const minuteLikeRaw =
     item?.duration_minutes ??
     item?.meditation_duration_minutes ??
     item?.meditation?.duration_minutes ??
     item?.duration ??
     item?.meditation_duration
 
-  const value = raw === null || raw === undefined ? undefined : Number(raw)
-  if (value === undefined || Number.isNaN(value) || value <= 0) return null
+  const totalSeconds = minuteLikeRawToSeconds(minuteLikeRaw)
+  if (!totalSeconds) return null
+  return formatMeditationDuration(totalSeconds)
+}
 
-  if (value >= 1) {
-    const whole = Number.isInteger(value)
-    return `${whole ? value : value.toFixed(2)} min`
+function toPositiveInteger(value: any) {
+  if (value === null || value === undefined || value === '') return null
+  const num = Number(value)
+  if (!Number.isFinite(num) || num <= 0) return null
+  return Math.round(num)
+}
+
+function minuteLikeRawToSeconds(raw: any) {
+  if (raw === null || raw === undefined || raw === '') return null
+
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim()
+    if (!trimmed) return null
+
+    if (trimmed.includes(':')) {
+      const [minPart, secPart] = trimmed.split(':')
+      const minutes = Number(minPart)
+      const seconds = Number(secPart)
+      if (
+        Number.isFinite(minutes) &&
+        minutes >= 0 &&
+        Number.isFinite(seconds) &&
+        seconds >= 0
+      ) {
+        return minutes * 60 + seconds
+      }
+    }
+
+    const decimalIndex = trimmed.indexOf('.')
+    if (decimalIndex !== -1) {
+      const minutesPart = trimmed.slice(0, decimalIndex) || '0'
+      const secondsPart = trimmed.slice(decimalIndex + 1)
+      if (/^\d{1,2}$/.test(secondsPart)) {
+        const minutes = Number(minutesPart)
+        const seconds = Number(secondsPart)
+        if (
+          Number.isFinite(minutes) &&
+          minutes >= 0 &&
+          Number.isFinite(seconds) &&
+          seconds >= 0 &&
+          seconds < 60
+        ) {
+          return minutes * 60 + seconds
+        }
+      }
+    }
   }
 
-  const seconds = Math.max(1, Math.round(value * 60))
-  return `${seconds} sec`
+  const numeric = Number(raw)
+  if (!Number.isFinite(numeric) || numeric <= 0) return null
+  return Math.round(numeric * 60)
+}
+
+function formatMeditationDuration(totalSeconds: number) {
+  if (totalSeconds < 60) {
+    return `${totalSeconds} sec`
+  }
+
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+
+  if (seconds === 0) {
+    return `${minutes} min`
+  }
+
+  return `${minutes}m ${seconds.toString().padStart(2, '0')}s`
 }
 
 function AssignedMeditationsSection({
