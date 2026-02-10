@@ -261,8 +261,6 @@ export const getColumns = ({
       renderCell: createRenderCell('duration_minutes'),
       customCell: true,
       ...defaultColumnProps,
-      sortable: true,
-      sortKey: 'duration_minutes',
     },
     // {
     //   title: 'Video URL',

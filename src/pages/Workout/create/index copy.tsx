@@ -67,7 +67,6 @@ export default function CreateAdmin({
   })
   const [deleteModal, setDeleteModal] = useState(false)
   const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null)
-  console.log('videoDurationMs', videoDurationMs)
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
   // useEffect(() => {
@@ -409,9 +408,10 @@ export default function CreateAdmin({
         fileSize: 5,
         selectedFiles: rowData?.thumbnail,
         subName: 'thumbnail',
-        handleDeleteFile: () => {
-          methods.setValue('thumbnail', '')
-        },
+        // handleDeleteFile: () => {
+        //   // setRemovedVideo(true)
+        //   methods.setValue('thumbnail', '')
+        // }
       },
       {
         name: 'video_file',
@@ -433,11 +433,10 @@ export default function CreateAdmin({
         fileSize: 5,
         selectedFiles: rowData?.video_file,
         subName: 'video_file',
-        handleDeleteFile: () => {
-          methods.setValue('video_file', '')
-          methods.setValue('video_url', '')
-          setVideoDurationMs(null)
-        },
+        // handleDeleteFile: () => {
+        //   // setRemovedVideo(true)
+        //   methods.setValue('video_file', '')   // IMPORTANT
+        // }
       },
     ],
     [
@@ -566,50 +565,38 @@ export default function CreateAdmin({
   // }
   const onSubmit = (details: any) => {
     const hasNewVideoFile = details?.video_file instanceof File
-    const hasExistingVideoUrl =
-      typeof details?.video_file === 'string' && details.video_file !== ''
+    const hasExistingVideoUrl = !!(details?.video_file || rowData?.video_url)
 
-    // If user deleted video → both will be false
     if (!hasNewVideoFile && !hasExistingVideoUrl) {
       setError('video_file', { type: 'manual', message: 'Video is required.' })
       return
     }
-
     clearErrors('video_file')
 
     const fd = new FormData()
     fd.append('workout[name]', details?.name ?? '')
     fd.append('workout[description]', details?.description ?? '')
     fd.append('workout[intensity_level]', details?.intensity_level ?? '')
-
     const categoryIdForPayload = details?.subcategory_id ?? details?.category_id
-
     fd.append(
       'workout[category_id]',
       categoryIdForPayload ? String(categoryIdForPayload) : ''
     )
 
-    // CASE 1: user uploaded new video
-    if (hasNewVideoFile) {
+    // Send video_url only if no new file is provided
+    if (!details?.video_file) {
+      fd.append('workout[video_url]', rowData?.video_url ?? '')
+    }
+
+    // Only send binary if user uploaded a new file
+    if (details?.video_file instanceof File) {
       fd.append('video', details.video_file)
     }
 
-    // CASE 2: keep existing video (edit mode, not deleted)
-    else if (hasExistingVideoUrl) {
-      fd.append('workout[video_url]', details.video_file)
-    }
-
-    // Thumbnail handling
+    // Thumbnail logic (same as before)
     const thumbVal = details?.thumbnail
-
-    // CASE 1: New thumbnail uploaded
-    if (thumbVal instanceof File) {
+    if (thumbVal && typeof thumbVal !== 'string') {
       fd.append('workout[thumbnail]', thumbVal)
-    }
-
-    // CASE 2: Thumbnail manually removed
-    else if (thumbVal === '') {
-      fd.append('workout[thumbnail]', null as any)
     }
 
     // Duration
@@ -718,14 +705,11 @@ export default function CreateAdmin({
                 <FormProvider {...methods}>
                   <FormBuilder data={formBuilderProps} edit={true} spacing />
                 </FormProvider>
-                {videoDurationMs !== null &&
-                  (watchedVideoFile instanceof File ||
-                    (typeof watchedVideoFile === 'string' &&
-                      watchedVideoFile !== '')) && (
-                    <div className="text-sm text-primaryText">
-                      {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
-                    </div>
-                  )}
+                {videoDurationMs !== null && (
+                  <div className="text-sm text-primaryText">
+                    {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
+                  </div>
+                )}
               </>
             ) : (
               <CustomeSideViewer

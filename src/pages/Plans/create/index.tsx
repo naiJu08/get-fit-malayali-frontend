@@ -50,12 +50,9 @@ export default function CreatePlan({
       rowData)
     : undefined
   const onSubmit = (values: PlanSchema | any) => {
-    // Do not send status from the form; backend will use its default or preserve existing
-    // const { active: _omitActive, ...rest } = values || {}
-    // const payload = { plan: { ...values } }
     const thumbVal: any = values.thumbnail
-    const hasNewThumbnail = thumbVal && typeof thumbVal !== 'string'
-    const hasExistingThumbnail = Boolean(existingImageFile?.link)
+    const hasNewThumbnail = thumbVal instanceof File
+    const hasExistingThumbnail = typeof thumbVal === 'string' && thumbVal !== ''
 
     if (!hasNewThumbnail && !hasExistingThumbnail) {
       setError('thumbnail' as any, {
@@ -87,9 +84,14 @@ export default function CreatePlan({
     const meditationIncluded = Boolean(values.meditation_included)
     fd.append('plan[meditation_included]', String(meditationIncluded))
 
-    // Only append if a new File is provided (not just an existing URL/string)
+    // CASE 1: New thumbnail uploaded
     if (hasNewThumbnail) {
-      fd.append('plan[thumbnail]', thumbVal) // field name as backend expects
+      fd.append('plan[thumbnail]', thumbVal)
+    }
+
+    // CASE 2: Thumbnail manually removed
+    else if (thumbVal === '') {
+      fd.append('plan[thumbnail]', null as any)
     }
     if (edit && rowData?.plan?.id) {
       updatePlanMutate(
@@ -129,7 +131,7 @@ export default function CreatePlan({
         meditation_included: Boolean(
           resolvedPlan?.meditation_included ?? false
         ),
-        thumbnail: null,
+        thumbnail: resolvedPlan?.thumbnail_url ?? '',
       })
       return
     }
@@ -147,20 +149,6 @@ export default function CreatePlan({
     }
   }, [isDrawerOpen, edit, resolvedPlan, reset])
 
-  const getReadableFileName = (value?: string) => {
-    if (!value) {
-      return ''
-    }
-    const segments = String(value).split('/')
-    const raw = segments[segments.length - 1] || String(value)
-    const sanitized = raw.split('?')[0].split('#')[0]
-    try {
-      return decodeURIComponent(sanitized)
-    } catch {
-      return sanitized
-    }
-  }
-
   const textField = (
     name: string,
     label: string,
@@ -174,13 +162,6 @@ export default function CreatePlan({
     placeholder,
     ...(required ? { required: true } : {}),
   })
-  const existingImageFile = (resolvedPlan as any)?.thumbnail_url
-    ? {
-        name: getReadableFileName((resolvedPlan as any)?.thumbnail_url),
-        link: (resolvedPlan as any)?.thumbnail_url,
-      }
-    : undefined
-
   const formBuilderProps = [
     { ...textField('name', 'Plan Name', 'Enter plan name', true) },
     {
@@ -243,12 +224,15 @@ export default function CreatePlan({
       ],
       acceptedFiles: 'PNG, JPG, JPEG, WEBP',
       fileSize: 5,
-      selectedFiles: existingImageFile,
+      selectedFiles: resolvedPlan?.thumbnail,
       subName: 'thumbnail',
       aspectRatio: { width: 16, height: 9 },
       requiredWidth: 1600,
       requiredHeight: 900,
       dimensionLabel: 'Recommended size: 1600x900px (16:9)',
+      handleDeleteFile: () => {
+        methods.setValue('thumbnail', '')
+      },
     },
   ]
 

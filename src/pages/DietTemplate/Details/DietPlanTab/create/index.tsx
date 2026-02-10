@@ -367,6 +367,13 @@ export default function DietPlanForm({
       onChange: handleMealTimeChange,
     },
     {
+      name: 'meal_name',
+      label: 'Meal Name',
+      type: 'text',
+      placeholder: 'Enter meal name',
+      required: true,
+    },
+    {
       name: 'notes',
       label: 'Notes',
       type: 'textarea',
@@ -473,6 +480,7 @@ export default function DietPlanForm({
                               type="custom_search_select"
                               desc="name"
                               descId="id"
+                              required
                               placeholder="Select meal"
                               data={availableMealsForRow}
                               value={selectedMeal ? selectedMeal.name : ''}

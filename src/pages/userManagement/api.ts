@@ -9,8 +9,15 @@ import { useAuthStore } from '../../store/authStore'
 import { LoginSchema } from './schema'
 
 export const useLogin = (handleOnSuccess: any) => {
-  const { setToken, setAuthenticated, setRoleData, setUserData } =
-    useAuthStore()
+  const {
+    setToken,
+    setRefreshToken,
+    setTokenExpiresAt,
+    setRefreshTokenExpiresAt,
+    setAuthenticated,
+    setRoleData,
+    setUserData,
+  } = useAuthStore()
   const { setResetToken } = useAppStore()
 
   const { setIsLoading } = useAppStore()
@@ -24,7 +31,6 @@ export const useLogin = (handleOnSuccess: any) => {
         password: params.password,
       }
       const response = await postData(apiUrl.LOGIN_URL, data)
-
       return response
     },
     {
@@ -41,10 +47,34 @@ export const useLogin = (handleOnSuccess: any) => {
         )
       },
       onSuccess: (data: any) => {
-        const token = data?.token
+        const token = data?.token || data?.access_token
+        const refreshToken = data?.refresh_token
+        const expiresIn = data?.expires_in // in seconds (e.g., 604800)
+        const refreshExpiresIn = data?.refresh_expires_in // in seconds
         const user = data?.user || {}
+
         setResetToken?.(undefined as any)
         setToken(token)
+        if (refreshToken) {
+          setRefreshToken(refreshToken)
+        }
+
+        // Calculate token expiration timestamp
+        if (expiresIn) {
+          const expiresAt = Date.now() + expiresIn * 1000 // Convert to milliseconds
+          setTokenExpiresAt(expiresAt)
+        }
+
+        // Calculate refresh token expiration timestamp
+        if (refreshExpiresIn) {
+          const refreshExpiresAt = Date.now() + refreshExpiresIn * 1000
+          setRefreshTokenExpiresAt(refreshExpiresAt)
+        } else if (expiresIn) {
+          // If refresh_expires_in not provided, assume refresh token lasts 7x longer than access token
+          const refreshExpiresAt = Date.now() + expiresIn * 7 * 1000
+          setRefreshTokenExpiresAt(refreshExpiresAt)
+        }
+
         setAuthenticated(true)
         setIsLoading(false)
         handleOnSuccess?.()

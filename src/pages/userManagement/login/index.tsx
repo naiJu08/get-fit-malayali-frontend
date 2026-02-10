@@ -105,9 +105,6 @@ export default function Login() {
             {/* Text Overlay on Lower Left */}
             <div className="absolute bottom-6 left-6 right-6 bg-black/60 backdrop-blur-sm rounded-2xl p-6 text-white transform transition-all duration-500 hover:bg-black/70 hover:scale-[1.02]">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center">
-                  <span className="text-lg">💪</span>
-                </div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-orange-200 to-red-200 bg-clip-text text-transparent">
                   Transform Your Journey
                 </h3>
@@ -145,7 +142,7 @@ export default function Login() {
               </div>
 
               {/* Header */}
-              <div className="text-center mb-10">
+              <div className="text-center mb-5">
                 <div className="flex items-center justify-center w-full">
                   <img
                     src="/gfm-logo.png"
@@ -153,7 +150,7 @@ export default function Login() {
                     className="w-28 h-28 object-contain mx-auto"
                   />
                 </div>
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-red-700 to-orange-600 bg-clip-text text-transparent mb-3">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-red-700 to-orange-600 bg-clip-text text-transparent mb-2">
                   {logText}
                 </h2>
                 <p className="text-neutral-600 text-lg leading-relaxed">

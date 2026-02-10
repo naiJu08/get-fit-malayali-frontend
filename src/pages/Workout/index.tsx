@@ -149,6 +149,7 @@ export default function WorkoutMain() {
 
   const handleEdit = async (rowData: any) => {
     if (rowData?.id) {
+      setRowData(undefined)
       const data = await getWorkoutDetails(String(rowData?.id))
       setRowData((data as any)?.workout ?? data)
       setCreateOpen(true)
@@ -161,6 +162,7 @@ export default function WorkoutMain() {
     setCreateOpen(false)
     setViewMode(false)
     setEdit(false)
+    setRowData(undefined)
     if (viewIndicator && editViewIndicator) {
       setViewIndicator(false)
       setEditViewIndicator(false)
@@ -177,8 +179,8 @@ export default function WorkoutMain() {
   }
   const openDrawer = () => {
     if (isNutritionist) return
+    setRowData(undefined)
     setCreateOpen(true)
-    setRowData({})
   }
   const headerProps = {
     actionTitle: 'Create Workout',

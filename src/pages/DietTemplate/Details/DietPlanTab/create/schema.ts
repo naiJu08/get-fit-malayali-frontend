@@ -91,7 +91,7 @@ export const dietPlanFormSchema = z.object({
       'Sequence number must be >= 1'
     ),
   meal_time: z.string().min(1, 'Meal time is required'),
-  meal_name: z.string().optional().or(z.literal('')),
+  meal_name: z.string().min(1, 'Meal name is required'),
   notes: z.string().optional().or(z.literal('')),
   protein: z
     .union([z.number(), z.string()])
