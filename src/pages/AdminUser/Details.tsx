@@ -205,7 +205,7 @@ export default function UserDetails() {
           )}
           {!isNutritionist && (
             <Tab id="reminders">
-              <ReminderSettings />
+              <ReminderSettings userId={user?.id} />
             </Tab>
           )}
           {!isNutritionist && (

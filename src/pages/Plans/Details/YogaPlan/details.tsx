@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 
 import Icons from '../../../../components/common/icons'
@@ -71,9 +71,17 @@ function AssignTabContent({
   yp,
   loading,
   error,
-  // selectedWorkouts,
   getEmbedUrl,
-}: any) {
+  getDurationLabel,
+  onVideoDuration,
+}: {
+  yp: any
+  loading: boolean
+  error: string
+  getEmbedUrl: (url?: string) => string
+  getDurationLabel: (fallbackData: any, key: string) => string | null
+  onVideoDuration: (key: string, durationSeconds: number) => void
+}) {
   const exercises = Array.isArray(yp?.exercises)
     ? yp.exercises
         .slice()
@@ -103,6 +111,8 @@ function AssignTabContent({
               <span className="inline-flex items-center gap-1">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                 Duration
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                Intensity
               </span>
             </div>
           </div>
@@ -116,7 +126,8 @@ function AssignTabContent({
                   ''
                 const url = String(rawUrl || '')
                 const embed = getEmbedUrl(url)
-                const durationLabel = getYogaDurationLabel(ex)
+                const durationKey = String(ex?.id ?? ex?.yoga_id ?? url)
+                const durationLabel = getDurationLabel(ex, durationKey)
                 return (
                   <div
                     key={ex?.id}
@@ -137,6 +148,12 @@ function AssignTabContent({
                           src={String(url)}
                           muted
                           controls
+                          onLoadedMetadata={(event) =>
+                            onVideoDuration(
+                              durationKey,
+                              event.currentTarget?.duration || 0
+                            )
+                          }
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
@@ -144,14 +161,18 @@ function AssignTabContent({
                         </div>
                       )}
 
-                      {durationLabel && (
-                        <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                      <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                        {durationLabel && (
                           <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                             <span className="w-2 h-2 rounded-full bg-white" />
                             {durationLabel}
                           </span>
-                        </div>
-                      )}
+                        )}
+                        <span className="inline-flex items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                          <span className="w-2 h-2 rounded-full bg-white" />
+                          {ex?.intensity_level ? ex.intensity_level : '--'}
+                        </span>
+                      </div>
                     </div>
                     <div className="px-2 py-1 text-xs flex items-center justify-between gap-2">
                       <div className="font-medium line-clamp-1">
@@ -323,6 +344,42 @@ export default function YogaPlanDetails() {
           .map((ex: any) => ex?.yoga_id || ex?.yoga?.id || null)
           .filter((exId: any) => exId !== null && exId !== undefined)
       : []
+  )
+  const [videoDurations, setVideoDurations] = useState<Record<string, number>>(
+    {}
+  )
+
+  const handleVideoDuration = useCallback(
+    (key: string, durationSeconds: number) => {
+      if (!key || !Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+        return
+      }
+      setVideoDurations((prev) => {
+        const existing = prev[key]
+        if (existing && Math.abs(existing - durationSeconds) < 0.5) {
+          return prev
+        }
+        return {
+          ...prev,
+          [key]: durationSeconds,
+        }
+      })
+    },
+    []
+  )
+
+  const getDurationLabel = useCallback(
+    (fallbackData: any, key: string) => {
+      if (
+        key &&
+        Number.isFinite(videoDurations[key]) &&
+        videoDurations[key] > 0
+      ) {
+        return formatDurationLabel(Math.floor(videoDurations[key]))
+      }
+      return getYogaDurationLabel(fallbackData)
+    },
+    [videoDurations]
   )
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
@@ -598,8 +655,9 @@ export default function YogaPlanDetails() {
               yp={yp}
               loading={loading}
               error={error}
-              selectedWorkouts={selectedWorkouts}
               getEmbedUrl={getEmbedUrl}
+              getDurationLabel={getDurationLabel}
+              onVideoDuration={handleVideoDuration}
             />
           </Tab>
         </TabContainer>
@@ -628,6 +686,10 @@ export default function YogaPlanDetails() {
               {/* Duration */}
               <div className="flex items-center gap-2 text-[11px] text-gray-600 mb-1">
                 <span className="inline-flex items-center gap-1">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                    Intensity
+                  </span>
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                   Duration
                 </span>
@@ -675,7 +737,8 @@ export default function YogaPlanDetails() {
                   const url = w?.video_url || ''
                   const embed = getEmbedUrl(url)
                   const checked = isSelected(w?.id)
-                  const durationLabel = getYogaDurationLabel(w)
+                  const durationKey = String(w?.id ?? url)
+                  const durationLabel = getDurationLabel(w, durationKey)
                   return (
                     <div
                       key={w?.id}
@@ -706,6 +769,12 @@ export default function YogaPlanDetails() {
                             src={String(url)}
                             muted
                             controls
+                            onLoadedMetadata={(event) =>
+                              handleVideoDuration(
+                                durationKey,
+                                event.currentTarget?.duration || 0
+                              )
+                            }
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
@@ -713,17 +782,23 @@ export default function YogaPlanDetails() {
                           </div>
                         )}
 
-                        {durationLabel && (
-                          <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                        <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                          {durationLabel && (
                             <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                               <span className="w-2 h-2 rounded-full bg-white" />
                               {durationLabel}
                             </span>
-                          </div>
-                        )}
+                          )}
+                          <span className="items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                            <Icons name="activity" className="w-3 h-3" />
+                            {w?.intensity_level ||
+                              w?.workout?.intensity_level ||
+                              '--'}
+                          </span>
+                        </div>
                       </div>
                       <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
-                        <div className="font-medium line-clamp-1">
+                        <div className="font-medium break-words w-40">
                           {getYogaDisplayName(
                             w?.name ||
                               w?.title ||

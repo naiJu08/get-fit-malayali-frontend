@@ -97,7 +97,7 @@ export default function CreateAdmin({
     const minutes = Math.floor(totalSeconds / 60)
     const seconds = totalSeconds % 60
     const paddedSeconds = seconds.toString().padStart(2, '0')
-    return `Duration: ${minutes}:${paddedSeconds}`
+    return `${minutes}:${paddedSeconds}`
   }
 
   const parseDurationMinutesToMs = (value?: string | number | null) => {
@@ -274,8 +274,8 @@ export default function CreateAdmin({
         derivedSubcategoryId !== undefined && derivedSubcategoryId !== null
           ? derivedSubcategoryId
           : undefined,
-      video_file: rowData?.video_url ?? '',
-      thumbnail: rowData?.thumbnail_url ?? '',
+      video_file: getFileName(rowData?.video_url) ?? '',
+      thumbnail: getFileName(rowData?.thumbnail_url) ?? '',
     } as any)
 
     hydratedRowRef.current = hydrationKey
@@ -321,6 +321,12 @@ export default function CreateAdmin({
 
   const categoryChangeRef = useRef<any>()
   const hydratedRowRef = useRef<string | number | null>(null)
+  const getFileName = (path?: string) => {
+    if (!path) return ''
+
+    const fileName = path.split('/').pop() || ''
+    return decodeURIComponent(fileName).replace(/%/g, '')
+  }
 
   useEffect(() => {
     if (categoryChangeRef.current === undefined) {
@@ -344,7 +350,7 @@ export default function CreateAdmin({
     () => [
       {
         ...textField('name', 'Name', 'Enter workout name', true),
-        maxlength: 50,
+        maxLength: 50,
       },
       {
         name: 'intensity_level',
@@ -409,7 +415,7 @@ export default function CreateAdmin({
         ],
         acceptedFiles: 'PNG, JPG, JPEG, WEBP',
         fileSize: 5,
-        selectedFiles: rowData?.thumbnail,
+        selectedFiles: getFileName(rowData?.thumbnail_url),
         subName: 'thumbnail',
         handleDeleteFile: () => {
           methods.setValue('thumbnail', '')
@@ -433,7 +439,7 @@ export default function CreateAdmin({
         ],
         acceptedFiles: 'MP4, MOV, AVI',
         fileSize: 5,
-        selectedFiles: rowData?.video_file,
+        selectedFiles: getFileName(rowData?.video_url),
         subName: 'video_file',
         handleDeleteFile: () => {
           methods.setValue('video_file', '')

@@ -77,7 +77,12 @@ export default function CreateAdmin({
     if (Number.isNaN(minutes) || Number.isNaN(seconds)) return null
     return Math.max(0, (minutes * 60 + seconds) * 1000)
   }
+  const getFileName = (path?: string) => {
+    if (!path) return ''
 
+    const fileName = path.split('/').pop() || ''
+    return decodeURIComponent(fileName).replace(/%/g, '')
+  }
   const onSuccess = () => {
     handleSubmission()
   }
@@ -95,7 +100,7 @@ export default function CreateAdmin({
   const formBuilderProps = [
     {
       ...textField('title', 'Title', 'Enter meditation title', true),
-      maxlength: 50,
+      maxLength: 50,
     },
     {
       name: 'description',
@@ -117,7 +122,7 @@ export default function CreateAdmin({
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
       acceptedFiles: 'MP4, MOV, AVI',
       fileSize: 5,
-      selectedFiles: rowData?.video_file,
+      selectedFiles: getFileName(rowData?.video_url),
       subName: 'video_file',
       handleDeleteFile: () => {
         methods.setValue('video_file', '')
@@ -139,7 +144,7 @@ export default function CreateAdmin({
       ],
       acceptedFiles: 'PNG, JPG, JPEG, WEBP',
       fileSize: 5,
-      selectedFiles: rowData?.thumbnail,
+      selectedFiles: getFileName(rowData?.thumbnail_url),
       subName: 'thumbnail',
       handleDeleteFile: () => {
         methods.setValue('thumbnail', '')
@@ -170,13 +175,20 @@ export default function CreateAdmin({
     handleRefresh?.()
     handleClearAndClose()
   }
+  const capitalizeWords = (val?: string) => {
+    if (!val) return ''
+    return val
+      .split(' ')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ')
+  }
   useEffect(() => {
     if (isDrawerOpen && edit && !viewMode && rowData) {
       methods.reset({
-        title: rowData?.title ?? '',
+        title: capitalizeWords(rowData?.title) ?? '',
         description: rowData?.description ?? '',
-        video_file: rowData?.video_url ?? '',
-        thumbnail: rowData?.thumbnail_url ?? '',
+        video_file: getFileName(rowData?.video_url) ?? '',
+        thumbnail: getFileName(rowData?.thumbnail_url) ?? '',
       } as any)
     }
   }, [isDrawerOpen, edit, viewMode, rowData, methods])

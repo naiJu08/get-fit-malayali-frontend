@@ -131,7 +131,13 @@ export const getColumns = ({
       renderCell: (row: any) => {
         const value = getNestedProperty(row, 'title')
         const raw = typeof value === 'string' ? value : ''
-        const formatted = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : ''
+        const formatted = raw
+          ? raw.replace(
+              /\w\S*/g,
+              (word) =>
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            )
+          : ''
         const display = truncateText(formatted, 50)
         if (!disableNameLink && onNameClick) {
           return {

@@ -236,18 +236,24 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   }
 
   const hasYogaData = useMemo(() => {
-    if (!dayDetail?.yoga_plan) return false
-    if (Array.isArray(dayDetail?.yoga_plan?.exercises)) {
-      return dayDetail.yoga_plan.exercises.length > 0
-    }
-    return false
-  }, [dayDetail?.yoga_plan])
+    return !!dayDetail?.yoga_plan
+  }, [dayDetail])
 
   useEffect(() => {
     if (!hasYogaData && dayDetailTab === 'yoga') {
       onChangeTab('diet')
     }
   }, [hasYogaData, dayDetailTab, onChangeTab])
+
+  const canEditDay = useMemo(() => {
+    if (isNutritionist) return false
+    const dateSource =
+      dayDetail?.date ?? dayDetail?.day_date ?? dayDetail?.dayDate ?? null
+    if (!dateSource) return false
+    const parsed = moment(dateSource)
+    if (!parsed.isValid()) return false
+    return parsed.startOf('day').isSameOrAfter(moment().startOf('day'))
+  }, [dayDetail?.date, dayDetail?.day_date, dayDetail?.dayDate, isNutritionist])
 
   const tabsData = useMemo(() => {
     const baseTabs = [
@@ -286,7 +292,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                   )}
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  {!isNutritionist && (
+                  {canEditDay && (
                     <button
                       type="button"
                       className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
@@ -534,7 +540,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
             <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
               <div className="flex items-center justify-between mb-2 gap-3">
                 <div className="text-sm font-semibold">Workout Plan</div>
-                {dayDetail?.workout_plan && !isNutritionist && (
+                {dayDetail?.workout_plan && canEditDay && (
                   <button
                     className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
                     onClick={onEditWorkoutPlan}
@@ -704,7 +710,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
               <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
                 <div className="flex items-center justify-between mb-2 gap-3">
                   <div className="text-sm font-semibold">Yoga Plan</div>
-                  {dayDetail?.yoga_plan && !isNutritionist && (
+                  {dayDetail?.yoga_plan && canEditDay && (
                     <button
                       className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
                       onClick={onEditYogaPlan}
@@ -869,7 +875,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                 <div className="text-sm font-semibold">Meditation</div>
                 {Array.isArray(dayDetail?.meditations) &&
                   // dayDetail.meditations.length > 0 &&
-                  !isNutritionist && (
+                  canEditDay && (
                     <button
                       className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
                       onClick={onEditMeditationPlan}

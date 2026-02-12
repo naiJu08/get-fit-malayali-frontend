@@ -1,5 +1,7 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
+
+import { cookieStorage } from '../utilities/cookieStorage'
 
 export const useAuthStore = create<AuthStoreType>()(
   persist(
@@ -43,7 +45,10 @@ export const useAuthStore = create<AuthStoreType>()(
           refreshTokenExpiresAt: undefined,
         })),
     }),
-    { name: 'authenticated' }
+    {
+      name: 'authenticated',
+      storage: createJSONStorage(() => cookieStorage),
+    }
   )
 )
 
