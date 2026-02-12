@@ -2887,7 +2887,7 @@ export default function Subscriptions({
                         )}
                       </div>
                       <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
-                        <div className="font-medium line-clamp-1">
+                        <div className="font-medium break-words w-40">
                           {formatYogaName(y?.name || y?.title)}
                         </div>
                         <input

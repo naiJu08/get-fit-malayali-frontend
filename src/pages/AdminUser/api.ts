@@ -17,7 +17,10 @@ import { useAuthStore } from '../../store/authStore'
 // Disable non-login APIs (employees, groups) for this build
 export const DISABLE_NONLOGIN_APIS = false
 
-const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
+const buildUrlWithParams = (
+  baseUrl: string,
+  params: QueryParams | Record<string, any>
+) => {
   return `${baseUrl}${parseQueryParams(params)}`
 }
 
@@ -424,8 +427,11 @@ export const createClientReport = (payload: {
 }
 
 // User reminders
-const fetchUserReminders = async () => {
-  const url = apiUrl.USER_REMINDERS
+const fetchUserReminders = async (input: { user_id: string | number }) => {
+  const url = buildUrlWithParams(apiUrl.USER_REMINDERS, {
+    user_id: input.user_id,
+  })
+
   const response: any = await getData(url)
 
   const items = Array.isArray(response?.reminders) ? response.reminders : []
@@ -435,8 +441,17 @@ const fetchUserReminders = async () => {
   return { items, meta }
 }
 
-export const useUserReminders = () => {
-  return useQuery(['user_reminders'], fetchUserReminders, {})
+export const useUserReminders = ({ userId }: { userId?: string | number }) => {
+  return useQuery(
+    ['user_reminders', userId],
+    () =>
+      fetchUserReminders({
+        user_id: userId!,
+      }),
+    {
+      enabled: !!userId,
+    }
+  )
 }
 
 // Subscription-level report

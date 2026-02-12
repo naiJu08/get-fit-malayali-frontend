@@ -504,7 +504,7 @@ export default function SubscriptionDetailsMain() {
         </Tab>
 
         <Tab id="reminders">
-          <ReminderSettings />
+          <ReminderSettings userId={subscription?.user_id} />
         </Tab>
       </TabContainer>
     </div>

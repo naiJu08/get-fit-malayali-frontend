@@ -87,7 +87,12 @@ export default function CreateAdmin({
 
   //   return () => clearTimeout(intervalId)
   // }, [])
+  const getFileName = (path?: string) => {
+    if (!path) return ''
 
+    const fileName = path.split('/').pop() || ''
+    return decodeURIComponent(fileName).replace(/%/g, '')
+  }
   const categoryOptions = useMemo(
     () => [
       { id: 'basic', name: 'Basic' },
@@ -145,7 +150,7 @@ export default function CreateAdmin({
       supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
       acceptedFiles: 'MP4, MOV, AVI',
       fileSize: 5,
-      selectedFiles: rowData?.video_file,
+      selectedFiles: getFileName(rowData?.video_url),
       subName: 'video_file',
       handleDeleteFile: () => {
         methods.setValue('video_file', '')
@@ -168,7 +173,7 @@ export default function CreateAdmin({
       ],
       acceptedFiles: 'PNG, JPG, JPEG, WEBP',
       fileSize: 5,
-      selectedFiles: rowData?.thumbnail,
+      selectedFiles: getFileName(rowData?.thumbnail_url),
       subName: 'thumbnail',
       handleDeleteFile: () => {
         methods.setValue('thumbnail', '')
@@ -239,8 +244,8 @@ export default function CreateAdmin({
         description: rowData?.description ?? '',
         intensity_level: rowData?.intensity_level ?? '',
         category: matchedCategory?.name ?? '',
-        video_file: rowData?.video_url ?? '',
-        thumbnail: rowData?.thumbnail_url ?? '',
+        video_file: getFileName(rowData?.video_url) ?? '',
+        thumbnail: getFileName(rowData?.thumbnail_url) ?? '',
       } as any)
     }
   }, [isDrawerOpen, edit, viewMode, rowData, categoryOptions, methods])
@@ -332,17 +337,28 @@ export default function CreateAdmin({
   }
 
   const onSubmit = (details: any) => {
-    const hasNewVideoFile = details?.video_file instanceof File
-    const hasExistingVideoUrl =
-      typeof details?.video_file === 'string' && details.video_file !== ''
+    const originalVideoName = getFileName(rowData?.video_url)
+    const currentVideoName = details?.video_file
 
-    // If user deleted video → both will be false
-    if (!hasNewVideoFile && !hasExistingVideoUrl) {
+    const hasNewVideoFile = currentVideoName instanceof File
+    const hasExistingVideoUrl =
+      typeof currentVideoName === 'string' && currentVideoName !== ''
+
+    const videoRemoved = currentVideoName === ''
+    const videoUnchanged =
+      typeof currentVideoName === 'string' &&
+      currentVideoName === originalVideoName
+
+    // If user deleted video
+    if (videoRemoved) {
       setError('video_file', { type: 'manual', message: 'Video is required.' })
       return
     }
 
     clearErrors('video_file')
+
+    // ✅ Append only if changed
+
     const fd = new FormData()
     fd.append('yoga[name]', details?.name ?? '')
     fd.append('yoga[description]', details?.description ?? '')
@@ -350,13 +366,12 @@ export default function CreateAdmin({
     fd.append('yoga[category]', extractSelectValue(details?.category))
     // fd.append('yoga[video_url]', details?.video_url ?? '')
     // CASE 1: user uploaded new video
-    if (hasNewVideoFile) {
-      fd.append('video', details.video_file)
-    }
-
-    // CASE 2: keep existing video (edit mode, not deleted)
-    else if (hasExistingVideoUrl) {
-      fd.append('yoga[video_url]', details.video_file)
+    if (!videoUnchanged) {
+      if (hasNewVideoFile) {
+        fd.append('video', currentVideoName)
+      } else if (hasExistingVideoUrl) {
+        fd.append('yoga[video_url]', currentVideoName)
+      }
     }
 
     // Thumbnail handling

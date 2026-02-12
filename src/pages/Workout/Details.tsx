@@ -114,23 +114,41 @@ export default function UserDetails() {
             <DetailItem label="Category" value={categoryName} />
             <DetailItem label="Subcategory" value={subcategoryName} />
             <DetailItem label="Duration" value={workout?.duration_minutes} />
-            <DetailItem
-              label="Thumbnail"
-              value={
-                workout?.thumbnail_url ? (
-                  <div className="w-[120px] h-[120px] overflow-hidden rounded-md border bg-gray-50">
-                    <img
-                      className="w-full h-full object-cover"
-                      src={workout.thumbnail_url}
-                      alt="Workout thumbnail"
-                    />
-                  </div>
-                ) : (
-                  <span>--</span>
-                )
-              }
-            />
+            {(() => {
+              const raw = workout?.thumbnail_url
+              const t = typeof raw === 'string' ? raw.trim() : ''
+              const isUrl = typeof t === 'string' && /^https?:\/\/\S+$/i.test(t)
+              if (!isUrl) return null
 
+              return (
+                <div className="">
+                  <div className="border rounded-lg p-3 bg-white ">
+                    <div className="text-xs text-gray-500 mb-2">Thumbnail</div>
+                    <div className="relative w-64">
+                      <img
+                        src={t}
+                        alt="Yoga thumbnail"
+                        className="w-[7.25rem] h-[7.25rem] object-cover rounded"
+                        onError={(e) => {
+                          ;(e.currentTarget as HTMLImageElement).style.display =
+                            'none'
+                        }}
+                      />
+                      <div className="mt-2 text-xs">
+                        <a
+                          href={t}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#2563eb' }}
+                        >
+                          Open thumbnail
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
             {!loading &&
               !error &&
               (() => {

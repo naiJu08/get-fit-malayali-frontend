@@ -50,10 +50,14 @@ export const getColumns = ({
       field: 'name',
       renderCell: (row: any) => {
         const value = getNestedProperty(row, 'name') as string | undefined
-        const formatted =
-          typeof value === 'string' && value.length > 0
-            ? value.charAt(0).toUpperCase() + value.slice(1)
-            : (value ?? '')
+        const raw = typeof value === 'string' ? value : ''
+        const formatted = raw
+          ? raw.replace(
+              /\w\S*/g,
+              (word) =>
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            )
+          : ''
         const displayValue = truncateText(formatted, 50)
 
         if (!disableNameLink && onNameClick) {

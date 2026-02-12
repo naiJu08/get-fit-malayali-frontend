@@ -82,10 +82,15 @@ type ReminderGroupAccumulator = Record<
   }
 >
 
-const ReminderSettings = () => {
-  const { data, isLoading, error } = useUserReminders()
+type ReminderSettingsProps = {
+  userId?: string | number
+}
 
-  const reminders: any[] = data?.items ?? []
+const ReminderSettings = ({ userId }: ReminderSettingsProps) => {
+  const missingUserId = !userId
+  const { data, isLoading, error } = useUserReminders({ userId })
+
+  const reminders: any[] = !missingUserId ? (data?.items ?? []) : []
 
   const reminderGroups = useMemo(() => {
     if (reminders.length === 0) return []
@@ -144,6 +149,12 @@ const ReminderSettings = () => {
 
   return (
     <div className="flex flex-col gap-1">
+      {missingUserId && (
+        <div className="rounded-xl border border-dashed border-gray-200 bg-white p-8 text-center text-sm text-gray-500">
+          Select a user to view their reminders.
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-100 bg-gradient-to-r from-slate-900 to-slate-700 p-5 text-white shadow-sm sm:grid-cols-3">
         <div>
           <p className="text-xs text-white/60">Total reminders</p>

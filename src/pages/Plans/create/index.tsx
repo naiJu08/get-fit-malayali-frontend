@@ -49,6 +49,7 @@ export default function CreatePlan({
       rowData?.plan ??
       rowData)
     : undefined
+
   const onSubmit = (values: PlanSchema | any) => {
     const thumbVal: any = values.thumbnail
     const hasNewThumbnail = thumbVal instanceof File
@@ -131,7 +132,7 @@ export default function CreatePlan({
         meditation_included: Boolean(
           resolvedPlan?.meditation_included ?? false
         ),
-        thumbnail: resolvedPlan?.thumbnail_url ?? '',
+        thumbnail: getFileNameFromUrl(resolvedPlan?.thumbnail_url) ?? '',
       })
       return
     }
@@ -148,7 +149,11 @@ export default function CreatePlan({
       })
     }
   }, [isDrawerOpen, edit, resolvedPlan, reset])
-
+  const getFileNameFromUrl = (url?: string) => {
+    if (!url) return ''
+    const fileName = url.split('/').pop()?.split('?')[0] || ''
+    return decodeURIComponent(fileName)
+  }
   const textField = (
     name: string,
     label: string,
@@ -224,7 +229,7 @@ export default function CreatePlan({
       ],
       acceptedFiles: 'PNG, JPG, JPEG, WEBP',
       fileSize: 5,
-      selectedFiles: resolvedPlan?.thumbnail,
+      selectedFiles: getFileNameFromUrl(resolvedPlan?.thumbnail_url),
       subName: 'thumbnail',
       aspectRatio: { width: 16, height: 9 },
       requiredWidth: 1600,

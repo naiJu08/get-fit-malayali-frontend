@@ -94,10 +94,17 @@ export default function CreateAdmin({
     handleRefresh?.()
     handleClearAndClose()
   }
+  const capitalizeWords = (val?: string) => {
+    if (!val) return ''
+    return val
+      .split(' ')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ')
+  }
   useEffect(() => {
     if (isDrawerOpen && edit && !viewMode && rowData) {
       methods.reset({
-        name: rowData?.name ?? '',
+        name: capitalizeWords(rowData?.name) ?? '',
         description: rowData?.description ?? '',
       } as any)
     }
