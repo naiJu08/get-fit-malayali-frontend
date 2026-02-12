@@ -236,12 +236,8 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   }
 
   const hasYogaData = useMemo(() => {
-    if (!dayDetail?.yoga_plan) return false
-    if (Array.isArray(dayDetail?.yoga_plan?.exercises)) {
-      return dayDetail.yoga_plan.exercises.length > 0
-    }
-    return false
-  }, [dayDetail?.yoga_plan])
+    return !!dayDetail?.yoga_plan
+  }, [dayDetail])
 
   useEffect(() => {
     if (!hasYogaData && dayDetailTab === 'yoga') {

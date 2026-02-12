@@ -2280,8 +2280,7 @@ export default function Subscriptions({
                                                 ?.total_exercises ?? 0}
                                             </span>
                                           </button>
-                                          {(c?.meta?.yoga_summary
-                                            ?.total_exercises ?? 0) > 0 && (
+                                          {c?.meta?.yoga_summary && (
                                             <button
                                               type="button"
                                               onClick={(e) => {
@@ -2300,6 +2299,7 @@ export default function Subscriptions({
                                               </span>
                                             </button>
                                           )}
+
                                           <button
                                             type="button"
                                             onClick={(e) => {
