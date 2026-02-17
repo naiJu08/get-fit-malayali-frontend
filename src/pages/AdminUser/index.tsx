@@ -1,5 +1,5 @@
 import SmartTable from '../../components/common/table/SmartTable'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
@@ -31,6 +31,8 @@ import { getColumns } from './columns'
 import CreateAdmin from './create'
 import { useAuthStore } from '../../store/authStore'
 
+type StatusFilterValue = 'all' | 'active' | 'suspended'
+
 export default function AdminUser() {
   const navigate = useNavigate()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
@@ -53,6 +55,7 @@ export default function AdminUser() {
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
   const [loader, setloader] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
 
   const params = useParams()
   const [activeRole, setActiveRole] = useState<'user' | 'nutritionist'>('user')
@@ -148,10 +151,17 @@ export default function AdminUser() {
 
   // Ensure role filter follows active tab
   useEffect(() => {
-    // initialize filters object if missing and set role
+    const nextFilters: Record<string, any> = {
+      ...(pageParams?.filters || {}),
+      role: activeRole,
+    }
+    if (nextFilters.status) {
+      delete nextFilters.status
+    }
+    setStatusFilter('all')
     setPageParams({
       ...pageParams,
-      filters: { ...(pageParams?.filters || {}), role: activeRole },
+      filters: nextFilters,
       search: '',
       page: 1,
     })
@@ -162,6 +172,42 @@ export default function AdminUser() {
     setPageParams({
       ...pageParams,
       search: key as string,
+      page: 1,
+    })
+  }
+
+  const syncStatusFromParams = useCallback(
+    (nextFilters?: Record<string, any>) => {
+      const currentStatus = (
+        nextFilters?.status as string | undefined
+      )?.toLowerCase?.()
+      if (currentStatus === 'active' || currentStatus === 'suspended') {
+        setStatusFilter(currentStatus)
+      } else {
+        setStatusFilter('all')
+      }
+    },
+    []
+  )
+
+  useEffect(() => {
+    syncStatusFromParams(pageParams?.filters)
+  }, [pageParams?.filters, syncStatusFromParams])
+
+  const handleStatusChange = (value: StatusFilterValue) => {
+    setStatusFilter(value)
+    const nextFilters = {
+      ...(pageParams?.filters || {}),
+      status: value === 'all' ? undefined : value,
+    }
+
+    if (!nextFilters.status) {
+      delete nextFilters.status
+    }
+
+    setPageParams({
+      ...pageParams,
+      filters: nextFilters,
       page: 1,
     })
   }
@@ -352,7 +398,24 @@ export default function AdminUser() {
               <SmartTable
                 data={data?.items ?? []}
                 dataRowKey="id"
-                toolbar={true}
+                toolbarExtra={
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-600">Status</label>
+                    <select
+                      className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200 w-40"
+                      value={statusFilter}
+                      onChange={(event) =>
+                        handleStatusChange(
+                          event.target.value as StatusFilterValue
+                        )
+                      }
+                    >
+                      <option value="all">All</option>
+                      <option value="active">Active</option>
+                      <option value="suspended">Suspended</option>
+                    </select>
+                  </div>
+                }
                 search={true}
                 searchPlaceholder={
                   activeRole === 'nutritionist'
