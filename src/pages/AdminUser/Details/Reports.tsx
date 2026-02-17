@@ -1134,15 +1134,17 @@ export default function Reports({
                   {plan?.category || '—'}
                 </td>
               </tr>
-
-              <td className="px-4 py-3 font-semibold text-gray-800">
-                {reportUser?.name || user?.name
-                  ? (reportUser?.name || user?.name)
-                      .toString()
-                      .toLowerCase()
-                      .replace(/\b\w/g, (char: any) => char.toUpperCase())
-                  : '—'}
-              </td>
+              <tr>
+                <td className="px-4 py-3 text-gray-500 w-1/4">Name</td>
+                <td className="px-4 py-3 font-semibold text-gray-800 w-1/4">
+                  {reportUser?.name || user?.name
+                    ? (reportUser?.name || user?.name)
+                        .toString()
+                        .toLowerCase()
+                        .replace(/\b\w/g, (char: any) => char.toUpperCase())
+                    : '—'}
+                </td>
+              </tr>
               <tr className="bg-gray-50">
                 <td className="px-4 py-3 text-gray-500">Start Date</td>
                 <td className="px-4 py-3 font-semibold text-gray-800">
