@@ -1133,6 +1133,23 @@ export default function DashboardView({
               </div>
               <div className="rounded-2xl bg-white/15 px-5 py-3">
                 <p className="text-xs uppercase tracking-widest text-white/70">
+                  Active Users
+                </p>
+                <p className="text-2xl font-semibold text-emerald-300">
+                  {formatNumber(data?.users?.active)}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-white/15 px-5 py-3">
+                <p className="text-xs uppercase tracking-widest text-white/70">
+                  Suspended Users
+                </p>
+                <p className="text-2xl font-semibold text-amber-300">
+                  {formatNumber(data?.users?.suspended)}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-white/15 px-5 py-3">
+                <p className="text-xs uppercase tracking-widest text-white/70">
                   New Plans
                 </p>
                 <p className="text-2xl font-semibold">
