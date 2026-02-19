@@ -425,7 +425,7 @@ export default function CategoryDetails() {
                     placeholder: 'Describe the subcategory',
                     type: 'textarea',
                     maxLength: 250,
-                    required: true,
+                    required: false,
                   },
                 ]}
                 edit

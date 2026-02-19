@@ -13,6 +13,7 @@ import Clients from './Details/Clients'
 import Reports from './Details/Reports'
 import ReminderSettings from './Details/ReminderSettings'
 import AdditionalInfo from './Details/AdditionalInfo'
+import RecipesTab from './Details/Recipe.tsx/Recipes'
 import { useAuthStore } from '../../store/authStore'
 import CreateAdmin from './create'
 
@@ -127,6 +128,7 @@ export default function UserDetails() {
             // { id: 'body-composition', label: 'Body composition' },
             { id: 'vitals', label: 'Vitals' },
             { id: 'reminders', label: 'Reminder settings' },
+            { id: 'recipes', label: 'Recipes' },
             { id: 'additional-info', label: 'Nutritional Assessment' },
             ...(loginRole !== 'nutritionist'
               ? [{ id: 'reports', label: 'Reports' }]
@@ -206,6 +208,11 @@ export default function UserDetails() {
           {!isNutritionist && (
             <Tab id="reminders">
               <ReminderSettings userId={user?.id} />
+            </Tab>
+          )}
+          {!isNutritionist && (
+            <Tab id="recipes">
+              <RecipesTab userId={user?.id} />
             </Tab>
           )}
           {!isNutritionist && (

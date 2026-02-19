@@ -66,7 +66,7 @@ export default function CreateAdmin({
       id: 'description',
       type: 'textarea',
       placeholder: 'Enter description',
-      required: true,
+      required: false,
       maxLength: 255,
     },
   ]

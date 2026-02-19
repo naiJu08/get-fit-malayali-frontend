@@ -122,7 +122,7 @@ export default function WorkoutMain() {
         disableNameLink: false,
       })
     )
-  }, [isNutritionist])
+  }, [isNutritionist, navigate])
   useEffect(() => {
     const sanitizedFilters = { ...(pageParams?.filters || {}) }
     delete (sanitizedFilters as any).category_id
