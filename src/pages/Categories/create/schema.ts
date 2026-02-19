@@ -13,7 +13,8 @@ export const formSchema = z.object({
 
   description: z
     .string({ invalid_type_error: 'Required.' })
-    .min(1, { message: 'Required.' }),
+    .optional()
+    .or(z.literal('')),
 })
 
 export const changePasswordSchema = z.object({

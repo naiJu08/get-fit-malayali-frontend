@@ -300,11 +300,19 @@ export default function MainRoutes() {
       />
       <Route
         element={
-          <UserRoute slug_key="REMINDER_SETTINGS">
+          <UserRoute slug_key="ADMIN_USER">
             <UserDetails />
           </UserRoute>
         }
         path="/users/:id/reminders"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/:id/recipes"
       />
 
       <Route
