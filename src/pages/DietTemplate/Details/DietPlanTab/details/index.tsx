@@ -37,7 +37,18 @@ export default function DietPlanDetails() {
   const goBack = () => {
     const templateId = dp?.diet_plan_template_id ?? dp?.plan_id
     if (templateId) {
-      navigate(`/diet-template/${templateId}/diet-plan`)
+      // Build day key from day_name or day_number
+      const dayName = dp?.day_name?.toString().trim().toLowerCase()
+      const dayNumber = dp?.day_number
+      const dayKey = dayName || (dayNumber ? `day-${dayNumber}` : '')
+
+      if (dayKey) {
+        navigate(
+          `/diet-template/${templateId}/diet-plan?day=${encodeURIComponent(dayKey)}`
+        )
+      } else {
+        navigate(`/diet-template/${templateId}/diet-plan`)
+      }
     } else {
       navigate(-1)
     }

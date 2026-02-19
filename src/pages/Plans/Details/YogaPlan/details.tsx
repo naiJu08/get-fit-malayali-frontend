@@ -251,6 +251,7 @@ export default function YogaPlanDetails() {
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
+  const [prefillsLocked, setPrefillsLocked] = useState(false)
   const canReorderYogas = selectedWorkouts.length > 1
   const [autoSelectEnabled, setAutoSelectEnabled] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<string>('')
@@ -325,6 +326,7 @@ export default function YogaPlanDetails() {
 
     return Array.from(map.values())
   }, [yp?.exercises])
+  const isSelected = (wid: any) => selectedWorkouts.some((w) => w?.id === wid)
 
   // Load yogas for assignment
   const yogaListParams: any = {
@@ -337,6 +339,12 @@ export default function YogaPlanDetails() {
   const { data: yogasResp, isFetching: yogasLoading } =
     useYogaList(yogaListParams)
   const yogas = yogasResp?.yogas ?? []
+  const allVisibleSelected =
+    Array.isArray(yogas) &&
+    yogas.length > 0 &&
+    yogas.every((item: any) => isSelected(item?.id))
+  const hasVisibleSelection =
+    Array.isArray(yogas) && yogas.some((item: any) => isSelected(item?.id))
 
   const assignedYogaIds = new Set(
     Array.isArray(yp?.exercises)
@@ -412,7 +420,6 @@ export default function YogaPlanDetails() {
       '',
   })
 
-  const isSelected = (wid: any) => selectedWorkouts.some((w) => w?.id === wid)
   const toggleSelected = (w: any) => {
     setAutoSelectEnabled(false)
     setSelectedWorkouts((prev) =>
@@ -430,7 +437,7 @@ export default function YogaPlanDetails() {
 
     const hasPrefills = submittedWorkouts.length > 0
 
-    if (selectedWorkouts.length === 0 && hasPrefills) {
+    if (!prefillsLocked && selectedWorkouts.length === 0 && hasPrefills) {
       setSelectedWorkouts(submittedWorkouts)
       if (autoSelectEnabled) {
         setAutoSelectEnabled(false)
@@ -452,6 +459,7 @@ export default function YogaPlanDetails() {
     submittedWorkouts,
     selectedWorkouts.length,
     autoSelectEnabled,
+    prefillsLocked,
   ])
 
   useEffect(() => {
@@ -593,6 +601,32 @@ export default function YogaPlanDetails() {
     setDragIndex(null)
   }
 
+  const handleSelectAllVisible = () => {
+    if (!Array.isArray(yogas) || yogas.length === 0) return
+    setAutoSelectEnabled(false)
+    setSelectedWorkouts((prev) => {
+      const existingIds = new Set(prev.map((item) => String(item?.id)))
+      const next = [...prev]
+      yogas.forEach((yoga: any) => {
+        const normalized = toSelectableYoga(yoga)
+        if (normalized?.id == null) return
+        const key = String(normalized.id)
+        if (!existingIds.has(key)) {
+          existingIds.add(key)
+          next.push(normalized)
+        }
+      })
+      return next
+    })
+  }
+
+  const handleUnselectAll = () => {
+    if (selectedWorkouts.length === 0) return
+    setAutoSelectEnabled(false)
+    setPrefillsLocked(true)
+    setSelectedWorkouts([])
+  }
+
   const tabs: TabItemProps[] = [
     { id: 'details', label: 'Details' },
     { id: 'assign', label: 'Exercises' },
@@ -669,6 +703,7 @@ export default function YogaPlanDetails() {
           setAssignOpen(false)
           setCategoryFilter('')
           setAutoSelectEnabled(false)
+          setPrefillsLocked(false)
           setSelectedWorkouts(submittedWorkouts)
         }}
         className="w-screen max-w-[100vw]"
@@ -682,19 +717,8 @@ export default function YogaPlanDetails() {
       >
         <div className="w-full">
           <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2"></div>
             <div className="flex flex-col md:flex-row md:items-end gap-4 md:ml-auto">
-              {/* Duration */}
-              <div className="flex items-center gap-2 text-[11px] text-gray-600 mb-1">
-                <span className="inline-flex items-center gap-1">
-                  <span className="inline-flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                    Intensity
-                  </span>
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  Duration
-                </span>
-              </div>
-
               {/* Category */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-gray-600">Category</label>
@@ -730,6 +754,41 @@ export default function YogaPlanDetails() {
             {!yogasLoading && yogas.length === 0 && (
               <div className="text-xs text-gray-500 p-2">No yoga found.</div>
             )}
+
+            <div className="flex flex-wrap items-center justify-between text-xs text-gray-600">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                  onClick={handleSelectAllVisible}
+                  disabled={
+                    yogasLoading ||
+                    (Array.isArray(yogas) && yogas.length === 0) ||
+                    allVisibleSelected
+                  }
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                  onClick={handleUnselectAll}
+                  disabled={!hasVisibleSelection}
+                >
+                  Unselect All
+                </button>
+              </div>
+              <div className="inline-flex items-center gap-1 text-[11px]">
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  Intensity
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  Duration
+                </span>
+              </div>
+            </div>
 
             {!yogasLoading && yogas.length > 0 && (
               <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">

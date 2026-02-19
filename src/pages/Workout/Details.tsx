@@ -122,8 +122,9 @@ export default function UserDetails() {
 
               return (
                 <div className="">
-                  <div className="border rounded-lg p-3 bg-white ">
+                  <div className="border rounded-lg p-3 bg-white">
                     <div className="text-xs text-gray-500 mb-2">Thumbnail</div>
+
                     <div className="relative w-64">
                       <img
                         src={t}
@@ -134,12 +135,13 @@ export default function UserDetails() {
                             'none'
                         }}
                       />
+
                       <div className="mt-2 text-xs">
                         <a
                           href={t}
                           target="_blank"
                           rel="noopener noreferrer"
-                          style={{ color: '#2563eb' }}
+                          className="text-blue-600 underline"
                         >
                           Open thumbnail
                         </a>

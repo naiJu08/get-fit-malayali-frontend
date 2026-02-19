@@ -118,7 +118,7 @@ const CATEGORIES: RouterMenuProps = {
   id: 20,
   path: '/categories',
   parent_id: null,
-  label: 'Categories',
+  label: 'Workout category',
   key: 'categories',
   icon: 'category-icon',
   breadcrumb: ['CATEGORIES'],

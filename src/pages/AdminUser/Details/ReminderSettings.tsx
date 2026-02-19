@@ -213,6 +213,8 @@ const ReminderSettings = ({ userId }: ReminderSettingsProps) => {
                   }
                   const isWorkoutReminder = typeKey === 'workout'
                   const isSleepReminder = typeKey === 'sleep'
+                  const isHydrationReminder =
+                    typeKey === 'hydration' || typeKey === 'water'
                   const isActive = Boolean(reminder?.active)
                   const showInterval = reminder?.interval_minutes
 
@@ -290,14 +292,16 @@ const ReminderSettings = ({ userId }: ReminderSettingsProps) => {
                         </div>
                       )}
 
-                      <div className="flex items-center justify-center gap-2">
-                        <p className="text-xs uppercase tracking-wide text-gray-500">
-                          {!isSleepReminder ? 'Time:' : 'Bed Time:'}
-                        </p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {formatTime(reminder?.time_of_day)}
-                        </p>
-                      </div>
+                      {!isHydrationReminder && (
+                        <div className="flex items-center justify-center gap-2">
+                          <p className="text-xs uppercase tracking-wide text-gray-500">
+                            {!isSleepReminder ? 'Time:' : 'Bed Time:'}
+                          </p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {formatTime(reminder?.time_of_day)}
+                          </p>
+                        </div>
+                      )}
 
                       {!isSleepReminder && !isWorkoutReminder && (
                         <>

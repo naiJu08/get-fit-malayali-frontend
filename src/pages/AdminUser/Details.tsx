@@ -127,7 +127,7 @@ export default function UserDetails() {
             // { id: 'body-composition', label: 'Body composition' },
             { id: 'vitals', label: 'Vitals' },
             { id: 'reminders', label: 'Reminder settings' },
-            { id: 'additional-info', label: 'Additional information' },
+            { id: 'additional-info', label: 'Nutritional Assessment' },
             ...(loginRole !== 'nutritionist'
               ? [{ id: 'reports', label: 'Reports' }]
               : []),

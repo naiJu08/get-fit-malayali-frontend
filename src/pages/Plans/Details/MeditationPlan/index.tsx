@@ -30,6 +30,7 @@ export default function MeditationPlanIndex({
   const [selectedMeditations, setSelectedMeditations] = useState<any[]>([])
   const [assigning, setAssigning] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [preventAutoSeed, setPreventAutoSeed] = useState(false)
   const { mutateAsync: assignMeditationsAsync } = useAssignMeditations()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
@@ -44,8 +45,20 @@ export default function MeditationPlanIndex({
     search,
     // plan_id: planId,
   } as any)
+  const isSelected = (id: any) =>
+    selectedMeditations.some((m) => String(m?.id) === String(id))
+  const toggleSelected = (m: any) => {
+    setSelectedMeditations((prev) =>
+      prev.some((x) => String(x?.id) === String(m?.id))
+        ? prev.filter((x) => String(x?.id) !== String(m?.id))
+        : [...prev, m]
+    )
+  }
   const meditations = medResp?.meditations ?? medResp?.items ?? []
-
+  const allVisibleSelected =
+    Array.isArray(meditations) &&
+    meditations.length > 0 &&
+    meditations.every((m: any) => isSelected(m?.id))
   const assignedMeditations = useMemo(() => {
     if (!Array.isArray(meditations) || !planId) return []
     const currentPlanId = String(planId)
@@ -65,26 +78,50 @@ export default function MeditationPlanIndex({
       )
   }, [meditations, planId])
 
-  const isSelected = (id: any) =>
-    selectedMeditations.some((m) => String(m?.id) === String(id))
-  const toggleSelected = (m: any) => {
-    setSelectedMeditations((prev) =>
-      prev.some((x) => String(x?.id) === String(m?.id))
-        ? prev.filter((x) => String(x?.id) !== String(m?.id))
-        : [...prev, m]
-    )
+  const handleSelectAllVisible = () => {
+    if (!Array.isArray(meditations) || meditations.length === 0) return
+    setSelectedMeditations((prev) => {
+      const existingIds = new Set(prev.map((item) => String(item?.id)))
+      const next = [...prev]
+      meditations.forEach((m: any) => {
+        const id = String(m?.id)
+        if (!existingIds.has(id)) {
+          existingIds.add(id)
+          next.push(m)
+        }
+      })
+      return next
+    })
+  }
+
+  const handleUnselectVisible = () => {
+    if (selectedMeditations.length === 0) return
+    setPreventAutoSeed(true)
+    setSelectedMeditations([])
   }
 
   useEffect(() => {
-    if (!assignOpen) return
+    if (!assignOpen) {
+      setPreventAutoSeed(false)
+      return
+    }
 
     setDragIndex(null)
     setReviewOpen(false)
 
-    if (selectedMeditations.length === 0 && assignedMeditations.length > 0) {
+    if (
+      !preventAutoSeed &&
+      selectedMeditations.length === 0 &&
+      assignedMeditations.length > 0
+    ) {
       setSelectedMeditations(assignedMeditations)
     }
-  }, [assignOpen, assignedMeditations, selectedMeditations.length])
+  }, [
+    assignOpen,
+    assignedMeditations,
+    selectedMeditations.length,
+    preventAutoSeed,
+  ])
 
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
@@ -196,6 +233,7 @@ export default function MeditationPlanIndex({
           setPage(1)
           setDragIndex(null)
           setSelectedMeditations(assignedMeditations)
+          setPreventAutoSeed(false)
         }}
         className="w-screen max-w-[100vw]"
         unmountOnClose
@@ -210,7 +248,9 @@ export default function MeditationPlanIndex({
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-2">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div className="text-sm font-medium">Meditations</div>
+                <div className="flex flex-col gap-2">
+                  <div className="text-sm font-medium">Meditations</div>
+                </div>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 w-full md:w-auto">
                   <div className="flex items-center gap-2 sm:ml-auto">
                     <input
@@ -238,7 +278,29 @@ export default function MeditationPlanIndex({
                   </div>
                 </div>
               </div>
-              <div className="flex items-center justify-end text-[11px] text-gray-600">
+              <div className="flex justify-between text-[11px] text-gray-600">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                    onClick={handleSelectAllVisible}
+                    disabled={
+                      medLoading ||
+                      meditations.length === 0 ||
+                      allVisibleSelected
+                    }
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                    onClick={handleUnselectVisible}
+                    disabled={selectedMeditations.length === 0}
+                  >
+                    Unselect All
+                  </button>
+                </div>
                 <span className="inline-flex items-center gap-1">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                   Duration

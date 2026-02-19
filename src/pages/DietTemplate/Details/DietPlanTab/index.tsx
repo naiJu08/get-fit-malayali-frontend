@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import SmartTable from '../../../../components/common/table/SmartTable'
 import Icons from '../../../../components/common/icons'
@@ -87,7 +87,21 @@ function DietPlanContent({
             <button
               type="button"
               className="text-blue-600 hover:underline"
-              onClick={() => navigate(`/diet_details/${row?.id}`)}
+              onClick={() => {
+                const baseKey = (row?.day_key || row?.day_name || '')
+                  .toString()
+                  .trim()
+                  .toLowerCase()
+                const fallback =
+                  baseKey || (row?.day_number ? `day-${row.day_number}` : '')
+                if (fallback) {
+                  navigate(
+                    `/diet-template/${templateId}/diet-plan?day=${encodeURIComponent(
+                      fallback
+                    )}`
+                  )
+                }
+              }}
             >
               {row?.day_number ?? ''}
             </button>
@@ -105,12 +119,184 @@ function DietPlanContent({
         sortKey: 'day_name',
       },
       {
+        title: 'Calories',
+        field: 'effective_total_calories',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({
+          cell: row?.effective_total_calories ?? '',
+        }),
+        sortKey: 'effective_total_calories',
+      },
+    ],
+    [navigate]
+  )
+
+  const { pageParams, setPageParams } = useAdminUserFilterStore()
+  const { search, ordering } = pageParams
+  const [urlSearchParams, setUrlSearchParams] = useSearchParams()
+
+  const searchParams = {
+    page: 1,
+    per_page: 1000,
+    search,
+    ordering,
+    diet_plan_template_id: Number(templateId),
+  }
+
+  const { data, isFetching } = useDietPlans(searchParams)
+  const buildDayKey = useCallback((plan: any) => {
+    const base = (plan?.day_name || '').toString().trim().toLowerCase()
+    if (base) return base
+    const numberKey = plan?.day_number ? `day-${plan.day_number}` : ''
+    if (numberKey) return numberKey
+    return `plan-${plan?.id}`
+  }, [])
+  const dietPlans = useMemo(
+    () => (Array.isArray(data?.diet_plans) ? data?.diet_plans : []),
+    [data?.diet_plans]
+  )
+  const aggregatedPlans = useMemo(() => {
+    if (!dietPlans.length) return []
+    const grouped = new Map<string, any>()
+    dietPlans.forEach((plan: any) => {
+      const key = buildDayKey(plan)
+      const calories = Number(plan?.effective_total_calories) || 0
+      if (!grouped.has(key)) {
+        grouped.set(key, {
+          id: plan?.id,
+          day_name: plan?.day_name,
+          day_number: plan?.day_number,
+          day_key: key,
+          effective_total_calories: calories,
+        })
+      } else {
+        const existing = grouped.get(key)
+        existing.effective_total_calories =
+          (Number(existing.effective_total_calories) || 0) + calories
+      }
+    })
+    return Array.from(grouped.values())
+  }, [dietPlans, buildDayKey])
+  const selectedDayKey = urlSearchParams.get('day') || ''
+  const selectedDayRows = useMemo(() => {
+    if (!selectedDayKey) return []
+    return dietPlans.filter((plan: any) => buildDayKey(plan) === selectedDayKey)
+  }, [dietPlans, selectedDayKey, buildDayKey])
+  const selectedDayMeta = useMemo(() => {
+    if (!selectedDayKey) return null
+    return (
+      aggregatedPlans.find((item) => item?.day_key === selectedDayKey) || null
+    )
+  }, [aggregatedPlans, selectedDayKey])
+  const { mutateAsync: deleteDietPlan, isLoading: deleteLoading } =
+    useDeleteDietPlan()
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [selectedDietPlanId, setSelectedDietPlanId] = useState<
+    string | number | null
+  >(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const [formValues, setFormValues] = useState<any | null>(null)
+  const [editMode, setEditMode] = useState(false)
+
+  const openCreate = () => {
+    setEditMode(false)
+    setFormValues({
+      diet_plan_template_id: templateId,
+      day_number: 1,
+      sequence_number: 1,
+      meal_time: '',
+      meal_name: '',
+      calories: '',
+    })
+    setFormOpen(true)
+  }
+
+  const openEdit = (row: any) => {
+    setEditMode(true)
+    setFormValues({
+      id: row?.id,
+      diet_plan_template_id: row?.diet_plan_template_id ?? templateId,
+      day_number: row?.day_number ?? '',
+      sequence_number: row?.sequence_number ?? '',
+      meal_time: row?.meal_time ?? '',
+      meal_name: row?.meal_name ?? '',
+      calories: row?.calories ?? '',
+      items: Array.isArray(row?.items) ? row.items : [],
+    })
+    setFormOpen(true)
+  }
+
+  const handleClose = () => {
+    setFormOpen(false)
+    setEditMode(false)
+    setFormValues(null)
+  }
+
+  const handleDeleteClick = useCallback((row: any) => {
+    setSelectedDietPlanId(row?.id ?? null)
+    setDeleteModalOpen(true)
+  }, [])
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!selectedDietPlanId) return
+    await deleteDietPlan(selectedDietPlanId)
+    setDeleteModalOpen(false)
+    setSelectedDietPlanId(null)
+  }, [deleteDietPlan, selectedDietPlanId])
+
+  useEffect(() => {
+    if (typeof pageParams?.page !== 'number' || pageParams.page !== 1) {
+      setPageParams({ ...pageParams, page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const handleSort = (orderColumn?: any, orderDirection?: any) => {
+    setPageParams({
+      ...pageParams,
+      sortColumn: orderColumn,
+      sortType: orderDirection,
+      ordering: getSortedColumnName(orderColumn, orderDirection),
+    })
+  }
+
+  const handleViewDay = (row: any) => {
+    if (!row?.day_key) return
+    setUrlSearchParams({ day: row.day_key })
+  }
+
+  const clearDaySelection = () => {
+    setUrlSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete('day')
+      return next
+    })
+  }
+
+  const viewingDay = Boolean(selectedDayKey)
+
+  const dayColumns: TableColumns[] = useMemo(
+    () => [
+      {
         title: 'Meal Time',
         field: 'meal_time',
         resizable: true,
         isVisible: true,
         customCell: true,
-        renderCell: (row: any) => ({ cell: row?.meal_time ?? '' }),
+        renderCell: (row: any) => ({
+          cell: (
+            <button
+              type="button"
+              className="text-blue-600 hover:underline"
+              onClick={() => navigate(`/diet_details/${row?.id}`)}
+            >
+              {row?.meal_time ?? ''}
+            </button>
+          ),
+        }),
         sortKey: 'meal_time',
       },
       {
@@ -203,189 +389,118 @@ function DietPlanContent({
         sortKey: 'effective_total_calories',
       },
     ],
-    [navigate]
+    []
   )
 
-  const { pageParams, setPageParams } = useAdminUserFilterStore()
-  const { page, per_page, search, ordering } = pageParams
+  const tableColumns = viewingDay ? dayColumns : columns
+  const tableData = viewingDay ? selectedDayRows : aggregatedPlans
+  const tableTitle = viewingDay
+    ? `${selectedDayMeta?.day_name || 'Selected Day'} • Meals`
+    : templateName || 'Diet Plans'
 
-  const searchParams = {
-    page,
-    per_page: Number(per_page ?? 10),
-    search,
-    ordering,
-    diet_plan_template_id: Number(templateId),
-  }
+  const aggregatedActions = isNutritionist
+    ? []
+    : [
+        {
+          icon: <Icons name="eye" />,
+          action: handleViewDay,
+          title: 'View Day',
+          toolTip: 'View Day',
+        },
+      ]
 
-  const { data, isFetching } = useDietPlans(searchParams)
-  const { mutateAsync: deleteDietPlan, isLoading: deleteLoading } =
-    useDeleteDietPlan()
+  const dayActions = isNutritionist
+    ? [
+        {
+          icon: <Icons name="eye" />,
+          action: (row: any) => navigate(`/diet_details/${row?.id}`),
+          title: 'View Meal',
+          toolTip: 'View Meal',
+        },
+      ]
+    : [
+        {
+          icon: <Icons name="eye" />,
+          action: (row: any) => navigate(`/diet_details/${row?.id}`),
+          title: 'View Meal',
+          toolTip: 'View Meal',
+        },
+        {
+          icon: <Icons name="edit" />,
+          action: (row: any) => openEdit(row),
+          title: 'Edit',
+          toolTip: 'Edit',
+        },
+        {
+          icon: <Icons name="delete" />,
+          action: (row: any) => handleDeleteClick(row),
+          title: 'Delete',
+          toolTip: 'Delete',
+        },
+      ]
 
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [selectedDietPlanId, setSelectedDietPlanId] = useState<
-    string | number | null
-  >(null)
-  const [formOpen, setFormOpen] = useState(false)
-  const [formValues, setFormValues] = useState<any | null>(null)
-  const [editMode, setEditMode] = useState(false)
-
-  const openCreate = () => {
-    setEditMode(false)
-    setFormValues({
-      diet_plan_template_id: templateId,
-      day_number: 1,
-      sequence_number: 1,
-      meal_time: '',
-      meal_name: '',
-      calories: '',
-    })
-    setFormOpen(true)
-  }
-
-  const openEdit = (row: any) => {
-    setEditMode(true)
-    setFormValues({
-      id: row?.id,
-      diet_plan_template_id: row?.diet_plan_template_id ?? templateId,
-      day_number: row?.day_number ?? '',
-      sequence_number: row?.sequence_number ?? '',
-      meal_time: row?.meal_time ?? '',
-      meal_name: row?.meal_name ?? '',
-      calories: row?.calories ?? '',
-      items: Array.isArray(row?.items) ? row.items : [],
-    })
-    setFormOpen(true)
-  }
-
-  const handleClose = () => {
-    setFormOpen(false)
-    setEditMode(false)
-    setFormValues(null)
-  }
-
-  const handleDeleteClick = useCallback((row: any) => {
-    setSelectedDietPlanId(row?.id ?? null)
-    setDeleteModalOpen(true)
-  }, [])
-
-  const handleConfirmDelete = useCallback(async () => {
-    if (!selectedDietPlanId) return
-    await deleteDietPlan(selectedDietPlanId)
-    setDeleteModalOpen(false)
-    setSelectedDietPlanId(null)
-  }, [deleteDietPlan, selectedDietPlanId])
-
-  useEffect(() => {
-    if (typeof pageParams?.page !== 'number' || pageParams.page !== 1) {
-      setPageParams({ ...pageParams, page: 1 })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const handleSort = (orderColumn?: any, orderDirection?: any) => {
-    setPageParams({
-      ...pageParams,
-      sortColumn: orderColumn,
-      sortType: orderDirection,
-      ordering: getSortedColumnName(orderColumn, orderDirection),
-    })
-  }
-
-  const onChangePage = (pageNumber: number) => {
-    setPageParams({
-      ...pageParams,
-      page: pageNumber,
-    })
-  }
-
-  const onChangeRowsPerPage = (count: number | string) => {
-    setPageParams({
-      ...pageParams,
-      per_page: Number(count),
-      page: 1,
-    })
-  }
+  const actionProps = viewingDay ? dayActions : aggregatedActions
 
   return (
     <div className="">
-      <div className="flex justify-end mb-4">
-        {!isNutritionist && checkPermissions('Employee', 'create') && (
-          <Button
-            className="bg-primaryGreen"
-            label="Create Diet Plan"
-            icon="plus"
-            onClick={openCreate}
-          />
-        )}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          {viewingDay ? (
+            <>
+              {/* <span className="font-semibold text-gray-700">
+                Viewing day: {selectedDayMeta?.day_name || 'Selected Day'}
+              </span>
+              <span className="text-xs text-gray-500">
+                Total Calories: {selectedDayMeta?.effective_total_calories ?? '--'}
+              </span> */}
+              <button
+                type="button"
+                className="px-3 py-1 text-xs rounded border border-gray-300 hover:bg-gray-50"
+                onClick={clearDaySelection}
+              >
+                Back to all days
+              </button>
+            </>
+          ) : (
+            <span className="text-gray-600">
+              Select a day to review its meals.
+            </span>
+          )}
+        </div>
+        {!viewingDay &&
+          !isNutritionist &&
+          checkPermissions('Employee', 'create') && (
+            <Button
+              className="bg-primaryGreen"
+              label="Create Diet Plan"
+              icon="plus"
+              onClick={openCreate}
+            />
+          )}
       </div>
       <SmartTable
-        data={data?.diet_plans ?? []}
+        data={tableData}
         dataRowKey="id"
         toolbar={true}
-        title={templateName || 'Diet Plans'}
+        title={tableTitle}
         searchValue={String(pageParams?.search || '')}
         onSearchChange={(val) =>
           setPageParams({ ...pageParams, search: val, page: 1 })
         }
         onSearch={() => setPageParams({ ...pageParams, page: 1 })}
-        columns={columns}
+        columns={tableColumns}
         height={
-          (data?.plans?.length ?? 0) === 0
-            ? calcWindowHeight(218)
-            : calcWindowHeight(200)
+          tableData.length === 0 ? calcWindowHeight(218) : calcWindowHeight(250)
         }
-        pagination={true}
+        pagination={false}
         isLoading={isFetching}
         sortType={pageParams.sortType}
         sortColumn={pageParams.sortColumn}
         handleColumnSort={handleSort}
         emptyTitle="No records to display"
-        paginationProps={{
-          onPagination: onChangePage,
-          total: data?.meta?.total_count ?? 0,
-          currentPage:
-            typeof data?.meta?.current_page === 'number'
-              ? (data?.meta?.current_page as number)
-              : (pageParams?.page ?? 1),
-          rowsPerPage: Number(
-            pageParams?.per_page ?? data?.meta?.per_page ?? 10
-          ),
-          onRowsPerPage: onChangeRowsPerPage,
-          totalPages: Math.max(
-            1,
-            Math.ceil(
-              (Number(data?.meta?.total_count ?? 0) || 0) /
-                Number(pageParams?.per_page ?? data?.meta?.per_page ?? 10)
-            )
-          ),
-          dropOptions: [10, 20, 30, 50, 100],
-        }}
         columnToggle
         externalActions={true}
-        actionProps={
-          isNutritionist
-            ? []
-            : [
-                {
-                  icon: <Icons name="eye" />,
-                  action: (row: any) => navigate(`/diet_details/${row?.id}`),
-                  title: 'View',
-                  toolTip: 'View',
-                },
-                {
-                  icon: <Icons name="edit" />,
-                  action: (row: any) => openEdit(row),
-                  title: 'Edit',
-                  toolTip: 'Edit',
-                },
-                {
-                  icon: <Icons name="delete" />,
-                  action: (row: any) => handleDeleteClick(row),
-                  title: 'Delete',
-                  toolTip: 'Delete',
-                },
-              ]
-        }
+        actionProps={actionProps}
       />
 
       <DietPlanForm

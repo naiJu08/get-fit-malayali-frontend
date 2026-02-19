@@ -275,6 +275,8 @@ export default function WorkoutMain() {
     else delete (newFilters as any).subcategory_ids
     setPageParams({ ...pageParams, filters: newFilters, page: 1 })
   }
+  const capitalizeWords = (text: string) =>
+    text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
 
   return (
     <div>
@@ -325,7 +327,7 @@ export default function WorkoutMain() {
                       <option value="">All</option>
                       {categoryOptions.map((category: any) => (
                         <option key={category.id} value={category.id}>
-                          {category.name}
+                          {capitalizeWords(category.name)}
                         </option>
                       ))}
                     </select>

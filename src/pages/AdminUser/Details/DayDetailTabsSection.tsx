@@ -654,17 +654,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                         </span>
                                       </div>
                                     )}
-                                    {typeof action.repeat_count ===
-                                      'number' && (
-                                      <div>
-                                        <span className="text-gray-500">
-                                          Repeats:{' '}
-                                        </span>
-                                        <span className="font-medium text-gray-800">
-                                          {action.repeat_count}
-                                        </span>
-                                      </div>
-                                    )}
                                     {action.video_watch_percentage && (
                                       <div>
                                         <span className="text-gray-500">

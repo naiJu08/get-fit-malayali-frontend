@@ -1198,6 +1198,14 @@ export default function WorkoutPlanDetails() {
     setDragIndex(null)
     setDragGroup(null)
   }
+  const capitalizeWords = (text: string) =>
+    text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
+  const formattedCategoryOptions = useMemo(() => {
+    return (categoryOptions || []).map((c: any) => ({
+      ...c,
+      name: capitalizeWords(c.name),
+    }))
+  }, [categoryOptions])
 
   return (
     <div className="p-4">
@@ -1299,7 +1307,7 @@ export default function WorkoutPlanDetails() {
                     desc="name"
                     descId="id"
                     type="custom_search_select"
-                    data={categoryOptions}
+                    data={formattedCategoryOptions}
                     value={categoryAutocompleteValue}
                     name="assign_category"
                     onChange={(option: any) => {
@@ -1311,7 +1319,7 @@ export default function WorkoutPlanDetails() {
                       const categoryActuallyChanged = prevIdKey !== nextIdKey
 
                       setSelectedCategoryId(id || undefined)
-                      setSelectedCategoryName(name || '')
+                      setSelectedCategoryName(capitalizeWords(name || ''))
                       setSelectedSubcategories([])
                       setWpPage(1)
                       if (id) {

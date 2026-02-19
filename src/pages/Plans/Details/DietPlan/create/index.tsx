@@ -10,10 +10,12 @@ import { DialogModal, TextField } from '../../../../../components/common'
 import FormBuilder from '../../../../../components/app/formBuilder'
 import ToggleSwitch from '../../../../../components/common/inputs/ToggleSwitch'
 import { useCreateDietPlan, useDietPlanDetail, useUpdateDietPlan } from '../api'
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMeals } from '../../../../Meals/api'
 import { usePlan } from '../../../api'
 import { AutoComplete } from 'qbs-core'
+import Button from '../../../../../components/common/buttons/Button'
+import { useSnackbarManager } from '../../../../../components/common/snackbar'
 
 const DAY_NAMES = [
   'Sunday',
@@ -61,6 +63,8 @@ export default function DietPlanForm({
   planId,
 }: Props) {
   console.log('DietPlanForm edit:', edit, 'rowData:', rowData)
+  const { enqueueSnackbar } = useSnackbarManager()
+  const [initialDayName, setInitialDayName] = useState('')
   const { data: detailData } = useDietPlanDetail(edit ? rowData?.id : undefined)
 
   // Load plan to derive duration_days for day_number dropdown
@@ -269,6 +273,11 @@ export default function DietPlanForm({
         ? ((detailData as any).diet_plan ?? detailData)
         : rowData || {}
 
+    // Store initial day name for resetting after "Add New"
+    const dayName =
+      source?.day_name ?? getDayNameFromNumber(source?.day_number) ?? ''
+    setInitialDayName(dayName)
+
     // For meals: in detail response it's "meals", in table row it's "items"
     const itemsSource =
       edit && Array.isArray((detailData as any)?.meals)
@@ -353,7 +362,7 @@ export default function DietPlanForm({
     }
   }, [isOpen, planId, edit, rowData, detailData, reset, replaceMeals])
 
-  const onSubmit = (values: DietPlanSchema) => {
+  const onSubmit = (values: DietPlanSchema, keepOpen = false) => {
     const itemsPayload = (values.meals || [])
       .filter((m: any) => typeof m.meal_id === 'number' && m.meal_id && m.count)
       .map((m: any) => ({
@@ -382,10 +391,68 @@ export default function DietPlanForm({
     if (edit && rowData?.id) {
       updateMutate(
         { id: rowData.id, payload },
-        { onSuccess: () => handleClose() }
+        {
+          onSuccess: () => {
+            enqueueSnackbar('Diet plan updated successfully', {
+              variant: 'success',
+            })
+            handleClose()
+          },
+        }
       )
     } else {
-      createMutate(payload, { onSuccess: () => handleClose() })
+      createMutate(payload, {
+        onSuccess: () => {
+          enqueueSnackbar('Diet plan created successfully', {
+            variant: 'success',
+          })
+          if (keepOpen) {
+            // Keep the form open and reset for new entry with same day
+            const currentDayNumber = values.day_number
+            const currentDayName = initialDayName || values.day_name
+            reset({
+              plan_id: Number(planId ?? values.plan_id ?? 0),
+              day_number: currentDayNumber,
+              day_name: currentDayName,
+              sequence_number: 0,
+              meal_time: '',
+              meal_name: '',
+              protein: '',
+              carbs: '',
+              fat: '',
+              fiber: '',
+              total_calories: '',
+              calories: '',
+              meals: [
+                {
+                  meal_id: 0,
+                  count: 0,
+                  requirement: 'Optional',
+                  protein: '',
+                  carbs: '',
+                  fat: '',
+                  fiber: '',
+                  total_calories: '',
+                },
+              ],
+            } as any)
+            replaceMeals([
+              {
+                meal_id: 0,
+                count: 0,
+                requirement: 'Optional',
+                protein: '',
+                carbs: '',
+                fat: '',
+                fiber: '',
+                total_calories: '',
+              },
+            ])
+          } else {
+            handleClose()
+          }
+        },
+      })
     }
   }
 
@@ -473,10 +540,38 @@ export default function DietPlanForm({
       title={edit ? 'Edit Diet Plan' : 'Create Diet Plan'}
       actionLabel={edit ? 'Update' : 'Create'}
       actionLoader={creating || updating}
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleSubmit((values) => onSubmit(values, false))}
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"
       small={false}
+      actionBody={
+        <div className="flex flex-row gap-2 w-full justify-end">
+          <Button
+            disabled={creating || updating}
+            label="Cancel"
+            onClick={handleClose}
+            outlined
+          />
+          {!edit && (
+            <Button
+              disabled={creating || updating}
+              isLoading={creating}
+              label="Add New"
+              onClick={handleSubmit((values) => onSubmit(values, true))}
+              className="bg-blue-500 hover:bg-blue-600"
+            />
+          )}
+          {edit && (
+            <Button
+              disabled={creating || updating}
+              isLoading={creating || updating}
+              label="Update"
+              onClick={handleSubmit((values) => onSubmit(values, false))}
+              primary
+            />
+          )}
+        </div>
+      }
       body={
         <div className="max-h-[70vh] min-h-[250px] pr-1">
           <FormProvider {...methods}>

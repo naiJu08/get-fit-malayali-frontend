@@ -131,6 +131,8 @@ export default function Subscriptions({
     enabled: shouldLoadPlans,
     staleTime: 5 * 60 * 1000,
   })
+  const isYogaSelected = (id: any) =>
+    selectedYogas.some((y) => String(y?.id) === String(id))
   const allPlans: any[] = (
     (plansList?.plans || plansList?.items || []) as any[]
   ).filter((p: any) => p?.active)
@@ -147,6 +149,8 @@ export default function Subscriptions({
         staleTime: 5 * 60 * 1000,
       }
     )
+  const isSelected = (id: any) => selectedWorkouts.some((w) => w?.id === id)
+
   const allWorkoutsForLookup = allWorkoutsResp?.workouts ?? []
   const { data: categoriesResponse } = useQuery(
     ['workout_categories_for_assign_admin'],
@@ -226,6 +230,7 @@ export default function Subscriptions({
   const drawerSelectionInitializedRef = useRef(false)
   const userSelectionTouchedRef = useRef(false)
   const pendingPrefillCategoryRef = useRef<string>('')
+
   const pendingPrefillSubcategoriesRef = useRef<
     | {
         id: any
@@ -328,6 +333,10 @@ export default function Subscriptions({
   )
   const meditations = medResp?.meditations ?? medResp?.items ?? []
   const medMeta = medResp?.meta ?? {}
+  const allVisibleSelected =
+    Array.isArray(meditations) &&
+    meditations.length > 0 &&
+    meditations.every((m: any) => isSelected(m?.id))
   const yogaListParams = useMemo(() => {
     const params: any = {
       page: 1,
@@ -347,6 +356,12 @@ export default function Subscriptions({
     }
   )
   const yogas = yogasResp?.yogas ?? yogasResp?.items ?? []
+  const allVisibleYogaSelected =
+    Array.isArray(yogas) &&
+    yogas.length > 0 &&
+    yogas.every((y: any) => isYogaSelected(y?.id))
+  const hasVisibleYogaSelection =
+    Array.isArray(yogas) && yogas.some((y: any) => isYogaSelected(y?.id))
   const sortedMeditations = useMemo(() => {
     if (!Array.isArray(meditations) || meditations.length === 0) return []
     return meditations.slice().sort((a: any, b: any) => {
@@ -415,7 +430,6 @@ export default function Subscriptions({
     }
   }
 
-  const isSelected = (id: any) => selectedWorkouts.some((w) => w?.id === id)
   const toggleSelected = (w: any) => {
     if (!w?.id) return
     userSelectionTouchedRef.current = true
@@ -428,8 +442,7 @@ export default function Subscriptions({
 
   const yogaCanProceedToReview = selectedYogas.length > 0
   const canReorderYogaSelections = selectedYogas.length > 1
-  const isYogaSelected = (id: any) =>
-    selectedYogas.some((y) => String(y?.id) === String(id))
+
   const toggleYogaSelected = (item: any) => {
     const normalized = toYogaSelectable(item)
     if (!normalized?.id) return
@@ -438,6 +451,33 @@ export default function Subscriptions({
         ? prev.filter((y) => String(y?.id) !== String(normalized.id))
         : [...prev, normalized]
     )
+  }
+
+  const handleYogaSelectAllVisible = () => {
+    if (!Array.isArray(yogas) || yogas.length === 0) return
+    setSelectedYogas((prev) => {
+      const existingIds = new Set(prev.map((item) => String(item?.id)))
+      const next = [...prev]
+      yogas.forEach((yoga: any) => {
+        const normalized = toYogaSelectable(yoga)
+        if (!normalized?.id) return
+        const key = String(normalized.id)
+        if (!existingIds.has(key)) {
+          existingIds.add(key)
+          next.push(normalized)
+        }
+      })
+      return next
+    })
+  }
+
+  const handleYogaUnselectAllVisible = () => {
+    if (!hasVisibleYogaSelection) return
+    setSelectedYogas((prev) => {
+      if (!Array.isArray(yogas) || yogas.length === 0) return []
+      const visibleIds = new Set(yogas.map((y: any) => String(y?.id)))
+      return prev.filter((item) => !visibleIds.has(String(item?.id)))
+    })
   }
 
   const getWorkoutGroupKey = (w: any) => {
@@ -469,7 +509,25 @@ export default function Subscriptions({
 
     return Array.from(unique.values())
   }, [])
-
+  const handleSelectAllVisible = () => {
+    if (!Array.isArray(meditations) || meditations.length === 0) return
+    setSelectedMeditations((prev) => {
+      const existingIds = new Set(prev.map((item) => String(item?.id)))
+      const next = [...prev]
+      meditations.forEach((m: any) => {
+        const id = String(m?.id)
+        if (!existingIds.has(id)) {
+          existingIds.add(id)
+          next.push(m)
+        }
+      })
+      return next
+    })
+  }
+  const handleUnselectVisible = () => {
+    if (selectedMeditations.length === 0) return
+    setSelectedMeditations([])
+  }
   const getMeditationId = (meditation: any) => {
     if (!meditation) return undefined
     return (
@@ -1994,6 +2052,14 @@ export default function Subscriptions({
   const onDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
   }
+  const capitalizeWords = (text: string) =>
+    text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
+  const formattedCategoryOptions = useMemo(() => {
+    return (categoryOptions || []).map((c: any) => ({
+      ...c,
+      name: capitalizeWords(c.name),
+    }))
+  }, [categoryOptions])
 
   return (
     <>
@@ -2395,7 +2461,7 @@ export default function Subscriptions({
                     desc="name"
                     descId="id"
                     type="custom_search_select"
-                    data={categoryOptions}
+                    data={formattedCategoryOptions}
                     value={categoryAutocompleteValue}
                     name="assign_category"
                     onChange={(option: any) => {
@@ -2800,12 +2866,8 @@ export default function Subscriptions({
         <div className="w-full">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-              <div className="text-sm font-medium">Yoga</div>
+              <div className="text-sm font-medium"></div>
               <div className="flex flex-col sm:flex-row sm:items-end gap-4 w-full md:w-auto">
-                <div className="flex items-center gap-1 text-[11px] text-gray-600">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  Duration
-                </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs text-gray-600">Category</label>
                   <select
@@ -2831,6 +2893,33 @@ export default function Subscriptions({
             )}
             {!yogasLoading && yogas.length === 0 && (
               <div className="text-xs text-gray-500 p-2">No yoga found.</div>
+            )}
+
+            {!yogasLoading && yogas.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between text-xs text-gray-600">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                    onClick={handleYogaSelectAllVisible}
+                    disabled={yogasLoading || allVisibleYogaSelected}
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                    onClick={handleYogaUnselectAllVisible}
+                    disabled={!hasVisibleYogaSelection}
+                  >
+                    Unselect All
+                  </button>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] text-gray-600">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  Duration
+                </div>
+              </div>
             )}
 
             {!yogasLoading && yogas.length > 0 && (
@@ -3035,7 +3124,34 @@ export default function Subscriptions({
                 </select>
               </div>
             </div>
-
+            <div className="flex justify-between text-[11px] text-gray-600">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                  onClick={handleSelectAllVisible}
+                  disabled={
+                    medLoading ||
+                    (Array.isArray(meditations) && meditations.length === 0) ||
+                    allVisibleSelected
+                  }
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                  onClick={handleUnselectVisible}
+                  disabled={selectedMeditations.length === 0}
+                >
+                  Unselect All
+                </button>
+              </div>
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                Duration
+              </span>
+            </div>
             {medLoading && (
               <div className="text-xs text-gray-500 p-2">Loading...</div>
             )}

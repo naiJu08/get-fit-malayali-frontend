@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 
 import { FileUploadProps } from '../../../common/types'
@@ -48,6 +48,13 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const [item, setItem] = useState<any>([])
   const { enqueueSnackbar } = useSnackbarManager()
   const { setValue } = useFormContext()
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const resetInputValue = () => {
+    if (inputRef.current) {
+      inputRef.current.value = ''
+    }
+  }
 
   const handleClearFile = (indexToRemove?: number, item?: any) => {
     if (isMultiple) {
@@ -55,6 +62,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
         (_: any, ind: number) => indexToRemove !== ind
       )
       setFile(newFiles)
+      if (newFiles.length === 0) {
+        resetInputValue()
+      }
     } else if (item?.link) {
       if (needConfirmation === true) {
         setDeleteModal(true)
@@ -70,6 +80,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         if (subName) {
           setValue(subName, '', { shouldValidate: false })
         }
+        resetInputValue()
       }
     } else {
       onChange?.('')
@@ -80,6 +91,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       if (subName) {
         setValue(subName, '', { shouldValidate: false })
       }
+      resetInputValue()
     }
   }
   const getImageDimensions = (file: File) => {
@@ -174,6 +186,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
             onChange?.(e)
             setFile(selectedFile)
             setAttachmentName?.(selectedFile?.name)
+            e.target.value = ''
           } else {
             enqueueSnackbar('Maximum file size 5mb', { variant: 'error' })
             setFile('')
@@ -208,6 +221,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
       setValue(subName, '', { shouldValidate: false })
     }
     setDeleteModal(false)
+    resetInputValue()
   }
   const { watch } = useFormContext()
   const handleFilePreview = (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -287,6 +301,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         >
           <input
             id={id}
+            ref={inputRef}
             disabled={disabled}
             multiple={isMultiple}
             onChange={handleFileChange}
