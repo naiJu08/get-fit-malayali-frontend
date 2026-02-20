@@ -78,26 +78,6 @@ const PieChart = ({ data, size = 120, strokeWidth = 18 }: PieChartProps) => {
   )
 }
 
-const buildCompletionPie = (
-  completed?: number,
-  pending?: number
-): PieSlice[] => {
-  const completedValue = Number(completed ?? 0)
-  const pendingValue = Number(pending ?? 0)
-  return [
-    {
-      label: 'Completed',
-      value: completedValue,
-      color: '#22c55e',
-    },
-    {
-      label: 'Pending',
-      value: pendingValue,
-      color: '#facc15',
-    },
-  ]
-}
-
 const safeValue = (value: any) => {
   if (value === null || value === undefined || value === '') {
     return '—'
@@ -107,6 +87,695 @@ const safeValue = (value: any) => {
     return `${value}`
   }
   return String(value)
+}
+
+const getHealthColor = (percentage: number, reverse = false) => {
+  if (reverse) {
+    if (percentage >= 80) return '#22c55e' // green
+    if (percentage >= 60) return '#facc15' // yellow
+    return '#ef4444' // red
+  }
+  if (percentage >= 80) return '#22c55e' // green
+  if (percentage >= 60) return '#facc15' // yellow
+  return '#ef4444' // red
+}
+
+const getTrendIndicator = (value: number | null | undefined) => {
+  if (!value || value === 0) return { icon: '→', color: '#6b7280' }
+  if (value > 0) return { icon: '↑', color: '#22c55e' }
+  return { icon: '↓', color: '#ef4444' }
+}
+
+const getBMICategory = (bmi: number) => {
+  if (bmi < 18.5) return { category: 'Underweight', color: '#3b82f6' }
+  if (bmi < 25) return { category: 'Normal', color: '#22c55e' }
+  if (bmi < 30) return { category: 'Overweight', color: '#facc15' }
+  return { category: 'Obese', color: '#ef4444' }
+}
+
+const DietSummaryCard = ({ dietSummary }: { dietSummary: any }) => {
+  const adherencePercentage = Number(
+    dietSummary?.calorie_adherence_percentage ?? 0
+  )
+  const adherenceColor = getHealthColor(adherencePercentage)
+  const mandatoryAnalysis = dietSummary?.mandatory_items_analysis || {}
+  const mandatoryCompletion =
+    mandatoryAnalysis.assigned > 0
+      ? (mandatoryAnalysis.consumed / mandatoryAnalysis.assigned) * 100
+      : 0
+
+  return (
+    <div className="border rounded-xl bg-white shadow-sm p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-gray-900">🍽️ Diet Summary</h3>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500">Adherence</span>
+          <span
+            className="text-sm font-bold px-2 py-1 rounded-full text-white"
+            style={{ backgroundColor: adherenceColor }}
+          >
+            {adherencePercentage.toFixed(1)}%
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="text-xs text-gray-500 mb-1">Items Assigned</div>
+          <div className="text-lg font-bold text-gray-900">
+            {dietSummary?.total_items_assigned ?? 0}
+          </div>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="text-xs text-gray-500 mb-1">Items Completed</div>
+          <div className="text-lg font-bold text-green-600">
+            {dietSummary?.total_items_completed ?? 0}
+          </div>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="text-xs text-gray-500 mb-1">Calories Assigned</div>
+          <div className="text-lg font-bold text-gray-900">
+            {dietSummary?.total_calories_assigned ?? 0}
+          </div>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="text-xs text-gray-500 mb-1">Calories Consumed</div>
+          <div className="text-lg font-bold text-blue-600">
+            {dietSummary?.total_calories_consumed ?? 0}
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t pt-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-gray-500">Mandatory Items</span>
+          <span className="text-xs font-medium text-gray-700">
+            {mandatoryAnalysis.consumed ?? 0}/{mandatoryAnalysis.assigned ?? 0}
+          </span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div
+            className="h-2 rounded-full transition-all duration-300"
+            style={{
+              width: `${Math.min(mandatoryCompletion, 100)}%`,
+              backgroundColor: getHealthColor(mandatoryCompletion),
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const MealTimingCard = ({
+  mealTimingAnalysis,
+}: {
+  mealTimingAnalysis: any
+}) => {
+  const mealTypes = Object.entries(mealTimingAnalysis || {}).filter(
+    ([, data]: [string, any]) =>
+      data && (data.items_consumed > 0 || data.calories_consumed > 0)
+  )
+
+  return (
+    <div className="border rounded-xl bg-white shadow-sm p-4">
+      <h3 className="text-sm font-semibold text-gray-900 mb-4">
+        ⏰ Meal Timing Analysis
+      </h3>
+
+      {mealTypes.length === 0 ? (
+        <div className="text-center py-4 text-gray-500 text-sm">
+          No meal data available
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {mealTypes.map(([mealType, data]: [string, any]) => {
+            const adherence = Number(data.adherence_percentage ?? 0)
+            const adherenceColor = getHealthColor(adherence)
+
+            return (
+              <div
+                key={mealType}
+                className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+              >
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-gray-900">
+                    {mealType}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {data.items_consumed ?? 0} items •{' '}
+                    {data.calories_consumed ?? 0} cal
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-xs font-bold px-2 py-1 rounded-full text-white"
+                    style={{ backgroundColor: adherenceColor }}
+                  >
+                    {adherence.toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const CategoryConsumptionCard = ({
+  categoryConsumption,
+}: {
+  categoryConsumption: any
+}) => {
+  const categories = Object.entries(categoryConsumption || {})
+    .filter(
+      ([, data]: [string, any]) =>
+        data && (data.items_consumed > 0 || data.calories_consumed > 0)
+    )
+    .sort(
+      ([, a], [, b]) =>
+        (b as any).calories_consumed - (a as any).calories_consumed
+    )
+    .slice(0, 6)
+
+  const totalCalories = categories.reduce(
+    (sum, [, data]: [string, any]) => sum + (data.calories_consumed || 0),
+    0
+  )
+
+  return (
+    <div className="border rounded-xl bg-white shadow-sm p-4">
+      <h3 className="text-sm font-semibold text-gray-900 mb-4">
+        🥗 Food Categories
+      </h3>
+
+      {categories.length === 0 ? (
+        <div className="text-center py-4 text-gray-500 text-sm">
+          No category data available
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {categories.map(([category, data]: [string, any]) => {
+            const percentage =
+              totalCalories > 0
+                ? (data.calories_consumed / totalCalories) * 100
+                : 0
+
+            return (
+              <div key={category} className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-gray-900">
+                    {category}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {data.items_consumed ?? 0} items •{' '}
+                    {data.calories_consumed ?? 0} cal
+                  </div>
+                </div>
+                <div className="text-sm font-bold text-gray-700">
+                  {percentage.toFixed(1)}%
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const BodyMetricsCard = ({
+  bodyMeasurements,
+  weightBmi,
+}: {
+  bodyMeasurements: any
+  weightBmi: any
+}) => {
+  const startWeight = Number(weightBmi?.start_weight ?? 0)
+  const endWeight = Number(weightBmi?.end_weight ?? 0)
+  const weightDelta = Number(weightBmi?.weight_delta ?? 0)
+  const startBmi = Number(weightBmi?.start_bmi ?? 0)
+  const endBmi = Number(weightBmi?.end_bmi ?? 0)
+  const bmiDelta = Number(weightBmi?.bmi_delta ?? 0)
+
+  const weightTrend = getTrendIndicator(weightDelta)
+  const bmiTrend = getTrendIndicator(bmiDelta)
+  const startBmiCategory = getBMICategory(startBmi)
+  const endBmiCategory = getBMICategory(endBmi)
+
+  const measurements = [
+    { label: 'Chest', value: bodyMeasurements?.change?.chest_delta },
+    { label: 'Waist', value: bodyMeasurements?.change?.waist_delta },
+    { label: 'Hip', value: bodyMeasurements?.change?.hip_delta },
+    { label: 'Arm', value: bodyMeasurements?.change?.arm_delta },
+    { label: 'Thigh', value: bodyMeasurements?.change?.thigh_delta },
+  ].filter((m) => m.value !== null && m.value !== undefined)
+
+  return (
+    <div className="border rounded-xl bg-white shadow-sm p-4">
+      <h3 className="text-sm font-semibold text-gray-900 mb-4">
+        💪 Body Metrics
+      </h3>
+
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="text-xs text-gray-500 mb-1">Start Weight</div>
+          <div className="text-lg font-bold text-gray-900">
+            {startWeight} kg
+          </div>
+          <div className="text-xs text-gray-500">
+            BMI: {startBmi.toFixed(1)}
+          </div>
+          <div
+            className="text-xs px-2 py-1 rounded-full text-white inline-block mt-1"
+            style={{ backgroundColor: startBmiCategory.color }}
+          >
+            {startBmiCategory.category}
+          </div>
+        </div>
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="text-xs text-gray-500 mb-1">End Weight</div>
+          <div className="text-lg font-bold text-gray-900">{endWeight} kg</div>
+          <div className="text-xs text-gray-500">BMI: {endBmi.toFixed(1)}</div>
+          <div
+            className="text-xs px-2 py-1 rounded-full text-white inline-block mt-1"
+            style={{ backgroundColor: endBmiCategory.color }}
+          >
+            {endBmiCategory.category}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-blue-50 rounded-lg p-3">
+          <div className="text-xs text-gray-500 mb-1">Weight Change</div>
+          <div className="flex items-center gap-2">
+            <span
+              className="text-xl font-bold"
+              style={{ color: weightTrend.color }}
+            >
+              {weightTrend.icon} {Math.abs(weightDelta)} kg
+            </span>
+          </div>
+        </div>
+        <div className="bg-green-50 rounded-lg p-3">
+          <div className="text-xs text-gray-500 mb-1">BMI Change</div>
+          <div className="flex items-center gap-2">
+            <span
+              className="text-xl font-bold"
+              style={{ color: bmiTrend.color }}
+            >
+              {bmiTrend.icon} {Math.abs(bmiDelta)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {measurements.length > 0 && (
+        <div className="border-t pt-3">
+          <div className="text-xs text-gray-500 mb-2">Measurement Changes</div>
+          <div className="grid grid-cols-2 gap-2">
+            {measurements.map((measurement) => {
+              const trend = getTrendIndicator(measurement.value)
+              return (
+                <div
+                  key={measurement.label}
+                  className="flex items-center justify-between bg-gray-50 rounded p-2"
+                >
+                  <span className="text-xs text-gray-600">
+                    {measurement.label}
+                  </span>
+                  <span
+                    className="text-sm font-bold"
+                    style={{ color: trend.color }}
+                  >
+                    {trend.icon} {Math.abs(measurement.value)} cm
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
+  const heartRateHealth = Number(vitals?.normal_heart_rate_percentage ?? 0)
+  const sugarHealth = Number(vitals?.normal_sugar_level_percentage ?? 0)
+  const sleepHealth = Number(vitals?.adequate_sleep_percentage ?? 0)
+  const waterHealth = Number(vitals?.adequate_water_intake_percentage ?? 0)
+
+  const vitalsData = [
+    {
+      label: 'Heart Rate',
+      value: vitals?.max_heart_rate,
+      unit: 'bpm',
+      percentage: heartRateHealth,
+      icon: '❤️',
+    },
+    {
+      label: 'Sugar Level',
+      value: vitals?.max_sugar_level,
+      unit: 'mg/dL',
+      percentage: sugarHealth,
+      icon: '🩸',
+    },
+    {
+      label: 'Sleep',
+      value: vitals?.avg_sleep_hours,
+      unit: 'hrs',
+      percentage: sleepHealth,
+      icon: '😴',
+    },
+    {
+      label: 'Water Intake',
+      value: vitals?.avg_water_intake,
+      unit: 'L',
+      percentage: waterHealth,
+      icon: '💧',
+    },
+    {
+      label: 'Steps',
+      value: vitals?.avg_steps,
+      unit: 'steps',
+      percentage: null,
+      icon: '👟',
+    },
+  ]
+
+  return (
+    <div className="border rounded-xl bg-white shadow-sm p-4">
+      <h3 className="text-sm font-semibold text-gray-900 mb-4">
+        ❤️ Vitals Tracking
+      </h3>
+
+      <div className="space-y-3">
+        {vitalsData.map((vital) => {
+          const healthColor =
+            vital.percentage !== null
+              ? getHealthColor(vital.percentage)
+              : '#6b7280'
+          const displayValue =
+            vital.value !== null && vital.value !== undefined
+              ? vital.value
+              : '--'
+
+          return (
+            <div
+              key={vital.label}
+              className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{vital.icon}</span>
+                <div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {vital.label}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Avg: {displayValue} {vital.unit}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {vital.percentage !== null && (
+                  <>
+                    <span
+                      className="text-xs font-bold px-2 py-1 rounded-full text-white"
+                      style={{ backgroundColor: healthColor }}
+                    >
+                      {vital.percentage.toFixed(0)}%
+                    </span>
+                    <div className="w-8 h-8">
+                      <PieChart
+                        data={[
+                          {
+                            label: 'Healthy',
+                            value: vital.percentage,
+                            color: healthColor,
+                          },
+                          {
+                            label: 'Unhealthy',
+                            value: 100 - vital.percentage,
+                            color: '#e5e7eb',
+                          },
+                        ]}
+                        size={32}
+                        strokeWidth={4}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="mt-4 pt-3 border-t">
+        <div className="text-xs text-gray-500 mb-2">Health Compliance</div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex items-center justify-between bg-green-50 rounded p-2">
+            <span className="text-xs text-gray-600">Heart Rate</span>
+            <span className="text-xs font-bold text-green-600">
+              {heartRateHealth.toFixed(0)}%
+            </span>
+          </div>
+          <div className="flex items-center justify-between bg-green-50 rounded p-2">
+            <span className="text-xs text-gray-600">Sugar Level</span>
+            <span className="text-xs font-bold text-green-600">
+              {sugarHealth.toFixed(0)}%
+            </span>
+          </div>
+          <div className="flex items-center justify-between bg-green-50 rounded p-2">
+            <span className="text-xs text-gray-600">Sleep</span>
+            <span className="text-xs font-bold text-green-600">
+              {sleepHealth.toFixed(0)}%
+            </span>
+          </div>
+          <div className="flex items-center justify-between bg-green-50 rounded p-2">
+            <span className="text-xs text-gray-600">Hydration</span>
+            <span className="text-xs font-bold text-green-600">
+              {waterHealth.toFixed(0)}%
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const DailyActivityCard = ({ dailyBreakdown }: { dailyBreakdown: any[] }) => {
+  const getActivityIcon = (activityType: string) => {
+    switch (activityType) {
+      case 'diet':
+        return '🍽️'
+      case 'workout':
+        return '💪'
+      case 'yoga':
+        return '🧘'
+      case 'meditation':
+        return '🧘‍♀️'
+      default:
+        return '📋'
+    }
+  }
+
+  const getActivityCompletionRate = (activity: any) => {
+    const total = (activity.assigned || 0) + (activity.upcoming || 0)
+    if (total === 0) return 0
+    return ((activity.completed || 0) / total) * 100
+  }
+
+  return (
+    <div className="border rounded-xl bg-white shadow-sm p-4">
+      <h3 className="text-sm font-semibold text-gray-900 mb-4">
+        📅 Daily Activity Breakdown
+      </h3>
+
+      {dailyBreakdown?.length === 0 ? (
+        <div className="text-center py-4 text-gray-500 text-sm">
+          No daily data available
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {dailyBreakdown.map((day) => {
+            const activities = [
+              { type: 'diet', data: day.diet },
+              { type: 'workout', data: day.workout },
+              { type: 'yoga', data: day.yoga },
+              { type: 'meditation', data: day.meditation },
+            ]
+
+            return (
+              <div key={day.date} className="border rounded-lg p-3 bg-gray-50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-sm font-medium text-gray-900">
+                    Day {day.day_number} • {day.date}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {activities.map(({ type, data }) => {
+                      const completionRate = getActivityCompletionRate(data)
+                      const color = getHealthColor(completionRate)
+                      return (
+                        <div key={type} className="flex items-center gap-1">
+                          <span>{getActivityIcon(type)}</span>
+                          <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: color }}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {activities.map(({ type, data }) => {
+                    const completionRate = getActivityCompletionRate(data)
+                    const color = getHealthColor(completionRate)
+
+                    return (
+                      <div
+                        key={type}
+                        className="flex items-center justify-between bg-white rounded p-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span>{getActivityIcon(type)}</span>
+                          <div className="text-xs">
+                            <div className="font-medium text-gray-900 capitalize">
+                              {type}
+                            </div>
+                            <div className="text-gray-500">
+                              {data.completed || 0}/{data.assigned || 0}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-bold" style={{ color }}>
+                            {completionRate.toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const EnhancedActivityCard = ({
+  title,
+  icon,
+  data,
+  color = '#22c55e',
+}: {
+  title: string
+  icon: string
+  data: any
+  color?: string
+}) => {
+  const totalAssigned = Number(data?.total_assigned_days ?? 0)
+  const totalCompleted = Number(data?.total_completed_days ?? 0)
+  const totalSkipped = Number(data?.total_fully_skipped_days ?? 0)
+  const totalUpcoming = Number(data?.total_upcoming_days ?? 0)
+  const adherencePercentage = Number(data?.adherence_percentage ?? 0)
+
+  const completionRate =
+    totalAssigned > 0 ? (totalCompleted / totalAssigned) * 100 : 0
+  const adherenceColor = adherencePercentage
+    ? getHealthColor(adherencePercentage)
+    : color
+
+  const pieData = [
+    { label: 'Completed', value: totalCompleted, color: '#22c55e' },
+    { label: 'Skipped', value: totalSkipped, color: '#ef4444' },
+    { label: 'Upcoming', value: totalUpcoming, color: '#facc15' },
+  ].filter((item) => item.value > 0)
+
+  return (
+    <div className="border rounded-xl bg-white shadow-sm p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-gray-900">
+          {icon} {title}
+        </h3>
+        {adherencePercentage && (
+          <span
+            className="text-xs font-bold px-2 py-1 rounded-full text-white"
+            style={{ backgroundColor: adherenceColor }}
+          >
+            {adherencePercentage.toFixed(1)}%
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex-1">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <div className="text-xs text-gray-500 mb-1">Days Assigned</div>
+              <div className="text-lg font-bold text-gray-900">
+                {totalAssigned}
+              </div>
+            </div>
+            <div className="bg-green-50 rounded-lg p-3">
+              <div className="text-xs text-gray-500 mb-1">Days Completed</div>
+              <div className="text-lg font-bold text-green-600">
+                {totalCompleted}
+              </div>
+            </div>
+            <div className="bg-red-50 rounded-lg p-3">
+              <div className="text-xs text-gray-500 mb-1">Days Skipped</div>
+              <div className="text-lg font-bold text-red-600">
+                {totalSkipped}
+              </div>
+            </div>
+            <div className="bg-yellow-50 rounded-lg p-3">
+              <div className="text-xs text-gray-500 mb-1">Days Upcoming</div>
+              <div className="text-lg font-bold text-yellow-600">
+                {totalUpcoming}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="ml-4 flex flex-col items-center gap-2">
+          <PieChart data={pieData} size={80} strokeWidth={12} />
+          <div className="text-xs text-gray-500 text-center">
+            {completionRate.toFixed(0)}% completion
+          </div>
+        </div>
+      </div>
+
+      {data?.total_exercises_assigned && (
+        <div className="border-t pt-3">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-gray-500">Exercises Assigned</span>
+            <span className="font-medium text-gray-700">
+              {data.total_exercises_completed ?? 0}/
+              {data.total_exercises_assigned ?? 0}
+            </span>
+          </div>
+          {data.total_repeat_count > 0 && (
+            <div className="flex items-center justify-between text-xs mt-1">
+              <span className="text-gray-500">Total Repeats</span>
+              <span className="font-medium text-gray-700">
+                {data.total_repeat_count}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function Reports({
@@ -465,34 +1134,14 @@ export default function Reports({
   }
 
   const { subscription, plan, user: reportUser } = report
+  const canDownloadWithRecipes = selectedRecipeIds.length > 0
+
+  // Extract data for PDF section
   const workout = report.workout_summary || {}
   const yoga = report.yoga_summary || {}
   const meditation = report.meditation_summary || {}
   const vitals = report.vitals || {}
   const weightBmi = report.weight_and_bmi || {}
-
-  const workoutPie = buildCompletionPie(
-    workout.total_completed_count,
-    workout.total_pending_count
-  )
-  const yogaPie = buildCompletionPie(
-    yoga.total_completed_count,
-    yoga.total_pending_count
-  )
-  const meditationPie: PieSlice[] = [
-    {
-      label: 'Completed',
-      value: Number(meditation.completed_count ?? 0),
-      color: '#22c55e',
-    },
-    {
-      label: 'Missed',
-      value: Number(meditation.missed_count ?? 0),
-      color: '#ef4444',
-    },
-  ]
-
-  const canDownloadWithRecipes = selectedRecipeIds.length > 0
 
   const renderRecipePreviewCards = (recipes: any[]) => (
     <div className="border rounded-xl bg-white shadow-sm p-4 flex flex-col gap-4">
@@ -941,168 +1590,70 @@ export default function Reports({
           </div>
         </div>
 
-        {/* Summary cards grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="border rounded-xl bg-white shadow-sm p-4 flex flex-col gap-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-xs font-semibold uppercase text-gray-700">
-                  Workout Summary
-                </div>
-                <div className="text-sm text-gray-700">
-                  Days with activity: {workout.total_days_with_activity ?? 0}
-                </div>
-                <div className="text-sm text-gray-700">
-                  Completed: {workout.total_completed_count ?? 0}
-                </div>
-                <div className="text-sm text-gray-700">
-                  Pending: {workout.total_pending_count ?? 0}
-                </div>
+        {/* Enhanced Dashboard */}
+        <div className="space-y-6">
+          {/* Quick Stats Overview */}
+          {report.overall_analysis && (
+            <div className="border rounded-xl bg-gradient-to-r from-blue-50 to-green-50 shadow-sm p-6">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-2xl">🎯</span>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Overall Analysis
+                </h3>
               </div>
-              <div className="shrink-0 flex flex-col items-center justify-center gap-2">
-                <PieChart data={workoutPie} />
-                <div className="flex flex-col items-start text-[11px] text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: '#22c55e' }}
-                    />
-                    <span>Completed</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: '#facc15' }}
-                    />
-                    <span>Pending</span>
-                  </div>
-                </div>
+              <div className="text-sm text-gray-700 whitespace-pre-line">
+                {report.overall_analysis}
               </div>
+            </div>
+          )}
+
+          {/* Main Dashboard Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {/* Diet Section */}
+            <div className="space-y-4">
+              <DietSummaryCard dietSummary={report.diet_summary} />
+              <MealTimingCard
+                mealTimingAnalysis={report.diet_summary?.meal_timing_analysis}
+              />
+              <CategoryConsumptionCard
+                categoryConsumption={report.diet_summary?.category_consumption}
+              />
+            </div>
+
+            {/* Body Metrics Section */}
+            <div className="space-y-4">
+              <BodyMetricsCard
+                bodyMeasurements={report.body_measurements}
+                weightBmi={report.weight_and_bmi}
+              />
+              <VitalsTrackingCard vitals={report.vitals} />
+            </div>
+
+            {/* Activity Section */}
+            <div className="space-y-4">
+              <EnhancedActivityCard
+                title="Workout Summary"
+                icon="💪"
+                data={report.workout_summary}
+              />
+              <EnhancedActivityCard
+                title="Yoga Summary"
+                icon="🧘"
+                data={report.yoga_summary}
+              />
+              <EnhancedActivityCard
+                title="Meditation Summary"
+                icon="🧘‍♀️"
+                data={report.meditation_summary}
+              />
             </div>
           </div>
 
-          <div className="border rounded-xl bg-white shadow-sm p-4 flex flex-col gap-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-xs font-semibold uppercase text-gray-700">
-                  Yoga Summary
-                </div>
-                <div className="text-sm text-gray-700">
-                  Days with activity: {yoga.total_days_with_activity ?? 0}
-                </div>
-                <div className="text-sm text-gray-700">
-                  Completed: {yoga.total_completed_count ?? 0}
-                </div>
-                <div className="text-sm text-gray-700">
-                  Pending: {yoga.total_pending_count ?? 0}
-                </div>
-              </div>
-              <div className="shrink-0 flex flex-col items-center justify-center gap-2">
-                <PieChart data={yogaPie} />
-                <div className="flex flex-col items-start text-[11px] text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: '#22c55e' }}
-                    />
-                    <span>Completed</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: '#facc15' }}
-                    />
-                    <span>Pending</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border rounded-xl bg-white shadow-sm p-4 flex flex-col gap-3">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex flex-col gap-1">
-                <div className="text-xs font-semibold uppercase text-gray-700">
-                  Meditation Summary
-                </div>
-                <div className="text-sm text-gray-700">
-                  Sessions: {meditation.total_sessions ?? 0}
-                </div>
-                <div className="text-sm text-gray-700">
-                  Completed: {meditation.completed_count ?? 0}
-                </div>
-                <div className="text-sm text-gray-700">
-                  Missed: {meditation.missed_count ?? 0}
-                </div>
-              </div>
-              <div className="shrink-0 flex flex-col items-center justify-center gap-2">
-                <PieChart data={meditationPie} />
-                <div className="flex flex-col items-start text-[11px] text-gray-500">
-                  <div className="flex items-center gap-1">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: '#22c55e' }}
-                    />
-                    <span>Completed</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: '#ef4444' }}
-                    />
-                    <span>Missed</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border rounded-xl bg-white shadow-sm p-4 flex flex-col gap-2">
-            <div className="text-xs font-semibold uppercase text-gray-700">
-              Vitals
-            </div>
-            <div className="text-sm text-gray-700">
-              Entries: {vitals.entries_count ?? 0}
-            </div>
-            <div className="text-sm text-gray-700">
-              Avg heart rate: {vitals.avg_heart_rate ?? '—'}
-            </div>
-            <div className="text-sm text-gray-700">
-              Avg sugar level: {vitals.avg_sugar_level ?? '—'}
-            </div>
-          </div>
-
-          <div className="border rounded-xl bg-white shadow-sm p-4 flex flex-col gap-2">
-            <div className="text-xs font-semibold uppercase text-gray-700">
-              Weight & BMI
-            </div>
-            <div className="text-sm text-gray-700">
-              Start weight: {weightBmi.start_weight ?? '—'}
-            </div>
-            <div className="text-sm text-gray-700">
-              End weight: {weightBmi.end_weight ?? '—'}
-            </div>
-            <div className="text-sm text-gray-700">
-              Weight change: {weightBmi.weight_delta ?? '—'}
-            </div>
-            <div className="text-sm text-gray-700">
-              Avg BMI: {weightBmi.avg_bmi ?? '—'}
-            </div>
-          </div>
+          {/* Daily Activity Timeline */}
+          <DailyActivityCard dailyBreakdown={report.daily_breakdown} />
         </div>
 
         {hasRecipeSections && renderRecipePreviewCards(selectedRecipeDetails)}
-
-        {report.overall_analysis && (
-          <div className="border rounded-xl bg-white shadow-sm p-4">
-            <div className="text-xs font-semibold uppercase text-gray-700 mb-1">
-              Overall Analysis
-            </div>
-            <div className="text-sm text-gray-700 whitespace-pre-line">
-              {report.overall_analysis}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* PDF */}
@@ -1160,117 +1711,608 @@ export default function Reports({
           </table>
         </div>
 
-        {/* ACTIVITY SUMMARY */}
-        <h3 className="font-semibold mb-2">Activity Summary</h3>
-        <table className="w-full border border-collapse mb-6">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border px-3 py-2 text-left">Activity</th>
-              <th className="border px-3 py-2 text-left">Days/Sessions</th>
-              <th className="border px-3 py-2 text-left">Completed</th>
-              <th className="border px-3 py-2 text-left">Pending/Missed</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="border px-3 py-2">Workout</td>
-              <td className="border px-3 py-2">
-                {workout.total_days_with_activity ?? 0}
-              </td>
-              <td className="border px-3 py-2">
-                {workout.total_completed_count ?? 0}
-              </td>
-              <td className="border px-3 py-2">
-                {workout.total_pending_count ?? 0}
-              </td>
-            </tr>
-            <tr>
-              <td className="border px-3 py-2">Yoga</td>
-              <td className="border px-3 py-2">
-                {yoga.total_days_with_activity ?? 0}
-              </td>
-              <td className="border px-3 py-2">
-                {yoga.total_completed_count ?? 0}
-              </td>
-              <td className="border px-3 py-2">
-                {yoga.total_pending_count ?? 0}
-              </td>
-            </tr>
-            <tr>
-              <td className="border px-3 py-2">Meditation</td>
-              <td className="border px-3 py-2">
-                {meditation.total_sessions ?? 0}
-              </td>
-              <td className="border px-3 py-2">
-                {meditation.completed_count ?? 0}
-              </td>
-              <td className="border px-3 py-2">
-                {meditation.missed_count ?? 0}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        {/* ENHANCED DASHBOARD SECTIONS */}
 
-        {/* VITALS */}
-        <h3 className="font-semibold mb-2">Vitals</h3>
-        <table className="w-full border border-collapse mb-6">
-          <tbody>
-            <tr>
-              <td className="border px-3 py-2 font-medium">Entries</td>
-              <td className="border px-3 py-2">{vitals.entries_count ?? 0}</td>
-            </tr>
-            <tr>
-              <td className="border px-3 py-2 font-medium">Avg Heart Rate</td>
-              <td className="border px-3 py-2">
-                {vitals.avg_heart_rate ?? '—'}
-              </td>
-            </tr>
-            <tr>
-              <td className="border px-3 py-2 font-medium">Avg Sugar Level</td>
-              <td className="border px-3 py-2">
-                {vitals.avg_sugar_level ?? '—'}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* WEIGHT */}
-        <h3 className="font-semibold mb-2">Weight & BMI</h3>
-        <table className="w-full border border-collapse mb-6">
-          <tbody>
-            <tr>
-              <td className="border px-3 py-2 font-medium">Start Weight</td>
-              <td className="border px-3 py-2">
-                {weightBmi.start_weight ?? '—'}
-              </td>
-            </tr>
-            <tr>
-              <td className="border px-3 py-2 font-medium">End Weight</td>
-              <td className="border px-3 py-2">
-                {weightBmi.end_weight ?? '—'}
-              </td>
-            </tr>
-            <tr>
-              <td className="border px-3 py-2 font-medium">Weight Change</td>
-              <td className="border px-3 py-2">
-                {weightBmi.weight_delta ?? '—'}
-              </td>
-            </tr>
-            <tr>
-              <td className="border px-3 py-2 font-medium">Avg BMI</td>
-              <td className="border px-3 py-2">{weightBmi.avg_bmi ?? '—'}</td>
-            </tr>
-          </tbody>
-        </table>
-
+        {/* OVERALL ANALYSIS */}
         {report.overall_analysis && (
-          <>
-            <h3 className="font-semibold mb-2">Overall Analysis</h3>
-            <div className="border p-3 whitespace-pre-line">
-              {report.overall_analysis}
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-center mb-4 text-gray-800">
+              🎯 Overall Analysis
+            </h2>
+            <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+              <div className="text-sm text-gray-700 whitespace-pre-line">
+                {report.overall_analysis}
+              </div>
             </div>
-          </>
+          </div>
         )}
+
+        {/* DIET ANALYSIS */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-center mb-4 text-gray-800">
+            🍽️ Diet Analysis
+          </h2>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="border rounded-lg p-3">
+              <h4 className="font-semibold mb-2 text-gray-700">
+                Calorie Tracking
+              </h4>
+              <table className="w-full text-sm">
+                <tr>
+                  <td className="py-1 text-gray-600">Calories Assigned</td>
+                  <td className="py-1 font-medium">
+                    {report.diet_summary?.total_calories_assigned ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Calories Consumed</td>
+                  <td className="py-1 font-medium">
+                    {report.diet_summary?.total_calories_consumed ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Adherence</td>
+                  <td className="py-1 font-medium">
+                    {Number(
+                      report.diet_summary?.calorie_adherence_percentage ?? 0
+                    ).toFixed(1)}
+                    %
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <div className="border rounded-lg p-3">
+              <h4 className="font-semibold mb-2 text-gray-700">Item Summary</h4>
+              <table className="w-full text-sm">
+                <tr>
+                  <td className="py-1 text-gray-600">Items Assigned</td>
+                  <td className="py-1 font-medium">
+                    {report.diet_summary?.total_items_assigned ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Items Completed</td>
+                  <td className="py-1 font-medium">
+                    {report.diet_summary?.total_items_completed ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Items Skipped</td>
+                  <td className="py-1 font-medium">
+                    {report.diet_summary?.total_items_skipped ?? 0}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          {/* Meal Timing Analysis */}
+          <div className="mb-6">
+            <h4 className="font-semibold mb-2 text-gray-700">
+              ⏰ Meal Timing Analysis
+            </h4>
+            <table className="w-full border border-collapse text-sm">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border px-2 py-1 text-left">Meal Type</th>
+                  <th className="border px-2 py-1 text-left">Items</th>
+                  <th className="border px-2 py-1 text-left">Calories</th>
+                  <th className="border px-2 py-1 text-left">Adherence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(report.diet_summary?.meal_timing_analysis || {})
+                  .filter(
+                    ([, data]: [string, any]) =>
+                      data &&
+                      (data.items_consumed > 0 || data.calories_consumed > 0)
+                  )
+                  .map(([mealType, data]: [string, any]) => (
+                    <tr key={mealType}>
+                      <td className="border px-2 py-1">{mealType}</td>
+                      <td className="border px-2 py-1">
+                        {data.items_consumed ?? 0}
+                      </td>
+                      <td className="border px-2 py-1">
+                        {data.calories_consumed ?? 0}
+                      </td>
+                      <td className="border px-2 py-1">
+                        {Number(data.adherence_percentage ?? 0).toFixed(0)}%
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Category Consumption */}
+          <div>
+            <h4 className="font-semibold mb-2 text-gray-700">
+              🥗 Food Category Consumption
+            </h4>
+            <table className="w-full border border-collapse text-sm">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border px-2 py-1 text-left">Category</th>
+                  <th className="border px-2 py-1 text-left">Items</th>
+                  <th className="border px-2 py-1 text-left">Calories</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(report.diet_summary?.category_consumption || {})
+                  .filter(
+                    ([, data]: [string, any]) =>
+                      data &&
+                      (data.items_consumed > 0 || data.calories_consumed > 0)
+                  )
+                  .sort(
+                    ([, a], [, b]) =>
+                      (b as any).calories_consumed -
+                      (a as any).calories_consumed
+                  )
+                  .slice(0, 8)
+                  .map(([category, data]: [string, any]) => (
+                    <tr key={category}>
+                      <td className="border px-2 py-1">{category}</td>
+                      <td className="border px-2 py-1">
+                        {data.items_consumed ?? 0}
+                      </td>
+                      <td className="border px-2 py-1">
+                        {data.calories_consumed ?? 0}
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* BODY METRICS */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-center mb-4 text-gray-800">
+            💪 Body Metrics Analysis
+          </h2>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="border rounded-lg p-3">
+              <h4 className="font-semibold mb-2 text-gray-700">
+                Weight Progression
+              </h4>
+              <table className="w-full text-sm">
+                <tr>
+                  <td className="py-1 text-gray-600">Start Weight</td>
+                  <td className="py-1 font-medium">
+                    {weightBmi.start_weight ?? '—'} kg
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">End Weight</td>
+                  <td className="py-1 font-medium">
+                    {weightBmi.end_weight ?? '—'} kg
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Weight Change</td>
+                  <td className="py-1 font-medium">
+                    {weightBmi.weight_delta
+                      ? `${weightBmi.weight_delta} kg`
+                      : '—'}
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <div className="border rounded-lg p-3">
+              <h4 className="font-semibold mb-2 text-gray-700">BMI Analysis</h4>
+              <table className="w-full text-sm">
+                <tr>
+                  <td className="py-1 text-gray-600">Start BMI</td>
+                  <td className="py-1 font-medium">
+                    {weightBmi.start_bmi ?? '—'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">End BMI</td>
+                  <td className="py-1 font-medium">
+                    {weightBmi.end_bmi ?? '—'}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">BMI Change</td>
+                  <td className="py-1 font-medium">
+                    {weightBmi.bmi_delta ? `${weightBmi.bmi_delta}` : '—'}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          {/* Body Measurements */}
+          {report.body_measurements?.change && (
+            <div>
+              <h4 className="font-semibold mb-2 text-gray-700">
+                Body Measurement Changes
+              </h4>
+              <table className="w-full border border-collapse text-sm">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border px-2 py-1 text-left">Measurement</th>
+                    <th className="border px-2 py-1 text-left">Change (cm)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    {
+                      label: 'Chest',
+                      value: report.body_measurements.change.chest_delta,
+                    },
+                    {
+                      label: 'Waist',
+                      value: report.body_measurements.change.waist_delta,
+                    },
+                    {
+                      label: 'Hip',
+                      value: report.body_measurements.change.hip_delta,
+                    },
+                    {
+                      label: 'Arm',
+                      value: report.body_measurements.change.arm_delta,
+                    },
+                    {
+                      label: 'Thigh',
+                      value: report.body_measurements.change.thigh_delta,
+                    },
+                  ]
+                    .filter((m) => m.value !== null && m.value !== undefined)
+                    .map((measurement) => (
+                      <tr key={measurement.label}>
+                        <td className="border px-2 py-1">
+                          {measurement.label}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {measurement.value} cm
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* ENHANCED VITALS TRACKING */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-center mb-4 text-gray-800">
+            ❤️ Vitals & Health Tracking
+          </h2>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="border rounded-lg p-3">
+              <h4 className="font-semibold mb-2 text-gray-700">
+                Health Metrics
+              </h4>
+              <table className="w-full text-sm">
+                <tr>
+                  <td className="py-1 text-gray-600">Max Heart Rate</td>
+                  <td className="py-1 font-medium">
+                    {vitals.max_heart_rate ?? '—'} bpm
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Max Sugar Level</td>
+                  <td className="py-1 font-medium">
+                    {vitals.max_sugar_level ?? '—'} mg/dL
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Avg Sleep Hours</td>
+                  <td className="py-1 font-medium">
+                    {vitals.avg_sleep_hours ?? '—'} hrs
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Avg Water Intake</td>
+                  <td className="py-1 font-medium">
+                    {vitals.avg_water_intake ?? '—'} L
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Avg Steps</td>
+                  <td className="py-1 font-medium">
+                    {vitals.avg_steps ?? '—'}
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <div className="border rounded-lg p-3">
+              <h4 className="font-semibold mb-2 text-gray-700">
+                Health Compliance
+              </h4>
+              <table className="w-full text-sm">
+                <tr>
+                  <td className="py-1 text-gray-600">Normal Heart Rate</td>
+                  <td className="py-1 font-medium">
+                    {Number(vitals.normal_heart_rate_percentage ?? 0).toFixed(
+                      0
+                    )}
+                    %
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Normal Sugar Level</td>
+                  <td className="py-1 font-medium">
+                    {Number(vitals.normal_sugar_level_percentage ?? 0).toFixed(
+                      0
+                    )}
+                    %
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Adequate Sleep</td>
+                  <td className="py-1 font-medium">
+                    {Number(vitals.adequate_sleep_percentage ?? 0).toFixed(0)}%
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Adequate Hydration</td>
+                  <td className="py-1 font-medium">
+                    {Number(
+                      vitals.adequate_water_intake_percentage ?? 0
+                    ).toFixed(0)}
+                    %
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          {/* Daily Vitals Breakdown */}
+          {vitals.daily_breakdown && vitals.daily_breakdown.length > 0 && (
+            <div>
+              <h4 className="font-semibold mb-2 text-gray-700">
+                Daily Vitals Summary
+              </h4>
+              <table className="w-full border border-collapse text-sm">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border px-2 py-1 text-left">Date</th>
+                    <th className="border px-2 py-1 text-left">Sleep (hrs)</th>
+                    <th className="border px-2 py-1 text-left">Water (L)</th>
+                    <th className="border px-2 py-1 text-left">Steps</th>
+                    <th className="border px-2 py-1 text-left">Heart Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vitals.daily_breakdown
+                    .filter(
+                      (day: any) =>
+                        day.summary &&
+                        (day.summary.avg_sleep_hours ||
+                          day.summary.total_water_intake ||
+                          day.summary.total_steps ||
+                          day.summary.max_heart_rate)
+                    )
+                    .map((day: any) => (
+                      <tr key={day.date}>
+                        <td className="border px-2 py-1">{day.date}</td>
+                        <td className="border px-2 py-1">
+                          {day.summary.avg_sleep_hours ?? '—'}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {day.summary.total_water_intake ?? '—'}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {day.summary.total_steps ?? '—'}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {day.summary.max_heart_rate ?? '—'}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* ACTIVITY ANALYSIS */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-center mb-4 text-gray-800">
+            🏃 Activity Performance Analysis
+          </h2>
+
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            {/* Workout Summary */}
+            <div className="border rounded-lg p-3">
+              <h4 className="font-semibold mb-2 text-gray-700">💪 Workout</h4>
+              <table className="w-full text-sm">
+                <tr>
+                  <td className="py-1 text-gray-600">Days Assigned</td>
+                  <td className="py-1 font-medium">
+                    {workout.total_assigned_days ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Days Completed</td>
+                  <td className="py-1 font-medium">
+                    {workout.total_completed_days ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Days Skipped</td>
+                  <td className="py-1 font-medium">
+                    {workout.total_fully_skipped_days ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Exercises Assigned</td>
+                  <td className="py-1 font-medium">
+                    {workout.total_exercises_assigned ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Exercises Completed</td>
+                  <td className="py-1 font-medium">
+                    {workout.total_exercises_completed ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Adherence</td>
+                  <td className="py-1 font-medium">
+                    {workout.adherence_percentage
+                      ? `${Number(workout.adherence_percentage).toFixed(1)}%`
+                      : '—'}
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            {/* Yoga Summary */}
+            <div className="border rounded-lg p-3">
+              <h4 className="font-semibold mb-2 text-gray-700">🧘 Yoga</h4>
+              <table className="w-full text-sm">
+                <tr>
+                  <td className="py-1 text-gray-600">Days Assigned</td>
+                  <td className="py-1 font-medium">
+                    {yoga.total_assigned_days ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Days Completed</td>
+                  <td className="py-1 font-medium">
+                    {yoga.total_completed_days ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Days Skipped</td>
+                  <td className="py-1 font-medium">
+                    {yoga.total_fully_skipped_days ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Exercises Assigned</td>
+                  <td className="py-1 font-medium">
+                    {yoga.total_exercises_assigned ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Exercises Completed</td>
+                  <td className="py-1 font-medium">
+                    {yoga.total_exercises_completed ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Adherence</td>
+                  <td className="py-1 font-medium">
+                    {yoga.adherence_percentage
+                      ? `${Number(yoga.adherence_percentage).toFixed(1)}%`
+                      : '—'}
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            {/* Meditation Summary */}
+            <div className="border rounded-lg p-3">
+              <h4 className="font-semibold mb-2 text-gray-700">
+                🧘‍♀️ Meditation
+              </h4>
+              <table className="w-full text-sm">
+                <tr>
+                  <td className="py-1 text-gray-600">Sessions Assigned</td>
+                  <td className="py-1 font-medium">
+                    {meditation.total_sessions_assigned ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Sessions Completed</td>
+                  <td className="py-1 font-medium">
+                    {meditation.total_sessions_completed ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Sessions Missed</td>
+                  <td className="py-1 font-medium">
+                    {meditation.total_sessions_missed ?? 0}
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Total Duration</td>
+                  <td className="py-1 font-medium">
+                    {meditation.total_duration_seconds ?? 0}s
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Avg Duration</td>
+                  <td className="py-1 font-medium">
+                    {meditation.avg_duration_seconds ?? '—'}s
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-600">Completion Rate</td>
+                  <td className="py-1 font-medium">
+                    {meditation.completion_rate
+                      ? `${Number(meditation.completion_rate).toFixed(1)}%`
+                      : '—'}
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          {/* Daily Activity Breakdown */}
+          <div>
+            <h4 className="font-semibold mb-2 text-gray-700">
+              📅 Daily Activity Breakdown
+            </h4>
+            <table className="w-full border border-collapse text-sm">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border px-2 py-1 text-left">Date</th>
+                  <th className="border px-2 py-1 text-left">Day</th>
+                  <th className="border px-2 py-1 text-left">Diet</th>
+                  <th className="border px-2 py-1 text-left">Workout</th>
+                  <th className="border px-2 py-1 text-left">Yoga</th>
+                  <th className="border px-2 py-1 text-left">Meditation</th>
+                </tr>
+              </thead>
+              <tbody>
+                {report.daily_breakdown?.map((day: any) => {
+                  const getActivityStatus = (activity: any) => {
+                    const total =
+                      (activity.assigned || 0) + (activity.upcoming || 0)
+                    const completed = activity.completed || 0
+                    if (total === 0) return '—'
+                    const rate = (completed / total) * 100
+                    return `${completed}/${total} (${rate.toFixed(0)}%)`
+                  }
+
+                  return (
+                    <tr key={day.date}>
+                      <td className="border px-2 py-1">{day.date}</td>
+                      <td className="border px-2 py-1">Day {day.day_number}</td>
+                      <td className="border px-2 py-1">
+                        {getActivityStatus(day.diet)}
+                      </td>
+                      <td className="border px-2 py-1">
+                        {getActivityStatus(day.workout)}
+                      </td>
+                      <td className="border px-2 py-1">
+                        {getActivityStatus(day.yoga)}
+                      </td>
+                      <td className="border px-2 py-1">
+                        {getActivityStatus(day.meditation)}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
       <div
         ref={recipePageRef}
