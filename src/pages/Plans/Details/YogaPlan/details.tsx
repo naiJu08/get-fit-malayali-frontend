@@ -8,7 +8,6 @@ import {
   getYogaPlanDetails,
   useAddYogaExercise,
   useAddYogaExercises,
-  deleteYogaPlanExercise,
 } from './api'
 import { TabContainer } from '../../../../components/common'
 import Tab from '../../../../components/common/tab/Tab'
@@ -251,7 +250,6 @@ export default function YogaPlanDetails() {
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
-  const [prefillsLocked, setPrefillsLocked] = useState(false)
   const canReorderYogas = selectedWorkouts.length > 1
   const [autoSelectEnabled, setAutoSelectEnabled] = useState(false)
   const [categoryFilter, setCategoryFilter] = useState<string>('')
@@ -343,16 +341,6 @@ export default function YogaPlanDetails() {
     Array.isArray(yogas) &&
     yogas.length > 0 &&
     yogas.every((item: any) => isSelected(item?.id))
-  const hasVisibleSelection =
-    Array.isArray(yogas) && yogas.some((item: any) => isSelected(item?.id))
-
-  const assignedYogaIds = new Set(
-    Array.isArray(yp?.exercises)
-      ? yp.exercises
-          .map((ex: any) => ex?.yoga_id || ex?.yoga?.id || null)
-          .filter((exId: any) => exId !== null && exId !== undefined)
-      : []
-  )
   const [videoDurations, setVideoDurations] = useState<Record<string, number>>(
     {}
   )
@@ -437,30 +425,14 @@ export default function YogaPlanDetails() {
 
     const hasPrefills = submittedWorkouts.length > 0
 
-    if (!prefillsLocked && selectedWorkouts.length === 0 && hasPrefills) {
+    if (hasPrefills) {
       setSelectedWorkouts(submittedWorkouts)
-      if (autoSelectEnabled) {
-        setAutoSelectEnabled(false)
-      }
-      return
-    }
-
-    if (hasPrefills && autoSelectEnabled) {
       setAutoSelectEnabled(false)
-    } else if (
-      !hasPrefills &&
-      selectedWorkouts.length === 0 &&
-      !autoSelectEnabled
-    ) {
+    } else {
+      setSelectedWorkouts([])
       setAutoSelectEnabled(true)
     }
-  }, [
-    assignOpen,
-    submittedWorkouts,
-    selectedWorkouts.length,
-    autoSelectEnabled,
-    prefillsLocked,
-  ])
+  }, [assignOpen])
 
   useEffect(() => {
     if (!assignOpen) {
@@ -526,18 +498,6 @@ export default function YogaPlanDetails() {
     if (!yp?.id || selectedWorkouts.length === 0) return
     setAssigning(true)
     try {
-      const selectedIds = new Set(
-        selectedWorkouts
-          .map((w: any) => w?.id)
-          .filter((x: any) => x !== null && x !== undefined)
-      )
-      const toRemove = (
-        Array.from(assignedYogaIds) as (string | number)[]
-      ).filter((exId) => !selectedIds.has(exId))
-      if (toRemove.length > 0) {
-        await deleteYogaPlanExercise(yp.id, toRemove)
-      }
-
       // Mirror workout-plan behavior: treat the checked list as the source of truth
       // (already assigned + newly checked), in the visual order.
       const items = selectedWorkouts
@@ -623,7 +583,6 @@ export default function YogaPlanDetails() {
   const handleUnselectAll = () => {
     if (selectedWorkouts.length === 0) return
     setAutoSelectEnabled(false)
-    setPrefillsLocked(true)
     setSelectedWorkouts([])
   }
 
@@ -703,7 +662,6 @@ export default function YogaPlanDetails() {
           setAssignOpen(false)
           setCategoryFilter('')
           setAutoSelectEnabled(false)
-          setPrefillsLocked(false)
           setSelectedWorkouts(submittedWorkouts)
         }}
         className="w-screen max-w-[100vw]"
@@ -773,7 +731,7 @@ export default function YogaPlanDetails() {
                   type="button"
                   className="px-2 py-1 border rounded text-xs disabled:opacity-50"
                   onClick={handleUnselectAll}
-                  disabled={!hasVisibleSelection}
+                  disabled={selectedWorkouts.length === 0}
                 >
                   Unselect All
                 </button>
