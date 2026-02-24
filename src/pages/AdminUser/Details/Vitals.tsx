@@ -281,7 +281,7 @@ export default function Vitals({
                     <span>Water Intake</span>
                   </div>
                   <div className="mt-1 text-gray-800 font-semibold text-center">
-                    {`${row.water_intake} L`}
+                    {`${row.water_intake} G`}
                   </div>
                 </div>
               )}

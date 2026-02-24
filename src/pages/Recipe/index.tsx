@@ -77,6 +77,7 @@ export default function Recipe() {
       ...pageParams,
       page: 1,
       search: '',
+      filters: {},
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, setPageParams])
