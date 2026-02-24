@@ -109,7 +109,14 @@ export default function DetailsInfo({
                   label="Medical Conditions"
                   value={user?.medical_conditions}
                 />
-                <DetailItem label="Nationality" value={user?.ethnicity} />
+                <DetailItem
+                  label="Food Allergies"
+                  value={user?.food_allergies}
+                />
+                <DetailItem
+                  label="Nationality"
+                  value={capitalizeWord(user?.ethnicity)}
+                />
               </>
             )}
             <DetailItem label="Status" value={mapStatus(user?.status)} />

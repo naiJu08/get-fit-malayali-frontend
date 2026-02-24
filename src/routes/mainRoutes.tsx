@@ -377,6 +377,14 @@ export default function MainRoutes() {
             <SubscriptionDetailsMain />
           </UserRoute>
         }
+        path="/subscriptions/:id/additional-information"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
         path="/subscriptions/:id/reminders"
       />
       <Route

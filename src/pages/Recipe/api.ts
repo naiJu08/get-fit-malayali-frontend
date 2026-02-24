@@ -1,8 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getData, postData, updateData } from '../../apis/api.helpers'
+import {
+  deleteData,
+  getData,
+  postData,
+  updateData,
+} from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import { QueryParams } from '../../common/types'
-import { parseQueryParams } from '../../utilities/parsers'
+import { getErrorMessage, parseQueryParams } from '../../utilities/parsers'
 import { useSnackbarManager } from '../../components/common/snackbar'
 
 const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
@@ -63,6 +68,33 @@ export const useUpdateRecipe = () => {
       },
     }
   )
+}
+
+export const deleteRecipe = (id: string | number) => {
+  return deleteData(`${apiUrl.RECIPES}/${id}`)
+}
+
+export const useDeleteRecipe = () => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
+
+  return useMutation((id: string | number) => deleteRecipe(id), {
+    onSuccess: () => {
+      enqueueSnackbar('Recipe deleted successfully', { variant: 'success' })
+      queryClient.invalidateQueries({ queryKey: ['recipes_list'] })
+    },
+    onError: (error: any) => {
+      const apiErrors = error?.response?.data?.errors
+      const apiMessage = error?.response?.data?.message
+      const normalizedMessage = Array.isArray(apiErrors)
+        ? getErrorMessage(apiErrors)
+        : getErrorMessage(apiMessage || error?.message)
+
+      enqueueSnackbar(normalizedMessage || 'Failed to delete recipe', {
+        variant: 'error',
+      })
+    },
+  })
 }
 
 export const getRecipeDetails = async (id: string | number) => {

@@ -30,25 +30,49 @@ export default function CreateRecipe({
   rowData,
   // formKey,
 }: Props) {
+  const toTitleCase = (value?: string | null) => {
+    if (!value) return ''
+    return value
+      .split(' ')
+      .map((word) =>
+        word
+          ? `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`
+          : word
+      )
+      .join(' ')
+  }
+
   const getDefaultValues = () => {
+    const coerceNumberOrEmpty = (value: unknown) => {
+      return value === undefined || value === null || value === '' ? '' : value
+    }
+    const coerceId = (value: unknown) => {
+      if (value === undefined || value === null || value === '')
+        return undefined
+      const parsed = Number(value)
+      return Number.isNaN(parsed) ? undefined : parsed
+    }
+
     if (edit && rowData) {
       return {
-        name: rowData?.name ?? '',
-        description: rowData?.description ?? '',
-        preparation_notes: rowData?.preparation_notes ?? '',
-        meal_category: rowData?.meal_category ?? '',
-        meal_category_id: rowData?.meal_category_id ?? undefined,
-        serving_unit: rowData?.serving_unit ?? '',
-        calories: rowData?.nutrition?.calories ?? rowData?.calories ?? 0,
-        protein: rowData?.nutrition?.protein ?? 0,
-        carbs: rowData?.nutrition?.carbs ?? 0,
-        fat: rowData?.nutrition?.fat ?? 0,
-        fiber: rowData?.nutrition?.fiber ?? 0,
+        name: toTitleCase(rowData?.name) ?? '',
+        description: toTitleCase(rowData?.description) ?? '',
+        preparation_notes: toTitleCase(rowData?.preparation_notes) ?? '',
+        meal_category: toTitleCase(rowData?.meal_category),
+        meal_category_id: coerceId(rowData?.meal_category_id),
+        serving_unit: toTitleCase(rowData?.serving_unit) ?? '',
+        calories: coerceNumberOrEmpty(
+          rowData?.nutrition?.calories ?? rowData?.calories
+        ),
+        protein: coerceNumberOrEmpty(rowData?.nutrition?.protein),
+        carbs: coerceNumberOrEmpty(rowData?.nutrition?.carbs),
+        fat: coerceNumberOrEmpty(rowData?.nutrition?.fat),
+        fiber: coerceNumberOrEmpty(rowData?.nutrition?.fiber),
         ingredients: Array.isArray(rowData?.ingredients)
           ? rowData.ingredients.map((ing: any) => ({
-              name: ing?.name ?? '',
+              name: toTitleCase(ing?.name) ?? '',
               quantity: ing?.quantity ?? 0,
-              unit: ing?.unit ?? '',
+              unit: toTitleCase(ing?.unit) ?? '',
             }))
           : [],
         image: rowData?.image_url ?? '',
@@ -62,11 +86,11 @@ export default function CreateRecipe({
       meal_category: '',
       meal_category_id: undefined as any,
       serving_unit: '',
-      calories: 0 as any,
-      protein: 0 as any,
-      carbs: 0 as any,
-      fat: 0 as any,
-      fiber: 0 as any,
+      calories: '' as any,
+      protein: '' as any,
+      carbs: '' as any,
+      fat: '' as any,
+      fiber: '' as any,
       ingredients: [
         {
           name: '',
@@ -84,7 +108,14 @@ export default function CreateRecipe({
     reValidateMode: 'onChange',
     defaultValues: getDefaultValues(),
   })
-  const { handleSubmit, control } = methods
+  useEffect(() => {
+    methods.reset(getDefaultValues())
+  }, [edit, rowData, methods])
+  const {
+    handleSubmit,
+    control,
+    formState: { errors },
+  } = methods
   const { mutate: createRecipeMutate } = useCreateRecipe()
   const { mutate: updateRecipeMutate } = useUpdateRecipe()
   const queryClient = useQueryClient()
@@ -115,6 +146,23 @@ export default function CreateRecipe({
     id: c.id,
     name: c.name,
   }))
+
+  useEffect(() => {
+    if (!edit) return
+    const currentId = methods.getValues('meal_category_id')
+    if (currentId != null && currentId !== undefined) return
+    const currentName = methods.getValues('meal_category')
+    if (!currentName) return
+    const matchingOption = mealCategoryOptions.find(
+      (option: any) => option?.name?.toLowerCase() === currentName.toLowerCase()
+    )
+    if (matchingOption?.id != null) {
+      methods.setValue('meal_category_id', matchingOption.id, {
+        shouldDirty: false,
+        shouldValidate: true,
+      })
+    }
+  }, [edit, mealCategoryOptions, methods])
 
   const selectedMealCategoryId = methods.watch('meal_category_id') as
     | number
@@ -230,6 +278,19 @@ export default function CreateRecipe({
       return Number.isNaN(n) ? 0 : n
     }
 
+    const isEmpty = (value: any) =>
+      value === undefined || value === null || value === ''
+    const macros = [protein, carbs, fat, fiber]
+    const allEmpty = macros.every(isEmpty)
+
+    if (allEmpty) {
+      methods.setValue('calories', '' as any, {
+        shouldValidate: false,
+        shouldDirty: false,
+      })
+      return
+    }
+
     const total =
       toNumber(protein) + toNumber(carbs) + toNumber(fat) + toNumber(fiber)
 
@@ -246,6 +307,7 @@ export default function CreateRecipe({
       type: 'text',
       placeholder: 'Enter recipe name',
       required: true,
+      maxLength: 200,
     },
     {
       name: 'meal_category',
@@ -315,8 +377,7 @@ export default function CreateRecipe({
       label: 'Preparation Notes',
       type: 'textarea',
       placeholder: 'Enter preparation notes (optional)',
-
-      required: false,
+      required: true,
     },
     {
       name: 'description',
@@ -332,7 +393,7 @@ export default function CreateRecipe({
       id: 'image',
       type: 'file_upload',
       placeholder: 'Upload recipe image',
-      required: false,
+      required: true,
       accept: 'image/*',
       supportedExtensions: [
         'image/png',
@@ -435,9 +496,11 @@ export default function CreateRecipe({
                             label="Name"
                             type="text"
                             placeholder="Ingredient name"
+                            maxLength={200}
                             value={value ?? ''}
                             onChange={onChange as any}
                             required
+                            errors={errors}
                           />
                         )}
                       />
@@ -453,6 +516,7 @@ export default function CreateRecipe({
                             label="Quantity"
                             type="number"
                             placeholder="e.g. 800"
+                            maxLength={10}
                             value={
                               value === undefined ||
                               value === null ||
@@ -463,6 +527,7 @@ export default function CreateRecipe({
                             onChange={onChange as any}
                             required
                             allowPositiveOnly
+                            errors={errors}
                           />
                         )}
                       />
@@ -475,12 +540,14 @@ export default function CreateRecipe({
                           <TextField
                             id={`ingredients.${index}.unit`}
                             name={`ingredients.${index}.unit`}
+                            maxLength={10}
                             label="Unit"
                             type="text"
                             placeholder="e.g. grams"
                             value={value ?? ''}
                             onChange={onChange as any}
                             required
+                            errors={errors}
                           />
                         )}
                       />

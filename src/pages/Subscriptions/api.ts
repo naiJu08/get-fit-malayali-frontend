@@ -36,6 +36,14 @@ export const useSubscriptions = (input: QueryParams) => {
 export const getSubscriptionDetails = (id: string) =>
   getData(`${apiUrl.SUBSCRIPTIONS}/${id}`)
 
+export const getSubscriptionAdditionalInfo = (
+  userId: string | number,
+  subscriptionId: string | number
+) =>
+  getData(
+    `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data?subscription_id=${subscriptionId}`
+  )
+
 export const useSubscriptionDetails = (id?: string, enabled = true) => {
   return useQuery(
     ['subscription_details', id],

@@ -93,9 +93,16 @@ export default function CreateMeal({
       })
     }
   }, [selectedMealCategoryId, methods, edit])
-  const capitalizeFirstLetter = (value?: string | null) => {
+  const toTitleCase = (value?: string | null) => {
     if (!value) return ''
-    return value.charAt(0).toUpperCase() + value.slice(1)
+    return value
+      .split(' ')
+      .map((word) =>
+        word
+          ? `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`
+          : word
+      )
+      .join(' ')
   }
 
   const onSubmit = (values: MealSchema) => {
@@ -115,11 +122,10 @@ export default function CreateMeal({
     // }
     const payload = {
       meal: {
-        name: capitalizeFirstLetter(values.name),
+        name: toTitleCase(values.name),
         meal_time: values.meal_time,
         meal_category_id: values.meal_category_id,
         serving_unit: values.serving_unit,
-        default_serving_quantity: values.default_serving_quantity,
         per_serving_calories: values.per_serving_calories,
         per_serving_protein: values.per_serving_protein,
         per_serving_carbs: values.per_serving_carbs,
@@ -153,12 +159,11 @@ export default function CreateMeal({
   useEffect(() => {
     if (isDrawerOpen && edit && rowData) {
       reset({
-        name: rowData?.name ?? '',
+        name: toTitleCase(rowData?.name) ?? '',
         meal_time: rowData?.meal_time ?? '',
         meal_category: rowData?.meal_category ?? '',
         meal_category_id: rowData?.meal_category_id ?? undefined,
         serving_unit: rowData?.serving_unit ?? '',
-        default_serving_quantity: rowData?.default_serving_quantity ?? 1,
         per_serving_calories:
           rowData?.per_serving?.calories ?? rowData?.per_serving_calories ?? 0,
         per_serving_protein:
@@ -178,7 +183,6 @@ export default function CreateMeal({
         meal_category: '',
         meal_category_id: undefined,
         serving_unit: '',
-        default_serving_quantity: '' as any,
         per_serving_calories: '' as any,
         per_serving_protein: '' as any,
         per_serving_carbs: '' as any,
@@ -248,14 +252,6 @@ export default function CreateMeal({
       data: servingUnitOptions,
     },
     {
-      name: 'default_serving_quantity',
-      label: 'Serving Quantity',
-      type: 'text',
-      placeholder: 'e.g. 2',
-      required: true,
-      allowPositiveOnly: true,
-    },
-    {
       name: 'per_serving_protein',
       label: 'Protein',
       type: 'text',
@@ -285,9 +281,9 @@ export default function CreateMeal({
     },
     {
       name: 'per_serving_calories',
-      label: 'TotalCalories',
+      label: 'Total Calories',
       type: 'text',
-      required: false,
+      required: true,
       allowPositiveOnly: true,
     },
   ]

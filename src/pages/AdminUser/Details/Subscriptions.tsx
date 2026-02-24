@@ -3670,7 +3670,10 @@ function formatYogaName(value?: any) {
     value === null || value === undefined || value === ''
       ? 'Untitled'
       : String(value)
-  return raw.slice(0, 1).toUpperCase() + raw.slice(1).toLowerCase()
+
+  return raw
+    .toLowerCase()
+    .replace(/\b\w+/g, (word) => word.slice(0, 1).toUpperCase() + word.slice(1))
 }
 
 function getYogaDurationLabel(item: any) {

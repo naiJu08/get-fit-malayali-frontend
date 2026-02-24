@@ -129,7 +129,7 @@ export default function UserDetails() {
             { id: 'vitals', label: 'Vitals' },
             { id: 'reminders', label: 'Reminder settings' },
             { id: 'recipes', label: 'Recipes' },
-            { id: 'additional-info', label: 'Nutritional Assessment' },
+            { id: 'additional-info', label: 'Nutritional assessment' },
             ...(loginRole !== 'nutritionist'
               ? [{ id: 'reports', label: 'Reports' }]
               : []),
@@ -217,7 +217,7 @@ export default function UserDetails() {
           )}
           {!isNutritionist && (
             <Tab id="additional-info">
-              <AdditionalInfo user={user} />
+              <AdditionalInfo user={user} subscriptionId={subscriptionId} />
             </Tab>
           )}
           {!isNutritionist && loginRole !== 'nutritionist' && (

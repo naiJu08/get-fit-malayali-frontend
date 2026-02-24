@@ -1,3 +1,4 @@
+import moment from 'moment'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { DialogModal } from '../../../components/common'
@@ -87,6 +88,12 @@ const safeValue = (value: any) => {
     return `${value}`
   }
   return String(value)
+}
+
+const formatDate = (value?: any) => {
+  if (!value) return '—'
+  const parsed = moment(value)
+  return parsed.isValid() ? parsed.format('DD-MM-YYYY') : String(value)
 }
 
 const getHealthColor = (percentage: number, reverse = false) => {
@@ -1577,10 +1584,13 @@ export default function Reports({
               </div>
               <div>
                 <span className="font-medium text-gray-700">Duration :</span>{' '}
-                {subscription?.start_date} to {subscription?.end_date}
+                {formatDate(subscription?.start_date)} to{' '}
+                {formatDate(subscription?.end_date)}
               </div>
               <div>
-                <span className="font-medium text-gray-700">Status :</span>{' '}
+                <span className="font-medium text-gray-700">
+                  Subscription Status :
+                </span>{' '}
                 {subscription?.status
                   ? subscription.status.charAt(0).toUpperCase() +
                     subscription.status.slice(1)
@@ -1699,12 +1709,12 @@ export default function Reports({
               <tr className="bg-gray-50">
                 <td className="px-4 py-3 text-gray-500">Start Date</td>
                 <td className="px-4 py-3 font-semibold text-gray-800">
-                  {subscription?.start_date || '—'}
+                  {formatDate(subscription?.start_date)}
                 </td>
 
                 <td className="px-4 py-3 text-gray-500">End Date</td>
                 <td className="px-4 py-3 font-semibold text-gray-800">
-                  {subscription?.end_date || '—'}
+                  {formatDate(subscription?.end_date)}
                 </td>
               </tr>
             </tbody>

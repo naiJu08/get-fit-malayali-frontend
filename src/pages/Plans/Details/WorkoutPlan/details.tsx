@@ -998,6 +998,62 @@ export default function WorkoutPlanDetails() {
     [groupedSelectedWorkouts]
   )
 
+  const allVisibleSelected = useMemo(() => {
+    if (!Array.isArray(workouts) || workouts.length === 0) return false
+    if (!Array.isArray(selectedWorkouts) || selectedWorkouts.length === 0)
+      return false
+
+    const selectedKeys = new Set(
+      selectedWorkouts
+        .map((item) => {
+          const id = getWorkoutSelectableId(item)
+          return id == null ? null : String(id)
+        })
+        .filter(Boolean) as string[]
+    )
+
+    return workouts.every((item: any) => {
+      const id = getWorkoutSelectableId(item)
+      if (id == null) return true
+      return selectedKeys.has(String(id))
+    })
+  }, [workouts, selectedWorkouts])
+
+  const handleSelectAllVisibleWorkouts = useCallback(() => {
+    if (!Array.isArray(workouts) || workouts.length === 0) return
+
+    const additions = collectAllVisibleWorkouts(workouts)
+    if (!additions.length) return
+
+    userSelectionTouchedRef.current = true
+    setSelectedWorkouts((prev) => {
+      const map = new Map<string, any>()
+      prev.forEach((item) => {
+        const id = getWorkoutSelectableId(item)
+        if (id == null) return
+        map.set(String(id), item)
+      })
+
+      additions.forEach((item) => {
+        const id = getWorkoutSelectableId(item)
+        if (id == null) return
+        const key = String(id)
+        if (!map.has(key)) {
+          map.set(key, item)
+        }
+      })
+
+      return Array.from(map.values())
+    })
+  }, [workouts, collectAllVisibleWorkouts])
+
+  const handleUnselectAllWorkouts = useCallback(() => {
+    if (!selectedWorkouts.length) return
+    userSelectionTouchedRef.current = true
+    setSelectedWorkouts([])
+    setWorkoutCounts({})
+  }, [selectedWorkouts.length])
+
   const isSelected = (id: any) => selectedWorkouts.some((w) => w?.id === id)
   const toggleSelected = (w: any) => {
     userSelectionTouchedRef.current = true
@@ -1395,19 +1451,44 @@ export default function WorkoutPlanDetails() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-[11px] text-gray-600 self-end justify-end w-full">
-              <span className="inline-flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                Repetitions
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                Intensity
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                Duration
-              </span>
+            <div className="flex flex-wrap items-center gap-4 text-[11px] text-gray-600 self-end justify-between w-full">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <button
+                  type="button"
+                  className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleSelectAllVisibleWorkouts}
+                  disabled={
+                    workoutsLoading ||
+                    !Array.isArray(workouts) ||
+                    workouts.length === 0 ||
+                    allVisibleSelected
+                  }
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handleUnselectAllWorkouts}
+                  disabled={selectedWorkouts.length === 0}
+                >
+                  Unselect All
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-4">
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                  Repetitions
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  Intensity
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  Duration
+                </span>
+              </div>
             </div>
             {workoutsLoading && (
               <div className="text-xs text-gray-500 p-2">Loading...</div>

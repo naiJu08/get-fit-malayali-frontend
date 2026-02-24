@@ -1,6 +1,13 @@
 import moment from 'moment'
 import { getNestedProperty } from '../../utilities/parsers'
 
+const toTitleCase = (value: any) => {
+  if (value === null || value === undefined) return ''
+  const str = String(value)
+  if (!str) return ''
+  return str.replace(/\b([a-zA-Z])/g, (match) => match.toUpperCase())
+}
+
 const defaultColumnProps = {
   sortable: false,
   resizable: true,
@@ -51,15 +58,22 @@ export const getRecipeColumns = (
     }
   }
 
+  const nameField = options?.userMode ? 'recipe.name' : 'name'
+
   return [
     {
       title: 'Name',
-      field: options?.userMode ? 'recipe.name' : 'name',
+      field: nameField,
       ...defaultColumnProps,
       fixed: true,
-      renderCell: options?.userMode
-        ? createRenderCell('recipe.name')
-        : createRenderCell('name'),
+      renderCell: (row: any) => {
+        const raw = getNestedProperty(row, nameField)
+        const formatted = toTitleCase(raw)
+        return {
+          cell: formatted,
+          toolTip: formatted,
+        }
+      },
       customCell: true,
       sortKey: 'name',
       link: true,

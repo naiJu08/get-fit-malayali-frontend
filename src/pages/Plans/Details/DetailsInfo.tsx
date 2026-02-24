@@ -51,6 +51,7 @@ export default function DetailsInfo({
   onEdit?: () => void
 }) {
   const canEdit = typeof onEdit === 'function' && Boolean(plan?.id)
+
   return (
     <>
       {loading && (
@@ -102,22 +103,41 @@ export default function DetailsInfo({
               label="Subscribers"
               value={safeStr(plan?.subscribers_count)}
             />
-            <div className="border rounded-lg p-3 bg-white max-h-[150px]">
-              <div className="text-xs text-gray-500 mb-1">Thumbnail</div>
-              <div className="text-sm">
-                {plan?.thumbnail_url ? (
-                  <div className="w-[100px] h-[100px] overflow-hidden rounded-md border">
-                    <img
-                      className="w-full h-full object-cover"
-                      src={plan.thumbnail_url}
-                      alt="Plan thumbnail"
-                    />
+            {(() => {
+              const raw = plan?.thumbnail_url
+              const t = typeof raw === 'string' ? raw.trim() : ''
+              const isUrl = typeof t === 'string' && /^https?:\/\/\S+$/i.test(t)
+              if (!isUrl) return null
+
+              return (
+                <div className="">
+                  <div className="border rounded-lg p-3 bg-white ">
+                    <div className="text-xs text-gray-500 mb-2">Thumbnail</div>
+                    <div className="relative w-64">
+                      <img
+                        src={t}
+                        alt="Yoga thumbnail"
+                        className="w-[7.25rem] h-[7.25rem] object-cover rounded"
+                        onError={(e) => {
+                          ;(e.currentTarget as HTMLImageElement).style.display =
+                            'none'
+                        }}
+                      />
+                      <div className="mt-2 text-xs">
+                        <a
+                          href={t}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: '#2563eb' }}
+                        >
+                          Open thumbnail
+                        </a>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <span>--</span>
-                )}
-              </div>
-            </div>
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}

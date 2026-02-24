@@ -60,6 +60,7 @@ export default function Subscriptions() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [statusLabel, setStatusLabel] = useState<string>('All')
   const [plansCache, setPlansCache] = useState<Record<string, string>>({})
+  const plansDropdownRef = useRef<{ id: any; value: string }[] | null>(null)
   const location = useLocation()
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
@@ -127,11 +128,24 @@ export default function Subscriptions() {
     }
   }, [filters])
   useEffect(() => {
+    const nextFilters: any = { ...(pageParams?.filters || {}) }
+    const hadPlanFilter = Object.prototype.hasOwnProperty.call(
+      nextFilters,
+      'plan_id'
+    )
+    if (hadPlanFilter) delete nextFilters.plan_id
+
     setPageParams({
       ...pageParams,
       page: 1,
       search: '',
+      filters: nextFilters,
     })
+
+    if (hadPlanFilter) {
+      setPlanIdFilter('')
+      setPlanLabel('All Plans')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, setPageParams])
   const resolvePlanLabel = async (id?: number | string) => {
@@ -511,29 +525,41 @@ export default function Subscriptions() {
     ]
   }
 
-  const getPlansDropdown = async (search: string, pageNum: number) => {
-    const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    params.set('per_page', '1000')
-    if (pageNum) params.set('page', String(pageNum))
-    const url = `${apiUrl.PLANS}?${params.toString()}`
-    const res = await getData(url)
-    const items: any[] = Array.isArray(res)
-      ? (res as any[])
-      : (res?.items ?? res?.plans ?? [])
-    const mapped = items.map((p: any) => ({
-      id: p?.id,
-      value: p?.name ?? p?.plan_name ?? 'Plan',
-    }))
-    // update local cache for instant label setting on selection
-    const nextCache: Record<string, string> = { ...plansCache }
-    for (const it of mapped) {
-      if (it?.id != null) nextCache[String(it.id)] = it.value
+  const getPlansDropdown = useCallback(async (search: string) => {
+    if (!plansDropdownRef.current) {
+      const params = new URLSearchParams()
+      params.set('per_page', '1000')
+      const url = `${apiUrl.PLANS}?${params.toString()}`
+      const res = await getData(url)
+      const items: any[] = Array.isArray(res)
+        ? (res as any[])
+        : (res?.items ?? res?.plans ?? [])
+      const mapped = items.map((p: any) => ({
+        id: p?.id,
+        value: p?.name ?? p?.plan_name ?? 'Plan',
+      }))
+      plansDropdownRef.current = mapped
+      // update local cache for instant label setting on selection
+      setPlansCache((prev) => {
+        const nextCache: Record<string, string> = { ...prev }
+        for (const it of mapped) {
+          if (it?.id != null) nextCache[String(it.id)] = it.value
+        }
+        return nextCache
+      })
     }
-    setPlansCache(nextCache)
+
+    const source = plansDropdownRef.current ?? []
+    const normalizedSearch = search?.trim().toLowerCase()
+    const filtered = normalizedSearch
+      ? source.filter((item) =>
+          item?.value?.toLowerCase().includes(normalizedSearch)
+        )
+      : source
+
     // Prepend an 'All Plans' option so users can clear via the dropdown
-    return [{ id: null, value: 'All Plans' }, ...mapped]
-  }
+    return [{ id: null, value: 'All Plans' }, ...filtered]
+  }, [])
 
   const handleClose = () => {
     setCreateOpen(false)
@@ -748,7 +774,7 @@ export default function Subscriptions() {
               dataRowKey="id"
               toolbar={true}
               search={true}
-              searchPlaceholder="Search Client Name"
+              searchPlaceholder="Search"
               searchValue={pageParams?.search || ''}
               onSearchChange={(val) =>
                 setPageParams({ ...pageParams, search: val, page: 1 })

@@ -124,7 +124,12 @@ export const getColumns = ({
       renderCell: (row: any) => {
         const value = getNestedProperty(row, 'name')
         const raw = typeof value === 'string' ? value : ''
-        const display = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : ''
+        const display = raw
+          ? raw.replace(
+              /\w\S*/g,
+              (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+            )
+          : ''
         if (!disableNameLink && onNameClick) {
           return {
             cell: (
