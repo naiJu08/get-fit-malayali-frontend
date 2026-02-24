@@ -62,7 +62,7 @@ export default function SubscriptionDetailsMain() {
     { id: 'body', label: 'Body measurements' },
     // { id: 'body-composition', label: 'Body composition' },
     { id: 'vitals', label: 'Vitals' },
-    { id: 'additional-information', label: 'Additional information' },
+    { id: 'additional-information', label: 'Nutritional assessment' },
     { id: 'reminders', label: 'Reminder settings' },
   ] as const
 
@@ -484,11 +484,15 @@ export default function SubscriptionDetailsMain() {
         </Tab>
 
         <Tab id="subscriptions">
-          <SubscriptionUserSubscriptionsTab subscription={subscription} />
+          {activeTab === 'subscriptions' ? (
+            <SubscriptionUserSubscriptionsTab subscription={subscription} />
+          ) : null}
         </Tab>
 
         <Tab id="body">
-          <SubscriptionBodyMeasurementsTab subscription={subscription} />
+          {activeTab === 'body' ? (
+            <SubscriptionBodyMeasurementsTab subscription={subscription} />
+          ) : null}
         </Tab>
 
         {/* <Tab id="body-composition">
@@ -496,15 +500,21 @@ export default function SubscriptionDetailsMain() {
         </Tab> */}
 
         <Tab id="vitals">
-          <SubscriptionVitalsTab subscription={subscription} />
+          {activeTab === 'vitals' ? (
+            <SubscriptionVitalsTab subscription={subscription} />
+          ) : null}
         </Tab>
 
         <Tab id="additional-information">
-          <AdditionalInfoTab subscription={subscription} />
+          {activeTab === 'additional-information' ? (
+            <AdditionalInfoTab subscription={subscription} />
+          ) : null}
         </Tab>
 
         <Tab id="reminders">
-          <ReminderSettings userId={subscription?.user_id} />
+          {activeTab === 'reminders' ? (
+            <ReminderSettings userId={subscription?.user_id} />
+          ) : null}
         </Tab>
       </TabContainer>
     </div>

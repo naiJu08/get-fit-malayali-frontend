@@ -17,6 +17,34 @@ import { useAuthStore } from '../../../../store/authStore'
 import { useDeleteDietPlan, useDietPlans } from './api'
 import DietPlanForm from './create'
 
+const toTitleCase = (value?: string | null) => {
+  if (!value) return ''
+  return value
+    .toString()
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (letter) => letter.toUpperCase())
+}
+
+const normalizeDayKeyParam = (value?: string | null) => {
+  if (!value) return ''
+  const raw = value.toString().trim()
+  if (!raw) return ''
+  if (
+    raw.startsWith('number:') ||
+    raw.startsWith('name:') ||
+    raw.startsWith('plan-')
+  ) {
+    return raw
+  }
+  if (raw.startsWith('day-')) {
+    const num = Number(raw.slice(4))
+    if (Number.isFinite(num) && num > 0) return `number:${num}`
+  }
+  const numeric = Number(raw)
+  if (Number.isFinite(numeric) && numeric > 0) return `number:${numeric}`
+  return `name:${raw.toLowerCase()}`
+}
+
 interface DietPlanTabProps {
   template: any
   loading: boolean
@@ -147,10 +175,10 @@ function DietPlanContent({
 
   const { data, isFetching } = useDietPlans(searchParams)
   const buildDayKey = useCallback((plan: any) => {
-    const base = (plan?.day_name || '').toString().trim().toLowerCase()
-    if (base) return base
-    const numberKey = plan?.day_number ? `day-${plan.day_number}` : ''
+    const numberKey = plan?.day_number ? `number:${plan.day_number}` : ''
     if (numberKey) return numberKey
+    const base = (plan?.day_name || '').toString().trim().toLowerCase()
+    if (base) return `name:${base}`
     return `plan-${plan?.id}`
   }, [])
   const dietPlans = useMemo(
@@ -179,10 +207,41 @@ function DietPlanContent({
     })
     return Array.from(grouped.values())
   }, [dietPlans, buildDayKey])
-  const selectedDayKey = urlSearchParams.get('day') || ''
+  const rawSelectedDayKey = urlSearchParams.get('day') || ''
+  const selectedDayKey = useMemo(
+    () => normalizeDayKeyParam(rawSelectedDayKey),
+    [rawSelectedDayKey]
+  )
   const selectedDayRows = useMemo(() => {
     if (!selectedDayKey) return []
-    return dietPlans.filter((plan: any) => buildDayKey(plan) === selectedDayKey)
+    const primaryMatch = dietPlans.filter(
+      (plan: any) => buildDayKey(plan) === selectedDayKey
+    )
+    if (primaryMatch.length) return primaryMatch
+
+    const numericKeyMatch = selectedDayKey.startsWith('number:')
+      ? Number(selectedDayKey.slice(7))
+      : null
+    const nameKeyMatch = selectedDayKey.startsWith('name:')
+      ? selectedDayKey.slice(5)
+      : ''
+
+    if (Number.isFinite(numericKeyMatch)) {
+      return dietPlans.filter((plan: any) => {
+        const num = Number(plan?.day_number)
+        return Number.isFinite(num) && num === numericKeyMatch
+      })
+    }
+
+    if (nameKeyMatch) {
+      return dietPlans.filter(
+        (plan: any) =>
+          (plan?.day_name || '').toString().trim().toLowerCase() ===
+          nameKeyMatch
+      )
+    }
+
+    return []
   }, [dietPlans, selectedDayKey, buildDayKey])
   const selectedDayMeta = useMemo(() => {
     if (!selectedDayKey) return null
@@ -280,6 +339,25 @@ function DietPlanContent({
 
   const dayColumns: TableColumns[] = useMemo(
     () => [
+      {
+        title: 'Meal Order',
+        field: 'serial',
+        resizable: false,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({
+          cell: (
+            <button
+              type="button"
+              className="text-blue-600 hover:underline"
+              onClick={() => navigate(`/diet_details/${row?.id}`)}
+            >
+              {row?.serial ?? ''}
+            </button>
+          ),
+        }),
+        sortKey: 'serial',
+      },
       {
         title: 'Meal Time',
         field: 'meal_time',
@@ -389,14 +467,22 @@ function DietPlanContent({
         sortKey: 'effective_total_calories',
       },
     ],
-    []
+    [navigate]
   )
 
+  const viewingDayRows = useMemo(() => {
+    if (!selectedDayRows.length) return []
+    return selectedDayRows.map((row: any, index: number) => ({
+      ...row,
+      serial: index + 1,
+    }))
+  }, [selectedDayRows])
+
   const tableColumns = viewingDay ? dayColumns : columns
-  const tableData = viewingDay ? selectedDayRows : aggregatedPlans
+  const tableData = viewingDay ? viewingDayRows : aggregatedPlans
   const tableTitle = viewingDay
-    ? `${selectedDayMeta?.day_name || 'Selected Day'} • Meals`
-    : templateName || 'Diet Plans'
+    ? `${toTitleCase(selectedDayMeta?.day_name || 'Selected Day')} - Meals`
+    : toTitleCase(templateName || 'Diet Plans')
 
   const aggregatedActions = isNutritionist
     ? []
@@ -404,8 +490,8 @@ function DietPlanContent({
         {
           icon: <Icons name="eye" />,
           action: handleViewDay,
-          title: 'View Day',
-          toolTip: 'View Day',
+          title: 'View',
+          toolTip: 'View',
         },
       ]
 
@@ -414,16 +500,16 @@ function DietPlanContent({
         {
           icon: <Icons name="eye" />,
           action: (row: any) => navigate(`/diet_details/${row?.id}`),
-          title: 'View Meal',
-          toolTip: 'View Meal',
+          title: 'View',
+          toolTip: 'View',
         },
       ]
     : [
         {
           icon: <Icons name="eye" />,
           action: (row: any) => navigate(`/diet_details/${row?.id}`),
-          title: 'View Meal',
-          toolTip: 'View Meal',
+          title: 'View',
+          toolTip: 'View',
         },
         {
           icon: <Icons name="edit" />,
@@ -445,7 +531,7 @@ function DietPlanContent({
     <div className="">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          {viewingDay ? (
+          {viewingDay && (
             <>
               {/* <span className="font-semibold text-gray-700">
                 Viewing day: {selectedDayMeta?.day_name || 'Selected Day'}
@@ -461,10 +547,6 @@ function DietPlanContent({
                 Back to all days
               </button>
             </>
-          ) : (
-            <span className="text-gray-600">
-              Select a day to review its meals.
-            </span>
           )}
         </div>
         {!viewingDay &&
@@ -510,6 +592,7 @@ function DietPlanContent({
         rowData={formValues ?? undefined}
         planId={templateId}
         planDurationDays={templateDurationDays}
+        existingPlans={dietPlans}
       />
 
       <ConfirmDeleteModal

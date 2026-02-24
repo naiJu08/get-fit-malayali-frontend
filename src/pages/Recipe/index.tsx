@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { TableColumns } from '../../common/types'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../utilities/parsers'
-import { useRecipes } from './api'
+import { useRecipes, useDeleteRecipe } from './api'
 import { getRecipeColumns } from './columns'
 import { useLocation, useNavigate } from 'react-router-dom'
 import CreateRecipe from './create'
 import { checkPermissions } from '../../layout/store'
 import SmartTable from '../../components/common/table/SmartTable'
 import { calcWindowHeight } from '../../utilities/calcHeight'
+import { useMealCategories } from '../Meals/api'
+import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 
 export default function Recipe() {
   const [columns, setColumns] = useState<TableColumns[]>([])
@@ -18,16 +20,31 @@ export default function Recipe() {
   const [edit, setEdit] = useState(false)
   const [rowData, setRowData] = useState<any>()
   const [formKey, setFormKey] = useState<string>('')
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [recipeToDelete, setRecipeToDelete] = useState<any>(null)
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const navigate = useNavigate()
   const location = useLocation()
-  const { page, per_page, search, ordering } = pageParams
+  const { page, per_page, search, ordering, filters = {} } = pageParams
+  const categoryFilter = (filters as any)?.category ?? ''
   const searchParams = {
     page,
     per_page: Number(per_page ?? 10),
     search,
     ordering,
+    category: categoryFilter || undefined,
   }
+
+  const { data: mealCategoriesData, isLoading: categoriesLoading } =
+    useMealCategories()
+  const categoryOptions = useMemo(() => {
+    const rawCategories =
+      (mealCategoriesData as any)?.meal_categories ?? mealCategoriesData
+    if (!Array.isArray(rawCategories)) return []
+    return rawCategories
+      .map((item: any) => item?.name ?? item)
+      .filter((name: any) => typeof name === 'string' && name.trim().length)
+  }, [mealCategoriesData])
 
   const headerProps = { actionTitle: 'Create Recipe' }
   const openDrawer = () => {
@@ -46,6 +63,7 @@ export default function Recipe() {
   }
 
   const { data, isFetching } = useRecipes(searchParams)
+  const deleteRecipeMutation = useDeleteRecipe()
 
   useEffect(() => {
     setColumns(
@@ -93,6 +111,33 @@ export default function Recipe() {
     })
   }
 
+  const handleCategoryChange = (value: string) => {
+    const nextFilters = { ...(filters || {}) }
+    if (value) {
+      nextFilters.category = value
+    } else {
+      delete (nextFilters as any).category
+    }
+    setPageParams({ ...pageParams, filters: nextFilters, page: 1 })
+  }
+
+  const handleDeleteRecipe = (row: any) => {
+    if (!row?.id) return
+    setRecipeToDelete(row)
+    setDeleteModalOpen(true)
+  }
+
+  const confirmDelete = () => {
+    if (!recipeToDelete?.id) return
+    deleteRecipeMutation.mutate(recipeToDelete.id, {
+      onSuccess: () => {
+        handleRefresh()
+        setDeleteModalOpen(false)
+        setRecipeToDelete(null)
+      },
+    } as any)
+  }
+
   return (
     <div>
       <ListingHeader
@@ -106,12 +151,33 @@ export default function Recipe() {
           data={data?.recipes ?? []}
           dataRowKey="id"
           toolbar
+          toolbarExtra={
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-600">Category</label>
+                <select
+                  className="w-64 border border-gray-300 p-[11px] rounded-xl bg-white text-xs outline-none focus:outline-none focus:ring-0 focus:border-gray-300 disabled:bg-gray-100"
+                  value={categoryFilter}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  disabled={categoriesLoading}
+                >
+                  <option value="">All</option>
+                  {categoryOptions.map((name: string) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          }
           height={
             data?.recipes?.length === 0
               ? calcWindowHeight(218)
               : calcWindowHeight(150)
           }
-          // search
+          search
+          searchPlaceholder="Search Recipe Name"
           isLoading={isFetching}
           sortType={pageParams.sortType}
           sortColumn={pageParams.sortColumn}
@@ -123,15 +189,21 @@ export default function Recipe() {
             {
               icon: <Icons name="eye" />,
               action: (row: any) => navigate(`/recipe/${row?.id}`),
-              title: 'view',
+              title: 'View',
               toolTip: 'View',
             },
 
             {
               icon: <Icons name="edit" />,
               action: (row: any) => openEdit(row),
-              title: 'edit',
+              title: 'Edit',
               toolTip: 'Edit',
+            },
+            {
+              icon: <Icons name="delete" />,
+              action: (row: any) => handleDeleteRecipe(row),
+              title: 'Delete',
+              toolTip: 'Delete',
             },
           ]}
           paginationProps={{
@@ -149,7 +221,7 @@ export default function Recipe() {
           }}
           searchValue={pageParams?.search}
           onSearchChange={(val: string) =>
-            setPageParams({ ...pageParams, search: val })
+            setPageParams({ ...pageParams, search: val, page: 1 })
           }
           onSearch={(key?: string) =>
             setPageParams({ ...pageParams, search: String(key ?? ''), page: 1 })
@@ -171,6 +243,23 @@ export default function Recipe() {
         edit={edit}
         rowData={rowData}
         formKey={formKey}
+      />
+      <ConfirmDeleteModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          if (!deleteRecipeMutation.isLoading) {
+            setDeleteModalOpen(false)
+            setRecipeToDelete(null)
+          }
+        }}
+        onConfirm={confirmDelete}
+        loading={deleteRecipeMutation.isLoading}
+        title={'Are you sure?'}
+        subTitle={
+          'Do you really want to delete this recipe? This action cannot be undone.'
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
       />
     </div>
   )

@@ -81,7 +81,10 @@ export const yogaOverridesBulk = (
 }
 
 export const deActivateAdmin = (id?: string) => {
-  return updateFromData(`${apiUrl.ADMIN_USER}/${id}/status`, {})
+  return postData(`${apiUrl.ADMIN_USER}/${id}/deactivate`, {})
+}
+export const activateAdmin = (id?: string) => {
+  return postData(`${apiUrl.ADMIN_USER}/${id}/activate`, {})
 }
 export const deleteAdmin = (id?: string) => {
   return deleteData(`${apiUrl.ADMIN_USER}/${id}`)
@@ -472,27 +475,50 @@ export const useSubscriptionReport = (
   )
 }
 
-export const getUserAdditionalData = (userId: string | number) => {
-  return getData(`${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data`)
+export const getUserAdditionalData = (
+  userId: string | number,
+  subscriptionId?: string | number | null
+) => {
+  const baseUrl = `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data`
+  const url =
+    subscriptionId !== undefined &&
+    subscriptionId !== null &&
+    subscriptionId !== ''
+      ? `${baseUrl}?subscription_id=${subscriptionId}`
+      : baseUrl
+  return getData(url)
 }
 
 export const saveUserAdditionalData = (
   userId: string | number,
-  payload: Record<string, any>
+  payload: Record<string, any>,
+  subscriptionId?: string | number | null
 ) => {
-  return postData(`${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data`, {
+  const baseUrl = `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data`
+  const url =
+    subscriptionId !== undefined &&
+    subscriptionId !== null &&
+    subscriptionId !== ''
+      ? `${baseUrl}?subscription_id=${subscriptionId}`
+      : baseUrl
+  return postData(url, {
     additional_data: payload,
   })
 }
 
 export const updateUserAdditionalData = (
   userId: string | number,
-  payload: Record<string, any>
+  payload: Record<string, any>,
+  subscriptionId?: string | number | null
 ) => {
-  return updateData(
-    `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data`,
-    {
-      additional_data: payload,
-    }
-  )
+  const baseUrl = `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data`
+  const url =
+    subscriptionId !== undefined &&
+    subscriptionId !== null &&
+    subscriptionId !== ''
+      ? `${baseUrl}?subscription_id=${subscriptionId}`
+      : baseUrl
+  return updateData(url, {
+    additional_data: payload,
+  })
 }

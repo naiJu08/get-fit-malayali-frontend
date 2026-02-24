@@ -16,6 +16,13 @@ import { useRecipes } from '../../../Recipe/api'
 import { getUserRecipeColumns } from './userRecipeColumns'
 import { useAssignRecipes, useUserRecipes } from './recipes.api'
 
+const capitalizeFirst = (value: any) => {
+  if (value === null || value === undefined) return ''
+  const str = String(value)
+  if (!str) return ''
+  return str.replace(/\b([a-zA-Z])/g, (match) => match.toUpperCase())
+}
+
 type RecipesTabProps = {
   userId?: string | number
 }
@@ -323,14 +330,15 @@ function AssignRecipesDrawer({
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-xs uppercase tracking-wide text-gray-400">
-                          {recipe?.meal_category ?? 'Uncategorized'}
+                          {capitalizeFirst(
+                            recipe?.meal_category ?? 'Uncategorized'
+                          )}
                         </p>
                         <p className="text-base font-semibold text-gray-900 break-all">
-                          {recipe?.name ?? 'Untitled recipe'}
+                          {capitalizeFirst(recipe?.name ?? 'Untitled recipe')}
                         </p>
                         <p className="text-[11px] text-gray-500 mt-1 line-clamp-2">
-                          Serving size: {recipe?.serving_unit ?? '—'} | Assigned
-                          by selection
+                          Serving unit: {recipe?.serving_unit ?? '—'}
                         </p>
                       </div>
                       <input
@@ -359,11 +367,14 @@ function AssignRecipesDrawer({
         </div>
 
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between text-xs text-gray-500">
-          <span className="text-sm font-medium text-gray-600">
+          {/* LEFT — Page Info */}
+          <div className="text-sm font-medium text-gray-600">
             Page {meta?.current_page ?? params.page} of{' '}
             {meta?.total_pages ?? '--'}
-          </span>
-          <div className="flex gap-2">
+          </div>
+
+          {/* CENTER — Prev / Next */}
+          <div className="flex justify-center items-center gap-3 md:flex-1">
             <Button
               label="Prev"
               outlined
@@ -389,6 +400,30 @@ function AssignRecipesDrawer({
                 }))
               }
             />
+          </div>
+
+          {/* RIGHT — Rows Per Page */}
+          <div className="flex justify-end">
+            <label className="flex items-center gap-2 text-xs text-gray-600">
+              Rows per page
+              <select
+                className="border rounded px-2 py-1 text-xs bg-white"
+                value={params.per_page}
+                onChange={(e) =>
+                  onChangeParams((prev: AssignParams) => ({
+                    ...prev,
+                    per_page: Number(e.target.value),
+                    page: 1,
+                  }))
+                }
+              >
+                {[10, 20, 30, 50, 100].map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
         </div>
 

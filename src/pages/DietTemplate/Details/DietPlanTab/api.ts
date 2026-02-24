@@ -14,7 +14,7 @@ const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
   return `${baseUrl}${parseQueryParams(params)}`
 }
 
-const fetchDietPlans = async (input: QueryParams) => {
+export const fetchDietPlans = async (input: QueryParams) => {
   const url = buildUrlWithParams(apiUrl.DIET_PLAN, {
     ...input,
   })

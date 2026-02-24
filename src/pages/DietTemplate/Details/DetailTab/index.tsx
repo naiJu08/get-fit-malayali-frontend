@@ -49,24 +49,41 @@ export default function DetailTab({
         <DetailItem label="Name" value={capitalizeFirst(template?.name)} />
         <DetailItem label="Description" value={template?.description || '--'} />
         <DetailItem label="Duration (Days)" value={template?.duration_days} />
-        {template?.thumbnail_url && (
-          <DetailItem
-            label="Thumbnail"
-            value={
-              template?.thumbnail_url ? (
-                <div className="w-[120px] h-[120px] overflow-hidden rounded-md border bg-gray-50">
+        {(() => {
+          const raw = template?.thumbnail_url
+          const t = typeof raw === 'string' ? raw.trim() : ''
+          const isUrl = typeof t === 'string' && /^https?:\/\/\S+$/i.test(t)
+          if (!isUrl) return null
+
+          return (
+            <div className="">
+              <div className="border rounded-lg p-3 bg-white ">
+                <div className="text-xs text-gray-500 mb-2">Thumbnail</div>
+                <div className="relative w-64">
                   <img
-                    className="w-full h-full object-cover"
-                    src={template.thumbnail_url}
-                    alt="Template thumbnail"
+                    src={t}
+                    alt="Diet template thumbnail"
+                    className="w-[7.25rem] h-[7.25rem] object-cover rounded"
+                    onError={(e) => {
+                      ;(e.currentTarget as HTMLImageElement).style.display =
+                        'none'
+                    }}
                   />
+                  <div className="mt-2 text-xs">
+                    <a
+                      href={t}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#2563eb' }}
+                    >
+                      Open thumbnail
+                    </a>
+                  </div>
                 </div>
-              ) : (
-                <span>--</span>
-              )
-            }
-          />
-        )}
+              </div>
+            </div>
+          )
+        })()}
       </div>
     </div>
   )
@@ -104,5 +121,5 @@ function safeStr(v: any) {
 function capitalizeFirst(v: any) {
   const s = safeStr(v)
   if (s === '--') return s
-  return s.charAt(0).toUpperCase() + s.slice(1)
+  return s.toLowerCase().replace(/\b([a-z])/g, (letter) => letter.toUpperCase())
 }

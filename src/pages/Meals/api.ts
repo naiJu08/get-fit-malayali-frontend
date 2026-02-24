@@ -83,10 +83,11 @@ export const useDeleteMeal = () => {
       queryClient.invalidateQueries({ queryKey: ['meals_list'] })
     },
     onError: (error: any) => {
-      enqueueSnackbar(
-        error?.response?.data?.message || 'Failed to delete meal',
-        { variant: 'error' }
-      )
+      const apiMessage =
+        error?.response?.data?.errors?.[0] || error?.response?.data?.message
+      enqueueSnackbar(apiMessage || 'Failed to delete meal', {
+        variant: 'error',
+      })
     },
   })
 }

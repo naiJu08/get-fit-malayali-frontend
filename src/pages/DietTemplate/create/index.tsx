@@ -67,7 +67,7 @@ export default function CreateAdmin({
     ...(disabled ? { disabled: true } : {}),
   })
   const [deleteModal, setDeleteModal] = useState(false)
-
+  const [thumbnailPreview, setThumbnailPreview] = useState<any>(undefined)
   const decodeFileName = (input?: string) => {
     const raw = String(input ?? '')
     const fallback = raw.split('/').pop() || raw
@@ -83,11 +83,14 @@ export default function CreateAdmin({
 
   const existingThumbnailFile = useMemo(() => {
     if (!edit || !rowData?.thumbnail_url) return undefined
-    return {
-      name: decodeFileName(rowData.thumbnail_url),
-      link: rowData.thumbnail_url,
-    }
-  }, [decodeFileName, edit, rowData?.thumbnail_url])
+
+    return thumbnailPreview !== undefined
+      ? thumbnailPreview
+      : {
+          name: decodeFileName(rowData.thumbnail_url),
+          link: rowData.thumbnail_url,
+        }
+  }, [edit, rowData?.thumbnail_url, thumbnailPreview])
 
   const methods = useForm<TemplateSchema>({
     resolver: zodResolver(edit ? editFormSchema : formSchema),
@@ -118,6 +121,12 @@ export default function CreateAdmin({
 
     methods.reset(defaultFormValues)
   }, [edit, isDrawerOpen, methods, rowData, viewMode])
+
+  useEffect(() => {
+    if (isDrawerOpen) return
+    methods.reset(defaultFormValues)
+    setThumbnailPreview(undefined)
+  }, [isDrawerOpen, methods])
 
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter name', true) },
@@ -152,12 +161,15 @@ export default function CreateAdmin({
       acceptedFiles: 'PNG, JPG, JPEG, WEBP',
       fileSize: 5,
       selectedFiles: existingThumbnailFile,
+      handleDeleteFile: () => {
+        setThumbnailPreview('')
+        setValue('thumbnail', '')
+      },
       subName: 'thumbnail',
     },
   ]
 
   const handleClearAndClose = () => {
-    methods.reset(defaultFormValues)
     handleClose()
   }
 
@@ -184,13 +196,6 @@ export default function CreateAdmin({
     } else {
       mutate(fd)
     }
-    ;['duration_days', 'thumbnail'].forEach((field) => {
-      setValue(field as keyof TemplateSchema, undefined, {
-        shouldDirty: false,
-        shouldValidate: false,
-        shouldTouch: false,
-      })
-    })
   }
 
   const viewHeaderData = {

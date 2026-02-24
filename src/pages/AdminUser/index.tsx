@@ -18,6 +18,7 @@ import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
 import { handleReturnEmptyMsg } from '../../utilities/validation'
 import {
+  activateAdmin,
   deActivateAdmin,
   getAdminDetails,
   sendAdminInvitation,
@@ -56,6 +57,12 @@ export default function AdminUser() {
   const [viewIndicator, setViewIndicator] = useState(false)
   const [loader, setloader] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
+  const [activePlanWarningOpen, setActivePlanWarningOpen] = useState(false)
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    id: string
+    username: string
+    status: string
+  } | null>(null)
 
   const params = useParams()
   const [activeRole, setActiveRole] = useState<'user' | 'nutritionist'>('user')
@@ -212,11 +219,39 @@ export default function AdminUser() {
     })
   }
 
-  const handleDeleteModel = (id: string, username: string, status: string) => {
-    setDeleteItem(id)
-    setDeleteModal(true)
-    setUserName(username)
-    setStatus(status)
+  const handleDeleteModel = (
+    id: string,
+    username: string,
+    status: string,
+    hasActivePlan?: boolean
+  ) => {
+    const normalizedStatus = String(status || '').toLowerCase()
+    if (normalizedStatus !== 'active') {
+      handleDeleteAdmin({ id, status })
+      return
+    }
+    if (normalizedStatus === 'active' && hasActivePlan) {
+      setPendingStatusChange({ id, username, status })
+      setActivePlanWarningOpen(true)
+      return
+    }
+    handleDeleteAdmin({ id, status })
+  }
+
+  const confirmActivePlanWarning = () => {
+    if (pendingStatusChange) {
+      handleDeleteAdmin({
+        id: pendingStatusChange.id,
+        status: pendingStatusChange.status,
+      })
+    }
+    setActivePlanWarningOpen(false)
+    setPendingStatusChange(null)
+  }
+
+  const cancelActivePlanWarning = () => {
+    setActivePlanWarningOpen(false)
+    setPendingStatusChange(null)
   }
 
   const handleSendInvitation = () => {
@@ -246,9 +281,17 @@ export default function AdminUser() {
       })
   }
 
-  const handleDeleteAdmin = () => {
+  const handleDeleteAdmin = (override?: { id: string; status: string }) => {
+    const targetId = override?.id ?? deleteItem
+    const targetStatus = override?.status ?? status
+    if (!targetId) return
     setloader(true)
-    deActivateAdmin(deleteItem)
+    const normalizedStatus = String(targetStatus || '').toLowerCase()
+    const actionPromise =
+      normalizedStatus === 'active'
+        ? deActivateAdmin(targetId)
+        : activateAdmin(targetId)
+    actionPromise
       .then(() => {
         enqueueSnackbar('Status Updated successfully', {
           variant: 'success',
@@ -256,10 +299,13 @@ export default function AdminUser() {
         setloader(false)
         refetch()
         setSelectedRows(
-          selectedRows?.filter((sel: string | number) => sel !== deleteItem) ||
-            []
+          selectedRows?.filter((sel: string | number) => sel !== targetId) || []
         )
         setDeleteModal(false)
+        if (!override) {
+          setDeleteItem('')
+        }
+        setStatus(targetStatus)
       })
       .catch((err) => {
         setloader(false)
@@ -468,12 +514,14 @@ export default function AdminUser() {
                       handleDeleteModel(
                         rowData?.id,
                         rowData?.email,
-                        rowData?.status
+                        rowData?.status,
+                        !!rowData?.subscribed_plan
                       ),
                     icon: <Icons name="deactivate-icon" />,
                     toolTip: 'Deactivate',
-                    hide: (rowData: any) =>
-                      rowData?.status == 'Active' ? false : true,
+                    disabled: (rowData: any) =>
+                      String(rowData?.status).toLowerCase() !== 'active',
+                    variant: 'danger',
                   },
                   {
                     title: 'Activate',
@@ -481,12 +529,14 @@ export default function AdminUser() {
                       handleDeleteModel(
                         rowData?.id,
                         rowData?.email,
-                        rowData?.status
+                        rowData?.status,
+                        !!rowData?.subscribed_plan
                       ),
                     icon: <Icons name="activate-icon" />,
                     toolTip: 'Activate',
-                    hide: (rowData: any) =>
-                      rowData?.status == 'Inactive' ? false : true,
+                    disabled: (rowData: any) =>
+                      String(rowData?.status).toLowerCase() === 'active',
+                    variant: 'success',
                   },
                   {
                     title: 'Delete',
@@ -506,6 +556,22 @@ export default function AdminUser() {
             </div>
           </div>
 
+          <DialogModal
+            isOpen={activePlanWarningOpen}
+            onClose={cancelActivePlanWarning}
+            title="Deactivate this user?"
+            onSubmit={confirmActivePlanWarning}
+            secondaryAction={cancelActivePlanWarning}
+            secondaryActionLabel="No"
+            actionLabel="Yes, Continue"
+            body={
+              <InfoBox
+                content={
+                  'This user currently has an active plan. Are you sure you want to continue with deactivation?'
+                }
+              />
+            }
+          />
           <DialogModal
             isOpen={deleteModal}
             onClose={() => setDeleteModal(false)}

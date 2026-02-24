@@ -18,6 +18,13 @@ import { humanizeDatetime } from '../../../utilities/format'
 import { useCreateWorkout, useUpdateWorkout } from '../api'
 import { WorkoutSchema, formSchema } from './schema'
 
+const toTitleCase = (value?: string) => {
+  if (!value) return ''
+  return value
+    .toLowerCase()
+    .replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1))
+}
+
 type Props = {
   isDrawerOpen: boolean
   disabled?: boolean
@@ -146,7 +153,7 @@ export default function CreateAdmin({
     () =>
       normalizedCategories.map((cat: any) => ({
         id: cat?.id,
-        name: cat?.name,
+        name: toTitleCase(cat?.name),
         subcategories: Array.isArray(cat?.subcategories)
           ? cat.subcategories
           : [],
@@ -315,7 +322,7 @@ export default function CreateAdmin({
     if (!category) return []
     return (category.subcategories ?? []).map((sub: any) => ({
       id: sub?.id,
-      name: sub?.name,
+      name: toTitleCase(sub?.name),
     }))
   }, [categoryOptions, selectedCategoryId])
 
