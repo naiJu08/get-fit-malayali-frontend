@@ -417,32 +417,58 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                               const isExpanded =
                                 !!expandedDietItems[dietItemKey]
 
+                              const consumedQuantity =
+                                it?.actions?.consumed_quantity
+                              const consumedCalories =
+                                it?.actions?.consumed_calories
+                              const consumedMacros =
+                                it?.actions?.consumed_macros
+                              const hasConsumedStats =
+                                consumedQuantity != null ||
+                                consumedCalories != null ||
+                                (consumedMacros &&
+                                  (consumedMacros.protein != null ||
+                                    consumedMacros.carbs != null ||
+                                    consumedMacros.fat != null ||
+                                    consumedMacros.fiber != null))
+                              const statusLabel = itemStatus
+                                ? itemStatus.charAt(0).toUpperCase() +
+                                  itemStatus.slice(1)
+                                : ''
+
                               return (
                                 <div
                                   key={it?.id}
                                   className="flex flex-col gap-1 rounded bg-gray-50 px-2 py-1 text-[10px] text-gray-600"
                                 >
-                                  <div className="flex items-center justify-between">
+                                  <div className="flex items-center justify-between gap-2">
                                     <div>
-                                      <span className="font-medium">
-                                        Meal :{' '}
-                                      </span>
-                                      <span>
+                                      <span className="font-semibold text-blue-800">
                                         {formatMealName(it?.meal_name)}
                                       </span>
                                     </div>
-                                    <button
-                                      type="button"
-                                      className="text-[10px] text-primary font-semibold hover:underline"
-                                      onClick={() =>
-                                        dietItemKey &&
-                                        toggleDietItemDetails(dietItemKey)
-                                      }
-                                    >
-                                      {isExpanded
-                                        ? 'Hide details'
-                                        : 'View details'}
-                                    </button>
+                                    <div className="flex flex-col items-end gap-1">
+                                      <button
+                                        type="button"
+                                        className="text-[10px] text-primary font-semibold hover:underline"
+                                        onClick={() =>
+                                          dietItemKey &&
+                                          toggleDietItemDetails(dietItemKey)
+                                        }
+                                      >
+                                        {isExpanded
+                                          ? 'Hide details'
+                                          : 'View details'}
+                                      </button>
+
+                                      {statusLabel && (
+                                        <span
+                                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${itemStatusClass} bg-white border border-current`}
+                                        >
+                                          {statusLabel}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                   {isExpanded && (
                                     <div className="flex flex-col gap-0.5">
@@ -476,23 +502,54 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                           </span>
                                         </div>
                                       )}
-                                      {it?.actions && (
-                                        <div className="mt-0.5 flex flex-col gap-0.5 text-[10px] text-gray-600">
+                                      {hasConsumedStats && (
+                                        <div className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">
+                                          <div className="text-[10px] font-semibold text-emerald-800">
+                                            Consumed
+                                          </div>
                                           <div>
-                                            <span className="text-gray-500">
-                                              Status :{' '}
-                                            </span>
-                                            <span
-                                              className={`font-semibold ${itemStatusClass}`}
-                                            >
-                                              {itemStatus
-                                                ? itemStatus
-                                                    .charAt(0)
-                                                    .toUpperCase() +
-                                                  itemStatus.slice(1)
-                                                : '--'}
+                                            <span className="font-medium">
+                                              Quantity :
+                                            </span>{' '}
+                                            <span>
+                                              {consumedQuantity ?? '--'}
+                                              {it?.serving_unit
+                                                ? ` ${it.serving_unit}`
+                                                : ''}
                                             </span>
                                           </div>
+                                          {typeof consumedCalories ===
+                                            'number' && (
+                                            <div>
+                                              <span className="font-medium">
+                                                Calories :
+                                              </span>{' '}
+                                              <span>
+                                                {consumedCalories} kcal
+                                              </span>
+                                            </div>
+                                          )}
+                                          {consumedMacros && (
+                                            <div>
+                                              <span className="font-medium">
+                                                Macros :
+                                              </span>{' '}
+                                              <span>
+                                                P{' '}
+                                                {consumedMacros?.protein ??
+                                                  '--'}
+                                                , C{' '}
+                                                {consumedMacros?.carbs ?? '--'},
+                                                F {consumedMacros?.fat ?? '--'},
+                                                Fib{' '}
+                                                {consumedMacros?.fiber ?? '--'}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                      {it?.actions && (
+                                        <div className="mt-0.5 flex flex-col gap-0.5 text-[10px] text-gray-600">
                                           <div>
                                             <span className="text-gray-500">
                                               Action date :{' '}
@@ -524,6 +581,88 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                             No items defined for this meal.
                           </div>
                         )}
+
+                        {Array.isArray(d?.other_consumed_items) &&
+                          d.other_consumed_items.length > 0 && (
+                            <div className="mt-3 border-t pt-2 text-[11px] text-gray-700">
+                              <div className="text-[10px] font-semibold uppercase tracking-wide text-orange-600 mb-1">
+                                Other Consumed Items
+                              </div>
+                              <div className="space-y-1">
+                                {d.other_consumed_items.map((extra: any) => (
+                                  <div
+                                    key={`${extra?.id}-${extra?.actions?.id ?? 'extra'}`}
+                                    className="rounded border border-orange-200 bg-orange-50 px-2 py-1 text-[10px] text-orange-900"
+                                  >
+                                    <div className="flex items-center justify-between mb-0.5">
+                                      <span className="font-semibold">
+                                        {formatMealName(extra?.meal_name) ||
+                                          'Other item'}
+                                      </span>
+                                      {extra?.actions?.status && (
+                                        <span className="text-orange-700 font-semibold">
+                                          {extra.actions.status
+                                            .toString()
+                                            .charAt(0)
+                                            .toUpperCase() +
+                                            extra.actions.status
+                                              .toString()
+                                              .slice(1)}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-gray-600">
+                                      Quantity:{' '}
+                                      {extra?.consumed_quantity ??
+                                        extra?.quantity ??
+                                        '--'}
+                                      {extra?.serving_unit
+                                        ? ` ${extra.serving_unit}`
+                                        : ''}
+                                    </div>
+                                    {typeof extra?.consumed_calories ===
+                                      'number' && (
+                                      <div className="text-gray-600">
+                                        Calories: {extra.consumed_calories} kcal
+                                      </div>
+                                    )}
+                                    {(extra?.consumed_macros ||
+                                      extra?.per_serving) && (
+                                      <div className="text-gray-600">
+                                        Macros:{' '}
+                                        <span>
+                                          P{' '}
+                                          {extra?.consumed_macros?.protein ??
+                                            extra?.per_serving?.protein ??
+                                            '--'}
+                                          , C{' '}
+                                          {extra?.consumed_macros?.carbs ??
+                                            extra?.per_serving?.carbs ??
+                                            '--'}
+                                          , F{' '}
+                                          {extra?.consumed_macros?.fat ??
+                                            extra?.per_serving?.fat ??
+                                            '--'}
+                                          , Fib{' '}
+                                          {extra?.consumed_macros?.fiber ??
+                                            extra?.per_serving?.fiber ??
+                                            '--'}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {extra?.actions?.action_date && (
+                                      <div className="text-gray-500">
+                                        Logged on:{' '}
+                                        {formatTimestamp(
+                                          extra.actions.action_date
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                       </div>
                     )
                   })}
@@ -1037,6 +1176,14 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
 export default DayDetailTabsSection
 
+const toTitleCase = (value?: string | null) => {
+  if (!value) return ''
+  return value
+    .toString()
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (letter) => letter.toUpperCase())
+}
+
 const formatTitleCase = (value?: string | null) => {
   if (!value) return ''
   return value
@@ -1159,7 +1306,7 @@ const AssignTemplateModal: FC<AssignTemplateModalProps> = ({
                 >
                   <div className="space-y-1 w-full sm:w-[55%] md:w-[60%] lg:w-[75%]">
                     <p className="text-sm font-semibold text-gray-900">
-                      {template?.name || 'Untitled template'}
+                      {toTitleCase(template?.name) || 'Untitled Template'}
                     </p>
                     {template?.description && (
                       <p className="text-xs text-gray-600">

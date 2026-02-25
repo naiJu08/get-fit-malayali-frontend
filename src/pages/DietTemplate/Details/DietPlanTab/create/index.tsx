@@ -27,6 +27,16 @@ const DAY_NAMES = [
   'Saturday',
 ]
 
+const MEAL_TIME_OPTIONS = [
+  { id: 'Morning drink', name: 'Morning drink', value: 'Morning drink' },
+  { id: 'Breakfast', name: 'Breakfast', value: 'Breakfast' },
+  { id: 'Mid day meal', name: 'Mid day meal', value: 'Mid day meal' },
+  { id: 'Lunch', name: 'Lunch', value: 'Lunch' },
+  { id: 'Evening snack', name: 'Evening snack', value: 'Evening snack' },
+  { id: 'Dinner', name: 'Dinner', value: 'Dinner' },
+  { id: 'Bed time', name: 'Bed time', value: 'Bed time' },
+]
+
 const DAY_NAME_INDEX_MAP = DAY_NAMES.reduce<Record<string, number>>(
   (acc, name, index) => {
     acc[name.toLowerCase()] = index
@@ -34,6 +44,13 @@ const DAY_NAME_INDEX_MAP = DAY_NAMES.reduce<Record<string, number>>(
   },
   {}
 )
+
+const toTitleCase = (value: any) => {
+  if (typeof value !== 'string') return ''
+  return value
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (letter) => letter.toUpperCase())
+}
 
 const getDayIndexFromName = (name?: string | null) => {
   if (!name) return null
@@ -47,6 +64,31 @@ const getDayNameFromNumber = (dayNumber?: number | string | null) => {
   return DAY_NAMES[index] ?? ''
 }
 
+const normalizeDayName = (value?: string | null) => {
+  if (!value) return ''
+  return value.toString().trim().toLowerCase()
+}
+
+const getDayKeys = (
+  dayName?: string | null,
+  dayNumber?: number | string | null
+) => {
+  const keys: string[] = []
+  const num = Number(dayNumber)
+  if (Number.isFinite(num) && num > 0) {
+    keys.push(`number:${num}`)
+    return keys
+  }
+  const normalizedName = normalizeDayName(dayName)
+  if (normalizedName) keys.push(`name:${normalizedName}`)
+  return keys
+}
+
+const normalizeMealTime = (value?: string | null) => {
+  if (!value) return ''
+  return value.toString().trim().toLowerCase()
+}
+
 type Props = {
   isOpen: boolean
   handleClose: () => void
@@ -54,6 +96,7 @@ type Props = {
   rowData?: any
   planId?: string | number
   planDurationDays?: number
+  existingPlans?: any[]
 }
 
 export default function DietPlanForm({
@@ -63,6 +106,7 @@ export default function DietPlanForm({
   rowData,
   planId,
   planDurationDays,
+  existingPlans = [],
 }: Props) {
   const { enqueueSnackbar } = useSnackbarManager()
   const [initialDayName, setInitialDayName] = useState('')
@@ -184,6 +228,69 @@ export default function DietPlanForm({
       })),
     [filteredDayNumbers]
   )
+
+  const normalizedExistingPlans = useMemo(() => {
+    if (!Array.isArray(existingPlans)) return []
+    if (edit && rowData?.id) {
+      return existingPlans.filter((plan: any) => plan?.id !== rowData.id)
+    }
+    return existingPlans
+  }, [existingPlans, edit, rowData?.id])
+
+  const dayMealTimeMap = useMemo(() => {
+    const map = new Map<string, Set<string>>()
+    normalizedExistingPlans.forEach((plan: any) => {
+      const normalizedMealTime = normalizeMealTime(plan?.meal_time)
+      if (!normalizedMealTime) return
+      const keys = getDayKeys(plan?.day_name, plan?.day_number)
+      if (!keys.length) return
+      keys.forEach((key) => {
+        if (!map.has(key)) map.set(key, new Set())
+        map.get(key)!.add(normalizedMealTime)
+      })
+    })
+    return map
+  }, [normalizedExistingPlans])
+
+  const usedMealTimeValues = useMemo(() => {
+    const keys = getDayKeys(selectedDayName, selectedDayNumber)
+    const set = new Set<string>()
+    keys.forEach((key) => {
+      const values = dayMealTimeMap.get(key)
+      values?.forEach((val) => set.add(val))
+    })
+    return set
+  }, [selectedDayName, selectedDayNumber, dayMealTimeMap])
+
+  const normalizedSelectedMealTime = normalizeMealTime(selectedMealTime)
+
+  const availableMealTimeOptions = useMemo(() => {
+    if (!selectedDayName && !selectedDayNumber) return MEAL_TIME_OPTIONS
+    return MEAL_TIME_OPTIONS.filter((option) => {
+      const normalized = normalizeMealTime(option.value)
+      if (
+        normalizedSelectedMealTime &&
+        normalized === normalizedSelectedMealTime
+      )
+        return true
+      return !usedMealTimeValues.has(normalized)
+    })
+  }, [
+    selectedDayName,
+    selectedDayNumber,
+    normalizedSelectedMealTime,
+    usedMealTimeValues,
+  ])
+
+  const isMealTimeRestricted =
+    !!normalizedSelectedMealTime &&
+    usedMealTimeValues.has(normalizedSelectedMealTime)
+
+  useEffect(() => {
+    if (edit) return
+    if (!isMealTimeRestricted) return
+    setValue('meal_time', '', { shouldValidate: true })
+  }, [edit, isMealTimeRestricted, setValue])
 
   const allMeals = (mealsData as any)?.meals ?? []
   const filteredMeals = allMeals
@@ -453,16 +560,6 @@ export default function DietPlanForm({
     }
   }
 
-  const mealTimeOptions = [
-    { id: 'Morning drink', name: 'Morning drink', value: 'Morning drink' },
-    { id: 'Breakfast', name: 'Breakfast', value: 'Breakfast' },
-    { id: 'Mid day meal', name: 'Mid day meal', value: 'Mid day meal' },
-    { id: 'Lunch', name: 'Lunch', value: 'Lunch' },
-    { id: 'Evening snack', name: 'Evening snack', value: 'Evening snack' },
-    { id: 'Dinner', name: 'Dinner', value: 'Dinner' },
-    { id: 'Bed time', name: 'Bed time', value: 'Bed time' },
-  ]
-
   const handleMealTimeChange = (option: any) => {
     const mealTime = option?.id ?? option?.value ?? ''
     setValue('meal_time', mealTime, { shouldValidate: true })
@@ -495,7 +592,7 @@ export default function DietPlanForm({
       id: 'meal_time_id',
       placeholder: 'Select meal time',
       initialLoad: rowData?.meal_time ?? '',
-      data: mealTimeOptions,
+      data: availableMealTimeOptions,
       required: true,
       disabled: !!edit,
       onChange: handleMealTimeChange,
@@ -656,6 +753,13 @@ export default function DietPlanForm({
                       ]
                     }
 
+                    const mealOptionsForRow = availableMealsForRow.map(
+                      (meal: any) => ({
+                        ...meal,
+                        name: toTitleCase(meal?.name),
+                      })
+                    )
+
                     return (
                       <div
                         key={field.id}
@@ -700,8 +804,12 @@ export default function DietPlanForm({
                               descId="id"
                               required
                               placeholder="Select meal"
-                              data={availableMealsForRow}
-                              value={selectedMeal ? selectedMeal.name : ''}
+                              data={mealOptionsForRow}
+                              value={
+                                selectedMeal
+                                  ? toTitleCase(selectedMeal.name)
+                                  : ''
+                              }
                               className="w-full"
                               onChange={(option: any) => {
                                 const mealId = option?.id ?? option?.value ?? ''
@@ -727,6 +835,7 @@ export default function DietPlanForm({
                                 <TextField
                                   id={`meals.${index}.count`}
                                   name={`meals.${index}.count`}
+                                  maxLength={3}
                                   type="text"
                                   placeholder=""
                                   value={
@@ -766,7 +875,6 @@ export default function DietPlanForm({
                               disabled
                             />
                           </div>
-
                           <div>
                             <label className="block text-[10px] font-medium mb-1">
                               Total Calorie<span className="text-error">*</span>
@@ -780,34 +888,13 @@ export default function DietPlanForm({
                                 !selectedMeal
                                   ? ''
                                   : String(
-                                      (() => {
-                                        const p = Number(
-                                          selectedMeal?.per_serving?.protein ??
-                                            selectedMeal?.calories_breakdown
-                                              ?.protein ??
-                                            0
-                                        )
-                                        const c = Number(
-                                          selectedMeal?.per_serving?.carbs ??
-                                            selectedMeal?.calories_breakdown
-                                              ?.carbs ??
-                                            0
-                                        )
-                                        const f = Number(
-                                          selectedMeal?.per_serving?.fat ??
-                                            selectedMeal?.calories_breakdown
-                                              ?.fat ??
-                                            0
-                                        )
-                                        const fi = Number(
-                                          selectedMeal?.per_serving?.fiber ??
-                                            selectedMeal?.calories_breakdown
-                                              ?.fiber ??
-                                            0
-                                        )
-                                        const perServingTotal = p + c + f + fi
-                                        return perServingTotal * intakeQty
-                                      })()
+                                      Number(
+                                        selectedMeal?.per_serving?.calories ??
+                                          selectedMeal?.total_calories ??
+                                          selectedMeal?.calories_breakdown
+                                            ?.calories ??
+                                          0
+                                      )
                                     )
                               }
                               disabled

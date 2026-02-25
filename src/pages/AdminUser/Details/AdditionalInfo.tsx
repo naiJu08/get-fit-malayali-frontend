@@ -1,5 +1,6 @@
+import moment from 'moment'
 import { useEffect, useMemo, useState } from 'react'
-import { FormProvider, useForm } from 'react-hook-form'
+import { FormProvider, useForm, useWatch } from 'react-hook-form'
 
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
@@ -25,6 +26,7 @@ const fieldKeys = [
   'supplements',
   'food_dislikes',
   'social_habits',
+  'social_habits_other',
   'tea_coffee_consumption',
   'work_profile',
   'working_time',
@@ -60,6 +62,7 @@ type SectionField = {
   type?: 'text' | 'textarea' | 'date'
   placeholder?: string
   options?: SelectOption[]
+  showWhen?: (values: Partial<AdditionalData>) => boolean
 }
 
 type SectionDefinition = {
@@ -71,14 +74,17 @@ type SectionDefinition = {
 const dropdownOptions: Partial<Record<keyof AdditionalData, SelectOption[]>> = {
   package: [
     { id: 'weight_loss', name: 'Weight loss' },
+    { id: 'weight_gain', name: 'Weight gain' },
+    { id: 'muscle_gain', name: 'Muscle gain' },
     { id: 'wellness', name: 'Wellness' },
-    { id: 'nutrition', name: 'Nutrition' },
+    { id: 'disease_management', name: 'Disease management' },
   ],
   dietary_choice: [
     { id: 'veg', name: 'Vegetarian' },
     { id: 'non_veg', name: 'Non-vegetarian' },
     { id: 'eggetarian', name: 'Eggetarian' },
     { id: 'vegan', name: 'Vegan' },
+    { id: 'pescatarian', name: 'Pescatarian' },
   ],
   lactation_status: [
     { id: 'yes', name: 'Yes' },
@@ -88,6 +94,7 @@ const dropdownOptions: Partial<Record<keyof AdditionalData, SelectOption[]>> = {
     { id: 'none', name: 'None' },
     { id: 'alcohol', name: 'Alcohol' },
     { id: 'smoking', name: 'Smoking' },
+    { id: 'others', name: 'Others' },
   ],
   tea_coffee_consumption: [
     { id: 'none', name: 'None' },
@@ -124,6 +131,10 @@ const dropdownOptions: Partial<Record<keyof AdditionalData, SelectOption[]>> = {
     { id: 'mixed', name: 'Mix of all' },
   ],
 }
+
+const SOCIAL_HABIT_OPTION_IDS = new Set(
+  (dropdownOptions.social_habits ?? []).map((opt) => opt.id)
+)
 
 const sections: SectionDefinition[] = [
   {
@@ -165,6 +176,13 @@ const sections: SectionDefinition[] = [
         key: 'social_habits',
         label: 'Social habits',
         options: dropdownOptions.social_habits,
+      },
+      {
+        key: 'social_habits_other',
+        label: 'Specify other social habits',
+        type: 'textarea',
+        placeholder: 'Describe other social habits',
+        showWhen: (values) => isOthersSelection(values.social_habits),
       },
       {
         key: 'tea_coffee_consumption',
@@ -236,9 +254,46 @@ const sections: SectionDefinition[] = [
 
 type AdditionalInfoProps = {
   user?: Record<string, any>
+  subscriptionId?: string | number | null
 }
 
-const formatValue = (value: string | null | undefined) => {
+const resolveSelectionValue = (value: any) =>
+  typeof value === 'object' && value !== null ? (value?.id ?? '') : value
+
+const normalizeSocialHabit = (value: any) =>
+  String(resolveSelectionValue(value) ?? '').trim()
+
+const isOthersSelection = (value: any) =>
+  normalizeSocialHabit(value).toLowerCase() === 'others'
+
+const isCustomSocialHabit = (value: any) => {
+  const normalized = normalizeSocialHabit(value)
+  if (!normalized) return false
+  if (SOCIAL_HABIT_OPTION_IDS.has(normalized)) return false
+  return true
+}
+
+const shouldShowSocialHabitsOther = (value: any) =>
+  isOthersSelection(value) || isCustomSocialHabit(value)
+
+const formatDateValue = (value: string | null | undefined) => {
+  if (!value) return '--'
+  const date = moment(value)
+  return date.isValid() ? date.format('DD-MM-YYYY') : String(value)
+}
+
+const formatValue = (
+  key: keyof AdditionalData,
+  value: string | null | undefined
+) => {
+  if (key === 'date_of_assessment') {
+    return formatDateValue(value)
+  }
+  if ((key === 'native_cuisine' || key === 'social_habits') && value) {
+    return value
+      .toLowerCase()
+      .replace(/\b([a-z])/g, (match) => match.toUpperCase())
+  }
   if (value === null || value === undefined || value === '') return '--'
   return String(value)
 }
@@ -251,7 +306,11 @@ const normalizeAdditionalData = (raw: any): AdditionalData | null => {
   }, {} as AdditionalData)
 }
 
-const buildFieldConfig = (field: SectionField) => {
+const buildFieldConfig = (
+  field: SectionField,
+  values: Partial<AdditionalData>
+) => {
+  const hidden = field.showWhen ? !field.showWhen(values) : false
   if (field.options?.length) {
     return {
       name: field.key,
@@ -265,6 +324,7 @@ const buildFieldConfig = (field: SectionField) => {
       initialLoad: true,
       async: false,
       notDataMessage: 'No options found',
+      hidden,
     }
   }
 
@@ -275,6 +335,7 @@ const buildFieldConfig = (field: SectionField) => {
       label: field.label,
       type: 'textarea',
       placeholder: field.placeholder ?? `Describe ${field.label.toLowerCase()}`,
+      hidden,
     }
   }
 
@@ -285,6 +346,7 @@ const buildFieldConfig = (field: SectionField) => {
       label: field.label,
       type: 'date',
       placeholder: field.placeholder ?? 'Select date',
+      hidden,
     }
   }
 
@@ -294,10 +356,14 @@ const buildFieldConfig = (field: SectionField) => {
     label: field.label,
     type: 'text',
     placeholder: field.placeholder ?? `Enter ${field.label.toLowerCase()}`,
+    hidden,
   }
 }
 
-export default function AdditionalInfo({ user }: AdditionalInfoProps) {
+export default function AdditionalInfo({
+  user,
+  subscriptionId,
+}: AdditionalInfoProps) {
   const userId = user?.id
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -311,7 +377,24 @@ export default function AdditionalInfo({ user }: AdditionalInfoProps) {
     reset,
     formState: { isDirty },
   } = methods
+  const watchedValuesRaw =
+    (useWatch({ control: methods.control }) as Partial<AdditionalData>) || {}
+  const watchedValues = {
+    ...watchedValuesRaw,
+    social_habits: normalizeSocialHabit(watchedValuesRaw.social_habits),
+  }
 
+  const transformForForm = (payload: AdditionalData | null) => {
+    if (!payload) return defaultValues
+    const next = { ...payload }
+    if (isCustomSocialHabit(next.social_habits)) {
+      next.social_habits_other = next.social_habits
+      next.social_habits = 'others'
+    } else {
+      next.social_habits_other = ''
+    }
+    return next
+  }
   useEffect(() => {
     reset(defaultValues)
     setData(null)
@@ -321,7 +404,7 @@ export default function AdditionalInfo({ user }: AdditionalInfoProps) {
   useEffect(() => {
     if (!userId) return
     setLoading(true)
-    getUserAdditionalData(userId)
+    getUserAdditionalData(userId, subscriptionId)
       .then((res) => {
         const payload =
           normalizeAdditionalData(res?.additional_data) ||
@@ -329,7 +412,7 @@ export default function AdditionalInfo({ user }: AdditionalInfoProps) {
           normalizeAdditionalData(res)
         if (payload) {
           setData(payload)
-          reset(payload)
+          reset(transformForForm(payload))
         }
       })
       .catch((error) => {
@@ -340,7 +423,7 @@ export default function AdditionalInfo({ user }: AdditionalInfoProps) {
         }
       })
       .finally(() => setLoading(false))
-  }, [userId, enqueueSnackbar, reset])
+  }, [userId, subscriptionId, enqueueSnackbar, reset])
 
   const hasSavedData = useMemo(() => {
     if (!data) return false
@@ -351,21 +434,29 @@ export default function AdditionalInfo({ user }: AdditionalInfoProps) {
     if (!userId) return
     setSaving(true)
     const payload = fieldKeys.reduce<AdditionalData>((acc, key) => {
-      acc[key] = values[key] ?? ''
+      const value = values[key]
+      acc[key] = value ?? ''
       return acc
     }, {} as AdditionalData)
+
+    if (shouldShowSocialHabitsOther(values.social_habits)) {
+      payload.social_habits = values.social_habits_other?.trim() || ''
+    } else {
+      payload.social_habits = normalizeSocialHabit(values.social_habits)
+    }
+    payload.social_habits_other = ''
 
     const persist =
       modalMode === 'edit' ? updateUserAdditionalData : saveUserAdditionalData
 
-    persist(userId, payload)
+    persist(userId, payload, subscriptionId)
       .then((res) => {
         const payloadFromResponse =
           normalizeAdditionalData(res?.additional_data) ||
           normalizeAdditionalData(res?.data?.additional_data) ||
           payload
         setData(payloadFromResponse)
-        reset(payloadFromResponse)
+        reset(transformForForm(payloadFromResponse))
         setModalMode(null)
         enqueueSnackbar('Additional information saved successfully.', {
           variant: 'success',
@@ -389,7 +480,7 @@ export default function AdditionalInfo({ user }: AdditionalInfoProps) {
     if (mode === 'create') {
       reset(defaultValues)
     } else {
-      reset(data ?? defaultValues)
+      reset(transformForForm(data ?? defaultValues))
     }
     setModalMode(mode)
   }
@@ -401,8 +492,8 @@ export default function AdditionalInfo({ user }: AdditionalInfoProps) {
 
   const formHeading =
     modalMode === 'edit'
-      ? 'Edit additional information'
-      : 'Create additional information'
+      ? 'Edit Nutritional Assessment'
+      : 'Create Nutritional Assessment'
   const disableSubmit = saving || (!isDirty && !hasSavedData)
 
   const formBody = (
@@ -425,13 +516,16 @@ export default function AdditionalInfo({ user }: AdditionalInfoProps) {
               ) : null}
             </div>
             <FormBuilder
-              data={section.fields.map(buildFieldConfig)}
+              data={section.fields
+                .filter((field) =>
+                  field.showWhen ? field.showWhen(watchedValues) : true
+                )
+                .map((field) => buildFieldConfig(field, watchedValues))}
               edit
               spacing
             />
           </div>
         ))}
-
         <div className="flex flex-wrap gap-3 justify-end">
           <button
             type="button"
@@ -501,25 +595,31 @@ export default function AdditionalInfo({ user }: AdditionalInfoProps) {
               {section.title}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {section.fields.map((field) => (
-                <div
-                  key={field.key}
-                  className="border rounded-md p-3 bg-gray-50"
-                >
-                  <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                    {field.label}
+              {section.fields
+                .filter((field) =>
+                  field.showWhen
+                    ? field.showWhen(data ?? ({} as AdditionalData))
+                    : true
+                )
+                .map((field) => (
+                  <div
+                    key={field.key}
+                    className="border rounded-md p-3 bg-gray-50"
+                  >
+                    <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                      {field.label}
+                    </div>
+                    <div className="text-sm text-gray-900">
+                      {formatValue(field.key, data?.[field.key])}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-900">
-                    {formatValue(data?.[field.key])}
-                  </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         ))
       ) : (
         <div className="p-6 border rounded-lg bg-white flex flex-col gap-4">
-          <InfoBox content="No additional information available for this user." />
+          <InfoBox content="No nutritional assessment available for this user." />
         </div>
       )}
 

@@ -10,6 +10,7 @@ type Action = {
   action: (row: any) => void | Promise<void>
   hide?: (row: any) => boolean
   variant?: 'primary' | 'secondary' | 'danger' | 'success'
+  disabled?: (row: any) => boolean
 }
 
 type PaginationProps = {
@@ -116,6 +117,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
   }
 
   const handleActionClick = (action: Action, row: any) => {
+    if (action.disabled?.(row)) return
     // Trigger animation
     setActionAnimation(`${action.title}-${row[dataRowKey]}`)
     setTimeout(() => setActionAnimation(null), 600)
@@ -615,7 +617,9 @@ const SmartTable: React.FC<SmartTableProps> = ({
                             {actionProps.map((a, i) => {
                               const isHidden = a.hide ? a.hide(row) : false
                               if (isHidden) return null
-
+                              const isDisabled = a.disabled
+                                ? a.disabled(row)
+                                : false
                               const actionKey = `${a.title}-${rowKey}`
                               const isAnimating = actionAnimation === actionKey
 
@@ -626,9 +630,11 @@ const SmartTable: React.FC<SmartTableProps> = ({
                                     ${getActionVariantStyles(a.variant)}
                                     ${isAnimating ? 'animate-pulse scale-110' : ''}
                                     ${isHovered ? 'opacity-100' : 'opacity-90'}
+                                    ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}
                                   `}
                                   title={a.toolTip || a.title}
                                   onClick={() => handleActionClick(a, row)}
+                                  disabled={isDisabled}
                                 >
                                   <span
                                     className={`transition-transform duration-200 ${isAnimating ? 'scale-125' : ''}`}
@@ -657,7 +663,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
       {/* External Action Bar */}
       {externalActions && selectedRow && !!actionProps.length && (
         <div className="border-t bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 animate-slideUp">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-gray-700 mr-2">
               Actions for Selected Row
               {/* <strong className="text-blue-600">
@@ -668,7 +674,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
               {actionProps.map((a, i) => {
                 const isHidden = a.hide ? a.hide(selectedRow) : false
                 if (isHidden) return null
-
+                const isDisabled = a.disabled ? a.disabled(selectedRow) : false
                 const actionKey = `${a.title}-${selectedRowKey}`
                 const isAnimating = actionAnimation === actionKey
 
@@ -678,10 +684,12 @@ const SmartTable: React.FC<SmartTableProps> = ({
                     className={`
                       ${getActionVariantStyles(a.variant)}
                       ${isAnimating ? 'animate-bounce scale-110' : ''}
+                      ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}
                       transition-all duration-300
                     `}
                     title={a.toolTip || a.title}
                     onClick={() => handleActionClick(a, selectedRow)}
+                    disabled={isDisabled}
                   >
                     <span
                       className={`transition-transform duration-200 ${isAnimating ? 'rotate-12 scale-125' : ''}`}

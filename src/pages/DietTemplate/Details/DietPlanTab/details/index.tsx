@@ -3,8 +3,24 @@ import { useParams, useNavigate } from 'react-router-dom'
 
 import Icons from '../../../../../components/common/icons'
 import InfoBox from '../../../../../components/app/alertBox/infoBox'
-import { getDietPlanDetails } from '../api'
+import { fetchDietPlans, getDietPlanDetails } from '../api'
 import DietPlanForm from '../create'
+import { QueryParams } from '../../../../../common/types'
+
+const buildDayKey = (input: {
+  day_name?: string | null
+  day_number?: number | string | null
+  id?: string | number | null
+}) => {
+  const num = Number(input?.day_number)
+  if (Number.isFinite(num) && num > 0) {
+    return `number:${num}`
+  }
+  const name = input?.day_name?.toString().trim().toLowerCase()
+  if (name) return `name:${name}`
+  if (input?.id) return `plan-${input.id}`
+  return ''
+}
 
 export default function DietPlanDetails() {
   const { id } = useParams()
@@ -13,6 +29,7 @@ export default function DietPlanDetails() {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
   const [editOpen, setEditOpen] = useState(false)
+  const [existingPlans, setExistingPlans] = useState<any[]>([])
 
   const loadDietPlan = useCallback(async () => {
     if (!id) return
@@ -21,6 +38,27 @@ export default function DietPlanDetails() {
       const res = await getDietPlanDetails(String(id))
       setData(res)
       setError('')
+      const templateId =
+        res?.diet_plan?.diet_plan_template_id ??
+        res?.diet_plan_template_id ??
+        res?.plan_id
+      if (templateId) {
+        try {
+          const plansResponse = await fetchDietPlans({
+            page: 1,
+            per_page: 1000,
+            diet_plan_template_id: Number(templateId),
+          } as QueryParams)
+          const plans = Array.isArray(plansResponse?.diet_plans)
+            ? plansResponse.diet_plans
+            : []
+          setExistingPlans(plans)
+        } catch (planErr) {
+          console.warn('Failed to load related diet plans', planErr)
+        }
+      } else {
+        setExistingPlans([])
+      }
     } catch (e: any) {
       setError(e?.response?.data?.message || 'Failed to load diet plan')
     } finally {
@@ -36,22 +74,25 @@ export default function DietPlanDetails() {
 
   const goBack = () => {
     const templateId = dp?.diet_plan_template_id ?? dp?.plan_id
-    if (templateId) {
-      // Build day key from day_name or day_number
-      const dayName = dp?.day_name?.toString().trim().toLowerCase()
-      const dayNumber = dp?.day_number
-      const dayKey = dayName || (dayNumber ? `day-${dayNumber}` : '')
-
-      if (dayKey) {
-        navigate(
-          `/diet-template/${templateId}/diet-plan?day=${encodeURIComponent(dayKey)}`
-        )
-      } else {
-        navigate(`/diet-template/${templateId}/diet-plan`)
-      }
-    } else {
+    if (!templateId) {
       navigate(-1)
+      return
     }
+
+    const dayKey = buildDayKey({
+      day_name: dp?.day_name,
+      day_number: dp?.day_number,
+      id: dp?.id,
+    })
+
+    if (dayKey) {
+      navigate(
+        `/diet-template/${templateId}/diet-plan?day=${encodeURIComponent(dayKey)}`
+      )
+      return
+    }
+
+    navigate(`/diet-template/${templateId}/diet-plan`)
   }
 
   return (
@@ -268,6 +309,7 @@ export default function DietPlanDetails() {
         edit
         rowData={dp}
         planId={dp?.diet_plan_template_id ?? dp?.plan_id}
+        existingPlans={existingPlans}
       />
     </div>
   )
@@ -290,5 +332,5 @@ function safeStr(v: any) {
 function capitalizeFirst(v: any) {
   const s = safeStr(v)
   if (s === '--') return s
-  return s.charAt(0).toUpperCase() + s.slice(1)
+  return s.toLowerCase().replace(/\b([a-z])/g, (letter) => letter.toUpperCase())
 }

@@ -2,7 +2,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 
 import { FileUploadProps } from '../../../common/types'
-import { isValidFile } from '../../../utilities/commonUtilities'
+import {
+  getFileNameFromUrl,
+  isValidFile,
+} from '../../../utilities/commonUtilities'
 import InfoBox from '../../app/alertBox/infoBox'
 import Icons from '../icons'
 import DialogModal from '../modal/DialogModal'
@@ -47,7 +50,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const [deleteModal, setDeleteModal] = useState(false)
   const [item, setItem] = useState<any>([])
   const { enqueueSnackbar } = useSnackbarManager()
-  const { setValue } = useFormContext()
+  const { setValue, watch } = useFormContext()
   const inputRef = useRef<HTMLInputElement | null>(null)
 
   const resetInputValue = () => {
@@ -223,7 +226,36 @@ const FileUpload: React.FC<FileUploadProps> = ({
     setDeleteModal(false)
     resetInputValue()
   }
-  const { watch } = useFormContext()
+  const getSingleFileLabel = () => {
+    if (isMultiple) return ''
+
+    if (typeof file === 'object' && file) {
+      return file?.name ?? (subName ? watch(subName) : '')
+    }
+
+    if (typeof file === 'string' && file) {
+      const trimmed = file.trim()
+      if (!trimmed) return ''
+
+      try {
+        return getFileNameFromUrl(trimmed)
+      } catch (error) {
+        const segments = trimmed.split('?')[0]?.split('/') ?? []
+        return segments.pop() || trimmed
+      }
+    }
+
+    if (subName) {
+      const subValue = watch(subName)
+      if (typeof subValue === 'string') {
+        return subValue
+      }
+    }
+
+    return ''
+  }
+
+  const singleFileLabel = getSingleFileLabel()
   const handleFilePreview = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault()
     event.stopPropagation()
@@ -372,31 +404,30 @@ const FileUpload: React.FC<FileUploadProps> = ({
                 />
               </div>
             ))}
-          {((typeof file === 'object' && file) || watch(subName)) &&
-            !isMultiple && (
-              <div
-                className={`flex items-center justify-between gap-1.5 px-2.5 py-2  rounded-sm  ${disabled ? 'bg-cardWrapperBg' : 'bg-cardWrapperBg'}`}
+          {singleFileLabel && !isMultiple && (
+            <div
+              className={`flex items-center justify-between gap-1.5 px-2.5 py-2  rounded-sm  ${disabled ? 'bg-cardWrapperBg' : 'bg-cardWrapperBg'}`}
+            >
+              <Icons
+                name="paper-clip"
+                className={`iconWidthSm ${disabled && 'text-disabledText stroke-disabledText '}`}
+              />
+              <a
+                href="#/"
+                onClick={handleFilePreview}
+                className={`flex-1 text-sm font-medium overflow-hidden break-all ${disabled ? 'text-disabledText  cursor-not-allowed' : 'text-primaryText'}`}
               >
+                {singleFileLabel}
+              </a>
+              {!disabled && (
                 <Icons
-                  name="paper-clip"
-                  className={`iconWidthSm ${disabled && 'text-disabledText stroke-disabledText '}`}
+                  name="close"
+                  onClick={() => handleClearFile(0, file)}
+                  className="iconBlack iconWidthSm cursor-pointer"
                 />
-                <a
-                  href="#/"
-                  onClick={handleFilePreview}
-                  className={`flex-1 text-sm font-medium overflow-hidden break-all ${disabled ? 'text-disabledText  cursor-not-allowed' : 'text-primaryText'}`}
-                >
-                  {file?.name ?? watch(subName)}
-                </a>
-                {!disabled && (
-                  <Icons
-                    name="close"
-                    onClick={() => handleClearFile(0, file)}
-                    className="iconBlack iconWidthSm cursor-pointer"
-                  />
-                )}
-              </div>
-            )}
+              )}
+            </div>
+          )}
           {/* {typeof file === 'object' && file && !isMultiple && (
             <div className="flex items-center justify-between gap-1.5 px-2.5 py-2 bg-cardWrapperBg rounded-sm">
               <Icons name="paper-clip" className="iconWidthSm iconBlack" />

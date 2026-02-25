@@ -57,15 +57,7 @@ export default function Vitals({
     const rowHeight = 7
     const usableHeight = pageHeight - topMargin - bottomMargin
 
-    const columns = [
-      'Date',
-      'Heart Rate',
-      'Blood Pressure',
-      'Sugar',
-      'Sleep',
-      'Water',
-      'Steps',
-    ]
+    const columns = ['Date', 'Sleep', 'Water', 'Steps']
 
     // Distribute columns across available width
     const tableWidth = pageWidth - leftMargin - rightMargin
@@ -152,22 +144,12 @@ export default function Vitals({
       const dateStr = row?.recorded_at
         ? moment(row.recorded_at).format('DD MMM YYYY')
         : '-'
-      const heartRate = row?.heart_rate != null ? `${row.heart_rate} bpm` : '-'
-      const bloodPressure = row?.blood_pressure ? row.blood_pressure : '-'
-      const sugar = row?.sugar_level != null ? `${row.sugar_level} mg/dL` : '-'
+
       const sleep = row?.sleep_hours != null ? `${row.sleep_hours} hrs` : '-'
       const water = row?.water_intake != null ? `${row.water_intake} L` : '-'
       const steps = row?.steps != null ? `${row.steps}` : '-'
 
-      const values = [
-        dateStr,
-        heartRate,
-        bloodPressure,
-        sugar,
-        sleep,
-        water,
-        steps,
-      ]
+      const values = [dateStr, sleep, water, steps]
 
       pdf.setFontSize(9)
       pdf.setTextColor(31, 41, 55) // gray-800
@@ -299,7 +281,7 @@ export default function Vitals({
                     <span>Water Intake</span>
                   </div>
                   <div className="mt-1 text-gray-800 font-semibold text-center">
-                    {`${row.water_intake} L`}
+                    {`${row.water_intake} G`}
                   </div>
                 </div>
               )}
