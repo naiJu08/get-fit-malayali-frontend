@@ -1721,7 +1721,17 @@ export default function WorkoutPlanDetails() {
                           >
                             <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
                               <span className="line-clamp-1">
-                                {index + 1}. {w?.name}
+                                {index + 1}.{' '}
+                                {w?.name
+                                  ? w.name
+                                      .split(' ')
+                                      .map(
+                                        (word: string) =>
+                                          word.charAt(0).toUpperCase() +
+                                          word.slice(1).toLowerCase()
+                                      )
+                                      .join(' ')
+                                  : ''}
                               </span>
                             </div>
 

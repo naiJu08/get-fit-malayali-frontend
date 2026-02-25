@@ -307,7 +307,7 @@ export default function CreateRecipe({
       type: 'text',
       placeholder: 'Enter recipe name',
       required: true,
-      maxLength: 200,
+      maxLength: 100,
     },
     {
       name: 'meal_category',
@@ -336,6 +336,7 @@ export default function CreateRecipe({
       label: 'Protein',
       type: 'text',
       placeholder: 'Enter protein',
+      maxLength: 4,
       required: true,
       allowPositiveOnly: true,
     },
@@ -344,6 +345,7 @@ export default function CreateRecipe({
       label: 'Carbs',
       type: 'text',
       placeholder: 'Enter carbs',
+      maxLength: 4,
       required: true,
       allowPositiveOnly: true,
     },
@@ -352,6 +354,7 @@ export default function CreateRecipe({
       label: 'Fat',
       type: 'text',
       placeholder: 'Enter fat',
+      maxLength: 4,
       required: true,
       allowPositiveOnly: true,
     },
@@ -360,6 +363,7 @@ export default function CreateRecipe({
       label: 'Fiber',
       type: 'text',
       placeholder: 'Enter fiber',
+      maxLength: 4,
       required: true,
       allowPositiveOnly: true,
     },
@@ -496,7 +500,7 @@ export default function CreateRecipe({
                             label="Name"
                             type="text"
                             placeholder="Ingredient name"
-                            maxLength={200}
+                            maxLength={100}
                             value={value ?? ''}
                             onChange={onChange as any}
                             required

@@ -33,7 +33,7 @@ export default function CreateMeal({
     mode: 'onChange',
     reValidateMode: 'onChange',
   })
-  const { handleSubmit, reset } = methods
+  const { handleSubmit, reset, setError } = methods
   // Watch macro fields
   // const protein = methods.watch('protein')
   // const carbs = methods.watch('carbs')
@@ -126,6 +126,7 @@ export default function CreateMeal({
         meal_time: values.meal_time,
         meal_category_id: values.meal_category_id,
         serving_unit: values.serving_unit,
+        default_serving_quantity: 1,
         per_serving_calories: values.per_serving_calories,
         per_serving_protein: values.per_serving_protein,
         per_serving_carbs: values.per_serving_carbs,
@@ -143,6 +144,22 @@ export default function CreateMeal({
             handleRefresh?.()
             handleClose()
           },
+          onError: (error: any) => {
+            const errorData = error?.response?.data
+
+            if (Array.isArray(errorData?.errors)) {
+              const nameError = errorData.errors.find((err: string) =>
+                err.toLowerCase().includes('name')
+              )
+
+              if (nameError) {
+                setError('name', {
+                  type: 'server',
+                  message: nameError,
+                })
+              }
+            }
+          },
         }
       )
     } else {
@@ -151,6 +168,22 @@ export default function CreateMeal({
           queryClient.invalidateQueries({ queryKey: ['meals_list'] })
           handleRefresh?.()
           handleClose()
+        },
+        onError: (error: any) => {
+          const errorData = error?.response?.data
+
+          if (Array.isArray(errorData?.errors)) {
+            const nameError = errorData.errors.find((err: string) =>
+              err.toLowerCase().includes('name')
+            )
+
+            if (nameError) {
+              setError('name', {
+                type: 'server',
+                message: nameError,
+              })
+            }
+          }
         },
       })
     }
@@ -164,6 +197,7 @@ export default function CreateMeal({
         meal_category: rowData?.meal_category ?? '',
         meal_category_id: rowData?.meal_category_id ?? undefined,
         serving_unit: rowData?.serving_unit ?? '',
+        default_serving_quantity: 1,
         per_serving_calories:
           rowData?.per_serving?.calories ?? rowData?.per_serving_calories ?? 0,
         per_serving_protein:
@@ -183,6 +217,7 @@ export default function CreateMeal({
         meal_category: '',
         meal_category_id: undefined,
         serving_unit: '',
+        default_serving_quantity: 1,
         per_serving_calories: '' as any,
         per_serving_protein: '' as any,
         per_serving_carbs: '' as any,
@@ -250,6 +285,14 @@ export default function CreateMeal({
       descId: 'id',
       id: 'serving_unit',
       data: servingUnitOptions,
+    },
+    {
+      name: 'default_serving_quantity',
+      label: 'Default Serving Quantity',
+      type: 'text',
+      required: false,
+      disabled: true,
+      value: '1',
     },
     {
       name: 'per_serving_protein',

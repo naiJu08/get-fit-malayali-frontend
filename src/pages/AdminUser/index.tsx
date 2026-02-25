@@ -556,21 +556,14 @@ export default function AdminUser() {
             </div>
           </div>
 
-          <DialogModal
+          <ConfirmDeleteModal
             isOpen={activePlanWarningOpen}
             onClose={cancelActivePlanWarning}
+            onConfirm={confirmActivePlanWarning}
             title="Deactivate this user?"
-            onSubmit={confirmActivePlanWarning}
-            secondaryAction={cancelActivePlanWarning}
-            secondaryActionLabel="No"
-            actionLabel="Yes, Continue"
-            body={
-              <InfoBox
-                content={
-                  'This user currently has an active plan. Are you sure you want to continue with deactivation?'
-                }
-              />
-            }
+            subTitle="This user currently has an active plan. Are you sure you want to continue with deactivation?"
+            confirmLabel="Yes, Continue"
+            cancelLabel="No"
           />
           <DialogModal
             isOpen={deleteModal}

@@ -8,20 +8,27 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-type ColumnBuilder = (row: any) => { cell: React.ReactNode; toolTip?: string }
+// type ColumnBuilder = (row: any) => { cell: React.ReactNode; toolTip?: string }
 
-const createRenderCell = (
-  path: string,
-  type?: 'date' | 'text'
-): ColumnBuilder => {
-  return (row: any) => {
-    const value = getNestedProperty(row, path)
-    if (type === 'date') {
-      const formatted = value ? moment(value).format('DD-MM-YYYY HH:mm') : '--'
-      return { cell: formatted, toolTip: formatted }
-    }
-    return { cell: value ?? '--', toolTip: value ?? '--' }
+const createRenderCell = (path: string, type?: 'date') => (row: any) => {
+  const value = getNestedProperty(row, path)
+  if (type === 'date') {
+    const formatted = value ? moment(value).format('DD-MM-YYYY HH:mm') : '--'
+    return { cell: formatted, toolTip: formatted }
   }
+
+  // Capitalize first letter of all words for recipe names
+  const capitalizeWords = (str: string | undefined) => {
+    if (!str) return '--'
+    return str
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ')
+  }
+
+  const displayValue =
+    path === 'recipe.name' ? capitalizeWords(value) : (value ?? '--')
+  return { cell: displayValue, toolTip: displayValue }
 }
 
 export const getUserRecipeColumns = (onNameClick?: (row: any) => void) => {

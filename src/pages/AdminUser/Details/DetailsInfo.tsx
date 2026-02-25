@@ -117,6 +117,7 @@ export default function DetailsInfo({
                   label="Nationality"
                   value={capitalizeWord(user?.ethnicity)}
                 />
+                <DetailItem label="State" value={capitalizeWord(user?.state)} />
               </>
             )}
             <DetailItem label="Status" value={mapStatus(user?.status)} />

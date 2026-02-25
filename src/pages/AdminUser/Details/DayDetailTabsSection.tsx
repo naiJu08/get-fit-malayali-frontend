@@ -38,6 +38,13 @@ const formatMealName = (value?: string | null) => {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
 }
 
+const titleCaseWords = (value?: string | null) =>
+  (value ?? '')
+    .split(' ')
+    .filter((part) => part.trim().length)
+    .map((part) => part[0].toUpperCase() + part.slice(1).toLowerCase())
+    .join(' ')
+
 const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   dayDetail,
   dayDetailTab,
@@ -217,28 +224,9 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     }
   }
 
-  const formatTimestamp = (value?: string | number | Date | null) => {
-    if (!value) return '--'
-    if (typeof value === 'string') {
-      const [datePart] = value.split('T')
-      if (datePart) return datePart
-    }
-    const normalizedDate =
-      typeof value === 'number'
-        ? new Date(Number(value))
-        : typeof value === 'string'
-          ? new Date(value)
-          : value
-    if (!(normalizedDate instanceof Date) || isNaN(normalizedDate.getTime())) {
-      return '--'
-    }
-    return moment(normalizedDate).format('DD-MM-YYYY')
-  }
-
   const hasYogaData = useMemo(() => {
     return !!dayDetail?.yoga_plan
   }, [dayDetail])
-
   useEffect(() => {
     if (!hasYogaData && dayDetailTab === 'yoga') {
       onChangeTab('diet')
@@ -275,402 +263,502 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
         onClick={(item) => onChangeTab(String(item.id))}
       >
         <Tab id="diet">
-          <div className="max-h-[700px] overflow-y-auto">
-            <div className="border rounded p-3 bg-white">
-              <div className="flex items-center justify-between mb-2 gap-3">
-                <div className="text-sm font-semibold flex flex-col">
+          <div className="max-h-[700px] overflow-y-auto bg-white text-xs">
+            {/* ================= HEADER ================= */}
+            <div className="sticky top-0 z-10 bg-gray-50 p-4 ">
+              <div className="bg-white shadow-md p-4 flex items-center justify-between">
+                <div className="text-sm font-semibold">
                   {templateName ? (
                     <button
                       type="button"
                       onClick={handleTemplateNameClick}
-                      className="text-left text-primary hover:underline"
+                      className="text-primary hover:underline"
                     >
-                      {templateName}
+                      {titleCaseWords(templateName)}
                     </button>
                   ) : (
-                    <span>Diet Plans</span>
+                    'Diet Plans'
                   )}
                 </div>
-                <div className="flex flex-col items-end gap-2">
+
+                <div className="flex items-center gap-2">
                   {canEditDay && (
                     <button
                       type="button"
-                      className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
                       onClick={() => setAssignTemplateOpen(true)}
+                      className="px-3 py-1 text-[11px] rounded-full bg-primary text-white"
                     >
-                      <Icons name="template-icon" />
-                      <span>
-                        {Array.isArray(dayDetail?.diet_plans) &&
-                        dayDetail.diet_plans.length > 0
-                          ? 'Update'
-                          : 'Assign Template'}
-                      </span>
+                      {Array.isArray(dayDetail?.diet_plans) &&
+                      dayDetail.diet_plans.length > 0
+                        ? 'Update'
+                        : 'Assign Template'}
                     </button>
                   )}
+
                   {dietItemKeys.length > 0 && (
                     <button
                       type="button"
-                      className="group flex items-center gap-1 text-xs font-medium text-primary
-             transition-all hover:text-primaryGreen"
                       onClick={handleToggleAllDietDetails}
+                      className="flex items-center gap-1 text-[11px] text-primary font-medium"
                     >
-                      <span className="group-hover:underline">
-                        {areAllDietItemsExpanded ? 'Collapse all' : 'View all'}
-                      </span>
+                      {areAllDietItemsExpanded ? 'Collapse all' : 'Expand all'}
                       <Icons
                         name="chevron-down"
-                        className={`w-3 h-3 transition-transform duration-200
-      ${areAllDietItemsExpanded ? 'rotate-180' : ''}`}
+                        className={`w-3 h-3 transition-transform duration-300 ${
+                          areAllDietItemsExpanded ? 'rotate-180' : ''
+                        }`}
                       />
                     </button>
                   )}
                 </div>
               </div>
-              {Array.isArray(dayDetail?.diet_plans) &&
-              dayDetail.diet_plans.length > 0 ? (
-                <div className="flex flex-col gap-2 text-xs">
-                  {dayDetail.diet_plans.map((d: any) => {
-                    const totalItems = Array.isArray(d?.items)
-                      ? d.items.length
-                      : 0
-                    const completedItems = Array.isArray(
-                      d?.item_statuses?.completed_item_ids
-                    )
-                      ? d.item_statuses.completed_item_ids.length
-                      : 0
-                    const missedItems = Array.isArray(
-                      d?.item_statuses?.not_taken_mandatory_item_ids
-                    )
-                      ? d.item_statuses.not_taken_mandatory_item_ids.length
-                      : 0
-                    return (
-                      <div
-                        key={`${d?.id}-${d?.sequence_number}`}
-                        className="border rounded px-3 py-2 flex flex-col gap-1"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex flex-col">
-                            {/* <span className="font-medium">
-                              {d?.meal_time || '--'}
-                            </span> */}
-                            <span className="text-gray-600 font-medium">
-                              {d.meal_time}
-                            </span>
-                            {d?.notes && (
-                              <p className="text-[11px] text-gray-500 mt-1">
-                                {d.notes}
-                              </p>
+            </div>
+
+            {/* ================= MEALS ================= */}
+            {Array.isArray(dayDetail?.diet_plans) &&
+            dayDetail.diet_plans.length > 0 ? (
+              <div className="space-y-3 mt-3">
+                {dayDetail.diet_plans.map((d: any) => {
+                  const totalItems = d?.items?.length || 0
+                  const completedItems =
+                    d?.item_statuses?.completed_item_ids?.length || 0
+                  const missedItems =
+                    d?.item_statuses?.not_taken_mandatory_item_ids?.length || 0
+
+                  const progress =
+                    totalItems > 0 ? (completedItems / totalItems) * 100 : 0
+
+                  return (
+                    <div
+                      key={`${d?.id}-${d?.sequence_number}`}
+                      className="bg-white rounded-xl shadow-sm px-4 py-3"
+                    >
+                      {/* ---------- Meal Header ---------- */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="text-lg font-semibold text-gray-800">
+                            {d.meal_time}
+                          </div>
+                          {d?.meal_name && (
+                            <div className="text-sm text-gray-600 font-medium">
+                              {formatMealName(d.meal_name)}
+                            </div>
+                          )}
+                          {d?.notes && (
+                            <div className="text-[10px] text-gray-500 mt-1">
+                              Notes: {d.notes}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="text-right">
+                          <div className="text-sm font-semibold text-gray-700">
+                            {(() => {
+                              const totalConsumedCalories =
+                                d?.items?.reduce(
+                                  (sum: number, item: any) =>
+                                    sum +
+                                    (item?.actions?.consumed_calories || 0),
+                                  0
+                                ) || 0
+                              const otherConsumedCalories =
+                                d?.other_consumed_items?.reduce(
+                                  (sum: number, item: any) =>
+                                    sum + (item?.consumed_calories || 0),
+                                  0
+                                ) || 0
+                              const totalCalories =
+                                totalConsumedCalories + otherConsumedCalories
+                              return totalCalories > 0
+                                ? `${totalCalories} kcal`
+                                : `${d?.calories ?? '--'} kcal`
+                            })()}
+                          </div>
+                          <div className="text-[10px] text-gray-500">
+                            {completedItems}/{totalItems} completed
+                            {missedItems > 0 && (
+                              <span className="text-red-500 ml-1">
+                                • {missedItems} missed
+                              </span>
                             )}
                           </div>
-                          <div className="text-right text-[11px] text-gray-600 space-y-0.5 items-end flex flex-col">
-                            <div>
-                              <span className="text-gray-500">Calories: </span>
-                              <span className="font-medium text-gray-800">
-                                {d?.calories ?? '--'}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-gray-500">Items: </span>
-                              <span className="font-medium text-gray-800">
-                                {totalItems}
-                              </span>
-                              {totalItems > 0 && (
-                                <span className="ml-1 text-[10px] text-gray-500">
-                                  ({completedItems} done / {missedItems} missed)
-                                </span>
-                              )}
-                            </div>
+                        </div>
+                      </div>
+
+                      {/* ---------- Progress Bar ---------- */}
+                      {totalItems > 0 && (
+                        <div className="relative w-full h-1.5 bg-gray-200 rounded-full overflow-hidden mt-2">
+                          {/* Progress fill */}
+                          <div
+                            className="h-full bg-green-500 rounded-full transition-all duration-500"
+                            style={{ width: `${progress}%` }}
+                          />
+
+                          {/* Progress Ball */}
+                          <div
+                            className="absolute top-1/2 -translate-y-1/2 transition-all duration-500"
+                            style={{ left: `calc(${progress}% - 6px)` }}
+                          >
+                            <div className="w-3 h-3 bg-green-600 rounded-full shadow-sm border border-white" />
                           </div>
                         </div>
-                        {Array.isArray(d?.items) && d.items.length > 0 ? (
-                          <div className="mt-1 border-t pt-1 space-y-1 text-[11px] text-gray-700">
-                            {d.items.map((it: any) => {
-                              const itemStatus = String(
-                                it?.actions?.status || ''
-                              ).toLowerCase()
-                              const itemStatusClass =
-                                itemStatus === 'completed'
-                                  ? 'text-green-600'
-                                  : itemStatus === 'missed' ||
-                                      itemStatus === 'failed'
-                                    ? 'text-red-600'
-                                    : itemStatus === 'today' ||
-                                        itemStatus === 'in_progress'
-                                      ? 'text-amber-600'
-                                      : 'text-gray-700'
+                      )}
 
-                              const requirementText = (() => {
-                                if (
-                                  typeof it?.requirement === 'string' &&
-                                  it.requirement.trim()
-                                ) {
-                                  const trimmed = it.requirement.trim()
-                                  return (
-                                    trimmed.charAt(0).toUpperCase() +
-                                    trimmed.slice(1)
-                                  )
-                                }
-                                return it?.requirement || '--'
-                              })()
+                      {/* ---------- Items ---------- */}
+                      {Array.isArray(d?.items) && d.items.length > 0 ? (
+                        <div className="mt-3 space-y-2">
+                          {d.items.map((it: any) => {
+                            const itemStatus = String(
+                              it?.actions?.status || ''
+                            ).toLowerCase()
 
-                              const dietItemKey = `${d?.id}-${it?.id}`
-                              const isExpanded =
-                                !!expandedDietItems[dietItemKey]
+                            const statusColor =
+                              itemStatus === 'completed'
+                                ? 'border-green-500'
+                                : itemStatus === 'missed' ||
+                                    itemStatus === 'failed'
+                                  ? 'border-red-500'
+                                  : itemStatus === 'in_progress'
+                                    ? 'border-amber-500'
+                                    : 'border-gray-300'
 
-                              const consumedQuantity =
-                                it?.actions?.consumed_quantity
-                              const consumedCalories =
-                                it?.actions?.consumed_calories
-                              const consumedMacros =
-                                it?.actions?.consumed_macros
-                              const hasConsumedStats =
-                                consumedQuantity != null ||
-                                consumedCalories != null ||
-                                (consumedMacros &&
-                                  (consumedMacros.protein != null ||
-                                    consumedMacros.carbs != null ||
-                                    consumedMacros.fat != null ||
-                                    consumedMacros.fiber != null))
-                              const statusLabel = itemStatus
-                                ? itemStatus.charAt(0).toUpperCase() +
-                                  itemStatus.slice(1)
-                                : ''
+                            const dietItemKey = `${d?.id}-${it?.id}`
+                            const isExpanded = !!expandedDietItems[dietItemKey]
 
-                              return (
-                                <div
-                                  key={it?.id}
-                                  className="flex flex-col gap-1 rounded bg-gray-50 px-2 py-1 text-[10px] text-gray-600"
-                                >
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div>
-                                      <span className="font-semibold text-blue-800">
-                                        {formatMealName(it?.meal_name)}
-                                      </span>
-                                    </div>
-                                    <div className="flex flex-col items-end gap-1">
-                                      <button
-                                        type="button"
-                                        className="text-[10px] text-primary font-semibold hover:underline"
-                                        onClick={() =>
-                                          dietItemKey &&
-                                          toggleDietItemDetails(dietItemKey)
-                                        }
-                                      >
-                                        {isExpanded
-                                          ? 'Hide details'
-                                          : 'View details'}
-                                      </button>
-
-                                      {statusLabel && (
-                                        <span
-                                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize ${itemStatusClass} bg-white border border-current`}
-                                        >
-                                          {statusLabel}
-                                        </span>
-                                      )}
-                                    </div>
+                            return (
+                              <div
+                                key={it?.id}
+                                className={`border-l-2 ${statusColor} bg-gray-50 rounded-lg px-3 py-2`}
+                              >
+                                {/* Item Header */}
+                                <div className="flex items-center justify-between">
+                                  <div className="text-[11px] font-medium text-gray-800">
+                                    {formatMealName(it?.meal_name)}
                                   </div>
-                                  {isExpanded && (
-                                    <div className="flex flex-col gap-0.5">
-                                      <div>
-                                        <span className="font-medium">
-                                          Quantity :{' '}
-                                        </span>
-                                        <span>
-                                          {it?.quantity} x {it?.serving_unit}{' '}
-                                          (per {it?.serving_quantity})
-                                        </span>
-                                      </div>
-                                      <div>
-                                        <span className="font-medium">
-                                          Requirement :{' '}
-                                        </span>
-                                        <span>{requirementText}</span>
-                                      </div>
-                                      {it?.per_serving && (
-                                        <div>
-                                          <span className="font-medium">
-                                            Per serving :{' '}
-                                          </span>
-                                          <span>
-                                            {it.per_serving.calories ?? '--'}{' '}
-                                            kcal, P{' '}
-                                            {it.per_serving.protein ?? '--'}, C{' '}
-                                            {it.per_serving.carbs ?? '--'}, F{' '}
-                                            {it.per_serving.fat ?? '--'}, Fib{' '}
-                                            {it.per_serving.fiber ?? '--'}
-                                          </span>
-                                        </div>
-                                      )}
-                                      {hasConsumedStats && (
-                                        <div className="rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-emerald-700">
-                                          <div className="text-[10px] font-semibold text-emerald-800">
-                                            Consumed
-                                          </div>
-                                          <div>
-                                            <span className="font-medium">
-                                              Quantity :
-                                            </span>{' '}
-                                            <span>
-                                              {consumedQuantity ?? '--'}
-                                              {it?.serving_unit
-                                                ? ` ${it.serving_unit}`
-                                                : ''}
-                                            </span>
-                                          </div>
-                                          {typeof consumedCalories ===
-                                            'number' && (
-                                            <div>
-                                              <span className="font-medium">
-                                                Calories :
-                                              </span>{' '}
-                                              <span>
-                                                {consumedCalories} kcal
-                                              </span>
-                                            </div>
-                                          )}
-                                          {consumedMacros && (
-                                            <div>
-                                              <span className="font-medium">
-                                                Macros :
-                                              </span>{' '}
-                                              <span>
-                                                P{' '}
-                                                {consumedMacros?.protein ??
-                                                  '--'}
-                                                , C{' '}
-                                                {consumedMacros?.carbs ?? '--'},
-                                                F {consumedMacros?.fat ?? '--'},
-                                                Fib{' '}
-                                                {consumedMacros?.fiber ?? '--'}
-                                              </span>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                      {it?.actions && (
-                                        <div className="mt-0.5 flex flex-col gap-0.5 text-[10px] text-gray-600">
-                                          <div>
-                                            <span className="text-gray-500">
-                                              Action date :{' '}
-                                            </span>
-                                            <span>
-                                              {formatTimestamp(
-                                                it.actions.action_date
-                                              )}
-                                            </span>
-                                          </div>
-                                          {it.actions.notes && (
-                                            <div>
-                                              <span className="text-gray-500">
-                                                Notes :{' '}
-                                              </span>
-                                              <span>{it.actions.notes}</span>
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            })}
-                          </div>
-                        ) : (
-                          <div className="mt-1 border-t pt-2 text-[11px] text-gray-500 italic">
-                            No items defined for this meal.
-                          </div>
-                        )}
 
-                        {Array.isArray(d?.other_consumed_items) &&
-                          d.other_consumed_items.length > 0 && (
-                            <div className="mt-3 border-t pt-2 text-[11px] text-gray-700">
-                              <div className="text-[10px] font-semibold uppercase tracking-wide text-orange-600 mb-1">
-                                Other Consumed Items
-                              </div>
-                              <div className="space-y-1">
-                                {d.other_consumed_items.map((extra: any) => (
-                                  <div
-                                    key={`${extra?.id}-${extra?.actions?.id ?? 'extra'}`}
-                                    className="rounded border border-orange-200 bg-orange-50 px-2 py-1 text-[10px] text-orange-900"
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      toggleDietItemDetails(dietItemKey)
+                                    }
+                                    className="text-[10px] text-primary"
                                   >
-                                    <div className="flex items-center justify-between mb-0.5">
-                                      <span className="font-semibold">
-                                        {formatMealName(extra?.meal_name) ||
-                                          'Other item'}
-                                      </span>
-                                      {extra?.actions?.status && (
-                                        <span className="text-orange-700 font-semibold">
-                                          {extra.actions.status
-                                            .toString()
-                                            .charAt(0)
-                                            .toUpperCase() +
-                                            extra.actions.status
-                                              .toString()
-                                              .slice(1)}
-                                        </span>
-                                      )}
+                                    {isExpanded ? 'Hide' : 'Details'}
+                                  </button>
+                                </div>
+
+                                {/* Expanded Content */}
+                                {isExpanded && (
+                                  <div className="mt-2 text-[10px] text-gray-600 space-y-1">
+                                    <div>
+                                      <span className="font-medium">
+                                        Requirement:
+                                      </span>{' '}
+                                      {it?.requirement
+                                        ? formatMealName(it.requirement)
+                                        : '--'}
                                     </div>
-                                    <div className="text-gray-600">
-                                      Quantity:{' '}
-                                      {extra?.consumed_quantity ??
-                                        extra?.quantity ??
-                                        '--'}
-                                      {extra?.serving_unit
-                                        ? ` ${extra.serving_unit}`
-                                        : ''}
+
+                                    <div>
+                                      <span className="font-medium">
+                                        Planned:
+                                      </span>{' '}
+                                      {it?.quantity} x {it?.serving_unit}
+                                      {it?.serving_quantity &&
+                                        it?.serving_quantity !== it?.quantity &&
+                                        ` (${it?.serving_quantity} per serving)`}
                                     </div>
-                                    {typeof extra?.consumed_calories ===
-                                      'number' && (
-                                      <div className="text-gray-600">
-                                        Calories: {extra.consumed_calories} kcal
+
+                                    {it?.per_serving && (
+                                      <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                                        <div className="font-medium text-blue-800 mb-1">
+                                          Per Serving Nutrition:
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-1">
+                                          <div>
+                                            Calories:{' '}
+                                            {it.per_serving.calories ?? '--'}{' '}
+                                            kcal
+                                          </div>
+                                          <div>
+                                            Protein:{' '}
+                                            {it.per_serving.protein ?? '--'}g
+                                          </div>
+                                          <div>
+                                            Carbs:{' '}
+                                            {it.per_serving.carbs ?? '--'}g
+                                          </div>
+                                          <div>
+                                            Fat: {it.per_serving.fat ?? '--'}g
+                                          </div>
+                                          {it.per_serving.fiber && (
+                                            <div className="col-span-2">
+                                              Fiber: {it.per_serving.fiber}g
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                     )}
-                                    {(extra?.consumed_macros ||
-                                      extra?.per_serving) && (
-                                      <div className="text-gray-600">
-                                        Macros:{' '}
-                                        <span>
-                                          P{' '}
-                                          {extra?.consumed_macros?.protein ??
-                                            extra?.per_serving?.protein ??
-                                            '--'}
-                                          , C{' '}
-                                          {extra?.consumed_macros?.carbs ??
-                                            extra?.per_serving?.carbs ??
-                                            '--'}
-                                          , F{' '}
-                                          {extra?.consumed_macros?.fat ??
-                                            extra?.per_serving?.fat ??
-                                            '--'}
-                                          , Fib{' '}
-                                          {extra?.consumed_macros?.fiber ??
-                                            extra?.per_serving?.fiber ??
-                                            '--'}
-                                        </span>
+
+                                    {it?.actions?.consumed_quantity && (
+                                      <div className="bg-emerald-50 border border-emerald-200 rounded p-2">
+                                        <div className="font-medium text-emerald-800 mb-1">
+                                          Consumed:
+                                        </div>
+                                        <div>
+                                          Quantity:{' '}
+                                          {it.actions.consumed_quantity}{' '}
+                                          {it?.serving_unit}
+                                        </div>
+                                        {it.actions.consumed_calories !==
+                                          undefined && (
+                                          <div>
+                                            Calories:{' '}
+                                            {it.actions.consumed_calories} kcal
+                                          </div>
+                                        )}
+                                        {it.actions.consumed_macros && (
+                                          <div className="grid grid-cols-2 gap-1 mt-1">
+                                            <div>
+                                              Protein:{' '}
+                                              {it.actions.consumed_macros
+                                                .protein ?? '--'}
+                                              g
+                                            </div>
+                                            <div>
+                                              Carbs:{' '}
+                                              {it.actions.consumed_macros
+                                                .carbs ?? '--'}
+                                              g
+                                            </div>
+                                            <div>
+                                              Fat:{' '}
+                                              {it.actions.consumed_macros.fat ??
+                                                '--'}
+                                              g
+                                            </div>
+                                            {it.actions.consumed_macros
+                                              .fiber && (
+                                              <div className="col-span-2">
+                                                Fiber:{' '}
+                                                {
+                                                  it.actions.consumed_macros
+                                                    .fiber
+                                                }
+                                                g
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
                                       </div>
                                     )}
-                                    {extra?.actions?.action_date && (
-                                      <div className="text-gray-500">
-                                        Logged on:{' '}
-                                        {formatTimestamp(
-                                          extra.actions.action_date
+
+                                    {it?.actions?.status && (
+                                      <div className="text-[9px] text-gray-500">
+                                        <span className="font-medium">
+                                          Status:
+                                        </span>{' '}
+                                        <span
+                                          className={`capitalize ${
+                                            it.actions.status === 'completed'
+                                              ? 'text-green-600'
+                                              : it.actions.status ===
+                                                    'missed' ||
+                                                  it.actions.status === 'failed'
+                                                ? 'text-red-600'
+                                                : it.actions.status ===
+                                                    'in_progress'
+                                                  ? 'text-amber-600'
+                                                  : 'text-gray-600'
+                                          }`}
+                                        >
+                                          {it.actions.status.replace(/_/g, ' ')}
+                                        </span>
+                                        {it?.actions?.completed_at && (
+                                          <span className="ml-2">
+                                            at{' '}
+                                            {new Date(
+                                              it.actions.completed_at
+                                            ).toLocaleTimeString([], {
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                            })}
+                                          </span>
                                         )}
                                       </div>
                                     )}
                                   </div>
-                                ))}
+                                )}
                               </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="mt-4 text-sm text-gray-400 italic">
+                          No items defined for this meal.
+                        </div>
+                      )}
+
+                      {/* ---------- Other Consumed ---------- */}
+                      {Array.isArray(d?.other_consumed_items) &&
+                        d.other_consumed_items.length > 0 && (
+                          <div className="mt-3 border-t pt-2">
+                            <div className="text-[10px] font-semibold text-orange-600 mb-2 uppercase">
+                              Other Items Consumed
                             </div>
-                          )}
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="text-xs text-gray-500">No diet items.</div>
-              )}
-            </div>
+
+                            <div className="space-y-2">
+                              {d.other_consumed_items.map((extra: any) => (
+                                <div
+                                  key={extra?.id}
+                                  className="bg-orange-50 border border-orange-200 rounded-lg p-2"
+                                >
+                                  <div className="flex items-start justify-between mb-1">
+                                    <div className="font-medium text-orange-800">
+                                      {formatMealName(extra?.meal_name)}
+                                    </div>
+                                    <div className="text-[9px] text-orange-600">
+                                      {extra?.meal_time}
+                                    </div>
+                                  </div>
+
+                                  <div className="text-[10px] text-gray-700 space-y-1">
+                                    <div>
+                                      <span className="font-medium">
+                                        Consumed:
+                                      </span>{' '}
+                                      {extra?.consumed_quantity ??
+                                        extra?.quantity ??
+                                        '--'}{' '}
+                                      {extra?.serving_unit}
+                                    </div>
+
+                                    {extra?.consumed_calories !== undefined && (
+                                      <div>
+                                        <span className="font-medium">
+                                          Calories:
+                                        </span>{' '}
+                                        {extra.consumed_calories} kcal
+                                      </div>
+                                    )}
+
+                                    {extra?.per_serving && (
+                                      <div className="bg-orange-100 rounded p-1 mt-1">
+                                        <div className="font-medium text-orange-800 mb-1">
+                                          Per Serving:
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-1 text-[9px]">
+                                          <div>
+                                            Calories:{' '}
+                                            {extra.per_serving.calories ?? '--'}{' '}
+                                            kcal
+                                          </div>
+                                          <div>
+                                            Protein:{' '}
+                                            {extra.per_serving.protein ?? '--'}g
+                                          </div>
+                                          <div>
+                                            Carbs:{' '}
+                                            {extra.per_serving.carbs ?? '--'}g
+                                          </div>
+                                          <div>
+                                            Fat: {extra.per_serving.fat ?? '--'}
+                                            g
+                                          </div>
+                                          {extra.per_serving.fiber && (
+                                            <div className="col-span-2">
+                                              Fiber: {extra.per_serving.fiber}g
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {extra?.consumed_macros && (
+                                      <div className="bg-emerald-50 border border-emerald-200 rounded p-1 mt-1">
+                                        <div className="font-medium text-emerald-800 mb-1">
+                                          Consumed Macros:
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-1 text-[9px]">
+                                          <div>
+                                            Protein:{' '}
+                                            {extra.consumed_macros.protein ??
+                                              '--'}
+                                            g
+                                          </div>
+                                          <div>
+                                            Carbs:{' '}
+                                            {extra.consumed_macros.carbs ??
+                                              '--'}
+                                            g
+                                          </div>
+                                          <div>
+                                            Fat:{' '}
+                                            {extra.consumed_macros.fat ?? '--'}g
+                                          </div>
+                                          {extra.consumed_macros.fiber && (
+                                            <div className="col-span-2">
+                                              Fiber:{' '}
+                                              {extra.consumed_macros.fiber}g
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {extra?.actions?.status && (
+                                      <div className="text-[9px] text-gray-500">
+                                        <span className="font-medium">
+                                          Status:
+                                        </span>{' '}
+                                        <span
+                                          className={`capitalize ${
+                                            extra.actions.status === 'completed'
+                                              ? 'text-green-600'
+                                              : extra.actions.status ===
+                                                    'missed' ||
+                                                  extra.actions.status ===
+                                                    'failed'
+                                                ? 'text-red-600'
+                                                : extra.actions.status ===
+                                                    'in_progress'
+                                                  ? 'text-amber-600'
+                                                  : 'text-gray-600'
+                                          }`}
+                                        >
+                                          {extra.actions.status.replace(
+                                            /_/g,
+                                            ' '
+                                          )}
+                                        </span>
+                                        {extra?.actions?.completed_at && (
+                                          <span className="ml-1">
+                                            at{' '}
+                                            {new Date(
+                                              extra.actions.completed_at
+                                            ).toLocaleTimeString([], {
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                            })}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="mt-6 text-sm text-gray-400 text-center">
+                No diet plans available.
+              </div>
+            )}
           </div>
         </Tab>
 

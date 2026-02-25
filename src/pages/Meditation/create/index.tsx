@@ -289,13 +289,27 @@ export default function CreateAdmin({
       fd.append('meditation[video_url]', details.video_file)
     }
 
+    // Thumbnail handling - only append if changed
     const thumbVal = details?.thumbnail
+    const originalThumbnailName = getFileName(rowData?.thumbnail_url)
 
-    if (thumbVal instanceof File) {
-      fd.append('meditation[thumbnail]', thumbVal)
-    } else if (thumbVal === '') {
-      fd.append('meditation[thumbnail]', null as any)
+    // Check if thumbnail has changed
+    const thumbnailChanged =
+      thumbVal instanceof File || // New file uploaded
+      (typeof thumbVal === 'string' && thumbVal !== originalThumbnailName) // Different string value (but not empty deletion)
+
+    // Only append thumbnail key if it has changed
+    if (thumbnailChanged) {
+      // CASE 1: New thumbnail uploaded
+      if (thumbVal instanceof File) {
+        fd.append('meditation[thumbnail]', thumbVal)
+      }
+      // CASE 2: Different thumbnail URL/string
+      else if (typeof thumbVal === 'string') {
+        fd.append('meditation[thumbnail]', thumbVal)
+      }
     }
+    // Note: When thumbnail is deleted (thumbVal === ''), we don't append the key at all
 
     if (videoDurationMs !== null) {
       const totalSeconds = Math.max(0, Math.floor(videoDurationMs / 1000))

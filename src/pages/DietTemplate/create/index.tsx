@@ -51,6 +51,12 @@ export default function CreateAdmin({
   rowData,
   setEditViewIndicator,
 }: Props) {
+  const titleCase = (value?: string | null) =>
+    (value ?? '')
+      .split(' ')
+      .filter((part) => part.trim().length)
+      .map((part) => part[0].toUpperCase() + part.slice(1).toLowerCase())
+      .join(' ')
   const textField = (
     name: string,
     label: string,
@@ -112,7 +118,7 @@ export default function CreateAdmin({
     if (edit && rowData) {
       methods.reset({
         ...defaultFormValues,
-        name: rowData?.name ?? '',
+        name: titleCase(rowData?.name ?? ''),
         description: rowData?.description ?? '',
         duration_days: parseDurationDays(rowData?.duration_days),
       })
@@ -129,7 +135,7 @@ export default function CreateAdmin({
   }, [isDrawerOpen, methods])
 
   const formBuilderProps = [
-    { ...textField('name', 'Name', 'Enter name', true) },
+    { ...textField('name', 'Name', 'Enter name', true), maxLength: 100 },
     {
       ...textField('duration_days', 'Duration (Days)', 'Enter duration', true),
       type: 'number',
@@ -188,8 +194,30 @@ export default function CreateAdmin({
     fd.append('diet_plan_template[name]', details?.name ?? '')
     fd.append('diet_plan_template[description]', details?.description ?? '')
     fd.append('diet_plan_template[duration_days]', details?.duration_days ?? '')
-    if (details?.thumbnail instanceof File) {
-      fd.append('diet_plan_template[thumbnail]', details.thumbnail)
+    // Thumbnail handling - only append if changed
+    const thumbVal = details?.thumbnail
+    const originalThumbnailName = decodeFileName(rowData?.thumbnail_url)
+
+    // Check if thumbnail has changed
+    const thumbnailChanged =
+      thumbVal instanceof File || // New file uploaded
+      (thumbVal === '' && originalThumbnailName !== '') || // Existing thumbnail removed
+      (typeof thumbVal === 'string' && thumbVal !== originalThumbnailName) // Different string value
+
+    // Only append thumbnail key if it has changed
+    if (thumbnailChanged) {
+      // CASE 1: New thumbnail uploaded
+      if (thumbVal instanceof File) {
+        fd.append('diet_plan_template[thumbnail]', thumbVal)
+      }
+      // CASE 2: Thumbnail manually removed - append null
+      else if (thumbVal === '') {
+        fd.append('diet_plan_template[thumbnail]', null as any)
+      }
+      // CASE 3: Different thumbnail URL/string
+      else if (typeof thumbVal === 'string') {
+        fd.append('diet_plan_template[thumbnail]', thumbVal)
+      }
     }
     if (rowData?.id) {
       updateMutation({ id: rowData?.id, data: fd })

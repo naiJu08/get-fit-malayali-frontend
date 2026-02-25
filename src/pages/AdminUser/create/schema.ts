@@ -122,7 +122,9 @@ export const formSchema = z
     goal: z.string().optional(),
     food_preferences: z.string().optional(),
     medical_conditions: medicalConditionsFieldSchema.optional(),
+    other_medical_condition: z.string().optional(),
     food_allergies: z.string().optional(),
+    state: z.string().optional(),
     ethnicity: z.string().optional(),
     status: z.union([z.number(), z.string()]).optional(),
   })
@@ -216,7 +218,9 @@ export const formSchemaNutritionist = z
     goal: z.string().optional(),
     food_preferences: z.string().optional(),
     medical_conditions: medicalConditionsFieldSchema.optional(),
+    other_medical_condition: z.string().optional(),
     food_allergies: z.string().optional(),
+    state: z.string().optional(),
     ethnicity: z.string().optional(),
   })
   .refine(
@@ -304,7 +308,9 @@ export const formSchemaNutritionistEdit = z
     goal: z.string().optional(),
     food_preferences: z.string().optional(),
     medical_conditions: medicalConditionsFieldSchema.optional(),
+    other_medical_condition: z.string().optional(),
     food_allergies: z.string().optional(),
+    state: z.string().optional(),
     ethnicity: z.string().optional(),
     status: z.union([z.number(), z.string()]).optional(),
   })

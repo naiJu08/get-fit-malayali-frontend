@@ -230,6 +230,8 @@ export default function CreateAdmin({
     ...(disabled ? { disabled: true } : {}),
   })
   const [deleteModal, setDeleteModal] = useState(false)
+  const [showOtherMedicalCondition, setShowOtherMedicalCondition] =
+    useState(false)
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
   // useEffect(() => {
@@ -329,19 +331,19 @@ export default function CreateAdmin({
       required: true,
       maxDate: moment().subtract(18, 'years').toDate(),
     },
-    {
-      name: 'status',
-      label: 'Status',
-      id: 'status',
-      desc: 'name',
-      descId: 'id',
-      data: STATUS_OPTIONS,
-      type: 'custom_select',
-      placeholder: 'Select Status',
-      async: false,
-      initialLoad: true,
-      hidden: !edit,
-    },
+    // {
+    //   name: 'status',
+    //   label: 'Status',
+    //   id: 'status',
+    //   desc: 'name',
+    //   descId: 'id',
+    //   data: STATUS_OPTIONS,
+    //   type: 'custom_select',
+    //   placeholder: 'Select Status',
+    //   async: false,
+    //   initialLoad: true,
+    //   hidden: !edit,
+    // },
     ...(!isNutritionistTab
       ? [
           {
@@ -431,6 +433,19 @@ export default function CreateAdmin({
             initialLoad: true,
             isMultiple: true,
           },
+          ...(showOtherMedicalCondition
+            ? [
+                {
+                  ...textField(
+                    'other_medical_condition',
+                    'Specify Medical Condition',
+                    'Enter medical condition',
+                    showOtherMedicalCondition
+                  ),
+                  type: 'text',
+                },
+              ]
+            : []),
           {
             name: 'food_allergies',
             label: 'Food Allergies',
@@ -454,6 +469,7 @@ export default function CreateAdmin({
             async: false,
             initialLoad: true,
           },
+          { ...textField('state', 'State', 'Enter state') },
           { ...textField('ethnicity', 'Nationality', 'e.g., Indian') },
         ]
       : []),
@@ -482,7 +498,9 @@ export default function CreateAdmin({
       goal: '',
       food_preferences: '',
       medical_conditions: [],
+      other_medical_condition: '',
       food_allergies: '',
+      state: '',
       ethnicity: '',
       status: '',
     } as any)
@@ -506,6 +524,9 @@ export default function CreateAdmin({
       goal: '',
       food_preferences: '',
       medical_conditions: [],
+      other_medical_condition: '',
+      food_allergies: '',
+      state: '',
       ethnicity: '',
       status: '',
     } as any)
@@ -556,11 +577,86 @@ export default function CreateAdmin({
           lifestyle: rowData?.user?.lifestyle ?? '',
           goal: rowData?.user?.goal ?? '',
           food_preferences: rowData?.user?.food_preferences ?? '',
-          medical_conditions: normalizeMedicalConditions(
-            rowData?.user?.medical_conditions
-          ),
+          medical_conditions: (() => {
+            const conditions = normalizeMedicalConditions(
+              rowData?.user?.medical_conditions
+            )
+            const medicalConditionsStr = Array.isArray(conditions)
+              ? conditions
+                  .map((c) => (typeof c === 'string' ? c : c.name))
+                  .join(',')
+              : String(conditions || '')
+
+            // Check if the stored medical condition is not in the predefined options
+            // If it's a custom condition, we need to show "Other" selected and the custom value
+            const predefinedOptions = medicalConditionOptions.map((opt) =>
+              opt.name.toLowerCase()
+            )
+            const conditionsArray = medicalConditionsStr
+              .split(',')
+              .map((c) => c.trim().toLowerCase())
+
+            const customConditions = conditionsArray.filter(
+              (condition) => condition && !predefinedOptions.includes(condition)
+            )
+            const predefinedConditions = conditionsArray.filter(
+              (condition) => condition && predefinedOptions.includes(condition)
+            )
+
+            // Get the actual option objects for predefined conditions
+            const selectedPredefinedOptions = predefinedConditions
+              .map((conditionName) =>
+                medicalConditionOptions.find(
+                  (opt) => opt.name.toLowerCase() === conditionName
+                )
+              )
+              .filter(Boolean)
+
+            // If there are custom conditions, add "Other" to the selection
+            if (customConditions.length > 0) {
+              const otherOption = medicalConditionOptions.find(
+                (opt) => opt.name.toLowerCase() === 'other'
+              )
+              if (otherOption) {
+                selectedPredefinedOptions.push(otherOption)
+              }
+            }
+
+            return selectedPredefinedOptions
+          })(),
+          other_medical_condition: (() => {
+            const conditions = normalizeMedicalConditions(
+              rowData?.user?.medical_conditions
+            )
+            const medicalConditionsStr = Array.isArray(conditions)
+              ? conditions
+                  .map((c) => (typeof c === 'string' ? c : c.name))
+                  .join(',')
+              : String(conditions || '')
+
+            const predefinedOptions = medicalConditionOptions.map((opt) =>
+              opt.name.toLowerCase()
+            )
+            const conditionsArray = medicalConditionsStr
+              .split(',')
+              .map((c) => c.trim())
+
+            // Find custom conditions (not in predefined options)
+            const customConditions = conditionsArray.filter(
+              (condition) =>
+                condition &&
+                !predefinedOptions.includes(condition.toLowerCase())
+            )
+
+            // Return the first custom condition found
+            return customConditions.length > 0 ? customConditions[0] : ''
+          })(),
           food_allergies: rowData?.user?.food_allergies ?? '',
-          ethnicity: rowData?.user?.ethnicity ?? '',
+          state: rowData?.user?.state ?? '',
+          ethnicity: rowData?.user?.ethnicity
+            ? rowData?.user?.ethnicity.charAt(0).toUpperCase() +
+              rowData?.user?.ethnicity.slice(1).toLowerCase()
+            : '',
           status: deriveStatusLabel(rowData?.user?.status),
         } as any)
       }
@@ -625,7 +721,6 @@ export default function CreateAdmin({
   }, [isDrawerOpen])
   // Keep role label in sync with role_id at all times
   const roleIdValue = (methods as any).watch?.('role_id')
-  const medicalConditionsValue = (methods as any).watch?.('medical_conditions')
   useEffect(() => {
     if (!isDrawerOpen) return
     const id = roleIdValue
@@ -645,13 +740,27 @@ export default function CreateAdmin({
       }
     }
   }, [roleIdValue, isDrawerOpen])
+
+  const medicalConditionsValue = (methods as any).watch?.('medical_conditions')
+
+  // Check if "Other" is selected in medical conditions
   useEffect(() => {
     if (!isDrawerOpen) return
     if (
       !Array.isArray(medicalConditionsValue) ||
       !medicalConditionsValue.length
-    )
+    ) {
+      setShowOtherMedicalCondition(false)
       return
+    }
+    const hasOtherSelected = medicalConditionsValue.some((condition: any) =>
+      typeof condition === 'string'
+        ? condition.toLowerCase() === 'other'
+        : condition?.name?.toLowerCase?.() === 'other' ||
+          condition?.id?.toString?.().toLowerCase() === 'other'
+    )
+    setShowOtherMedicalCondition(hasOtherSelected)
+
     const hasNoneSelected = medicalConditionsValue.some(isNoneMedicalCondition)
     if (!hasNoneSelected) return
 
@@ -665,6 +774,8 @@ export default function CreateAdmin({
     closeMedicalConditionsDropdown()
   }, [medicalConditionsValue, isDrawerOpen])
   const onSubmit = async (details: any) => {
+    console.log('Form details submitted:', details)
+    console.log('State field value:', details?.state)
     const pickId = (v: any, fallback = 0) => {
       if (v === null || v === undefined) return fallback
       if (typeof v === 'object') {
@@ -766,19 +877,47 @@ export default function CreateAdmin({
               details?.food_preferences?.id ??
               '')
             : (details?.food_preferences ?? ''),
-        medical_conditions: medicalConditionsToPayload(
-          details?.medical_conditions
-        ),
+        medical_conditions: (() => {
+          const conditions = medicalConditionsToPayload(
+            details?.medical_conditions
+          )
+          const otherCondition = details?.other_medical_condition?.trim()
+
+          // If "Other" is selected and other condition is provided, include both predefined conditions and the custom one
+          if (conditions.toLowerCase().includes('other') && otherCondition) {
+            // Get all predefined conditions (exclude "Other")
+            const predefinedConditions = conditions
+              .split(',')
+              .map((cond: string) => cond.trim())
+              .filter((cond: string) => cond.toLowerCase() !== 'other')
+
+            // Add the custom condition
+            predefinedConditions.push(otherCondition)
+
+            return predefinedConditions.join(',')
+          }
+          // If "Other" is selected but no other condition provided, exclude "Other"
+          if (conditions.toLowerCase().includes('other')) {
+            return conditions
+              .split(',')
+              .filter((cond: string) => cond.trim().toLowerCase() !== 'other')
+              .join(',')
+          }
+          return conditions
+        })(),
         food_allergies:
           typeof details?.food_allergies === 'object'
             ? (details?.food_allergies?.name ??
               details?.food_allergies?.id ??
               '')
             : (details?.food_allergies ?? ''),
+        state: details?.state ?? '',
         ethnicity: details?.ethnicity ?? '',
         ...(statusValue !== undefined ? { status: statusValue } : {}),
       },
     }
+
+    console.log('Final payload:', payload)
 
     const takeFirstString = (v: any): string => {
       if (!v) return ''
