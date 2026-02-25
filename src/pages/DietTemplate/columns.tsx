@@ -159,13 +159,13 @@ export const getColumns = ({
           : undefined,
       ...defaultColumnProps,
     },
-    {
-      title: 'Description',
-      field: 'description',
-      renderCell: createRenderCell('description'),
-      customCell: true,
-      ...defaultColumnProps,
-    },
+    // {
+    //   title: 'Description',
+    //   field: 'description',
+    //   renderCell: createRenderCell('description'),
+    //   customCell: true,
+    //   ...defaultColumnProps,
+    // },
     {
       title: 'Duration (Days)',
       renderCell: createRenderCell('duration_days'),

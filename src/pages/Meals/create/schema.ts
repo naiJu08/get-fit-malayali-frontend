@@ -53,6 +53,7 @@ export const mealFormSchema = z.object({
   meal_category: z.string().optional(),
   meal_category_id: numberFromSelect,
   serving_unit: z.string().min(1, { message: 'Serving unit is required' }),
+  default_serving_quantity: z.number().default(1),
   per_serving_calories: requiredNumberFromText('Total Calories'),
   per_serving_protein: requiredNumberFromText('Protein'),
   per_serving_carbs: requiredNumberFromText('Carbs'),

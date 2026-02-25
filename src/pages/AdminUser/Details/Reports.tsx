@@ -6,6 +6,124 @@ import { QueryParams } from '../../../common/types'
 import { getRecipeDetails, useRecipes } from '../../Recipe/api'
 import { useSubscriptionReport } from '../api'
 
+// ─── Hint Tooltip ────────────────────────────────────────────────────────────
+type HintEntry = {
+  label: string
+  description?: string
+  healthy_range?: string
+  compliance_description?: string
+  tip?: string
+  unit?: string
+}
+
+const HintTooltip = ({ hint }: { hint: HintEntry }) => {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative inline-flex items-center">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white ml-1 flex-shrink-0 transition-all duration-200"
+        style={{
+          background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+          boxShadow: open ? '0 0 0 3px rgba(99,102,241,0.25)' : 'none',
+        }}
+        title={hint.label}
+      >
+        ℹ
+      </button>
+      {open && (
+        <div
+          className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-72"
+          style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.15))' }}
+        >
+          <div
+            className="rounded-xl overflow-hidden border border-indigo-100"
+            style={{ background: 'linear-gradient(145deg,#fafafe,#f0f0ff)' }}
+          >
+            {/* header */}
+            <div
+              className="px-3 py-2"
+              style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+            >
+              <div className="text-white text-xs font-semibold">
+                {hint.label}
+              </div>
+              {hint.unit && (
+                <div className="text-indigo-200 text-[10px]">{hint.unit}</div>
+              )}
+            </div>
+            <div className="px-3 py-2 space-y-2">
+              {hint.description && (
+                <p className="text-[11px] text-gray-600 leading-relaxed">
+                  {hint.description}
+                </p>
+              )}
+              {hint.healthy_range && (
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" />
+                  <span className="text-[11px] text-gray-500">
+                    Healthy range:{' '}
+                    <span className="font-semibold text-green-700">
+                      {hint.healthy_range}
+                    </span>
+                  </span>
+                </div>
+              )}
+              {hint.compliance_description && (
+                <div
+                  className="rounded-lg px-2.5 py-2"
+                  style={{
+                    background: 'rgba(99,102,241,0.07)',
+                    borderLeft: '3px solid #6366f1',
+                  }}
+                >
+                  <p className="text-[11px] text-indigo-800 leading-relaxed">
+                    {hint.compliance_description}
+                  </p>
+                </div>
+              )}
+              {hint.tip && (
+                <div className="flex gap-1.5 items-start">
+                  <span className="text-amber-400 text-sm leading-none mt-0.5">
+                    💡
+                  </span>
+                  <p className="text-[11px] text-gray-500 italic leading-relaxed">
+                    {hint.tip}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          {/* caret */}
+          <div className="flex justify-center">
+            <div
+              className="w-3 h-3 rotate-45 -mt-1.5"
+              style={{
+                background: '#f0f0ff',
+                border: '1px solid #e0e0ff',
+                borderTop: 'none',
+                borderLeft: 'none',
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 type PieSlice = {
   label: string
   value: number
@@ -130,11 +248,19 @@ const DietSummaryCard = ({ dietSummary }: { dietSummary: any }) => {
     mandatoryAnalysis.assigned > 0
       ? (mandatoryAnalysis.consumed / mandatoryAnalysis.assigned) * 100
       : 0
+  const hints = dietSummary?.hints
 
   return (
     <div className="border rounded-xl bg-white shadow-sm p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-900">🍽️ Diet Summary</h3>
+        <div className="flex items-center gap-1">
+          <h3 className="text-sm font-semibold text-gray-900">
+            🍽️ Diet Summary
+          </h3>
+          {hints?.calorie_adherence && (
+            <HintTooltip hint={hints.calorie_adherence} />
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-500">Adherence</span>
           <span
@@ -148,25 +274,57 @@ const DietSummaryCard = ({ dietSummary }: { dietSummary: any }) => {
 
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="bg-gray-50 rounded-lg p-3">
-          <div className="text-xs text-gray-500 mb-1">Items Assigned</div>
+          <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+            Items Assigned
+            {hints?.items_completed && (
+              <HintTooltip
+                hint={{
+                  ...hints.items_completed,
+                  label: 'Items Assigned',
+                  compliance_description: undefined,
+                }}
+              />
+            )}
+          </div>
           <div className="text-lg font-bold text-gray-900">
             {dietSummary?.total_items_assigned ?? 0}
           </div>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
-          <div className="text-xs text-gray-500 mb-1">Items Completed</div>
+          <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+            Items Completed
+            {hints?.items_completed && (
+              <HintTooltip hint={hints.items_completed} />
+            )}
+          </div>
           <div className="text-lg font-bold text-green-600">
             {dietSummary?.total_items_completed ?? 0}
           </div>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
-          <div className="text-xs text-gray-500 mb-1">Calories Assigned</div>
+          <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+            Calories Assigned
+            {hints?.calorie_adherence && (
+              <HintTooltip
+                hint={{
+                  ...hints.calorie_adherence,
+                  label: 'Calories Assigned',
+                  compliance_description: undefined,
+                }}
+              />
+            )}
+          </div>
           <div className="text-lg font-bold text-gray-900">
             {dietSummary?.total_calories_assigned ?? 0}
           </div>
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
-          <div className="text-xs text-gray-500 mb-1">Calories Consumed</div>
+          <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+            Calories Consumed
+            {hints?.calorie_adherence && (
+              <HintTooltip hint={hints.calorie_adherence} />
+            )}
+          </div>
           <div className="text-lg font-bold text-blue-600">
             {dietSummary?.total_calories_consumed ?? 0}
           </div>
@@ -175,7 +333,12 @@ const DietSummaryCard = ({ dietSummary }: { dietSummary: any }) => {
 
       <div className="border-t pt-3">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-gray-500">Mandatory Items</span>
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            Mandatory Items
+            {hints?.mandatory_items && (
+              <HintTooltip hint={hints.mandatory_items} />
+            )}
+          </div>
           <span className="text-xs font-medium text-gray-700">
             {mandatoryAnalysis.consumed ?? 0}/{mandatoryAnalysis.assigned ?? 0}
           </span>
@@ -196,8 +359,10 @@ const DietSummaryCard = ({ dietSummary }: { dietSummary: any }) => {
 
 const MealTimingCard = ({
   mealTimingAnalysis,
+  hint,
 }: {
   mealTimingAnalysis: any
+  hint?: HintEntry
 }) => {
   const mealTypes = Object.entries(mealTimingAnalysis || {}).filter(
     ([, data]: [string, any]) =>
@@ -206,9 +371,12 @@ const MealTimingCard = ({
 
   return (
     <div className="border rounded-xl bg-white shadow-sm p-4">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">
-        ⏰ Meal Timing Analysis
-      </h3>
+      <div className="flex items-center gap-1 mb-4">
+        <h3 className="text-sm font-semibold text-gray-900">
+          ⏰ Meal Timing Analysis
+        </h3>
+        {hint && <HintTooltip hint={hint} />}
+      </div>
 
       {mealTypes.length === 0 ? (
         <div className="text-center py-4 text-gray-500 text-sm">
@@ -253,8 +421,10 @@ const MealTimingCard = ({
 
 const CategoryConsumptionCard = ({
   categoryConsumption,
+  hint,
 }: {
   categoryConsumption: any
+  hint?: HintEntry
 }) => {
   const categories = Object.entries(categoryConsumption || {})
     .filter(
@@ -274,9 +444,12 @@ const CategoryConsumptionCard = ({
 
   return (
     <div className="border rounded-xl bg-white shadow-sm p-4">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">
-        🥗 Food Categories
-      </h3>
+      <div className="flex items-center gap-1 mb-4">
+        <h3 className="text-sm font-semibold text-gray-900">
+          🥗 Food Categories
+        </h3>
+        {hint && <HintTooltip hint={hint} />}
+      </div>
 
       {categories.length === 0 ? (
         <div className="text-center py-4 text-gray-500 text-sm">
@@ -431,6 +604,7 @@ const BodyMetricsCard = ({
 }
 
 const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
+  const hints = vitals?.hints
   const heartRateHealth = Number(vitals?.normal_heart_rate_percentage ?? 0)
   const sugarHealth = Number(vitals?.normal_sugar_level_percentage ?? 0)
   const sleepHealth = Number(vitals?.adequate_sleep_percentage ?? 0)
@@ -443,6 +617,7 @@ const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
       unit: 'bpm',
       percentage: heartRateHealth,
       icon: '❤️',
+      hintKey: 'heart_rate',
     },
     {
       label: 'Sugar Level',
@@ -450,6 +625,7 @@ const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
       unit: 'mg/dL',
       percentage: sugarHealth,
       icon: '🩸',
+      hintKey: 'sugar_level',
     },
     {
       label: 'Sleep',
@@ -457,13 +633,15 @@ const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
       unit: 'hrs',
       percentage: sleepHealth,
       icon: '😴',
+      hintKey: 'sleep',
     },
     {
       label: 'Water Intake',
       value: vitals?.avg_water_intake,
-      unit: 'L',
+      unit: 'glass',
       percentage: waterHealth,
       icon: '💧',
+      hintKey: 'water_intake',
     },
     {
       label: 'Steps',
@@ -471,14 +649,17 @@ const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
       unit: 'steps',
       percentage: null,
       icon: '👟',
+      hintKey: 'steps',
     },
   ]
 
   return (
     <div className="border rounded-xl bg-white shadow-sm p-4">
-      <h3 className="text-sm font-semibold text-gray-900 mb-4">
-        ❤️ Vitals Tracking
-      </h3>
+      <div className="flex items-center gap-1 mb-4">
+        <h3 className="text-sm font-semibold text-gray-900">
+          ❤️ Vitals Tracking
+        </h3>
+      </div>
 
       <div className="space-y-3">
         {vitalsData.map((vital) => {
@@ -490,6 +671,7 @@ const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
             vital.value !== null && vital.value !== undefined
               ? vital.value
               : '--'
+          const vitalHint = hints?.[vital.hintKey]
 
           return (
             <div
@@ -499,8 +681,11 @@ const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
               <div className="flex items-center gap-2">
                 <span className="text-lg">{vital.icon}</span>
                 <div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {vital.label}
+                  <div className="flex items-center gap-1">
+                    <div className="text-sm font-medium text-gray-900">
+                      {vital.label}
+                    </div>
+                    {vitalHint && <HintTooltip hint={vitalHint} />}
                   </div>
                   <div className="text-xs text-gray-500">
                     Avg: {displayValue} {vital.unit}
@@ -546,25 +731,37 @@ const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
         <div className="text-xs text-gray-500 mb-2">Health Compliance</div>
         <div className="grid grid-cols-2 gap-2">
           <div className="flex items-center justify-between bg-green-50 rounded p-2">
-            <span className="text-xs text-gray-600">Heart Rate</span>
+            <div className="flex items-center gap-1 text-xs text-gray-600">
+              Heart Rate
+              {hints?.heart_rate && <HintTooltip hint={hints.heart_rate} />}
+            </div>
             <span className="text-xs font-bold text-green-600">
               {heartRateHealth.toFixed(0)}%
             </span>
           </div>
           <div className="flex items-center justify-between bg-green-50 rounded p-2">
-            <span className="text-xs text-gray-600">Sugar Level</span>
+            <div className="flex items-center gap-1 text-xs text-gray-600">
+              Sugar Level
+              {hints?.sugar_level && <HintTooltip hint={hints.sugar_level} />}
+            </div>
             <span className="text-xs font-bold text-green-600">
               {sugarHealth.toFixed(0)}%
             </span>
           </div>
           <div className="flex items-center justify-between bg-green-50 rounded p-2">
-            <span className="text-xs text-gray-600">Sleep</span>
+            <div className="flex items-center gap-1 text-xs text-gray-600">
+              Sleep
+              {hints?.sleep && <HintTooltip hint={hints.sleep} />}
+            </div>
             <span className="text-xs font-bold text-green-600">
               {sleepHealth.toFixed(0)}%
             </span>
           </div>
           <div className="flex items-center justify-between bg-green-50 rounded p-2">
-            <span className="text-xs text-gray-600">Hydration</span>
+            <div className="flex items-center gap-1 text-xs text-gray-600">
+              Hydration
+              {hints?.water_intake && <HintTooltip hint={hints.water_intake} />}
+            </div>
             <span className="text-xs font-bold text-green-600">
               {waterHealth.toFixed(0)}%
             </span>
@@ -591,11 +788,40 @@ const DailyActivityCard = ({ dailyBreakdown }: { dailyBreakdown: any[] }) => {
     }
   }
 
-  const getActivityCompletionRate = (activity: any) => {
-    const total = (activity.assigned || 0) + (activity.upcoming || 0)
-    if (total === 0) return 0
-    return ((activity.completed || 0) / total) * 100
+  const getActivityMetrics = (activity: any, type: string) => {
+    if (!activity) {
+      return {
+        assigned: 0,
+        completed: 0,
+        completionRate: 0,
+        assignedCompletion: 0,
+        outsideCompletion: 0,
+        skipped: 0,
+        missed: 0,
+      }
+    }
+
+    const assigned = Number(activity.assigned ?? activity.total_assigned ?? 0)
+    const completedBase =
+      type === 'diet'
+        ? Number(activity.completed_total ?? activity.completed ?? 0)
+        : Number(activity.completed ?? activity.completed_total ?? 0)
+    const completionRate = assigned > 0 ? (completedBase / assigned) * 100 : 0
+
+    return {
+      assigned,
+      completed: completedBase,
+      completionRate,
+      assignedCompletion: Number(activity.assigned_completion ?? 0),
+      outsideCompletion: Number(activity.outside_completion ?? 0),
+      skipped: Number(activity.skipped ?? 0),
+      missed: Number(activity.missed ?? 0),
+    }
   }
+
+  const activeDays = (dailyBreakdown || []).filter(
+    (day) => day?.is_frozen === false
+  )
 
   return (
     <div className="border rounded-xl bg-white shadow-sm p-4">
@@ -603,13 +829,13 @@ const DailyActivityCard = ({ dailyBreakdown }: { dailyBreakdown: any[] }) => {
         📅 Daily Activity Breakdown
       </h3>
 
-      {dailyBreakdown?.length === 0 ? (
+      {activeDays.length === 0 ? (
         <div className="text-center py-4 text-gray-500 text-sm">
           No daily data available
         </div>
       ) : (
         <div className="space-y-3">
-          {dailyBreakdown.map((day) => {
+          {activeDays.map((day) => {
             const activities = [
               { type: 'diet', data: day.diet },
               { type: 'workout', data: day.workout },
@@ -625,7 +851,7 @@ const DailyActivityCard = ({ dailyBreakdown }: { dailyBreakdown: any[] }) => {
                   </div>
                   <div className="flex items-center gap-1">
                     {activities.map(({ type, data }) => {
-                      const completionRate = getActivityCompletionRate(data)
+                      const { completionRate } = getActivityMetrics(data, type)
                       const color = getHealthColor(completionRate)
                       return (
                         <div key={type} className="flex items-center gap-1">
@@ -642,8 +868,8 @@ const DailyActivityCard = ({ dailyBreakdown }: { dailyBreakdown: any[] }) => {
 
                 <div className="grid grid-cols-2 gap-2">
                   {activities.map(({ type, data }) => {
-                    const completionRate = getActivityCompletionRate(data)
-                    const color = getHealthColor(completionRate)
+                    const metrics = getActivityMetrics(data, type)
+                    const color = getHealthColor(metrics.completionRate)
 
                     return (
                       <div
@@ -657,14 +883,30 @@ const DailyActivityCard = ({ dailyBreakdown }: { dailyBreakdown: any[] }) => {
                               {type}
                             </div>
                             <div className="text-gray-500">
-                              {data.completed || 0}/{data.assigned || 0}
+                              {metrics.completed}/{metrics.assigned}
                             </div>
+                            {type === 'diet' && (
+                              <div className="text-[11px] text-gray-500">{`In-plan: ${metrics.assignedCompletion} · Outside: ${metrics.outsideCompletion}`}</div>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
+                        <div className="flex flex-col items-end gap-0.5">
                           <span className="text-xs font-bold" style={{ color }}>
-                            {completionRate.toFixed(0)}%
+                            {metrics.completionRate.toFixed(0)}%
                           </span>
+                          {(metrics.skipped > 0 || metrics.missed > 0) && (
+                            <span className="text-[10px] text-gray-400">
+                              {metrics.skipped > 0
+                                ? `Skipped ${metrics.skipped}`
+                                : ''}
+                              {metrics.skipped > 0 && metrics.missed > 0
+                                ? ' • '
+                                : ''}
+                              {metrics.missed > 0
+                                ? `Missed ${metrics.missed}`
+                                : ''}
+                            </span>
+                          )}
                         </div>
                       </div>
                     )
@@ -673,6 +915,241 @@ const DailyActivityCard = ({ dailyBreakdown }: { dailyBreakdown: any[] }) => {
               </div>
             )
           })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Overall Analysis Card ────────────────────────────────────────────────────────️
+const OverallAnalysisCard = ({
+  data,
+  forPdf = false,
+}: {
+  data: any
+  forPdf?: boolean
+}) => {
+  if (!data) return null
+
+  // Support both legacy string and new rich object
+  const isObject = typeof data === 'object' && data !== null
+  const summary = isObject ? data.summary : data
+  const score: number | null = isObject
+    ? (data.performance_score ?? null)
+    : null
+  const grade: string | null = isObject
+    ? (data.performance_grade ?? null)
+    : null
+  const highlights: string[] = isObject ? (data.highlights ?? []) : []
+  const improvements: string[] = isObject
+    ? (data.areas_for_improvement ?? [])
+    : []
+  const coachNote: string | null = isObject ? (data.coach_note ?? null) : null
+
+  const gradeColor = (g: string | null) => {
+    if (!g) return { bg: '#6366f1', text: 'white' }
+    const lower = g.toLowerCase()
+    if (lower.includes('excellent') || lower.includes('outstanding'))
+      return { bg: '#16a34a', text: 'white' }
+    if (lower.includes('great') || lower.includes('good'))
+      return { bg: '#2563eb', text: 'white' }
+    if (lower.includes('fair') || lower.includes('average'))
+      return { bg: '#d97706', text: 'white' }
+    if (lower.includes('poor') || lower.includes('low'))
+      return { bg: '#dc2626', text: 'white' }
+    return { bg: '#6366f1', text: 'white' }
+  }
+  const scoreRingColor = (s: number) => {
+    if (s >= 80) return '#22c55e'
+    if (s >= 60) return '#facc15'
+    return '#ef4444'
+  }
+  const gc = gradeColor(grade)
+
+  if (forPdf) {
+    // Simplified PDF version
+    return (
+      <div className="mb-8">
+        <h2 className="text-xl font-semibold text-center mb-4 text-gray-800">
+          🎯 Overall Analysis
+        </h2>
+        <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
+          {score !== null && grade && (
+            <div className="flex items-center gap-3 mb-3">
+              <span
+                className="text-2xl font-bold"
+                style={{ color: scoreRingColor(score) }}
+              >
+                {score}
+              </span>
+              <span
+                className="text-sm font-semibold px-2 py-1 rounded"
+                style={{ background: gc.bg, color: gc.text }}
+              >
+                {grade}
+              </span>
+            </div>
+          )}
+          {summary && <p className="text-sm text-gray-700 mb-3">{summary}</p>}
+          {highlights.length > 0 && (
+            <div className="mb-2">
+              <div className="text-xs font-semibold text-green-700 mb-1">
+                Highlights
+              </div>
+              {highlights.map((h, i) => (
+                <div key={i} className="text-xs text-gray-700">
+                  ✓ {h}
+                </div>
+              ))}
+            </div>
+          )}
+          {improvements.length > 0 && (
+            <div className="mb-2">
+              <div className="text-xs font-semibold text-red-700 mb-1">
+                Areas for Improvement
+              </div>
+              {improvements.map((h, i) => (
+                <div key={i} className="text-xs text-gray-700">
+                  • {h}
+                </div>
+              ))}
+            </div>
+          )}
+          {coachNote && (
+            <p className="text-xs italic text-gray-500 mt-2">
+              Coach: {coachNote}
+            </p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className="border rounded-xl shadow-sm overflow-hidden"
+      style={{ background: 'linear-gradient(135deg,#eef2ff 0%,#f0fdf4 100%)' }}
+    >
+      {/* Header row */}
+      <div className="flex items-center justify-between px-5 pt-5 pb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🎯</span>
+          <h3 className="text-base font-semibold text-gray-900">
+            Overall Analysis
+          </h3>
+        </div>
+        {score !== null && grade && (
+          <div className="flex items-center gap-2">
+            {/* Score ring */}
+            <div className="relative w-12 h-12">
+              <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="20"
+                  stroke="#e5e7eb"
+                  strokeWidth="5"
+                  fill="none"
+                />
+                <circle
+                  cx="24"
+                  cy="24"
+                  r="20"
+                  stroke={scoreRingColor(score)}
+                  strokeWidth="5"
+                  fill="none"
+                  strokeDasharray={`${(score / 100) * 125.66} 125.66`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-gray-700">
+                  {score}
+                </span>
+              </div>
+            </div>
+            <span
+              className="text-xs font-bold px-2.5 py-1 rounded-full"
+              style={{ background: gc.bg, color: gc.text }}
+            >
+              {grade}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Summary */}
+      {summary && (
+        <div className="px-5 pb-3">
+          <p className="text-sm text-gray-700 leading-relaxed">{summary}</p>
+        </div>
+      )}
+
+      {/* Highlights + Improvements two-column */}
+      {(highlights.length > 0 || improvements.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-0 border-t border-indigo-100">
+          {highlights.length > 0 && (
+            <div className="px-5 py-3 border-r border-indigo-100">
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="text-green-500 text-sm">✅</span>
+                <span className="text-[11px] font-semibold text-green-700 uppercase tracking-wide">
+                  Highlights
+                </span>
+              </div>
+              <ul className="space-y-1">
+                {highlights.map((h, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className="text-green-400 mt-0.5 flex-shrink-0 text-xs">
+                      ✓
+                    </span>
+                    <span className="text-[12px] text-gray-700 leading-relaxed">
+                      {h}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {improvements.length > 0 && (
+            <div className="px-5 py-3">
+              <div className="flex items-center gap-1.5 mb-2">
+                <span className="text-amber-500 text-sm">⚡</span>
+                <span className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide">
+                  Areas to Improve
+                </span>
+              </div>
+              <ul className="space-y-1">
+                {improvements.map((h, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className="text-amber-400 mt-0.5 flex-shrink-0 text-xs">
+                      •
+                    </span>
+                    <span className="text-[12px] text-gray-700 leading-relaxed">
+                      {h}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Coach note */}
+      {coachNote && (
+        <div
+          className="mx-5 mb-4 mt-1 px-3 py-2 rounded-lg"
+          style={{
+            background: 'rgba(99,102,241,0.08)',
+            borderLeft: '3px solid #6366f1',
+          }}
+        >
+          <div className="flex items-start gap-1.5">
+            <span className="text-indigo-400 text-sm flex-shrink-0">💬</span>
+            <p className="text-[12px] text-indigo-800 italic leading-relaxed">
+              {coachNote}
+            </p>
+          </div>
         </div>
       )}
     </div>
@@ -690,6 +1167,7 @@ const EnhancedActivityCard = ({
   data: any
   color?: string
 }) => {
+  const hints = data?.hints
   const totalAssigned = Number(data?.total_assigned_days ?? 0)
   const totalCompleted = Number(data?.total_completed_days ?? 0)
   const totalSkipped = Number(data?.total_fully_skipped_days ?? 0)
@@ -711,16 +1189,25 @@ const EnhancedActivityCard = ({
   return (
     <div className="border rounded-xl bg-white shadow-sm p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-gray-900">
-          {icon} {title}
-        </h3>
+        <div className="flex items-center gap-1">
+          <h3 className="text-sm font-semibold text-gray-900">
+            {icon} {title}
+          </h3>
+          {hints?.adherence && <HintTooltip hint={hints.adherence} />}
+          {hints?.completion_rate && (
+            <HintTooltip hint={hints.completion_rate} />
+          )}
+        </div>
         {adherencePercentage && (
-          <span
-            className="text-xs font-bold px-2 py-1 rounded-full text-white"
-            style={{ backgroundColor: adherenceColor }}
-          >
-            {adherencePercentage.toFixed(1)}%
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Adherence</span>
+            <span
+              className="text-xs font-bold px-2 py-1 rounded-full text-white"
+              style={{ backgroundColor: adherenceColor }}
+            >
+              {adherencePercentage.toFixed(1)}%
+            </span>
+          </div>
         )}
       </div>
 
@@ -728,25 +1215,36 @@ const EnhancedActivityCard = ({
         <div className="flex-1">
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-gray-50 rounded-lg p-3">
-              <div className="text-xs text-gray-500 mb-1">Days Assigned</div>
+              <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                Days Assigned
+              </div>
               <div className="text-lg font-bold text-gray-900">
                 {totalAssigned}
               </div>
             </div>
             <div className="bg-green-50 rounded-lg p-3">
-              <div className="text-xs text-gray-500 mb-1">Days Completed</div>
+              <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                Days Completed
+                {hints?.completed_days && (
+                  <HintTooltip hint={hints.completed_days} />
+                )}
+              </div>
               <div className="text-lg font-bold text-green-600">
                 {totalCompleted}
               </div>
             </div>
             <div className="bg-red-50 rounded-lg p-3">
-              <div className="text-xs text-gray-500 mb-1">Days Skipped</div>
+              <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                Days Skipped
+              </div>
               <div className="text-lg font-bold text-red-600">
                 {totalSkipped}
               </div>
             </div>
             <div className="bg-yellow-50 rounded-lg p-3">
-              <div className="text-xs text-gray-500 mb-1">Days Upcoming</div>
+              <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+                Days Upcoming
+              </div>
               <div className="text-lg font-bold text-yellow-600">
                 {totalUpcoming}
               </div>
@@ -765,17 +1263,38 @@ const EnhancedActivityCard = ({
       {data?.total_exercises_assigned && (
         <div className="border-t pt-3">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">Exercises Assigned</span>
+            <div className="flex items-center gap-1 text-gray-500">
+              Exercises Assigned
+              {hints?.exercises_completed && (
+                <HintTooltip hint={hints.exercises_completed} />
+              )}
+            </div>
             <span className="font-medium text-gray-700">
               {data.total_exercises_completed ?? 0}/
               {data.total_exercises_assigned ?? 0}
             </span>
           </div>
-          {data.total_repeat_count > 0 && (
+          {/* {data?.total_repeat_count > 0 && (
             <div className="flex items-center justify-between text-xs mt-1">
-              <span className="text-gray-500">Total Repeats</span>
+              <div className="flex items-center gap-1 text-gray-500">
+                Total Repetitions
+                {hints?.repeat_count && <HintTooltip hint={hints.repeat_count} />}
+              </div>
               <span className="font-medium text-gray-700">
                 {data.total_repeat_count}
+              </span>
+            </div>
+          )} */}
+          {data?.avg_video_watch_percentage != null && (
+            <div className="flex items-center justify-between text-xs mt-1">
+              <div className="flex items-center gap-1 text-gray-500">
+                Avg Video Watch
+                {hints?.video_engagement && (
+                  <HintTooltip hint={hints.video_engagement} />
+                )}
+              </div>
+              <span className="font-medium text-gray-700">
+                {Number(data.avg_video_watch_percentage).toFixed(1)}%
               </span>
             </div>
           )}
@@ -1604,17 +2123,7 @@ export default function Reports({
         <div className="space-y-6">
           {/* Quick Stats Overview */}
           {report.overall_analysis && (
-            <div className="border rounded-xl bg-gradient-to-r from-blue-50 to-green-50 shadow-sm p-6">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-2xl">🎯</span>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Overall Analysis
-                </h3>
-              </div>
-              <div className="text-sm text-gray-700 whitespace-pre-line">
-                {report.overall_analysis}
-              </div>
-            </div>
+            <OverallAnalysisCard data={report.overall_analysis} />
           )}
 
           {/* Main Dashboard Grid */}
@@ -1624,9 +2133,11 @@ export default function Reports({
               <DietSummaryCard dietSummary={report.diet_summary} />
               <MealTimingCard
                 mealTimingAnalysis={report.diet_summary?.meal_timing_analysis}
+                hint={report.diet_summary?.hints?.meal_timing}
               />
               <CategoryConsumptionCard
                 categoryConsumption={report.diet_summary?.category_consumption}
+                hint={report.diet_summary?.hints?.food_categories}
               />
             </div>
 
@@ -1725,16 +2236,7 @@ export default function Reports({
 
         {/* OVERALL ANALYSIS */}
         {report.overall_analysis && (
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-center mb-4 text-gray-800">
-              🎯 Overall Analysis
-            </h2>
-            <div className="border-2 border-blue-200 rounded-lg p-4 bg-blue-50">
-              <div className="text-sm text-gray-700 whitespace-pre-line">
-                {report.overall_analysis}
-              </div>
-            </div>
-          </div>
+          <OverallAnalysisCard data={report.overall_analysis} forPdf />
         )}
 
         {/* DIET ANALYSIS */}

@@ -848,7 +848,20 @@ export default function SubscriptionUserSubscriptionsTab({
                                       >
                                         <div className="flex flex-col">
                                           <span className="font-medium">
-                                            {ex?.workout_name || '--'}
+                                            {ex?.workout_name
+                                              ? ex.workout_name
+                                                  .split(' ')
+                                                  .map(
+                                                    (word: string) =>
+                                                      word
+                                                        .charAt(0)
+                                                        .toUpperCase() +
+                                                      word
+                                                        .slice(1)
+                                                        .toLowerCase()
+                                                  )
+                                                  .join(' ')
+                                              : '--'}
                                           </span>
                                           {ex?.video_url && (
                                             <a
@@ -1016,7 +1029,20 @@ export default function SubscriptionUserSubscriptionsTab({
                                       >
                                         <div className="flex flex-col">
                                           <span className="font-medium">
-                                            {ex?.yoga_name || '--'}
+                                            {ex?.yoga_name
+                                              ? ex.yoga_name
+                                                  .split(' ')
+                                                  .map(
+                                                    (word: string) =>
+                                                      word
+                                                        .charAt(0)
+                                                        .toUpperCase() +
+                                                      word
+                                                        .slice(1)
+                                                        .toLowerCase()
+                                                  )
+                                                  .join(' ')
+                                              : '--'}
                                           </span>
                                           {ex?.video_url && (
                                             <a
@@ -1179,7 +1205,16 @@ export default function SubscriptionUserSubscriptionsTab({
                                   >
                                     <div className="flex flex-col">
                                       <span className="font-medium">
-                                        {m?.title || '--'}
+                                        {m?.title
+                                          ? m.title
+                                              .split(' ')
+                                              .map(
+                                                (word: string) =>
+                                                  word.charAt(0).toUpperCase() +
+                                                  word.slice(1).toLowerCase()
+                                              )
+                                              .join(' ')
+                                          : '--'}
                                       </span>
                                       {m?.description && (
                                         <span className="text-gray-600">

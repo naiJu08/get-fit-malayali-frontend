@@ -240,7 +240,15 @@ export default function CreateAdmin({
       const matchedCategory =
         categoryOptions.find((opt) => opt.id === normalizedCategory) ?? null
       methods.reset({
-        name: rowData?.name ?? '',
+        name: rowData?.name
+          ? rowData.name
+              .split(' ')
+              .map(
+                (word: string) =>
+                  word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+              )
+              .join(' ')
+          : '',
         description: rowData?.description ?? '',
         intensity_level: rowData?.intensity_level ?? '',
         category: matchedCategory?.name ?? '',
@@ -374,18 +382,27 @@ export default function CreateAdmin({
       }
     }
 
-    // Thumbnail handling
+    // Thumbnail handling - only append if changed
     const thumbVal = details?.thumbnail
+    const originalThumbnailName = getFileName(rowData?.thumbnail_url)
 
-    // CASE 1: New thumbnail uploaded
-    if (thumbVal instanceof File) {
-      fd.append('yoga[thumbnail]', thumbVal)
-    }
+    // Check if thumbnail has changed
+    const thumbnailChanged =
+      thumbVal instanceof File || // New file uploaded
+      (typeof thumbVal === 'string' && thumbVal !== originalThumbnailName) // Different string value (but not empty deletion)
 
-    // CASE 2: Thumbnail manually removed
-    else if (thumbVal === '') {
-      fd.append('yoga[thumbnail]', null as any)
+    // Only append thumbnail key if it has changed
+    if (thumbnailChanged) {
+      // CASE 1: New thumbnail uploaded
+      if (thumbVal instanceof File) {
+        fd.append('yoga[thumbnail]', thumbVal)
+      }
+      // CASE 2: Different thumbnail URL/string
+      else if (typeof thumbVal === 'string') {
+        fd.append('yoga[thumbnail]', thumbVal)
+      }
     }
+    // Note: When thumbnail is deleted (thumbVal === ''), we don't append the key at all
 
     // Duration
     if (videoDurationMs !== null) {

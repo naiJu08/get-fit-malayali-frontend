@@ -35,6 +35,10 @@ const fieldKeys = [
   'preferred_exercise',
   'preferred_workout_yoga_time',
   'workout_preference',
+  'bmi',
+  'location',
+  'medical_conditions',
+  'water_intake',
   'early_morning_meal',
   'breakfast',
   'morning_mid_meal',
@@ -63,6 +67,8 @@ type SectionField = {
   placeholder?: string
   options?: SelectOption[]
   showWhen?: (values: Partial<AdditionalData>) => boolean
+  minDate?: Date
+  maxDate?: Date
 }
 
 type SectionDefinition = {
@@ -73,11 +79,10 @@ type SectionDefinition = {
 
 const dropdownOptions: Partial<Record<keyof AdditionalData, SelectOption[]>> = {
   package: [
-    { id: 'weight_loss', name: 'Weight loss' },
-    { id: 'weight_gain', name: 'Weight gain' },
-    { id: 'muscle_gain', name: 'Muscle gain' },
-    { id: 'wellness', name: 'Wellness' },
-    { id: 'disease_management', name: 'Disease management' },
+    { id: 'diet_only', name: 'Diet only' },
+    { id: 'fitness_nutrition', name: 'Fitness & nutrition coaching' },
+    { id: 'workout_only', name: 'Workout only' },
+    { id: 'yoga_meditation', name: 'Yoga & meditation only' },
   ],
   dietary_choice: [
     { id: 'veg', name: 'Vegetarian' },
@@ -87,8 +92,21 @@ const dropdownOptions: Partial<Record<keyof AdditionalData, SelectOption[]>> = {
     { id: 'pescatarian', name: 'Pescatarian' },
   ],
   lactation_status: [
-    { id: 'yes', name: 'Yes' },
-    { id: 'no', name: 'No' },
+    { id: 'nil', name: 'Nil' },
+    { id: '1_month', name: '1 month' },
+    { id: '2_months', name: '2 months' },
+    { id: '3_months', name: '3 months' },
+    { id: '4_months', name: '4 months' },
+    { id: '5_months', name: '5 months' },
+    { id: '6_months', name: '6 months' },
+    { id: '7_months', name: '7 months' },
+    { id: '8_months', name: '8 months' },
+    { id: '9_months', name: '9 months' },
+    { id: '10_months', name: '10 months' },
+    { id: '11_months', name: '11 months' },
+    { id: '1_year', name: '1 year' },
+    { id: '2_years', name: '2 years' },
+    { id: 'others', name: 'Others' },
   ],
   social_habits: [
     { id: 'none', name: 'None' },
@@ -130,18 +148,32 @@ const dropdownOptions: Partial<Record<keyof AdditionalData, SelectOption[]>> = {
     { id: 'outdoor', name: 'Outdoor activities' },
     { id: 'mixed', name: 'Mix of all' },
   ],
+  sleep_disturbances: [
+    { id: 'disturbed_sleep', name: 'Disturbed Sleep' },
+    { id: 'normal', name: 'Normal' },
+    { id: 'sometimes_irregular', name: 'Sometimes irregular' },
+    { id: 'others', name: 'Others' },
+  ],
 }
 
 const SOCIAL_HABIT_OPTION_IDS = new Set(
   (dropdownOptions.social_habits ?? []).map((opt) => opt.id)
 )
 
+const today = new Date()
+today.setHours(0, 0, 0, 0)
+
 const sections: SectionDefinition[] = [
   {
     title: 'Program Overview',
     fields: [
       { key: 'package', label: 'Package', options: dropdownOptions.package },
-      { key: 'date_of_assessment', label: 'Date of assessment', type: 'date' },
+      {
+        key: 'date_of_assessment',
+        label: 'Date of assessment',
+        type: 'date',
+        maxDate: today,
+      },
       {
         key: 'dietary_choice',
         label: 'Dietary choice',
@@ -153,17 +185,25 @@ const sections: SectionDefinition[] = [
         label: 'Lactation status',
         options: dropdownOptions.lactation_status,
       },
+      { key: 'bmi', label: 'BMI' },
+      { key: 'location', label: 'Location' },
     ],
   },
   {
     title: 'Health & Habits',
     fields: [
+      {
+        key: 'medical_conditions',
+        label: 'Medical conditions',
+        type: 'textarea',
+      },
+      { key: 'water_intake', label: 'Water intake (liters/day)' },
       { key: 'pain_conditions', label: 'Pain conditions', type: 'textarea' },
       { key: 'gastric_issues', label: 'Gastric issues', type: 'textarea' },
       {
         key: 'sleep_disturbances',
         label: 'Sleep disturbances',
-        type: 'textarea',
+        options: dropdownOptions.sleep_disturbances,
       },
       {
         key: 'ongoing_medicines',
@@ -202,7 +242,7 @@ const sections: SectionDefinition[] = [
       },
       {
         key: 'previous_professional_experience',
-        label: 'Previous professional experience',
+        label: ' Previous professional diet/workout experience ',
         type: 'textarea',
       },
       {
@@ -346,6 +386,8 @@ const buildFieldConfig = (
       label: field.label,
       type: 'date',
       placeholder: field.placeholder ?? 'Select date',
+      maxDate: field.maxDate,
+      minDate: field.minDate,
       hidden,
     }
   }
