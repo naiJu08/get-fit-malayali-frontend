@@ -85,7 +85,7 @@ export default function DetailsInfo({
               label="Duration (days)"
               value={safeStr(plan?.duration_days)}
             />
-            <DetailItem label="Active" value={mapActive(plan?.active)} />
+            <DetailItem label="Status" value={mapActive(plan?.active)} />
             <DetailItem label="Fees" value={renderFees(plan?.fees)} />
             <DetailItem
               label="Workout Plans"

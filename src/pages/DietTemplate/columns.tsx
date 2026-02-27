@@ -121,6 +121,7 @@ export const getColumns = ({
     {
       title: 'Name',
       field: 'name',
+      // colWidth: 250,
       renderCell: (row: any) => {
         const value = getNestedProperty(row, 'name')
         const raw = typeof value === 'string' ? value : ''

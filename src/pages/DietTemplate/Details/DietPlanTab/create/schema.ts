@@ -57,6 +57,7 @@ const mealItemSchema = z
     const hasMeal = Number.isFinite(val.meal_id) && val.meal_id > 0
     const hasCount = Number.isFinite(val.count) && val.count > 0
 
+    // If meal is selected but count is missing/invalid
     if (hasMeal && !hasCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -65,6 +66,7 @@ const mealItemSchema = z
       })
     }
 
+    // If count is provided but meal is missing
     if (!hasMeal && hasCount) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

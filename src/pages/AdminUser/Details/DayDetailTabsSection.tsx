@@ -282,24 +282,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {canEditDay && (
-                    <button
-                      type="button"
-                      onClick={() => setAssignTemplateOpen(true)}
-                      className="px-3 py-1 text-[11px] rounded-full bg-primary text-white"
-                    >
-                      {Array.isArray(dayDetail?.diet_plans) &&
-                      dayDetail.diet_plans.length > 0
-                        ? 'Update'
-                        : 'Assign Template'}
-                    </button>
-                  )}
-
                   {dietItemKeys.length > 0 && (
                     <button
                       type="button"
                       onClick={handleToggleAllDietDetails}
-                      className="flex items-center gap-1 text-[11px] text-primary font-medium"
+                      className="px-3 py-1 text-xs text-primaryGreen border rounded border-primaryGreen items-center gap-1"
                     >
                       {areAllDietItemsExpanded ? 'Collapse all' : 'Expand all'}
                       <Icons
@@ -310,6 +297,26 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       />
                     </button>
                   )}
+
+                  {canEditDay &&
+                    (Array.isArray(dayDetail?.diet_plans) &&
+                    dayDetail.diet_plans.length > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => setAssignTemplateOpen(true)}
+                        className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
+                      >
+                        Update
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setAssignTemplateOpen(true)}
+                        className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
+                      >
+                        Assign Template
+                      </button>
+                    ))}
                 </div>
               </div>
             </div>
@@ -821,7 +828,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                               <div className="flex items-start gap-3 flex-1">
                                 <div className="flex flex-col">
                                   <span className="font-medium">
-                                    {ex?.workout_name || '--'}
+                                    {toTitleCase(ex?.workout_name) || '--'}
                                   </span>
                                   {ex?.video_url && (
                                     <a
@@ -1419,7 +1426,7 @@ const AssignTemplateModal: FC<AssignTemplateModalProps> = ({
                     </span>
                     <button
                       type="button"
-                      className="btn-primary rounded px-3 py-1 text-xs disabled:opacity-60"
+                      className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
                       disabled={
                         isAssigning && selectedTemplateId !== template?.id
                       }

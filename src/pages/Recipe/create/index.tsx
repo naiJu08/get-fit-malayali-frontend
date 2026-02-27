@@ -518,7 +518,7 @@ export default function CreateRecipe({
                             id={`ingredients.${index}.quantity`}
                             name={`ingredients.${index}.quantity`}
                             label="Quantity"
-                            type="number"
+                            type="text"
                             placeholder="e.g. 800"
                             maxLength={10}
                             value={
@@ -528,7 +528,13 @@ export default function CreateRecipe({
                                 ? ''
                                 : String(value)
                             }
-                            onChange={onChange as any}
+                            onChange={(e) => {
+                              const val = e.target.value
+                              // Only allow numbers
+                              if (val === '' || /^\d+$/.test(val)) {
+                                onChange(val === '' ? '' : Number(val))
+                              }
+                            }}
                             required
                             allowPositiveOnly
                             errors={errors}

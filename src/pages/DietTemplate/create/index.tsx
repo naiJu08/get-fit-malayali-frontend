@@ -138,7 +138,8 @@ export default function CreateAdmin({
     { ...textField('name', 'Name', 'Enter name', true), maxLength: 100 },
     {
       ...textField('duration_days', 'Duration (Days)', 'Enter duration', true),
-      type: 'number',
+      type: 'text',
+      maxLength: 3,
       allowPositiveOnly: true,
       inputMode: 'numeric',
     },

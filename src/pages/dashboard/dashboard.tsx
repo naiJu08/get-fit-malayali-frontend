@@ -56,10 +56,8 @@ export default function DashboardView({
   }, [setLayoutType])
 
   const timeframeLabel = useMemo(() => {
-    const s = fmtDate(data?.timeframe?.start_date)
-    const e = fmtDate(data?.timeframe?.end_date)
-    if (s && e) return `${s} — ${e}`
-    return s || e || 'All Time'
+    if (data?.generated_at) return `As of ${fmtDate(data.generated_at)}`
+    return 'All Time'
   }, [data])
 
   if (loading) {

@@ -51,6 +51,7 @@ type SmartTableProps = {
   toolbarExtra?: React.ReactNode
   searchPlaceholder?: string
   createButton?: React.ReactNode
+  columnWidths?: Record<string, string | number>
 }
 
 const SmartTable: React.FC<SmartTableProps> = ({
@@ -78,6 +79,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
   toolbarExtra,
   searchPlaceholder,
   createButton,
+  columnWidths = {},
 }) => {
   const [visibleColumns, setVisibleColumns] = useState<TableColumns[]>(columns)
   const [showColumnMenu, setShowColumnMenu] = useState(false)
@@ -180,13 +182,17 @@ const SmartTable: React.FC<SmartTableProps> = ({
         {renderedColumns.map((col) => (
           <th
             key={col.field}
-            className={`px-6 py-3 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wide min-w-[140px] ${
+            className={`px-6 py-3 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wide ${
               col.align === 'right'
                 ? 'text-right'
                 : col.align === 'center'
                   ? 'text-center'
                   : 'text-left'
             }`}
+            style={{
+              width: columnWidths[col.field] || col.colWidth || 'auto',
+              minWidth: columnWidths[col.field] || col.colWidth || '140px',
+            }}
           >
             <div className="flex items-center gap-2 select-none">
               <span className="text-gray-700 whitespace-nowrap">
@@ -221,7 +227,13 @@ const SmartTable: React.FC<SmartTableProps> = ({
           </th>
         ))}
         {!!actionProps.length && (
-          <th className="px-6 py-4 text-[11px] font-semibold text-gray-600 uppercase tracking-wider text-left">
+          <th
+            className="px-6 py-4 text-[11px] font-semibold text-gray-600 uppercase tracking-wider text-left"
+            style={{
+              width: columnWidths['actions'] || '120px',
+              minWidth: columnWidths['actions'] || '120px',
+            }}
+          >
             Actions
           </th>
         )}
@@ -563,6 +575,12 @@ const SmartTable: React.FC<SmartTableProps> = ({
                           }
                           ${isHovered ? 'text-gray-900' : ''}
                         `}
+                        style={{
+                          width:
+                            columnWidths[col.field] || col.colWidth || 'auto',
+                          minWidth:
+                            columnWidths[col.field] || col.colWidth || '140px',
+                        }}
                       >
                         {(() => {
                           const content = renderCell(col, row)
@@ -590,7 +608,13 @@ const SmartTable: React.FC<SmartTableProps> = ({
 
                     {/* Actions Column */}
                     {!!actionProps.length && (
-                      <td className="px-6 py-4">
+                      <td
+                        className="px-6 py-4"
+                        style={{
+                          width: columnWidths['actions'] || '120px',
+                          minWidth: columnWidths['actions'] || '120px',
+                        }}
+                      >
                         {externalActions ? (
                           <button
                             className={`

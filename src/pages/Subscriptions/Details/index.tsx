@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import moment from 'moment'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import { getSubscriptionDetails } from '../api'
 import { Tab, TabContainer } from '../../../components/common/tab'
@@ -473,7 +474,9 @@ export default function SubscriptionDetailsMain() {
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600">Frozen Days</span>
                       <span className="text-gray-900 text-sm text-right">
-                        {freezeDays.join(', ')}
+                        {freezeDays
+                          .map((day) => moment(day).format('DD-MM-YYYY'))
+                          .join(', ')}
                       </span>
                     </div>
                   )}

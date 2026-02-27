@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 
 export const fmt = (v?: number | string) => {
   if (v === undefined || v === null) return '--'
@@ -29,8 +29,95 @@ export const fmtDate = (v?: string) => {
   }).format(d)
 }
 
+/** Format an ISO8601 string as "26 Feb 2026, 5:30 PM" */
+export const fmtDateTime = (v?: string) => {
+  if (!v) return ''
+  const d = new Date(v)
+  if (Number.isNaN(d.getTime())) return v
+  return new Intl.DateTimeFormat('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(d)
+}
+
 export const fmtPct = (n?: number) =>
   n !== undefined && n !== null ? `${Number(n).toFixed(1)}%` : '--'
+
+// ── Hint Tooltip ──────────────────────────────────────────────────────────────
+/**
+ * Simple inline ⓘ tooltip for admin dashboard hint strings.
+ * The hint is a plain string (unlike the structured HintEntry in Reports.tsx).
+ */
+export function HintTooltip({ text }: { text: string }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  return (
+    <div ref={ref} className="relative inline-flex items-center">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold text-white ml-1 flex-shrink-0 transition-all duration-200"
+        style={{
+          background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+          boxShadow: open ? '0 0 0 3px rgba(99,102,241,0.25)' : 'none',
+        }}
+      >
+        ℹ
+      </button>
+      {open && (
+        <div
+          className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-64"
+          style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.15))' }}
+        >
+          <div
+            className="rounded-xl overflow-hidden border border-indigo-100"
+            style={{ background: 'linear-gradient(145deg,#fafafe,#f0f0ff)' }}
+          >
+            <div
+              className="px-3 py-2"
+              style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
+            >
+              <div className="text-white text-[10px] font-semibold uppercase tracking-wide">
+                About this metric
+              </div>
+            </div>
+            <div className="px-3 py-2">
+              <p className="text-[11px] text-gray-700 leading-relaxed">
+                {text}
+              </p>
+            </div>
+          </div>
+          {/* caret */}
+          <div className="flex justify-center">
+            <div
+              className="w-3 h-3 rotate-45 -mt-1.5"
+              style={{
+                background: '#f0f0ff',
+                border: '1px solid #e0e0ff',
+                borderTop: 'none',
+                borderLeft: 'none',
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 // ── Donut Chart ────────────────────────────────────────────────────────────────
 type Slice = { label: string; value: number; color: string }
@@ -302,11 +389,13 @@ export function LegendRow({
   value,
   pct,
   color,
+  hint,
 }: {
   label: string
   value: number | string
   pct?: number
   color: string
+  hint?: string
 }) {
   return (
     <div className="space-y-1">
@@ -317,6 +406,7 @@ export function LegendRow({
             style={{ background: color }}
           />
           <span className="text-gray-600 capitalize">{label}</span>
+          {hint && <HintTooltip text={hint} />}
         </div>
         <div className="flex items-center gap-2">
           <span className="font-semibold text-gray-900">{fmt(value)}</span>
@@ -333,6 +423,28 @@ export function LegendRow({
           />
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Growth Badge ───────────────────────────────────────────────────────────────
+export function GrowthBadge({
+  value,
+  label,
+  hint,
+}: {
+  value?: number
+  label?: string
+  hint?: string
+}) {
+  if (value === undefined || value === null) return null
+  return (
+    <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+      <span>↑</span>
+      <span>
+        {fmt(value)} {label ?? 'new this month'}
+      </span>
+      {hint && <HintTooltip text={hint} />}
     </div>
   )
 }
