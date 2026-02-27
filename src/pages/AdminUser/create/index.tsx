@@ -438,7 +438,6 @@ export default function CreateAdmin({
       label: 'Date of Birth',
       type: 'date',
       required: true,
-      maxDate: moment().subtract(18, 'years').toDate(),
     },
     // {
     //   name: 'status',

@@ -32,6 +32,14 @@ import DayDetailTabsSection from './DayDetailTabsSection'
 
 type DayDetailTab = 'diet' | 'workout' | 'yoga' | 'meditation'
 
+// Helper function to capitalize first letter of each word
+const toTitleCase = (str: string): string => {
+  return str
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
 const YOGA_CATEGORY_OPTIONS: { label: string; value: string }[] = [
   { label: 'Basic', value: 'basic' },
   { label: 'Intermediate', value: 'intermediate' },
@@ -2103,9 +2111,11 @@ export default function Subscriptions({
                 <div className="border rounded-lg p-3 bg-white flex items-start justify-between gap-4">
                   <div>
                     <div className="text-sm font-medium mb-1">
-                      {safeStr(
-                        overview?.subscription?.plan_name ??
-                          overview?.subscription?.name
+                      {toTitleCase(
+                        safeStr(
+                          overview?.subscription?.plan_name ??
+                            overview?.subscription?.name
+                        )
                       )}
                     </div>
                     <div className="text-xs text-gray-500">
@@ -2415,10 +2425,10 @@ export default function Subscriptions({
                   plans.map((p: any) => (
                     <div key={p?.id} className="border rounded-lg p-3 bg-white">
                       <div className="text-sm font-medium mb-1">
-                        {safeStr(p?.name)}
+                        {toTitleCase(safeStr(p?.name))}
                       </div>
                       <div className="text-xs text-gray-500">
-                        Category: {safeStr(p?.category)}
+                        Category: {toTitleCase(safeStr(p?.category))}
                       </div>
                     </div>
                   ))
@@ -3217,7 +3227,9 @@ export default function Subscriptions({
                         )}
                       </div>
                       <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
-                        <div className="font-medium line-clamp-1">{title}</div>
+                        <div className="font-medium line-clamp-1">
+                          {toTitleCase(title)}
+                        </div>
                         <input
                           type="checkbox"
                           className="mt-0.5 shrink-0"

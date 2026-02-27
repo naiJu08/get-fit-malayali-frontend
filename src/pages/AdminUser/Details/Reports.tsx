@@ -134,9 +134,15 @@ type PieChartProps = {
   data: PieSlice[]
   size?: number
   strokeWidth?: number
+  displayValue?: number
 }
 
-const PieChart = ({ data, size = 120, strokeWidth = 18 }: PieChartProps) => {
+const PieChart = ({
+  data,
+  size = 120,
+  strokeWidth = 18,
+  displayValue,
+}: PieChartProps) => {
   const total = data.reduce(
     (acc, item) => acc + Math.max(0, item.value || 0),
     0
@@ -190,7 +196,13 @@ const PieChart = ({ data, size = 120, strokeWidth = 18 }: PieChartProps) => {
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
         <span className="text-xs font-medium text-gray-600">
-          {hasData ? total : '--'}
+          {displayValue !== undefined &&
+          displayValue !== null &&
+          displayValue > 0
+            ? displayValue
+            : hasData
+              ? total
+              : '--'}
         </span>
       </div>
     </div>
@@ -523,7 +535,7 @@ const BodyMetricsCard = ({
         <div className="bg-gray-50 rounded-lg p-3">
           <div className="text-xs text-gray-500 mb-1">Start Weight</div>
           <div className="text-lg font-bold text-gray-900">
-            {startWeight} kg
+            {startWeight ? `${startWeight} kg` : '--'}
           </div>
           <div className="text-xs text-gray-500">
             BMI: {startBmi.toFixed(1)}
@@ -537,7 +549,9 @@ const BodyMetricsCard = ({
         </div>
         <div className="bg-gray-50 rounded-lg p-3">
           <div className="text-xs text-gray-500 mb-1">End Weight</div>
-          <div className="text-lg font-bold text-gray-900">{endWeight} kg</div>
+          <div className="text-lg font-bold text-gray-900">
+            {endWeight ? `${endWeight} kg` : '--'}
+          </div>
           <div className="text-xs text-gray-500">BMI: {endBmi.toFixed(1)}</div>
           <div
             className="text-xs px-2 py-1 rounded-full text-white inline-block mt-1"
@@ -605,28 +619,28 @@ const BodyMetricsCard = ({
 
 const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
   const hints = vitals?.hints
-  const heartRateHealth = Number(vitals?.normal_heart_rate_percentage ?? 0)
-  const sugarHealth = Number(vitals?.normal_sugar_level_percentage ?? 0)
+  // const heartRateHealth = Number(vitals?.normal_heart_rate_percentage ?? 0)
+  // const sugarHealth = Number(vitals?.normal_sugar_level_percentage ?? 0)
   const sleepHealth = Number(vitals?.adequate_sleep_percentage ?? 0)
   const waterHealth = Number(vitals?.adequate_water_intake_percentage ?? 0)
 
   const vitalsData = [
-    {
-      label: 'Heart Rate',
-      value: vitals?.max_heart_rate,
-      unit: 'bpm',
-      percentage: heartRateHealth,
-      icon: '❤️',
-      hintKey: 'heart_rate',
-    },
-    {
-      label: 'Sugar Level',
-      value: vitals?.max_sugar_level,
-      unit: 'mg/dL',
-      percentage: sugarHealth,
-      icon: '🩸',
-      hintKey: 'sugar_level',
-    },
+    // {
+    //   label: 'Heart Rate',
+    //   value: vitals?.max_heart_rate,
+    //   unit: 'bpm',
+    //   percentage: heartRateHealth,
+    //   icon: '❤️',
+    //   hintKey: 'heart_rate',
+    // },
+    // {
+    //   label: 'Sugar Level',
+    //   value: vitals?.max_sugar_level,
+    //   unit: 'mg/dL',
+    //   percentage: sugarHealth,
+    //   icon: '🩸',
+    //   hintKey: 'sugar_level',
+    // },
     {
       label: 'Sleep',
       value: vitals?.avg_sleep_hours,
@@ -730,7 +744,7 @@ const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
       <div className="mt-4 pt-3 border-t">
         <div className="text-xs text-gray-500 mb-2">Health Compliance</div>
         <div className="grid grid-cols-2 gap-2">
-          <div className="flex items-center justify-between bg-green-50 rounded p-2">
+          {/* <div className="flex items-center justify-between bg-green-50 rounded p-2">
             <div className="flex items-center gap-1 text-xs text-gray-600">
               Heart Rate
               {hints?.heart_rate && <HintTooltip hint={hints.heart_rate} />}
@@ -738,8 +752,8 @@ const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
             <span className="text-xs font-bold text-green-600">
               {heartRateHealth.toFixed(0)}%
             </span>
-          </div>
-          <div className="flex items-center justify-between bg-green-50 rounded p-2">
+          </div> */}
+          {/* <div className="flex items-center justify-between bg-green-50 rounded p-2">
             <div className="flex items-center gap-1 text-xs text-gray-600">
               Sugar Level
               {hints?.sugar_level && <HintTooltip hint={hints.sugar_level} />}
@@ -747,7 +761,7 @@ const VitalsTrackingCard = ({ vitals }: { vitals: any }) => {
             <span className="text-xs font-bold text-green-600">
               {sugarHealth.toFixed(0)}%
             </span>
-          </div>
+          </div> */}
           <div className="flex items-center justify-between bg-green-50 rounded p-2">
             <div className="flex items-center gap-1 text-xs text-gray-600">
               Sleep
@@ -847,7 +861,7 @@ const DailyActivityCard = ({ dailyBreakdown }: { dailyBreakdown: any[] }) => {
               <div key={day.date} className="border rounded-lg p-3 bg-gray-50">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-sm font-medium text-gray-900">
-                    Day {day.day_number} • {day.date}
+                    Day {day.day_number} • {formatDate(day.date)}
                   </div>
                   <div className="flex items-center gap-1">
                     {activities.map(({ type, data }) => {
@@ -1081,7 +1095,9 @@ const OverallAnalysisCard = ({
       {/* Summary */}
       {summary && (
         <div className="px-5 pb-3">
-          <p className="text-sm text-gray-700 leading-relaxed">{summary}</p>
+          <p className="text-sm text-gray-700 leading-relaxed">
+            {toTitleCase(summary)}
+          </p>
         </div>
       )}
 
@@ -1147,7 +1163,7 @@ const OverallAnalysisCard = ({
           <div className="flex items-start gap-1.5">
             <span className="text-indigo-400 text-sm flex-shrink-0">💬</span>
             <p className="text-[12px] text-indigo-800 italic leading-relaxed">
-              {coachNote}
+              {toTitleCase(coachNote)}
             </p>
           </div>
         </div>
@@ -1168,7 +1184,7 @@ const EnhancedActivityCard = ({
   color?: string
 }) => {
   const hints = data?.hints
-  const totalAssigned = Number(data?.total_assigned_days ?? 0)
+  const totalAssigned = Number(data?.total_assigned_days) || 0
   const totalCompleted = Number(data?.total_completed_days ?? 0)
   const totalSkipped = Number(data?.total_fully_skipped_days ?? 0)
   const totalUpcoming = Number(data?.total_upcoming_days ?? 0)
@@ -1253,7 +1269,12 @@ const EnhancedActivityCard = ({
         </div>
 
         <div className="ml-4 flex flex-col items-center gap-2">
-          <PieChart data={pieData} size={80} strokeWidth={12} />
+          <PieChart
+            data={pieData}
+            size={80}
+            strokeWidth={12}
+            displayValue={totalAssigned}
+          />
           <div className="text-xs text-gray-500 text-center">
             {completionRate.toFixed(0)}% completion
           </div>
@@ -1302,6 +1323,14 @@ const EnhancedActivityCard = ({
       )}
     </div>
   )
+}
+
+// Helper function to capitalize first letter of each word
+const toTitleCase = (str: string): string => {
+  return str
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
 }
 
 export default function Reports({
@@ -2086,7 +2115,7 @@ export default function Reports({
                 Subscription
               </div>
               <div className="text-lg font-semibold text-gray-900">
-                {plan?.name || 'Plan'}
+                {plan?.name ? toTitleCase(plan.name) : 'Plan'}
               </div>
               <div className="text-sm text-gray-600">{plan?.category}</div>
             </div>
@@ -2198,7 +2227,7 @@ export default function Reports({
               <tr className="bg-gray-50">
                 <td className="px-4 py-3 text-gray-500 w-1/4">Plan Name</td>
                 <td className="px-4 py-3 font-semibold text-gray-800 w-1/4">
-                  {plan?.name || '—'}
+                  {plan?.name ? toTitleCase(plan.name) : '—'}
                 </td>
 
                 <td className="px-4 py-3 text-gray-500 w-1/4">Category</td>
@@ -2212,8 +2241,9 @@ export default function Reports({
                   {reportUser?.name || user?.name
                     ? (reportUser?.name || user?.name)
                         .toString()
-                        .toLowerCase()
-                        .replace(/\b\w/g, (char: any) => char.toUpperCase())
+                        .charAt(0)
+                        .toUpperCase() +
+                      (reportUser?.name || user?.name).toString().slice(1)
                     : '—'}
                 </td>
               </tr>
@@ -2506,7 +2536,7 @@ export default function Reports({
                 Health Metrics
               </h4>
               <table className="w-full text-sm">
-                <tr>
+                {/* <tr>
                   <td className="py-1 text-gray-600">Max Heart Rate</td>
                   <td className="py-1 font-medium">
                     {vitals.max_heart_rate ?? '—'} bpm
@@ -2517,7 +2547,7 @@ export default function Reports({
                   <td className="py-1 font-medium">
                     {vitals.max_sugar_level ?? '—'} mg/dL
                   </td>
-                </tr>
+                </tr> */}
                 <tr>
                   <td className="py-1 text-gray-600">Avg Sleep Hours</td>
                   <td className="py-1 font-medium">
@@ -2544,7 +2574,7 @@ export default function Reports({
                 Health Compliance
               </h4>
               <table className="w-full text-sm">
-                <tr>
+                {/* <tr>
                   <td className="py-1 text-gray-600">Normal Heart Rate</td>
                   <td className="py-1 font-medium">
                     {Number(vitals.normal_heart_rate_percentage ?? 0).toFixed(
@@ -2561,7 +2591,7 @@ export default function Reports({
                     )}
                     %
                   </td>
-                </tr>
+                </tr> */}
                 <tr>
                   <td className="py-1 text-gray-600">Adequate Sleep</td>
                   <td className="py-1 font-medium">
@@ -2804,7 +2834,9 @@ export default function Reports({
 
                   return (
                     <tr key={day.date}>
-                      <td className="border px-2 py-1">{day.date}</td>
+                      <td className="border px-2 py-1">
+                        {formatDate(day.date)}
+                      </td>
                       <td className="border px-2 py-1">Day {day.day_number}</td>
                       <td className="border px-2 py-1">
                         {getActivityStatus(day.diet)}

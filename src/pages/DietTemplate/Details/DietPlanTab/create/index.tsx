@@ -464,6 +464,42 @@ export default function DietPlanForm({
   }, [isOpen, planId, edit, rowData, detailData, reset, replaceMeals])
 
   const onSubmit = (values: DietPlanSchema, keepOpen = false) => {
+    // Check for empty meal items and show snackbar error if found
+    const hasEmptyMeals = (values.meals || []).some(
+      (meal) =>
+        (!Number.isFinite(meal.meal_id) || meal.meal_id === 0) &&
+        (!Number.isFinite(meal.count) || meal.count === 0)
+    )
+
+    if (hasEmptyMeals) {
+      enqueueSnackbar(
+        'Please fill all required fields for each meal or remove empty meals',
+        {
+          variant: 'error',
+        }
+      )
+      return
+    }
+
+    // Check if there are any valid meals (both meal_id and count > 0)
+    const hasValidMeals = (values.meals || []).some(
+      (meal) =>
+        Number.isFinite(meal.meal_id) &&
+        meal.meal_id > 0 &&
+        Number.isFinite(meal.count) &&
+        meal.count > 0
+    )
+
+    if (!hasValidMeals) {
+      enqueueSnackbar(
+        'Please fill all required fields for each meal or remove empty meals',
+        {
+          variant: 'error',
+        }
+      )
+      return
+    }
+
     const itemsPayload = (values.meals || [])
       .filter((m: any) => typeof m.meal_id === 'number' && m.meal_id && m.count)
       .map((m: any) => ({
@@ -510,7 +546,7 @@ export default function DietPlanForm({
           if (keepOpen) {
             // Keep the form open and reset for new entry with same day
             const currentDayNumber = values.day_number
-            const currentDayName = initialDayName || values.day_name
+            const currentDayName = values.day_name || initialDayName
             reset({
               diet_plan_template_id: Number(
                 planId ?? values.diet_plan_template_id ?? 0
