@@ -107,7 +107,7 @@ export default function DetailsInfo({
                 />
                 <DetailItem
                   label="Medical Conditions"
-                  value={user?.medical_conditions}
+                  value={capitalizeWord(user?.medical_conditions)}
                 />
                 <DetailItem
                   label="Food Allergies"
