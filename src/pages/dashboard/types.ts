@@ -1,92 +1,116 @@
+// ─── Admin Dashboard API Types ───────────────────────────────────────────────
+// Matches GET /api/v1/admin/dashboard exact response shape
+
 export type DashboardResponse = {
-  timeframe?: {
-    start_date?: string
-    end_date?: string
-  }
+  generated_at?: string
+
   users?: {
     total?: number
-    by_role?: Record<string, number>
-    new_in_range?: number
-    active?: number
-    suspended?: number
-    deactivated?: number
+    by_role?: {
+      superadmin?: number
+      admin?: number
+      nutritionist?: number
+      user?: number
+      [k: string]: number | undefined
+    }
+    by_status?: {
+      active?: number
+      suspended?: number
+      deactivated?: number
+      [k: string]: number | undefined
+    }
+    new_this_month?: number
+    hints?: Record<string, string>
   }
+
   subscriptions?: {
     total?: number
     by_status?: Record<string, number>
-    new_in_range?: number
     active_now?: number
     expired_now?: number
     paused_now?: number
+    new_this_month?: number
     subscribers_by_plan?: {
       plan_id?: number
       plan_name?: string
       subscribers?: number
     }[]
     revenue?: {
-      active_total_fees?: string
-      created_in_range_total_fees?: string
+      active_subscriptions_total_fees?: string
+      lifetime_total_fees?: string
     }
     user_specific_content?: {
       workout_subscriptions?: number
       yoga_subscriptions?: number
       meditation_subscriptions?: number
     }
+    hints?: Record<string, string>
   }
+
   plans?: {
     total?: number
     active?: number
+    inactive?: number
     by_category?: Record<string, number>
-    new_in_range?: number
+    yoga_included?: number
+    meditation_included?: number
+    hints?: Record<string, string>
   }
+
   workouts?: {
     total?: number
     with_video?: number
-    new_in_range?: number
-    average_rating_overall?: number
     by_intensity?: Record<string, number>
+    user_specific_exercises?: number
+    hints?: Record<string, string>
   }
-  recipes?: {
-    total?: number
-    new_in_range?: number
-  }
+
+  recipes?: { total?: number; hints?: Record<string, string> }
+
   feedbacks?: {
     total?: number
-    new_in_range?: number
     by_rating?: Record<string, number>
     for_workouts?: number
     for_plans?: number
     for_recipes?: number
+    hints?: Record<string, string>
   }
+
   notifications?: {
     total?: number
-    new_in_range?: number
     unread?: number
     delivered?: number
     scheduled_future?: number
     by_type?: Record<string, number>
+    hints?: Record<string, string>
   }
+
   activity?: {
     progress_logs?: number
     body_measurements?: number
     workout_exercise_completions?: number
-    diet_plan_completions?: number
+    diet_plan_item_completions?: number
+    yoga_exercise_completions?: number
+    meditation_completions?: number
     workout_plan_progresses?: number
+    hints?: Record<string, string>
   }
+
   freezes?: {
     total?: number
-    new_in_range?: number
     active_now?: number
     active_subscriptions_with_freeze_now?: number
+    hints?: Record<string, string>
   }
+
   interests?: {
     total?: number
-    new_in_range?: number
-    by_plan?: Record<string, number>
+    by_plan?: Record<string, number> | any[]
+    hints?: Record<string, string>
   }
+
   body_measurements?: {
     total_records?: number
-    records_in_range?: number
     unique_users_measured?: number
     avg_measurements_per_user?: number
     weight_analytics?: {
@@ -117,10 +141,11 @@ export type DashboardResponse = {
       arm_avg?: string
       thigh_avg?: string
     }
+    hints?: Record<string, string>
   }
+
   vitals?: {
     total_records?: number
-    records_in_range?: number
     unique_users?: number
     heart_rate_analytics?: {
       avg?: string
@@ -134,149 +159,149 @@ export type DashboardResponse = {
       max?: string
       normal_percentage?: number
     }
-    sleep_analytics?: {
-      avg_hours?: string
-      adequate_percentage?: number
-    }
-    water_analytics?: {
-      avg_intake?: string
-      adequate_percentage?: number
-    }
-    steps_analytics?: {
-      avg_steps?: string
-      max_steps?: number
-    }
+    sleep_analytics?: { avg_hours?: string; adequate_percentage?: number }
+    water_analytics?: { avg_intake?: string; adequate_percentage?: number }
+    steps_analytics?: { avg_steps?: string; max_steps?: number }
+    hints?: Record<string, string>
   }
+
   meditations?: {
     total_meditations?: number
-    new_in_range?: number
+    avg_duration_minutes?: string
     total_completions?: number
-    completions_in_range?: number
-    unique_users?: number
-    completion_rate?: number
-    avg_duration?: string
+    completed_count?: number
+    skipped_count?: number
+    missed_count?: number
+    unique_users_completing?: number
+    completion_rate_percentage?: number
+    plan_default_meditations?: number
+    user_specific_meditations?: number
     top_performing?: {
       id?: number
       title?: string
       duration_minutes?: string
       completion_count?: number
     }[]
-    user_specific_meditations?: number
+    hints?: Record<string, string>
   }
+
   yoga?: {
-    total_yoga_exercises?: number
-    new_in_range?: number
+    total_yoga_items?: number
+    avg_duration_minutes?: string
     total_completions?: number
-    completions_in_range?: number
-    unique_users?: number
-    avg_duration?: string
+    completed_count?: number
+    skipped_count?: number
+    missed_count?: number
+    unique_users_completing?: number
+    completion_rate_percentage?: number
     intensity_breakdown?: Record<string, number>
-    completion_by_intensity?: { intensity?: string; completions?: number }[]
-    user_specific_yoga?: number
+    completion_by_category?: Record<string, number>
+    plan_default_yoga_exercises?: number
+    user_specific_yoga_exercises?: number
+    hints?: Record<string, string>
   }
+
   diet?: {
     total_meals?: number
-    new_in_range?: number
     total_completions?: number
-    completions_in_range?: number
+    completed_count?: number
+    skipped_count?: number
+    missed_count?: number
     unique_users?: number
-    calorie_analytics?: {
-      total_consumed?: number
-      avg_per_completion?: number
-    }
-    top_categories?: string[]
-    meal_timing_analytics?: Record<string, number>
+    adherence_rate_percentage?: number
+    calorie_analytics?: { total_consumed?: number; avg_per_completion?: number }
+    meal_timing_analysis?: Record<string, number>
+    category_consumption?: Record<string, number>
     mandatory_vs_optional?: Record<string, number>
+    hints?: Record<string, string>
   }
+
   engagement?: {
-    daily_active_users?: {
-      total?: number
-      meditation?: number
-      workout?: number
+    window?: string
+    window_start?: string
+    window_end?: string
+    summary?: {
+      active_users_total?: number
+      workout_active_users?: number
+      yoga_active_users?: number
+      meditation_active_users?: number
+      diet_active_users?: number
     }
-    user_streaks?: {
-      meditation?: {
-        max_streak?: number
-        avg_streak?: number
-        users_with_streaks?: number
-      }
-      workout?: {
-        max_streak?: number
-        avg_streak?: number
-        users_with_streaks?: number
-      }
-    }
-    engagement_by_day?: {
-      date?: string
+    hourly_breakdown?: {
+      hour?: string
       active_users?: number
-      completions?: number
+      workout_completions?: number
+      yoga_completions?: number
+      meditation_completions?: number
+      diet_completions?: number
+      total_completions?: number
+      hint?: string
     }[]
-    most_active_users?: {
-      id?: number
-      name?: string
-      activity_score?: number
-    }[]
+    hints?: Record<string, string>
   }
+
   completion_analytics?: {
-    workout_completion_rates?: {
-      total_assigned?: number
-      total_completed?: number
-      completion_percentage?: number
-      skipped_percentage?: number
-      missed_percentage?: number
+    workout_completions?: {
+      total?: number
+      completed?: number
+      skipped?: number
+      missed?: number
+      completion_rate_percentage?: number
     }
-    meditation_completion_rates?: {
-      total_assigned?: number
-      total_completed?: number
-      completion_percentage?: number
-      skipped_percentage?: number
-      missed_percentage?: number
+    yoga_completions?: {
+      total?: number
+      completed?: number
+      skipped?: number
+      missed?: number
+      completion_rate_percentage?: number
     }
-    diet_completion_rates?: {
-      total_assigned?: number
-      total_completed?: number
-      completion_percentage?: number
-      skipped_percentage?: number
-      missed_percentage?: number
+    meditation_completions?: {
+      total?: number
+      completed?: number
+      skipped?: number
+      missed?: number
+      completion_rate_percentage?: number
     }
-    weekly_completion_trends?: Record<string, { completion_rate?: number }>
-    completion_by_time_of_day?: {
+    diet_completions?: {
+      total?: number
+      completed?: number
+      skipped?: number
+      missed?: number
+      completion_rate_percentage?: number
+    }
+    completions_by_time_of_day?: {
       morning?: number
       afternoon?: number
       evening?: number
       night?: number
     }
+    hints?: Record<string, string>
   }
+
   health_analytics?: {
-    weight_trends?: {
-      improving?: number
-      declining?: number
-      stable?: number
+    body_measurement_summary?: {
+      weight?: { avg?: string; min?: string; max?: string }
+      bmi?: {
+        avg?: string
+        categories?: {
+          underweight?: number
+          normal?: number
+          overweight?: number
+          obese?: number
+        }
+      }
     }
-    vitals_trends?: {
-      heart_rate?: { trend?: string; change?: number }
-      blood_sugar?: { trend?: string; change?: number }
-      sleep?: { trend?: string; change?: number }
-      water_intake?: { trend?: string; change?: number }
+    vitals_summary?: {
+      avg_heart_rate?: string
+      avg_sugar_level?: string
+      avg_sleep_hours?: string
+      avg_water_intake?: string
+      avg_steps?: string
     }
-    health_score_distribution?: {
-      excellent?: number
-      good?: number
-      fair?: number
-      poor?: number
-    }
-    users_at_risk?: {
-      id?: number
-      name?: string
-      risk_factors?: string[]
-      risk_score?: number
-    }[]
-    improvement_metrics?: {
-      users_improved?: number
-      avg_improvement_percentage?: number
-      most_improved_area?: string
-    }
+    hints?: Record<string, string>
   }
+
+  // Legacy fields kept for backward-compat
   user_behavior?: {
     user_activity_patterns?: {
       most_active_day?: string
@@ -289,43 +314,15 @@ export type DashboardResponse = {
       afternoon?: number
       evening?: number
     }
-    preferred_meditation_times?: {
-      morning?: number
-      afternoon?: number
-      evening?: number
-    }
-    content_preferences?: {
-      preferred_intensity?: string
-      preferred_duration?: string
-      preferred_categories?: string[]
-    }
-    drop_off_points?: {
-      week_2_dropoff?: number
-      month_1_dropoff?: number
-      common_dropoff_reasons?: string[]
-    }
-    re_engagement_patterns?: {
-      re_engaged_users?: number
-      avg_days_to_re_engage?: number
-      successful_re_engagement_rate?: number
-    }
+    drop_off_points?: { week_2_dropoff?: number; month_1_dropoff?: number }
   }
   content_performance?: {
     workout_performance?: {
       top_performing_categories?: string[]
-      avg_completion_time?: number
       user_satisfaction?: number
     }
-    meditation_performance?: {
-      top_performing_durations?: string[]
-      avg_session_completion?: number
-      user_satisfaction?: number
-    }
-    diet_plan_performance?: {
-      most_adhered_categories?: string[]
-      avg_calorie_adherence?: number
-      user_satisfaction?: number
-    }
+    meditation_performance?: { user_satisfaction?: number }
+    diet_plan_performance?: { user_satisfaction?: number }
     content_effectiveness?: {
       highly_effective?: number
       moderately_effective?: number
@@ -337,11 +334,5 @@ export type DashboardResponse = {
       completion_rate?: number
       issue?: string
     }[]
-    user_feedback_correlation?: {
-      high_feedback_high_completion?: number
-      high_feedback_low_completion?: number
-      low_feedback_high_completion?: number
-      low_feedback_low_completion?: number
-    }
   }
 }
