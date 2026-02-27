@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useState } from 'react'
 import { DashboardResponse } from './types'
 import {
   fmt,
@@ -9,6 +9,9 @@ import {
   StatCard,
   Card,
   LegendRow,
+  HintTooltip,
+  GrowthBadge,
+  VBarChart,
 } from './dashboard-helpers'
 
 const COLORS = [
@@ -21,81 +24,82 @@ const COLORS = [
   '#38b2ac',
   '#ed8936',
 ]
-
 type Props = { data?: DashboardResponse }
 
-// ── KPI Banner ─────────────────────────────────────────────────────────────────
+// ── KPI Banner ────────────────────────────────────────────────────────────────
 export function KPIBanner({ data }: Props) {
-  const cards = useMemo(
-    () => [
-      {
-        title: 'Total Users',
-        value: fmt(data?.users?.total),
-        sub: `${fmt(data?.users?.active)} active • ${fmt(data?.users?.new_in_range)} new`,
-        gradient: 'linear-gradient(135deg,#667eea,#764ba2)',
-        icon: '👥',
-        badge: `+${data?.users?.new_in_range ?? 0} this period`,
-      },
-      {
-        title: 'Subscriptions',
-        value: fmt(data?.subscriptions?.total),
-        sub: `${fmt(data?.subscriptions?.active_now)} active • ${fmt(data?.subscriptions?.paused_now)} paused`,
-        gradient: 'linear-gradient(135deg,#06b6d4,#3b82f6)',
-        icon: '📋',
-        badge: `${fmt(data?.subscriptions?.new_in_range)} new`,
-      },
-      {
-        title: 'Active Revenue',
-        value: fmtCurrency(data?.subscriptions?.revenue?.active_total_fees),
-        sub: `${fmtCurrency(data?.subscriptions?.revenue?.created_in_range_total_fees)} created in period`,
-        gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
-        icon: '💰',
-        badge: 'Live portfolio',
-      },
-      {
-        title: 'Plans Library',
-        value: fmt(data?.plans?.total),
-        sub: `${fmt(data?.plans?.active)} active • ${fmt(data?.plans?.new_in_range)} new`,
-        gradient: 'linear-gradient(135deg,#f6ad55,#ed8936)',
-        icon: '📊',
-        badge: `${fmt(data?.plans?.new_in_range)} added`,
-      },
-      {
-        title: 'Workouts',
-        value: fmt(data?.workouts?.total),
-        sub: `${fmt(data?.workouts?.with_video)} with video • ⭐ ${data?.workouts?.average_rating_overall ?? '--'}`,
-        gradient: 'linear-gradient(135deg,#fc8181,#f56565)',
-        icon: '🏋️',
-        badge: `Avg ${data?.workouts?.average_rating_overall ?? '--'} rating`,
-      },
-      {
-        title: 'Meditation',
-        value: fmt(data?.meditations?.total_meditations),
-        sub: `${fmtPct(data?.meditations?.completion_rate)} completion • ${fmt(data?.meditations?.unique_users)} users`,
-        gradient: 'linear-gradient(135deg,#9f7aea,#667eea)',
-        icon: '🧘',
-        badge: `${fmt(data?.meditations?.total_completions)} completions`,
-      },
-      {
-        title: 'Yoga Exercises',
-        value: fmt(data?.yoga?.total_yoga_exercises),
-        sub: `${fmt(data?.yoga?.total_completions)} completions • ${fmt(data?.yoga?.unique_users)} users`,
-        gradient: 'linear-gradient(135deg,#38b2ac,#4299e1)',
-        icon: '🧘‍♀️',
-        badge: `Avg ${data?.yoga?.avg_duration ?? '--'} min`,
-      },
-      {
-        title: 'Notifications',
-        value: fmt(data?.notifications?.total),
-        sub: `${fmt(data?.notifications?.unread)} unread • ${fmt(data?.notifications?.delivered)} delivered`,
-        gradient: 'linear-gradient(135deg,#ed8936,#ecc94b)',
-        icon: '🔔',
-        badge: `${data?.notifications?.unread ?? 0} unread`,
-      },
-    ],
-    [data]
-  )
-
+  const cards = [
+    {
+      title: 'Total Users',
+      value: fmt(data?.users?.total),
+      sub: `${fmt(data?.users?.by_status?.active)} active · ${fmt(data?.users?.by_role?.user)} members`,
+      gradient: 'linear-gradient(135deg,#667eea,#764ba2)',
+      icon: '👥',
+      badge: data?.users?.new_this_month
+        ? `+${data.users.new_this_month} this month`
+        : undefined,
+    },
+    {
+      title: 'Subscriptions',
+      value: fmt(data?.subscriptions?.total),
+      sub: `${fmt(data?.subscriptions?.active_now)} active · ${fmt(data?.subscriptions?.paused_now)} paused`,
+      gradient: 'linear-gradient(135deg,#06b6d4,#3b82f6)',
+      icon: '📋',
+      badge: data?.subscriptions?.new_this_month
+        ? `+${data.subscriptions.new_this_month} this month`
+        : undefined,
+    },
+    {
+      title: 'Active Revenue',
+      value: fmtCurrency(
+        data?.subscriptions?.revenue?.active_subscriptions_total_fees
+      ),
+      sub: `Lifetime: ${fmtCurrency(data?.subscriptions?.revenue?.lifetime_total_fees)}`,
+      gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
+      icon: '💰',
+      badge: 'AED',
+    },
+    {
+      title: 'Plans Library',
+      value: fmt(data?.plans?.total),
+      sub: `${fmt(data?.plans?.active)} active · ${fmt(data?.plans?.inactive)} inactive`,
+      gradient: 'linear-gradient(135deg,#f6ad55,#ed8936)',
+      icon: '📊',
+      badge: undefined,
+    },
+    {
+      title: 'Workouts',
+      value: fmt(data?.workouts?.total),
+      sub: `${fmt(data?.workouts?.with_video)} with video · ${fmt(data?.workouts?.user_specific_exercises)} personalised`,
+      gradient: 'linear-gradient(135deg,#fc8181,#f56565)',
+      icon: '🏋️',
+      badge: undefined,
+    },
+    {
+      title: 'Meditation',
+      value: fmt(data?.meditations?.total_meditations),
+      sub: `${fmtPct(data?.meditations?.completion_rate_percentage)} done · ${fmt(data?.meditations?.unique_users_completing)} users`,
+      gradient: 'linear-gradient(135deg,#9f7aea,#667eea)',
+      icon: '🧘',
+      badge: undefined,
+    },
+    {
+      title: 'Yoga',
+      value: fmt(data?.yoga?.total_yoga_items),
+      sub: `${fmt(data?.yoga?.total_completions)} completions · ${fmt(data?.yoga?.unique_users_completing)} users`,
+      gradient: 'linear-gradient(135deg,#38b2ac,#4299e1)',
+      icon: '🧘‍♀️',
+      badge: undefined,
+    },
+    {
+      title: 'Notifications',
+      value: fmt(data?.notifications?.total),
+      sub: `${fmt(data?.notifications?.unread)} unread · ${fmt(data?.notifications?.delivered)} delivered`,
+      gradient: 'linear-gradient(135deg,#ed8936,#ecc94b)',
+      icon: '🔔',
+      badge: `${data?.notifications?.unread ?? 0} unread`,
+    },
+  ]
   return (
     <div className="db-kpi-grid">
       {cards.map((c, i) => (
@@ -105,125 +109,186 @@ export function KPIBanner({ data }: Props) {
   )
 }
 
-// ── Engagement Chart ───────────────────────────────────────────────────────────
+// ── Engagement Hourly Chart ───────────────────────────────────────────────────
 export function EngagementChart({ data }: Props) {
-  const days = data?.engagement?.engagement_by_day ?? []
-  const labels = days.map((d) => (d.date ?? '').slice(5))
-  const activeVals = days.map((d) => d.active_users ?? 0)
-  const compVals = days.map((d) => d.completions ?? 0)
-  const maxActive = Math.max(...activeVals, 1)
-  const maxComp = Math.max(...compVals, 1)
-
+  const [metric, setMetric] = useState<'active_users' | 'total_completions'>(
+    'active_users'
+  )
+  const [tooltipIdx, setTooltipIdx] = useState<number | null>(null)
+  const hours = data?.engagement?.hourly_breakdown ?? []
+  const summary = data?.engagement?.summary
+  const engHints = data?.engagement?.hints ?? {}
+  const vals = hours.map((h) =>
+    metric === 'active_users'
+      ? (h.active_users ?? 0)
+      : (h.total_completions ?? 0)
+  )
+  const maxVal = Math.max(...vals, 1)
+  const chartH = 100
+  const SUMCARDS = [
+    {
+      label: 'Total Active',
+      value: summary?.active_users_total,
+      color: '#667eea',
+      hk: 'active_users_total',
+    },
+    {
+      label: 'Workout',
+      value: summary?.workout_active_users,
+      color: '#fc8181',
+      hk: 'workout_active_users',
+    },
+    {
+      label: 'Yoga',
+      value: summary?.yoga_active_users,
+      color: '#38b2ac',
+      hk: 'yoga_active_users',
+    },
+    {
+      label: 'Meditation',
+      value: summary?.meditation_active_users,
+      color: '#9f7aea',
+      hk: 'meditation_active_users',
+    },
+    {
+      label: 'Diet',
+      value: summary?.diet_active_users,
+      color: '#48bb78',
+      hk: 'diet_active_users',
+    },
+  ]
   return (
-    <Card title="Engagement Over Time" icon="📈" className="db-col-2">
-      <div className="mb-3 flex items-center gap-4 text-xs">
-        <span className="flex items-center gap-1.5">
-          <span
-            className="inline-block w-3 h-0.5 rounded"
-            style={{ background: '#667eea' }}
-          />
-          Active Users
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span
-            className="inline-block w-3 h-0.5 rounded"
-            style={{ background: '#48bb78' }}
-          />
-          Completions
-        </span>
+    <Card title="Engagement — Last 24 Hours" icon="📈" className="db-col-2">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-xs text-emerald-600 font-semibold">
+            🟢 Live — Last 24 Hours
+          </span>
+          {engHints.window && <HintTooltip text={engHints.window} />}
+        </div>
+        <div className="flex gap-1">
+          {(['active_users', 'total_completions'] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMetric(m)}
+              className={`text-xs px-2 py-0.5 rounded-full transition-all ${metric === m ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+            >
+              {m === 'active_users' ? 'Active Users' : 'Completions'}
+            </button>
+          ))}
+        </div>
       </div>
-      {days.length ? (
-        <div className="overflow-x-auto">
-          <div style={{ minWidth: 600 }}>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {SUMCARDS.map((s) => (
+          <div
+            key={s.label}
+            className="flex flex-col items-center px-3 py-1.5 rounded-xl"
+            style={{
+              background: s.color + '18',
+              border: `1px solid ${s.color}33`,
+            }}
+          >
+            <span className="text-base font-bold" style={{ color: s.color }}>
+              {fmt(s.value)}
+            </span>
+            <span className="text-[10px] text-gray-500 flex items-center gap-0.5">
+              {s.label}
+              {engHints[s.hk] && <HintTooltip text={engHints[s.hk]} />}
+            </span>
+          </div>
+        ))}
+      </div>
+      {hours.length ? (
+        <div className="relative overflow-x-auto">
+          <div style={{ minWidth: 400 }} className="relative">
             <svg
               width="100%"
-              height={160}
-              viewBox={`0 0 ${Math.max(days.length * 18, 600)} 160`}
+              height={chartH + 18}
+              viewBox={`0 0 ${hours.length * 20} ${chartH + 18}`}
               preserveAspectRatio="none"
             >
-              {activeVals.map((v, i) => {
-                const x = (i / (activeVals.length - 1)) * 100
-                const y = 140 - (v / maxActive) * 120
-                return i === 0 ? null : (
-                  <line
+              {hours.map((h, i) => {
+                const v = vals[i]
+                const barH = Math.max(2, (v / maxVal) * chartH)
+                return (
+                  <g
                     key={i}
-                    x1={`${((i - 1) / (activeVals.length - 1)) * 100}%`}
-                    y1={140 - (activeVals[i - 1] / maxActive) * 120}
-                    x2={`${x}%`}
-                    y2={y}
-                    stroke="#667eea"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                  />
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={() => setTooltipIdx(i)}
+                    onMouseLeave={() => setTooltipIdx(null)}
+                  >
+                    <rect
+                      x={i * 20 + 1}
+                      y={chartH - barH}
+                      width={18}
+                      height={barH}
+                      rx={3}
+                      fill={v > 0 ? '#667eea' : '#e2e8f0'}
+                      opacity={tooltipIdx === i ? 1 : 0.8}
+                      style={{ transition: 'height 0.4s ease,opacity 0.2s' }}
+                    />
+                    {i % 4 === 0 && (
+                      <text
+                        x={i * 20 + 10}
+                        y={chartH + 14}
+                        textAnchor="middle"
+                        fontSize={7}
+                        fill="#9ca3af"
+                      >
+                        {h.hour}
+                      </text>
+                    )}
+                  </g>
                 )
               })}
-              {compVals.map((v, i) => {
-                const x = (i / (compVals.length - 1)) * 100
-                const y = 140 - (v / maxComp) * 120
-                return i === 0 ? null : (
-                  <line
-                    key={i}
-                    x1={`${((i - 1) / (compVals.length - 1)) * 100}%`}
-                    y1={140 - (compVals[i - 1] / maxComp) * 120}
-                    x2={`${x}%`}
-                    y2={y}
-                    stroke="#48bb78"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                  />
-                )
-              })}
-              {activeVals.map((v, i) => (
-                <circle
-                  key={i}
-                  cx={`${(i / (activeVals.length - 1)) * 100}%`}
-                  cy={140 - (v / maxActive) * 120}
-                  r={3}
-                  fill="#667eea"
-                />
-              ))}
             </svg>
-            <div className="flex justify-between mt-1">
-              {labels
-                .filter((_, i) => i % 5 === 0)
-                .map((l, i) => (
-                  <span key={i} className="text-[9px] text-gray-400">
-                    {l}
-                  </span>
-                ))}
-            </div>
+            {tooltipIdx !== null && hours[tooltipIdx]?.hint && (
+              <div className="absolute top-0 left-0 right-0 flex justify-center pointer-events-none">
+                <div className="bg-gray-900 text-white text-xs rounded-lg px-3 py-1.5 z-10 max-w-xs text-center shadow-xl">
+                  {hours[tooltipIdx].hint}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       ) : (
-        <p className="text-sm text-gray-400">No engagement data</p>
+        <p className="text-sm text-gray-400 py-6 text-center">
+          No hourly data available
+        </p>
       )}
     </Card>
   )
 }
 
-// ── Subscription Status Donut ──────────────────────────────────────────────────
+// ── Subscription Status Card ──────────────────────────────────────────────────
 export function SubsStatusCard({ data }: Props) {
-  const entries = Object.entries(data?.subscriptions?.by_status ?? {})
-  const total = entries.reduce((s, [, v]) => s + Number(v), 0) || 1
-  const slices = entries.map(([l, v], i) => ({
-    label: l,
-    value: Number(v),
+  const s = data?.subscriptions
+  const hints = s?.hints ?? {}
+  const byStatus = s?.by_status ?? {}
+  const total = s?.total ?? 0
+  const slices = Object.entries(byStatus).map(([k, v], i) => ({
+    label: k,
+    value: v as number,
     color: COLORS[i % COLORS.length],
   }))
-
   return (
     <Card title="Subscription Status" icon="📋">
+      <div className="flex items-center gap-1 mb-2">
+        <span className="text-[10px] text-gray-400">Status breakdown</span>
+        {hints.by_status && <HintTooltip text={hints.by_status} />}
+      </div>
       <div className="flex items-center gap-4">
         <DonutChart
           slices={slices}
-          size={120}
+          size={110}
           stroke={22}
           center={
             <>
-              <p className="text-lg font-bold text-gray-900">
-                {fmt(data?.subscriptions?.total)}
-              </p>
-              <p className="text-[10px] text-gray-500">Total</p>
+              <span className="text-xl font-bold text-gray-800">
+                {fmt(total)}
+              </span>
+              <span className="text-[10px] text-gray-400">total</span>
             </>
           }
         />
@@ -233,104 +298,75 @@ export function SubsStatusCard({ data }: Props) {
               key={i}
               label={sl.label}
               value={sl.value}
-              pct={(sl.value / total) * 100}
+              pct={total ? Math.round((sl.value / total) * 100) : 0}
               color={sl.color}
             />
           ))}
         </div>
       </div>
-    </Card>
-  )
-}
-
-// ── User Role Donut ────────────────────────────────────────────────────────────
-export function UserRoleCard({ data }: Props) {
-  const entries = Object.entries(data?.users?.by_role ?? {})
-  const total = entries.reduce((s, [, v]) => s + Number(v), 0) || 1
-  const slices = entries.map(([l, v], i) => ({
-    label: l,
-    value: Number(v),
-    color: COLORS[i % COLORS.length],
-  }))
-
-  return (
-    <Card title="User Roles" icon="👥">
-      <div className="flex items-center gap-4">
-        <DonutChart
-          slices={slices}
-          size={120}
-          stroke={22}
-          center={
-            <>
-              <p className="text-lg font-bold text-gray-900">
-                {fmt(data?.users?.total)}
-              </p>
-              <p className="text-[10px] text-gray-500">Users</p>
-            </>
-          }
-        />
-        <div className="flex-1 space-y-2">
-          {slices.map((sl, i) => (
-            <LegendRow
-              key={i}
-              label={sl.label}
-              value={sl.value}
-              pct={(sl.value / total) * 100}
-              color={sl.color}
-            />
-          ))}
-          <div className="mt-2 pt-2 border-t border-gray-100 grid grid-cols-3 gap-1 text-center">
-            <div>
-              <p className="text-[10px] text-gray-500">Active</p>
-              <p className="text-sm font-bold text-emerald-600">
-                {fmt(data?.users?.active)}
-              </p>
+      <div className="mt-3 flex gap-2 flex-wrap">
+        {[
+          {
+            label: 'New/Month',
+            value: s?.new_this_month,
+            color: '#48bb78',
+            hint: hints.new_this_month,
+          },
+          {
+            label: 'Yoga Subs',
+            value: s?.user_specific_content?.yoga_subscriptions,
+            color: '#38b2ac',
+            hint: hints.user_specific_content,
+          },
+          {
+            label: 'Meditation Subs',
+            value: s?.user_specific_content?.meditation_subscriptions,
+            color: '#9f7aea',
+          },
+          {
+            label: 'Workout Subs',
+            value: s?.user_specific_content?.workout_subscriptions,
+            color: '#fc8181',
+          },
+        ].map((b) => (
+          <div
+            key={b.label}
+            className="rounded-lg px-2.5 py-1.5 text-center"
+            style={{
+              background: b.color + '15',
+              border: `1px solid ${b.color}30`,
+            }}
+          >
+            <div className="text-sm font-bold" style={{ color: b.color }}>
+              {fmt(b.value)}
             </div>
-            <div>
-              <p className="text-[10px] text-gray-500">Suspended</p>
-              <p className="text-sm font-bold text-amber-600">
-                {fmt(data?.users?.suspended)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-500">Inactive</p>
-              <p className="text-sm font-bold text-red-500">
-                {fmt(data?.users?.deactivated)}
-              </p>
+            <div className="text-[10px] text-gray-500 flex items-center justify-center gap-0.5">
+              {b.label}
+              {b.hint && <HintTooltip text={b.hint} />}
             </div>
           </div>
-        </div>
+        ))}
       </div>
-    </Card>
-  )
-}
-
-// ── Plan Popularity ────────────────────────────────────────────────────────────
-export function PlanPopularityCard({ data }: Props) {
-  const plans = data?.subscriptions?.subscribers_by_plan ?? []
-  const max = Math.max(...plans.map((p) => p.subscribers ?? 0), 1)
-  return (
-    <Card title="Plan Popularity" icon="🏆" className="db-col-2">
-      <div className="space-y-2">
-        {plans.slice(0, 8).map((p, i) => (
-          <div key={p.plan_id} className="flex items-center gap-3">
-            <span className="text-xs font-bold text-gray-400 w-4">{i + 1}</span>
-            <div className="flex-1">
-              <div className="flex justify-between text-xs mb-0.5">
-                <span className="font-medium text-gray-700 truncate max-w-[160px]">
-                  {p.plan_name}
-                </span>
-                <span className="font-bold text-gray-900">{p.subscribers}</span>
-              </div>
-              <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${((p.subscribers ?? 0) / max) * 100}%`,
-                    background: COLORS[i % COLORS.length],
-                  }}
-                />
-              </div>
+      <div className="mt-2 flex gap-1">
+        {[
+          {
+            label: 'Active Revenue',
+            value: fmtCurrency(s?.revenue?.active_subscriptions_total_fees),
+            hint: hints.revenue,
+          },
+          {
+            label: 'Lifetime Revenue',
+            value: fmtCurrency(s?.revenue?.lifetime_total_fees),
+          },
+        ].map((r, i) => (
+          <div
+            key={i}
+            className="flex-1 rounded-lg px-2 py-1 text-center bg-emerald-50 border border-emerald-100"
+          >
+            <div className="text-xs font-bold text-emerald-700">{r.value}</div>
+            <div className="text-[10px] text-gray-500 flex items-center justify-center gap-0.5">
+              {r.label}
+              {r.hint && <HintTooltip text={r.hint} />}
             </div>
           </div>
         ))}
@@ -339,38 +375,707 @@ export function PlanPopularityCard({ data }: Props) {
   )
 }
 
-// ── Workout Intensity ──────────────────────────────────────────────────────────
-export function WorkoutIntensityCard({ data }: Props) {
-  const entries = Object.entries(data?.workouts?.by_intensity ?? {})
-  const total = entries.reduce((s, [, v]) => s + Number(v), 0) || 1
+// ── User Role Card ─────────────────────────────────────────────────────────────
+export function UserRoleCard({ data }: Props) {
+  const u = data?.users
+  const hints = u?.hints ?? {}
+  const byRole = u?.by_role ?? {}
+  const total = u?.total ?? 0
+  const slices = Object.entries(byRole).map(([k, v], i) => ({
+    label: k,
+    value: v as number,
+    color: COLORS[i % COLORS.length],
+  }))
+  const byStatus = u?.by_status ?? {}
+  const statusSlices = Object.entries(byStatus).map(([k, v], i) => ({
+    label: k,
+    value: v as number,
+    color: COLORS[(i + 4) % COLORS.length],
+  }))
   return (
-    <Card title="Workout Intensity Mix" icon="🏋️">
-      <div className="space-y-3">
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="text-2xl font-bold text-gray-900">
-              {fmt(data?.workouts?.total)}
-            </p>
-            <p className="text-xs text-gray-500">Total workouts</p>
+    <Card title="Users by Role" icon="👥">
+      <div className="flex items-center gap-1 mb-2">
+        <span className="text-[10px] text-gray-400">Role breakdown</span>
+        {hints.by_role && <HintTooltip text={hints.by_role} />}
+      </div>
+      <div className="flex items-center gap-3 mb-3">
+        <DonutChart
+          slices={slices}
+          size={100}
+          stroke={20}
+          center={
+            <>
+              <span className="text-lg font-bold text-gray-800">
+                {fmt(total)}
+              </span>
+              <span className="text-[10px] text-gray-400">total</span>
+            </>
+          }
+        />
+        <div className="flex-1 space-y-1.5">
+          {slices.map((sl, i) => (
+            <LegendRow
+              key={i}
+              label={sl.label}
+              value={sl.value}
+              pct={total ? Math.round((sl.value / total) * 100) : 0}
+              color={sl.color}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="flex items-center gap-1 mb-1">
+        <span className="text-[10px] text-gray-400">Account status</span>
+        {hints.by_status && <HintTooltip text={hints.by_status} />}
+      </div>
+      <div className="flex gap-1 mb-2">
+        {statusSlices.map((sl, i) => (
+          <div
+            key={i}
+            className="flex-1 rounded-lg px-1.5 py-1 text-center"
+            style={{
+              background: sl.color + '15',
+              border: `1px solid ${sl.color}30`,
+            }}
+          >
+            <div className="text-xs font-bold" style={{ color: sl.color }}>
+              {fmt(sl.value)}
+            </div>
+            <div className="text-[10px] text-gray-500 capitalize">
+              {sl.label}
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-lg font-bold text-amber-600">
-              ⭐ {data?.workouts?.average_rating_overall ?? '--'}
-            </p>
-            <p className="text-xs text-gray-500">Avg rating</p>
+        ))}
+      </div>
+      <GrowthBadge
+        value={u?.new_this_month}
+        label="new this month"
+        hint={hints.new_this_month}
+      />
+    </Card>
+  )
+}
+
+// ── Plan Popularity Card ──────────────────────────────────────────────────────
+export function PlanPopularityCard({ data }: Props) {
+  const subs = data?.subscriptions
+  const hints = subs?.hints ?? {}
+  const byPlan = subs?.subscribers_by_plan ?? []
+  const maxSubs = Math.max(...byPlan.map((p) => p.subscribers ?? 0), 1)
+  return (
+    <Card title="Plan Popularity" icon="📊">
+      <div className="flex items-center gap-1 mb-3">
+        <span className="text-xs text-gray-500">Subscribers per plan</span>
+        {hints.subscribers_by_plan && (
+          <HintTooltip text={hints.subscribers_by_plan} />
+        )}
+      </div>
+      <div className="space-y-2">
+        {byPlan.slice(0, 6).map((p, i) => {
+          const pct = Math.round(((p.subscribers ?? 0) / maxSubs) * 100)
+          return (
+            <div key={i}>
+              <div className="flex items-center justify-between text-xs mb-0.5">
+                <span className="text-gray-700 truncate max-w-[60%]">
+                  {p.plan_name}
+                </span>
+                <span className="font-semibold text-gray-900">
+                  {fmt(p.subscribers)}
+                </span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${pct}%`,
+                    background: COLORS[i % COLORS.length],
+                  }}
+                />
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {byPlan.length === 0 && (
+        <p className="text-sm text-gray-400 text-center py-4">No plan data</p>
+      )}
+    </Card>
+  )
+}
+
+// ── Workout Intensity Card ────────────────────────────────────────────────────
+export function WorkoutIntensityCard({ data }: Props) {
+  const w = data?.workouts
+  const hints = w?.hints ?? {}
+  const byInt = w?.by_intensity ?? {}
+  const total = Object.values(byInt).reduce((a, b) => a + (b as number), 0)
+  const slices = Object.entries(byInt).map(([k, v], i) => ({
+    label: k,
+    value: v as number,
+    color: COLORS[i % COLORS.length],
+  }))
+  return (
+    <Card title="Workout Intensity" icon="🏋️">
+      <div className="flex items-center gap-1 mb-2">
+        <span className="text-[10px] text-gray-400">Intensity split</span>
+        {hints.by_intensity && <HintTooltip text={hints.by_intensity} />}
+      </div>
+      <div className="flex items-center gap-3 mb-3">
+        <DonutChart
+          slices={slices}
+          size={90}
+          stroke={18}
+          center={
+            <div className="text-center">
+              <span className="text-base font-bold text-gray-800">
+                {fmt(w?.total)}
+              </span>
+              {hints.total && <HintTooltip text={hints.total} />}
+            </div>
+          }
+        />
+        <div className="flex-1 space-y-1.5">
+          {slices.map((sl, i) => (
+            <LegendRow
+              key={i}
+              label={sl.label}
+              value={sl.value}
+              pct={total ? Math.round((sl.value / total) * 100) : 0}
+              color={sl.color}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="flex gap-2 flex-wrap">
+        <div className="text-xs bg-violet-50 border border-violet-100 rounded-lg px-2.5 py-1.5 flex items-center gap-1">
+          <span className="font-semibold text-violet-700">
+            {fmt(w?.with_video)}
+          </span>
+          <span className="text-gray-500">with video</span>
+          {hints.with_video && <HintTooltip text={hints.with_video} />}
+        </div>
+        <div className="text-xs bg-indigo-50 border border-indigo-100 rounded-lg px-2.5 py-1.5 flex items-center gap-1">
+          <span className="font-semibold text-indigo-700">
+            {fmt(w?.user_specific_exercises)}
+          </span>
+          <span className="text-gray-500">personalised</span>
+          {hints.user_specific_exercises && (
+            <HintTooltip text={hints.user_specific_exercises} />
+          )}
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+// ── Completion Analytics Card ─────────────────────────────────────────────────
+export function CompletionCard({ data }: Props) {
+  const ca = data?.completion_analytics
+  const hints = ca?.hints ?? {}
+  const modules = [
+    {
+      label: 'Workout',
+      data: ca?.workout_completions,
+      color: '#fc8181',
+      icon: '🏋️',
+    },
+    { label: 'Yoga', data: ca?.yoga_completions, color: '#38b2ac', icon: '🧘‍♀️' },
+    {
+      label: 'Meditation',
+      data: ca?.meditation_completions,
+      color: '#9f7aea',
+      icon: '🧘',
+    },
+    { label: 'Diet', data: ca?.diet_completions, color: '#48bb78', icon: '🥗' },
+  ]
+  const tod = ca?.completions_by_time_of_day
+  return (
+    <Card title="Completion Analytics" icon="✅" className="db-col-2">
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        {modules.map((m, i) => {
+          const d = m.data
+          const pct = d?.completion_rate_percentage ?? 0
+          const hintKey =
+            m.label.toLowerCase() === 'workout'
+              ? 'workout_completions'
+              : m.label.toLowerCase() === 'yoga'
+                ? 'yoga_completions'
+                : m.label.toLowerCase() === 'meditation'
+                  ? 'meditation_completions'
+                  : 'diet_completions'
+          return (
+            <div
+              key={i}
+              className="rounded-xl p-3 border"
+              style={{
+                borderColor: m.color + '33',
+                background: m.color + '0a',
+              }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                  {m.icon} {m.label}
+                  {hints[hintKey] && <HintTooltip text={hints[hintKey]} />}
+                </span>
+                <span className="text-xs font-bold" style={{ color: m.color }}>
+                  {fmtPct(pct)}
+                </span>
+              </div>
+              <ProgressRing pct={pct} size={60} stroke={7} color={m.color}>
+                <span className="text-[10px] font-bold text-gray-700">
+                  {Math.round(pct)}%
+                </span>
+              </ProgressRing>
+              <div className="mt-2 grid grid-cols-3 gap-1 text-center text-[10px]">
+                <div>
+                  <div className="font-semibold text-emerald-600">
+                    {fmt(d?.completed)}
+                  </div>
+                  <div className="text-gray-400">done</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-yellow-600">
+                    {fmt(d?.skipped)}
+                  </div>
+                  <div className="text-gray-400">skip</div>
+                </div>
+                <div>
+                  <div className="font-semibold text-red-500">
+                    {fmt(d?.missed)}
+                  </div>
+                  <div className="text-gray-400">miss</div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      {tod && (
+        <div>
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs font-semibold text-gray-600">
+              Completions by Time of Day
+            </span>
+            {hints.completions_by_time_of_day && (
+              <HintTooltip text={hints.completions_by_time_of_day} />
+            )}
+          </div>
+          <VBarChart
+            height={70}
+            color="#667eea"
+            data={[
+              { label: '🌅 AM', value: tod.morning ?? 0 },
+              { label: '☀️ PM', value: tod.afternoon ?? 0 },
+              { label: '🌆 Eve', value: tod.evening ?? 0 },
+              { label: '🌙 Night', value: tod.night ?? 0 },
+            ]}
+          />
+        </div>
+      )}
+    </Card>
+  )
+}
+
+// ── Health Summary Card ───────────────────────────────────────────────────────
+export function HealthCard({ data }: Props) {
+  const ha = data?.health_analytics
+  const hints = ha?.hints ?? {}
+  const bms = ha?.body_measurement_summary
+  const vs = ha?.vitals_summary
+  return (
+    <Card title="Health Analytics Overview" icon="❤️" className="db-col-2">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              Body Metrics
+            </span>
+            {hints.body_measurement_summary && (
+              <HintTooltip text={hints.body_measurement_summary} />
+            )}
+          </div>
+          <div className="space-y-2">
+            {[
+              {
+                label: 'Avg Weight',
+                value: `${bms?.weight?.avg ?? '--'} kg`,
+                color: '#667eea',
+              },
+              {
+                label: 'Min Weight',
+                value: `${bms?.weight?.min ?? '--'} kg`,
+                color: '#48bb78',
+              },
+              {
+                label: 'Max Weight',
+                value: `${bms?.weight?.max ?? '--'} kg`,
+                color: '#fc8181',
+              },
+              {
+                label: 'Avg BMI',
+                value: bms?.bmi?.avg ?? '--',
+                color: '#f6ad55',
+              },
+            ].map((r, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between text-xs py-1 border-b border-gray-50"
+              >
+                <span className="text-gray-500">{r.label}</span>
+                <span className="font-semibold" style={{ color: r.color }}>
+                  {r.value}
+                </span>
+              </div>
+            ))}
+          </div>
+          {bms?.bmi?.categories && (
+            <div className="mt-3 grid grid-cols-2 gap-1">
+              {Object.entries(bms.bmi.categories).map(([k, v], i) => (
+                <div
+                  key={i}
+                  className="text-[10px] rounded-lg px-1.5 py-1 text-center"
+                  style={{ background: COLORS[i] + '15', color: COLORS[i] }}
+                >
+                  <div className="font-bold">{fmt(v as number)}</div>
+                  <div className="capitalize text-gray-500">{k}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <div>
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+              Vitals Averages
+            </span>
+            {hints.vitals_summary && (
+              <HintTooltip text={hints.vitals_summary} />
+            )}
+          </div>
+          <div className="space-y-2">
+            {[
+              {
+                label: '❤️ Heart Rate',
+                value: `${vs?.avg_heart_rate ?? '--'} bpm`,
+              },
+              {
+                label: '🩸 Sugar',
+                value: `${vs?.avg_sugar_level ?? '--'} mg/dL`,
+              },
+              {
+                label: '😴 Sleep',
+                value: `${vs?.avg_sleep_hours ?? '--'} hrs`,
+              },
+              { label: '💧 Water', value: `${vs?.avg_water_intake ?? '--'} L` },
+              { label: '👟 Steps', value: fmt(vs?.avg_steps) },
+            ].map((r, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between text-xs py-1 border-b border-gray-50"
+              >
+                <span className="text-gray-500">{r.label}</span>
+                <span className="font-semibold text-gray-800">{r.value}</span>
+              </div>
+            ))}
           </div>
         </div>
-        {entries.map(([label, val], i) => {
-          const v = Number(val)
-          const pct = (v / total) * 100
+      </div>
+    </Card>
+  )
+}
+
+// ── Vitals Card ───────────────────────────────────────────────────────────────
+export function VitalsCard({ data }: Props) {
+  const v = data?.vitals
+  const hints = v?.hints ?? {}
+  const metrics = [
+    {
+      label: 'Heart Rate',
+      avg: v?.heart_rate_analytics?.avg,
+      min: v?.heart_rate_analytics?.min,
+      max: v?.heart_rate_analytics?.max,
+      normal: v?.heart_rate_analytics?.normal_percentage,
+      unit: 'bpm',
+      color: '#fc8181',
+      hk: 'heart_rate',
+    },
+    {
+      label: 'Sugar',
+      avg: v?.sugar_analytics?.avg,
+      unit: 'mg/dL',
+      normal: v?.sugar_analytics?.normal_percentage,
+      color: '#f6ad55',
+      hk: 'sugar',
+    },
+    {
+      label: 'Sleep',
+      avg: v?.sleep_analytics?.avg_hours,
+      unit: 'hrs',
+      normal: v?.sleep_analytics?.adequate_percentage,
+      color: '#9f7aea',
+      hk: 'sleep',
+    },
+    {
+      label: 'Water',
+      avg: v?.water_analytics?.avg_intake,
+      unit: 'L',
+      normal: v?.water_analytics?.adequate_percentage,
+      color: '#4299e1',
+      hk: 'water',
+    },
+    {
+      label: 'Steps',
+      avg: v?.steps_analytics?.avg_steps,
+      unit: 'steps',
+      color: '#48bb78',
+      hk: 'steps',
+    },
+  ]
+  return (
+    <Card title="Vitals Tracking" icon="🩺">
+      <div className="flex items-center gap-1 mb-3">
+        <span className="text-xs text-gray-500">
+          {fmt(v?.unique_users)} users tracked · {fmt(v?.total_records)} records
+        </span>
+        {hints.overview && <HintTooltip text={hints.overview} />}
+      </div>
+      <div className="space-y-3">
+        {metrics.map((m, i) => (
+          <div key={i}>
+            <div className="flex items-center justify-between text-xs mb-1">
+              <span className="text-gray-600 flex items-center gap-1">
+                {m.label}
+                {hints[m.hk] && <HintTooltip text={hints[m.hk]} />}
+              </span>
+              <span className="font-semibold text-gray-800">
+                {m.avg ?? '--'} {m.unit}
+              </span>
+            </div>
+            {m.normal !== undefined && (
+              <div className="flex items-center gap-1">
+                <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.min(100, m.normal)}%`,
+                      background: m.color,
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-gray-400">
+                  {fmtPct(m.normal)} normal
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+// ── Body Measurements Card ────────────────────────────────────────────────────
+export function BodyMeasurementsCard({ data }: Props) {
+  const bm = data?.body_measurements
+  const hints = bm?.hints ?? {}
+  const wc = bm?.weight_analytics?.weight_changes
+  const om = bm?.other_measurements
+  return (
+    <Card title="Body Measurements" icon="📏">
+      <div className="flex items-center gap-1 mb-3">
+        <span className="text-xs text-gray-500">
+          {fmt(bm?.unique_users_measured)} users · {fmt(bm?.total_records)}{' '}
+          records
+        </span>
+        {hints.overview && <HintTooltip text={hints.overview} />}
+      </div>
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {wc &&
+          [
+            { label: 'Lost Weight', value: wc.lost_weight, color: '#48bb78' },
+            { label: 'Gained', value: wc.gained_weight, color: '#fc8181' },
+            { label: 'Maintained', value: wc.maintained, color: '#4299e1' },
+          ].map((c, i) => (
+            <div
+              key={i}
+              className="text-center rounded-xl py-2"
+              style={{
+                background: c.color + '12',
+                border: `1px solid ${c.color}25`,
+              }}
+            >
+              <div className="text-sm font-bold" style={{ color: c.color }}>
+                {fmt(c.value)}
+              </div>
+              <div className="text-[10px] text-gray-500">{c.label}</div>
+            </div>
+          ))}
+      </div>
+      {om && (
+        <div className="space-y-1.5">
+          <span className="text-[10px] uppercase font-semibold text-gray-400 tracking-wide flex items-center gap-1">
+            Average Measurements
+            {hints.other_measurements && (
+              <HintTooltip text={hints.other_measurements} />
+            )}
+          </span>
+          {[
+            { label: 'Chest', value: `${om.chest_avg ?? '--'} cm` },
+            { label: 'Waist', value: `${om.waist_avg ?? '--'} cm` },
+            { label: 'Hip', value: `${om.hip_avg ?? '--'} cm` },
+            { label: 'Arm', value: `${om.arm_avg ?? '--'} cm` },
+            { label: 'Thigh', value: `${om.thigh_avg ?? '--'} cm` },
+          ].map((r, i) => (
+            <div
+              key={i}
+              className="flex justify-between text-xs py-0.5 border-b border-gray-50"
+            >
+              <span className="text-gray-500">{r.label}</span>
+              <span className="font-semibold text-gray-700">{r.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  )
+}
+
+// ── User Behavior Card ────────────────────────────────────────────────────────
+export function UserBehaviorCard({ data }: Props) {
+  const ub = data?.user_behavior
+  const pat = ub?.user_activity_patterns
+  const drop = ub?.drop_off_points
+  const pref = ub?.preferred_workout_times
+  return (
+    <Card title="User Behaviour" icon="🧠">
+      {pat && (
+        <div className="space-y-2 mb-3">
+          {[
+            { label: 'Most Active Day', value: pat.most_active_day },
+            { label: 'Least Active Day', value: pat.least_active_day },
+            {
+              label: 'Peak Hour',
+              value:
+                pat.peak_activity_hour !== undefined
+                  ? `${pat.peak_activity_hour}:00`
+                  : '--',
+            },
+            { label: 'Avg Sessions/User', value: pat.avg_sessions_per_user },
+          ].map((r, i) => (
+            <div
+              key={i}
+              className="flex justify-between text-xs py-1 border-b border-gray-50"
+            >
+              <span className="text-gray-500">{r.label}</span>
+              <span className="font-semibold text-gray-800 capitalize">
+                {r.value ?? '--'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+      {pref && (
+        <div className="mb-3">
+          <div className="text-[10px] uppercase font-semibold text-gray-400 mb-1">
+            Preferred Workout Times
+          </div>
+          <VBarChart
+            height={60}
+            color="#667eea"
+            data={[
+              { label: '🌅 AM', value: pref.morning ?? 0 },
+              { label: '☀️ PM', value: pref.afternoon ?? 0 },
+              { label: '🌆 Eve', value: pref.evening ?? 0 },
+            ]}
+          />
+        </div>
+      )}
+      {drop && (
+        <div className="flex gap-2">
+          <div className="flex-1 rounded-xl text-center p-2 bg-red-50 border border-red-100">
+            <div className="text-sm font-bold text-red-600">
+              {fmtPct(drop.week_2_dropoff)}
+            </div>
+            <div className="text-[10px] text-gray-500">Week 2 Drop-off</div>
+          </div>
+          <div className="flex-1 rounded-xl text-center p-2 bg-orange-50 border border-orange-100">
+            <div className="text-sm font-bold text-orange-600">
+              {fmtPct(drop.month_1_dropoff)}
+            </div>
+            <div className="text-[10px] text-gray-500">Month 1 Drop-off</div>
+          </div>
+        </div>
+      )}
+      {!pat && !pref && !drop && (
+        <p className="text-sm text-gray-400 text-center py-4">
+          No behaviour data
+        </p>
+      )}
+    </Card>
+  )
+}
+
+// ── Active Users (Engagement Summary) ─────────────────────────────────────────
+export function ActiveUsersCard({ data }: Props) {
+  const s = data?.engagement?.summary
+  const hints = data?.engagement?.hints ?? {}
+  const modules = [
+    {
+      label: 'Workout',
+      value: s?.workout_active_users,
+      color: '#fc8181',
+      icon: '🏋️',
+    },
+    {
+      label: 'Yoga',
+      value: s?.yoga_active_users,
+      color: '#38b2ac',
+      icon: '🧘‍♀️',
+    },
+    {
+      label: 'Meditation',
+      value: s?.meditation_active_users,
+      color: '#9f7aea',
+      icon: '🧘',
+    },
+    {
+      label: 'Diet',
+      value: s?.diet_active_users,
+      color: '#48bb78',
+      icon: '🥗',
+    },
+  ]
+  const total = s?.active_users_total ?? 0
+  return (
+    <Card title="Active Users Breakdown" icon="🟢">
+      <div className="flex items-center gap-1 mb-4">
+        <span className="text-3xl font-bold text-gray-800">{fmt(total)}</span>
+        <span className="text-xs text-gray-400 ml-1">active in last 24h</span>
+        {hints.active_users_total && (
+          <HintTooltip text={hints.active_users_total} />
+        )}
+      </div>
+      <div className="space-y-3">
+        {modules.map((m, i) => {
+          const pct = total ? Math.round(((m.value ?? 0) / total) * 100) : 0
           return (
-            <LegendRow
-              key={label}
-              label={label}
-              value={v}
-              pct={pct}
-              color={COLORS[i % COLORS.length]}
-            />
+            <div key={i}>
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-gray-600 flex items-center gap-1">
+                  {m.icon} {m.label}
+                </span>
+                <span className="font-semibold" style={{ color: m.color }}>
+                  {fmt(m.value)}{' '}
+                  <span className="text-gray-400 font-normal">({pct}%)</span>
+                </span>
+              </div>
+              <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${pct}%`, background: m.color }}
+                />
+              </div>
+            </div>
           )
         })}
       </div>
@@ -378,557 +1083,108 @@ export function WorkoutIntensityCard({ data }: Props) {
   )
 }
 
-// ── Completion Analytics ───────────────────────────────────────────────────────
-export function CompletionCard({ data }: Props) {
-  const ca = data?.completion_analytics
-  const rings = [
-    {
-      label: 'Workout',
-      pct: ca?.workout_completion_rates?.completion_percentage ?? 0,
-      color: '#667eea',
-    },
-    {
-      label: 'Meditation',
-      pct: ca?.meditation_completion_rates?.completion_percentage ?? 0,
-      color: '#9f7aea',
-    },
-    {
-      label: 'Diet',
-      pct: ca?.diet_completion_rates?.completion_percentage ?? 0,
-      color: '#48bb78',
-    },
-  ]
-  const weekly = Object.entries(ca?.weekly_completion_trends ?? {})
-
-  return (
-    <Card title="Completion Analytics" icon="🎯" className="db-col-2">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex justify-around items-center">
-          {rings.map((r) => (
-            <div key={r.label} className="flex flex-col items-center gap-1">
-              <ProgressRing pct={r.pct} size={72} stroke={7} color={r.color}>
-                <span className="text-xs font-bold" style={{ color: r.color }}>
-                  {r.pct.toFixed(0)}%
-                </span>
-              </ProgressRing>
-              <p className="text-[10px] text-gray-500">{r.label}</p>
-            </div>
-          ))}
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-gray-600 mb-2">
-            Weekly Trends
-          </p>
-          {weekly.map(([week, val]) => (
-            <div
-              key={week}
-              className="flex items-center justify-between text-xs mb-1.5"
-            >
-              <span className="text-gray-500 capitalize">
-                {week.replace('_', ' ')}
-              </span>
-              <div className="flex-1 mx-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-indigo-500"
-                  style={{ width: `${val.completion_rate ?? 0}%` }}
-                />
-              </div>
-              <span className="font-bold text-gray-700">
-                {val.completion_rate}%
-              </span>
-            </div>
-          ))}
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-600 mb-2">
-              Time of Day
-            </p>
-            {Object.entries(ca?.completion_by_time_of_day ?? {}).map(
-              ([t, v]) => (
-                <div
-                  key={t}
-                  className="flex items-center justify-between text-xs mb-1"
-                >
-                  <span className="text-gray-500 capitalize">{t}</span>
-                  <span className="font-bold text-gray-700">{v}%</span>
-                </div>
-              )
-            )}
-          </div>
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-// ── Health Analytics ───────────────────────────────────────────────────────────
-export function HealthCard({ data }: Props) {
-  const ha = data?.health_analytics
-  const dist = ha?.health_score_distribution
-  const distEntries = dist
-    ? [
-        { l: 'Excellent', v: dist.excellent ?? 0, c: '#48bb78' },
-        { l: 'Good', v: dist.good ?? 0, c: '#667eea' },
-        { l: 'Fair', v: dist.fair ?? 0, c: '#f6ad55' },
-        { l: 'Poor', v: dist.poor ?? 0, c: '#fc8181' },
-      ]
-    : []
-  const totalDist = distEntries.reduce((s, x) => s + x.v, 0) || 1
-
-  return (
-    <Card title="Health Analytics" icon="❤️" className="db-col-2">
-      <div className="grid grid-cols-2 gap-6">
-        <div>
-          <p className="text-xs font-semibold text-gray-600 mb-3">
-            Health Score Distribution
-          </p>
-          <div className="flex items-center gap-3">
-            <DonutChart
-              slices={distEntries.map((e) => ({
-                label: e.l,
-                value: e.v,
-                color: e.c,
-              }))}
-              size={100}
-              stroke={18}
-              center={
-                <p className="text-sm font-bold text-gray-900">{totalDist}</p>
-              }
-            />
-            <div className="space-y-1.5 flex-1">
-              {distEntries.map((e) => (
-                <LegendRow
-                  key={e.l}
-                  label={e.l}
-                  value={e.v}
-                  pct={(e.v / totalDist) * 100}
-                  color={e.c}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-gray-600 mb-2">
-            Weight Trends
-          </p>
-          {ha?.weight_trends && (
-            <div className="space-y-1.5">
-              {[
-                {
-                  l: 'Improving',
-                  v: ha.weight_trends.improving ?? 0,
-                  c: '#48bb78',
-                },
-                { l: 'Stable', v: ha.weight_trends.stable ?? 0, c: '#667eea' },
-                {
-                  l: 'Declining',
-                  v: ha.weight_trends.declining ?? 0,
-                  c: '#fc8181',
-                },
-              ].map((e) => (
-                <LegendRow
-                  key={e.l}
-                  label={e.l}
-                  value={`${e.v}%`}
-                  color={e.c}
-                />
-              ))}
-            </div>
-          )}
-          <p className="text-xs font-semibold text-gray-600 mt-3 mb-2">
-            At-Risk Users
-          </p>
-          <div className="space-y-1.5">
-            {(ha?.users_at_risk ?? []).slice(0, 3).map((u) => (
-              <div
-                key={u.id}
-                className="flex items-center justify-between p-2 rounded-lg bg-red-50"
-              >
-                <div>
-                  <p className="text-xs font-medium text-gray-800">{u.name}</p>
-                  <p className="text-[10px] text-gray-500">
-                    {(u.risk_factors ?? []).join(', ')}
-                  </p>
-                </div>
-                <span className="text-xs font-bold text-red-500">
-                  {u.risk_score}
-                </span>
-              </div>
-            ))}
-          </div>
-          {ha?.improvement_metrics && (
-            <div className="mt-3 p-2 rounded-lg bg-emerald-50">
-              <p className="text-xs font-medium text-emerald-800">
-                🏆 {ha.improvement_metrics.most_improved_area}
-              </p>
-              <p className="text-[10px] text-emerald-600">
-                {ha.improvement_metrics.users_improved} users improved · avg{' '}
-                {ha.improvement_metrics.avg_improvement_percentage}%
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-// ── Vitals Card ────────────────────────────────────────────────────────────────
-export function VitalsCard({ data }: Props) {
-  const v = data?.vitals
-  const vitals = [
-    {
-      label: 'Heart Rate',
-      value: `${v?.heart_rate_analytics?.avg ?? '--'} bpm`,
-      normal: v?.heart_rate_analytics?.normal_percentage,
-      icon: '❤️',
-      color: '#fc8181',
-    },
-    {
-      label: 'Blood Sugar',
-      value: `${v?.sugar_analytics?.avg ?? '--'} mg/dL`,
-      normal: v?.sugar_analytics?.normal_percentage,
-      icon: '🩸',
-      color: '#f6ad55',
-    },
-    {
-      label: 'Sleep',
-      value: `${v?.sleep_analytics?.avg_hours ?? '--'} hrs`,
-      normal: v?.sleep_analytics?.adequate_percentage,
-      icon: '😴',
-      color: '#9f7aea',
-    },
-    {
-      label: 'Water Intake',
-      value: `${v?.water_analytics?.avg_intake ?? '--'} L`,
-      normal: v?.water_analytics?.adequate_percentage,
-      icon: '💧',
-      color: '#4299e1',
-    },
-    {
-      label: 'Steps',
-      value: fmt(v?.steps_analytics?.avg_steps),
-      icon: '👟',
-      color: '#48bb78',
-    },
-  ]
-  return (
-    <Card title="Vitals Overview" icon="📊">
-      <div className="space-y-3">
-        {vitals.map((vt) => (
-          <div key={vt.label} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span>{vt.icon}</span>
-              <div>
-                <p className="text-xs font-medium text-gray-700">{vt.label}</p>
-                <p className="text-sm font-bold text-gray-900">{vt.value}</p>
-              </div>
-            </div>
-            {vt.normal !== undefined && (
-              <div className="text-right">
-                <p className="text-xs text-gray-500">Normal</p>
-                <p className="text-sm font-bold" style={{ color: vt.color }}>
-                  {fmtPct(vt.normal)}
-                </p>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </Card>
-  )
-}
-
-// ── Body Measurements ──────────────────────────────────────────────────────────
-export function BodyMeasurementsCard({ data }: Props) {
-  const bm = data?.body_measurements
-  const bmi = bm?.bmi_analytics
-  const bmiCats = bmi?.categories
-  const bmiEntries = bmiCats
-    ? [
-        { l: 'Underweight', v: bmiCats.underweight ?? 0, c: '#4299e1' },
-        { l: 'Normal', v: bmiCats.normal ?? 0, c: '#48bb78' },
-        { l: 'Overweight', v: bmiCats.overweight ?? 0, c: '#f6ad55' },
-        { l: 'Obese', v: bmiCats.obese ?? 0, c: '#fc8181' },
-      ]
-    : []
-  const om = bm?.other_measurements
-  return (
-    <Card title="Body Measurements" icon="💪">
-      <div className="space-y-2">
-        <div className="grid grid-cols-3 gap-2 text-center mb-3">
-          <div className="p-2 rounded-lg bg-blue-50">
-            <p className="text-[10px] text-gray-500">Avg Weight</p>
-            <p className="text-sm font-bold text-blue-700">
-              {bm?.weight_analytics?.avg_weight ?? '--'} kg
-            </p>
-          </div>
-          <div className="p-2 rounded-lg bg-purple-50">
-            <p className="text-[10px] text-gray-500">Avg BMI</p>
-            <p className="text-sm font-bold text-purple-700">
-              {bm?.bmi_analytics?.avg_bmi ?? '--'}
-            </p>
-          </div>
-          <div className="p-2 rounded-lg bg-green-50">
-            <p className="text-[10px] text-gray-500">Users</p>
-            <p className="text-sm font-bold text-green-700">
-              {bm?.unique_users_measured ?? '--'}
-            </p>
-          </div>
-        </div>
-        <p className="text-xs font-semibold text-gray-600">BMI Distribution</p>
-        {bmiEntries.map((e) => (
-          <LegendRow key={e.l} label={e.l} value={e.v} color={e.c} />
-        ))}
-        {om && (
-          <>
-            <p className="text-xs font-semibold text-gray-600 mt-2 pt-2 border-t border-gray-100">
-              Avg Measurements (cm)
-            </p>
-            <div className="grid grid-cols-2 gap-1 text-xs">
-              {[
-                ['Chest', om.chest_avg],
-                ['Waist', om.waist_avg],
-                ['Hip', om.hip_avg],
-                ['Arm', om.arm_avg],
-                ['Thigh', om.thigh_avg],
-              ].map(([l, v]) => (
-                <div key={String(l)} className="flex justify-between py-0.5">
-                  <span className="text-gray-500">{l}</span>
-                  <span className="font-semibold text-gray-800">
-                    {v ?? '--'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    </Card>
-  )
-}
-
-// ── User Behavior ──────────────────────────────────────────────────────────────
-export function UserBehaviorCard({ data }: Props) {
-  const ub = data?.user_behavior
-  const ap = ub?.user_activity_patterns
-  const pwt = ub?.preferred_workout_times
-  const dp = ub?.drop_off_points
-  return (
-    <Card title="User Behavior" icon="📱">
-      <div className="space-y-3">
-        {ap && (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="p-2 rounded-lg bg-indigo-50 text-center">
-              <p className="text-[10px] text-gray-500">Most Active</p>
-              <p className="text-sm font-bold text-indigo-700">
-                {ap.most_active_day}
-              </p>
-            </div>
-            <div className="p-2 rounded-lg bg-gray-50 text-center">
-              <p className="text-[10px] text-gray-500">Peak Hour</p>
-              <p className="text-sm font-bold text-gray-700">
-                {ap.peak_activity_hour}:00
-              </p>
-            </div>
-            <div className="p-2 rounded-lg bg-green-50 text-center">
-              <p className="text-[10px] text-gray-500">Avg Sessions</p>
-              <p className="text-sm font-bold text-green-700">
-                {ap.avg_sessions_per_user}/user
-              </p>
-            </div>
-            <div className="p-2 rounded-lg bg-red-50 text-center">
-              <p className="text-[10px] text-gray-500">Least Active</p>
-              <p className="text-sm font-bold text-red-700">
-                {ap.least_active_day}
-              </p>
-            </div>
-          </div>
-        )}
-        {pwt && (
-          <>
-            <p className="text-xs font-semibold text-gray-600">
-              Preferred Workout Time
-            </p>
-            {(['morning', 'afternoon', 'evening'] as const).map((t) => (
-              <div
-                key={t}
-                className="flex items-center justify-between text-xs"
-              >
-                <span className="capitalize text-gray-500">{t}</span>
-                <div className="flex-1 mx-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-indigo-400"
-                    style={{ width: `${pwt[t] ?? 0}%` }}
-                  />
-                </div>
-                <span className="font-bold text-gray-700">{pwt[t]}%</span>
-              </div>
-            ))}
-          </>
-        )}
-        {dp && (
-          <div className="pt-2 border-t border-gray-100">
-            <p className="text-xs font-semibold text-gray-600 mb-1.5">
-              Drop-off Points
-            </p>
-            <div className="flex gap-2">
-              <div className="flex-1 p-2 rounded-lg bg-orange-50 text-center">
-                <p className="text-[10px] text-gray-500">Week 2</p>
-                <p className="text-sm font-bold text-orange-600">
-                  {dp.week_2_dropoff}%
-                </p>
-              </div>
-              <div className="flex-1 p-2 rounded-lg bg-red-50 text-center">
-                <p className="text-[10px] text-gray-500">Month 1</p>
-                <p className="text-sm font-bold text-red-600">
-                  {dp.month_1_dropoff}%
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </Card>
-  )
-}
-
-// ── Most Active Users ──────────────────────────────────────────────────────────
-export function ActiveUsersCard({ data }: Props) {
-  const users = data?.engagement?.most_active_users ?? []
-  const max = Math.max(...users.map((u) => u.activity_score ?? 0), 1)
-  return (
-    <Card title="Most Active Users" icon="🏅" className="db-col-2">
-      <div className="space-y-2">
-        {users.map((u, i) => (
-          <div key={u.id} className="flex items-center gap-3">
-            <div
-              className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
-              style={{
-                background:
-                  i < 3 ? ['#f6ad55', '#a0aec0', '#c05621'][i] : '#e2e8f0',
-                color: i < 3 ? 'white' : '#718096',
-              }}
-            >
-              {i + 1}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between text-xs mb-0.5">
-                <span className="font-medium text-gray-800 truncate">
-                  {u.name}
-                </span>
-                <span className="font-bold text-indigo-600 ml-2">
-                  {u.activity_score}
-                </span>
-              </div>
-              <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${((u.activity_score ?? 0) / max) * 100}%`,
-                    background: COLORS[i % COLORS.length],
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  )
-}
-
-// ── Content Performance ────────────────────────────────────────────────────────
+// ── Content Performance Card ──────────────────────────────────────────────────
 export function ContentPerformanceCard({ data }: Props) {
   const cp = data?.content_performance
-  const ef = cp?.content_effectiveness
-  const efEntries = ef
-    ? [
-        { l: 'Highly Effective', v: ef.highly_effective ?? 0, c: '#48bb78' },
-        {
-          l: 'Moderately Effective',
-          v: ef.moderately_effective ?? 0,
-          c: '#f6ad55',
-        },
-        { l: 'Needs Improvement', v: ef.needs_improvement ?? 0, c: '#fc8181' },
-      ]
-    : []
+  const under = cp?.underperforming_content ?? []
+  const eff = cp?.content_effectiveness
   return (
     <Card title="Content Performance" icon="🎬" className="db-col-2">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <p className="text-xs font-semibold text-gray-600 mb-2">
-            Content Effectiveness
-          </p>
-          {efEntries.map((e) => (
-            <LegendRow key={e.l} label={e.l} value={e.v} color={e.c} />
-          ))}
-          <div className="mt-3 space-y-2">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            Satisfaction Scores
+          </div>
+          <div className="space-y-2">
             {[
               {
-                l: 'Workout Satisfaction',
-                v: cp?.workout_performance?.user_satisfaction,
+                label: '🏋️ Workout',
+                value: cp?.workout_performance?.user_satisfaction,
               },
               {
-                l: 'Meditation Satisfaction',
-                v: cp?.meditation_performance?.user_satisfaction,
+                label: '🧘 Meditation',
+                value: cp?.meditation_performance?.user_satisfaction,
               },
               {
-                l: 'Diet Satisfaction',
-                v: cp?.diet_plan_performance?.user_satisfaction,
+                label: '🥗 Diet Plan',
+                value: cp?.diet_plan_performance?.user_satisfaction,
               },
-            ].map((s) => (
-              <div
-                key={s.l}
-                className="flex items-center justify-between text-xs"
-              >
-                <span className="text-gray-500">{s.l}</span>
-                <div className="flex items-center gap-1">
-                  {'⭐'.repeat(Math.round(s.v ?? 0))}
-                  <span className="font-bold text-gray-700 ml-1">
-                    {s.v ?? '--'}
+            ].map((r, i) => (
+              <div key={i}>
+                <div className="flex justify-between text-xs mb-0.5">
+                  <span className="text-gray-600">{r.label}</span>
+                  <span className="font-semibold text-gray-800">
+                    {r.value !== undefined
+                      ? `${Number(r.value).toFixed(1)}/5`
+                      : '--'}
                   </span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-indigo-500"
+                    style={{ width: `${((r.value ?? 0) / 5) * 100}%` }}
+                  />
                 </div>
               </div>
             ))}
           </div>
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-gray-600 mb-2">
-            Underperforming Content
-          </p>
-          <div className="space-y-2">
-            {(cp?.underperforming_content ?? []).map((c) => (
-              <div
-                key={c.id}
-                className="p-2 rounded-lg bg-red-50 border border-red-100"
-              >
-                <p className="text-xs font-medium text-gray-800">{c.title}</p>
-                <div className="flex justify-between mt-0.5">
-                  <span className="text-[10px] text-red-500">{c.issue}</span>
-                  <span className="text-[10px] font-bold text-red-600">
-                    {c.completion_rate}%
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-          {cp?.workout_performance?.top_performing_categories && (
+          {eff && (
             <div className="mt-3">
-              <p className="text-xs font-semibold text-gray-600 mb-1">
-                Top Categories
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {cp.workout_performance.top_performing_categories.map((c) => (
-                  <span
-                    key={c}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-medium"
-                  >
-                    {c}
-                  </span>
-                ))}
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                Effectiveness
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                <div className="rounded-lg text-center py-1.5 bg-emerald-50 border border-emerald-100">
+                  <div className="text-xs font-bold text-emerald-600">
+                    {fmt(eff.highly_effective)}
+                  </div>
+                  <div className="text-[10px] text-gray-400">High</div>
+                </div>
+                <div className="rounded-lg text-center py-1.5 bg-yellow-50 border border-yellow-100">
+                  <div className="text-xs font-bold text-yellow-600">
+                    {fmt(eff.moderately_effective)}
+                  </div>
+                  <div className="text-[10px] text-gray-400">Moderate</div>
+                </div>
+                <div className="rounded-lg text-center py-1.5 bg-red-50 border border-red-100">
+                  <div className="text-xs font-bold text-red-500">
+                    {fmt(eff.needs_improvement)}
+                  </div>
+                  <div className="text-[10px] text-gray-400">Needs work</div>
+                </div>
               </div>
             </div>
+          )}
+        </div>
+        <div>
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            ⚠️ Underperforming Content
+          </div>
+          {under.length ? (
+            <div className="space-y-2">
+              {under.slice(0, 5).map((u, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl p-2.5 bg-red-50 border border-red-100"
+                >
+                  <div className="text-xs font-semibold text-gray-800 truncate">
+                    {u.title}
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-[10px] text-red-500">
+                      {fmtPct(u.completion_rate)} completion
+                    </span>
+                    <span className="text-[10px] text-orange-500 italic">
+                      {u.issue}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 text-center py-6">
+              No underperforming content 🎉
+            </p>
           )}
         </div>
       </div>
@@ -936,319 +1192,442 @@ export function ContentPerformanceCard({ data }: Props) {
   )
 }
 
-// ── Streaks & Notifications ────────────────────────────────────────────────────
+// ── Streaks Card (uses notifications as proxy) ────────────────────────────────
 export function StreaksCard({ data }: Props) {
-  const st = data?.engagement?.user_streaks
-  const notifTypes = Object.entries(data?.notifications?.by_type ?? {})
-  const notifTotal = notifTypes.reduce((s, [, v]) => s + Number(v), 0) || 1
+  const n = data?.notifications
+  const hints = n?.hints ?? {}
+  const byType = n?.by_type ?? {}
+  const total = n?.total ?? 0
+  const slices = Object.entries(byType)
+    .slice(0, 5)
+    .map(([k, v], i) => ({
+      label: k,
+      value: v as number,
+      color: COLORS[i % COLORS.length],
+    }))
   return (
-    <Card title="Streaks & Notifications" icon="🔥">
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 text-white text-center">
-            <p className="text-[10px] font-medium opacity-80">
-              Workout Max Streak
-            </p>
-            <p className="text-xl font-bold">
-              {st?.workout?.max_streak ?? '--'} 🔥
-            </p>
-            <p className="text-[10px] opacity-70">
-              {st?.workout?.users_with_streaks} users active
-            </p>
-          </div>
-          <div className="p-3 rounded-xl bg-gradient-to-br from-purple-400 to-indigo-500 text-white text-center">
-            <p className="text-[10px] font-medium opacity-80">
-              Meditation Max Streak
-            </p>
-            <p className="text-xl font-bold">
-              {st?.meditation?.max_streak ?? '--'} 🧘
-            </p>
-            <p className="text-[10px] opacity-70">
-              {st?.meditation?.users_with_streaks} users active
-            </p>
-          </div>
-        </div>
-        <p className="text-xs font-semibold text-gray-600 mt-2">
-          Notification Types
-        </p>
-        {notifTypes.map(([type, val], i) => (
-          <LegendRow
-            key={type}
-            label={type.replace(/_/g, ' ')}
-            value={Number(val)}
-            pct={(Number(val) / notifTotal) * 100}
-            color={COLORS[i % COLORS.length]}
-          />
-        ))}
-        <div className="flex justify-between text-xs pt-2 border-t border-gray-100">
-          <span className="text-gray-500">Unread</span>
-          <span className="font-bold text-amber-600">
-            {data?.notifications?.unread ?? '--'}
-          </span>
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-// ── Diet Analytics ─────────────────────────────────────────────────────────────
-export function DietCard({ data }: Props) {
-  const diet = data?.diet
-  const mv = diet?.mandatory_vs_optional ?? {}
-  return (
-    <Card title="Diet Analytics" icon="🥗">
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-2 text-center">
-          <div className="p-2 rounded-lg bg-green-50">
-            <p className="text-[10px] text-gray-500">Total Meals</p>
-            <p className="text-lg font-bold text-green-700">
-              {fmt(diet?.total_meals)}
-            </p>
-          </div>
-          <div className="p-2 rounded-lg bg-blue-50">
-            <p className="text-[10px] text-gray-500">Completions</p>
-            <p className="text-lg font-bold text-blue-700">
-              {fmt(diet?.total_completions)}
-            </p>
-          </div>
-          <div className="p-2 rounded-lg bg-purple-50">
-            <p className="text-[10px] text-gray-500">Avg Calories</p>
-            <p className="text-lg font-bold text-purple-700">
-              {diet?.calorie_analytics?.avg_per_completion ?? '--'}
-            </p>
-          </div>
-          <div className="p-2 rounded-lg bg-orange-50">
-            <p className="text-[10px] text-gray-500">Unique Users</p>
-            <p className="text-lg font-bold text-orange-700">
-              {fmt(diet?.unique_users)}
-            </p>
-          </div>
-        </div>
-        <div>
-          <p className="text-xs font-semibold text-gray-600 mb-1">
-            Mandatory vs Optional
-          </p>
-          {Object.entries(mv).map(([k, v]) => (
-            <div key={k} className="flex justify-between text-xs py-0.5">
-              <span className="capitalize text-gray-500">{k}</span>
-              <span className="font-bold text-gray-800">{v}</span>
-            </div>
+    <Card title="Notifications" icon="🔔">
+      <div className="flex items-center gap-3 mb-3">
+        <DonutChart
+          slices={slices}
+          size={90}
+          stroke={18}
+          center={
+            <span className="text-base font-bold text-gray-800">
+              {fmt(total)}
+            </span>
+          }
+        />
+        <div className="flex-1 space-y-1.5">
+          {slices.map((sl, i) => (
+            <LegendRow
+              key={i}
+              label={sl.label}
+              value={sl.value}
+              pct={total ? Math.round((sl.value / total) * 100) : 0}
+              color={sl.color}
+              hint={hints[sl.label]}
+            />
           ))}
         </div>
       </div>
-    </Card>
-  )
-}
-
-// ── Freezes & Interests ────────────────────────────────────────────────────────
-export function FreezesCard({ data }: Props) {
-  return (
-    <Card title="Freezes & Interests" icon="❄️">
-      <div className="space-y-3">
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="p-2 rounded-lg bg-blue-50">
-            <p className="text-[10px] text-gray-500">Total Freezes</p>
-            <p className="text-base font-bold text-blue-700">
-              {fmt(data?.freezes?.total)}
-            </p>
-          </div>
-          <div className="p-2 rounded-lg bg-indigo-50">
-            <p className="text-[10px] text-gray-500">Active</p>
-            <p className="text-base font-bold text-indigo-700">
-              {fmt(data?.freezes?.active_now)}
-            </p>
-          </div>
-          <div className="p-2 rounded-lg bg-cyan-50">
-            <p className="text-[10px] text-gray-500">New</p>
-            <p className="text-base font-bold text-cyan-700">
-              {fmt(data?.freezes?.new_in_range)}
-            </p>
-          </div>
-        </div>
-        <div className="pt-2 border-t border-gray-100">
-          <p className="text-xs font-semibold text-gray-600 mb-2">
-            Interest Signals
-          </p>
-          <div className="grid grid-cols-2 gap-2 text-center">
-            <div className="p-2 rounded-lg bg-emerald-50">
-              <p className="text-[10px] text-gray-500">Total Interests</p>
-              <p className="text-base font-bold text-emerald-700">
-                {fmt(data?.interests?.total)}
-              </p>
+      <div className="flex gap-2 flex-wrap">
+        {[
+          { label: 'Unread', value: n?.unread, color: '#fc8181' },
+          { label: 'Delivered', value: n?.delivered, color: '#48bb78' },
+          { label: 'Scheduled', value: n?.scheduled_future, color: '#4299e1' },
+        ].map((b, i) => (
+          <div
+            key={i}
+            className="flex-1 rounded-lg text-center py-1.5"
+            style={{
+              background: b.color + '12',
+              border: `1px solid ${b.color}25`,
+            }}
+          >
+            <div className="text-sm font-bold" style={{ color: b.color }}>
+              {fmt(b.value)}
             </div>
-            <div className="p-2 rounded-lg bg-teal-50">
-              <p className="text-[10px] text-gray-500">New</p>
-              <p className="text-base font-bold text-teal-700">
-                {fmt(data?.interests?.new_in_range)}
-              </p>
-            </div>
+            <div className="text-[10px] text-gray-500">{b.label}</div>
           </div>
-        </div>
-        <div className="pt-2 border-t border-gray-100">
-          <p className="text-xs font-semibold text-gray-600 mb-2">
-            User-Specific Subscriptions
-          </p>
-          <div className="space-y-1">
-            {[
-              {
-                l: 'Workout Subs',
-                v: data?.subscriptions?.user_specific_content
-                  ?.workout_subscriptions,
-              },
-              {
-                l: 'Yoga Subs',
-                v: data?.subscriptions?.user_specific_content
-                  ?.yoga_subscriptions,
-              },
-              {
-                l: 'Meditation Subs',
-                v: data?.subscriptions?.user_specific_content
-                  ?.meditation_subscriptions,
-              },
-            ].map((s) => (
-              <div key={s.l} className="flex justify-between text-xs">
-                <span className="text-gray-500">{s.l}</span>
-                <span className="font-bold text-gray-800">{fmt(s.v)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
     </Card>
   )
 }
 
-// ── Plan Categories ────────────────────────────────────────────────────────────
-export function PlanCategoriesCard({ data }: Props) {
-  const entries = Object.entries(data?.plans?.by_category ?? {})
-  const total = entries.reduce((s, [, v]) => s + Number(v), 0) || 1
+// ── Diet Card ─────────────────────────────────────────────────────────────────
+export function DietCard({ data }: Props) {
+  const d = data?.diet
+  const hints = d?.hints ?? {}
+  const cat = d?.category_consumption ?? {}
+  const timing = d?.meal_timing_analysis ?? {}
+  const mandOpt = d?.mandatory_vs_optional ?? {}
+  const total = d?.total_meals ?? 0
   return (
-    <Card title="Plan Categories" icon="📋">
-      <div className="space-y-2">
-        {entries.map(([cat, val], i) => {
-          const v = Number(val)
-          return (
-            <LegendRow
-              key={cat}
-              label={cat}
-              value={v}
-              pct={(v / total) * 100}
-              color={COLORS[i % COLORS.length]}
+    <Card title="Diet & Nutrition" icon="🥗" className="db-col-2">
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        {[
+          {
+            label: 'Total Meals',
+            value: d?.total_meals,
+            color: '#48bb78',
+            hint: hints.total_meals,
+          },
+          {
+            label: 'Adherence',
+            value: fmtPct(d?.adherence_rate_percentage),
+            color: '#667eea',
+            hint: hints.adherence_rate,
+          },
+          {
+            label: 'Users',
+            value: d?.unique_users,
+            color: '#f6ad55',
+            hint: hints.unique_users,
+          },
+          {
+            label: 'Completed',
+            value: d?.completed_count,
+            color: '#38b2ac',
+            hint: hints.completed_count,
+          },
+          { label: 'Skipped', value: d?.skipped_count, color: '#ed8936' },
+          { label: 'Missed', value: d?.missed_count, color: '#fc8181' },
+        ].map((c, i) => (
+          <div
+            key={i}
+            className="rounded-xl text-center py-2.5 px-2"
+            style={{
+              background: c.color + '12',
+              border: `1px solid ${c.color}25`,
+            }}
+          >
+            <div className="text-sm font-bold" style={{ color: c.color }}>
+              {typeof c.value === 'string' ? c.value : fmt(c.value)}
+            </div>
+            <div className="text-[10px] text-gray-500 flex items-center justify-center gap-0.5">
+              {c.label}
+              {c.hint && <HintTooltip text={c.hint} />}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        {Object.keys(cat).length > 0 && (
+          <div>
+            <div className="flex items-center gap-1 mb-2">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Category Consumption
+              </span>
+              {hints.category_consumption && (
+                <HintTooltip text={hints.category_consumption} />
+              )}
+            </div>
+            <div className="space-y-1.5">
+              {Object.entries(cat)
+                .slice(0, 5)
+                .map(([k, v], i) => (
+                  <LegendRow
+                    key={i}
+                    label={k}
+                    value={v as number}
+                    pct={total ? Math.round(((v as number) / total) * 100) : 0}
+                    color={COLORS[i % COLORS.length]}
+                  />
+                ))}
+            </div>
+          </div>
+        )}
+        {Object.keys(timing).length > 0 && (
+          <div>
+            <div className="flex items-center gap-1 mb-2">
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Meal Timing
+              </span>
+              {hints.meal_timing_analysis && (
+                <HintTooltip text={hints.meal_timing_analysis} />
+              )}
+            </div>
+            <VBarChart
+              height={70}
+              color="#48bb78"
+              data={Object.entries(timing).map(([k, v]) => ({
+                label: k,
+                value: v as number,
+              }))}
             />
-          )
-        })}
-        <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-2 gap-2 text-center">
-          <div className="p-2 rounded-lg bg-indigo-50">
-            <p className="text-[10px] text-gray-500">Total Plans</p>
-            <p className="text-lg font-bold text-indigo-700">
-              {fmt(data?.plans?.total)}
-            </p>
           </div>
-          <div className="p-2 rounded-lg bg-green-50">
-            <p className="text-[10px] text-gray-500">Active Plans</p>
-            <p className="text-lg font-bold text-green-700">
-              {fmt(data?.plans?.active)}
-            </p>
-          </div>
+        )}
+      </div>
+      {Object.keys(mandOpt).length > 0 && (
+        <div className="mt-3 flex gap-2">
+          {Object.entries(mandOpt).map(([k, v], i) => (
+            <div
+              key={i}
+              className="flex-1 rounded-xl text-center py-2"
+              style={{
+                background: COLORS[i] + '12',
+                border: `1px solid ${COLORS[i]}25`,
+              }}
+            >
+              <div className="text-sm font-bold" style={{ color: COLORS[i] }}>
+                {fmt(v as number)}
+              </div>
+              <div className="text-[10px] text-gray-500 capitalize">{k}</div>
+            </div>
+          ))}
         </div>
+      )}
+    </Card>
+  )
+}
+
+// ── Freezes Card ──────────────────────────────────────────────────────────────
+export function FreezesCard({ data }: Props) {
+  const fr = data?.freezes
+  const hints = fr?.hints ?? {}
+  return (
+    <Card title="Subscription Freezes" icon="❄️">
+      <div className="space-y-3">
+        {[
+          {
+            label: 'Total Freezes',
+            value: fr?.total,
+            color: '#4299e1',
+            hint: hints.total,
+          },
+          {
+            label: 'Active Right Now',
+            value: fr?.active_now,
+            color: '#9f7aea',
+            hint: hints.active_now,
+          },
+          {
+            label: 'Active Subs with Freeze',
+            value: fr?.active_subscriptions_with_freeze_now,
+            color: '#667eea',
+            hint: hints.with_freeze,
+          },
+        ].map((r, i) => (
+          <div
+            key={i}
+            className="flex items-center justify-between rounded-xl px-3 py-2.5"
+            style={{
+              background: r.color + '10',
+              border: `1px solid ${r.color}20`,
+            }}
+          >
+            <span className="text-xs text-gray-600 flex items-center gap-1">
+              {r.label}
+              {r.hint && <HintTooltip text={r.hint} />}
+            </span>
+            <span className="text-sm font-bold" style={{ color: r.color }}>
+              {fmt(r.value)}
+            </span>
+          </div>
+        ))}
       </div>
     </Card>
   )
 }
 
-// ── Feedbacks ──────────────────────────────────────────────────────────────────
-export function FeedbacksCard({ data }: Props) {
-  const ratings = Object.entries(data?.feedbacks?.by_rating ?? {}).sort(
-    (a, b) => Number(b[0]) - Number(a[0])
-  )
-  const total = ratings.reduce((s, [, v]) => s + Number(v), 0) || 1
+// ── Plan Categories Card ──────────────────────────────────────────────────────
+export function PlanCategoriesCard({ data }: Props) {
+  const p = data?.plans
+  const hints = p?.hints ?? {}
+  const byCat = p?.by_category ?? {}
+  const total = p?.total ?? 0
+  const slices = Object.entries(byCat).map(([k, v], i) => ({
+    label: k,
+    value: v as number,
+    color: COLORS[i % COLORS.length],
+  }))
   return (
-    <Card title="Customer Feedback" icon="⭐">
-      <div className="space-y-2">
-        <div className="flex items-center gap-4 mb-3">
-          <div className="text-center">
-            <p className="text-3xl font-bold text-gray-900">
-              {fmt(data?.feedbacks?.total)}
-            </p>
-            <p className="text-xs text-gray-500">Total Reviews</p>
-          </div>
-          <DonutChart
-            slices={ratings.map(([r, v], i) => ({
-              label: `${r}★`,
-              value: Number(v),
-              color: COLORS[i % COLORS.length],
-            }))}
-            size={80}
-            stroke={16}
-            center={
-              <span className="text-xs font-bold text-gray-700">Ratings</span>
-            }
-          />
-        </div>
-        {ratings.map(([r, v], i) => (
+    <Card title="Plans by Category" icon="🗂️">
+      <DonutChart
+        slices={slices}
+        size={110}
+        stroke={22}
+        center={
+          <>
+            <span className="text-xl font-bold text-gray-800">
+              {fmt(total)}
+            </span>
+            <span className="text-[10px] text-gray-400">plans</span>
+          </>
+        }
+      />
+      <div className="mt-3 space-y-1.5">
+        {slices.map((sl, i) => (
           <LegendRow
-            key={r}
-            label={`${r} Stars`}
-            value={Number(v)}
-            pct={(Number(v) / total) * 100}
-            color={COLORS[i % COLORS.length]}
+            key={i}
+            label={sl.label}
+            value={sl.value}
+            pct={total ? Math.round((sl.value / total) * 100) : 0}
+            color={sl.color}
+            hint={hints[sl.label]}
           />
         ))}
-        <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2 text-center text-xs">
-          <div>
-            <p className="text-gray-500">Workouts</p>
-            <p className="font-bold text-gray-900">
-              {fmt(data?.feedbacks?.for_workouts)}
-            </p>
+      </div>
+      <div className="mt-3 flex gap-2">
+        <div className="flex-1 rounded-xl text-center py-2 bg-teal-50 border border-teal-100">
+          <div className="text-sm font-bold text-teal-600">
+            {fmt(p?.yoga_included)}
           </div>
-          <div>
-            <p className="text-gray-500">Plans</p>
-            <p className="font-bold text-gray-900">
-              {fmt(data?.feedbacks?.for_plans)}
-            </p>
+          <div className="text-[10px] text-gray-500">With Yoga</div>
+        </div>
+        <div className="flex-1 rounded-xl text-center py-2 bg-violet-50 border border-violet-100">
+          <div className="text-sm font-bold text-violet-600">
+            {fmt(p?.meditation_included)}
           </div>
-          <div>
-            <p className="text-gray-500">Recipes</p>
-            <p className="font-bold text-gray-900">
-              {fmt(data?.feedbacks?.for_recipes)}
-            </p>
-          </div>
+          <div className="text-[10px] text-gray-500">With Meditation</div>
         </div>
       </div>
     </Card>
   )
 }
 
-// ── Activity Log ───────────────────────────────────────────────────────────────
+// ── Feedbacks Card ────────────────────────────────────────────────────────────
+export function FeedbacksCard({ data }: Props) {
+  const fb = data?.feedbacks
+  const hints = fb?.hints ?? {}
+  const byRating = fb?.by_rating ?? {}
+  const total = fb?.total ?? 0
+  return (
+    <Card title="Feedbacks" icon="⭐">
+      <div className="flex items-center gap-1 mb-3">
+        <span className="text-2xl font-bold text-gray-800">{fmt(total)}</span>
+        <span className="text-xs text-gray-400 ml-1">total reviews</span>
+        {hints.total && <HintTooltip text={hints.total} />}
+      </div>
+      <div className="space-y-1.5 mb-3">
+        {[5, 4, 3, 2, 1].map((r) => {
+          const count = byRating[r] ?? 0
+          const pct = total ? Math.round((count / total) * 100) : 0
+          return (
+            <div key={r} className="flex items-center gap-2 text-xs">
+              <span className="text-yellow-400 w-10">{'★'.repeat(r)}</span>
+              <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-yellow-400"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className="w-6 text-right text-gray-500">{count}</span>
+            </div>
+          )
+        })}
+      </div>
+      <div className="flex gap-2">
+        {[
+          {
+            label: 'Workouts',
+            value: fb?.for_workouts,
+            color: '#fc8181',
+            hint: hints.for_workouts,
+          },
+          {
+            label: 'Plans',
+            value: fb?.for_plans,
+            color: '#f6ad55',
+            hint: hints.for_plans,
+          },
+          {
+            label: 'Recipes',
+            value: fb?.for_recipes,
+            color: '#48bb78',
+            hint: hints.for_recipes,
+          },
+        ].map((b, i) => (
+          <div
+            key={i}
+            className="flex-1 rounded-xl text-center py-1.5"
+            style={{
+              background: b.color + '12',
+              border: `1px solid ${b.color}25`,
+            }}
+          >
+            <div className="text-xs font-bold" style={{ color: b.color }}>
+              {fmt(b.value)}
+            </div>
+            <div className="text-[10px] text-gray-500 flex items-center justify-center gap-0.5">
+              {b.label}
+              {b.hint && <HintTooltip text={b.hint} />}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+// ── Activity Card ─────────────────────────────────────────────────────────────
 export function ActivityCard({ data }: Props) {
-  const act = data?.activity
+  const a = data?.activity
+  const hints = a?.hints ?? {}
   const items = [
-    { l: 'Progress Logs', v: act?.progress_logs, icon: '📝' },
-    { l: 'Body Measurements', v: act?.body_measurements, icon: '📏' },
     {
-      l: 'Workout Completions',
-      v: act?.workout_exercise_completions,
-      icon: '💪',
+      label: 'Progress Logs',
+      value: a?.progress_logs,
+      color: '#667eea',
+      hint: hints.progress_logs,
     },
-    { l: 'Diet Completions', v: act?.diet_plan_completions, icon: '🥗' },
-    { l: 'Workout Progresses', v: act?.workout_plan_progresses, icon: '📈' },
+    {
+      label: 'Body Measurements',
+      value: a?.body_measurements,
+      color: '#48bb78',
+      hint: hints.body_measurements,
+    },
+    {
+      label: 'Workout Completions',
+      value: a?.workout_exercise_completions,
+      color: '#fc8181',
+      hint: hints.workout_exercise_completions,
+    },
+    {
+      label: 'Diet Completions',
+      value: a?.diet_plan_item_completions,
+      color: '#f6ad55',
+      hint: hints.diet_plan_item_completions,
+    },
+    {
+      label: 'Yoga Completions',
+      value: a?.yoga_exercise_completions,
+      color: '#38b2ac',
+      hint: hints.yoga_exercise_completions,
+    },
+    {
+      label: 'Meditation Completions',
+      value: a?.meditation_completions,
+      color: '#9f7aea',
+      hint: hints.meditation_completions,
+    },
+    {
+      label: 'Workout Plan Progress',
+      value: a?.workout_plan_progresses,
+      color: '#4299e1',
+      hint: hints.workout_plan_progresses,
+    },
   ]
   return (
-    <Card title="Activity Metrics" icon="📊">
-      <div className="space-y-3">
-        {items.map((item) => (
+    <Card title="Platform Activity" icon="📊">
+      <div className="space-y-2">
+        {items.map((it, i) => (
           <div
-            key={item.l}
-            className="flex items-center justify-between p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+            key={i}
+            className="flex items-center justify-between rounded-xl px-2.5 py-2"
+            style={{
+              background: it.color + '0d',
+              border: `1px solid ${it.color}20`,
+            }}
           >
-            <div className="flex items-center gap-2">
-              <span>{item.icon}</span>
-              <span className="text-xs font-medium text-gray-700">
-                {item.l}
-              </span>
-            </div>
-            <span className="text-sm font-bold text-gray-900">
-              {fmt(item.v)}
+            <span className="text-xs text-gray-600 flex items-center gap-1">
+              {it.label}
+              {it.hint && <HintTooltip text={it.hint} />}
+            </span>
+            <span className="text-sm font-bold" style={{ color: it.color }}>
+              {fmt(it.value)}
             </span>
           </div>
         ))}
