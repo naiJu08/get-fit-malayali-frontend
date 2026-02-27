@@ -171,7 +171,7 @@ export default function CategoriesMain() {
     refetch()
   }
   const basicData = {
-    title: 'Categories',
+    title: 'Workout Categories',
     icon: 'category-header-icon',
   }
   const openDrawer = () => {

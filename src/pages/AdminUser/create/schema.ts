@@ -20,6 +20,12 @@ const medicalConditionsFieldSchema = z.union([
   z.array(z.union([z.string(), selectLikeOptionSchema])),
 ])
 
+const foodAllergiesFieldSchema = z.union([
+  z.string(),
+  selectLikeOptionSchema,
+  z.array(z.union([z.string(), selectLikeOptionSchema])),
+])
+
 export const formSchema = z
   .object({
     name: z
@@ -123,7 +129,8 @@ export const formSchema = z
     food_preferences: z.string().optional(),
     medical_conditions: medicalConditionsFieldSchema.optional(),
     other_medical_condition: z.string().optional(),
-    food_allergies: z.string().optional(),
+    food_allergies: foodAllergiesFieldSchema.optional(),
+    other_food_allergy: z.string().optional(),
     state: z.string().optional(),
     ethnicity: z.string().optional(),
     status: z.union([z.number(), z.string()]).optional(),
@@ -219,7 +226,8 @@ export const formSchemaNutritionist = z
     food_preferences: z.string().optional(),
     medical_conditions: medicalConditionsFieldSchema.optional(),
     other_medical_condition: z.string().optional(),
-    food_allergies: z.string().optional(),
+    food_allergies: foodAllergiesFieldSchema.optional(),
+    // other_food_allergy: z.string().optional(),
     state: z.string().optional(),
     ethnicity: z.string().optional(),
   })
@@ -309,7 +317,8 @@ export const formSchemaNutritionistEdit = z
     food_preferences: z.string().optional(),
     medical_conditions: medicalConditionsFieldSchema.optional(),
     other_medical_condition: z.string().optional(),
-    food_allergies: z.string().optional(),
+    food_allergies: foodAllergiesFieldSchema.optional(),
+    other_food_allergy: z.string().optional(),
     state: z.string().optional(),
     ethnicity: z.string().optional(),
     status: z.union([z.number(), z.string()]).optional(),

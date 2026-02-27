@@ -101,10 +101,10 @@ const MealDetail: React.FC = () => {
               <DetailItem label="Meal Time" value={meal?.meal_time} />
               <DetailItem label="Meal Category" value={meal?.meal_category} />
               <DetailItem label="Serving Unit" value={meal?.serving_unit} />
-              <DetailItem
+              {/* <DetailItem
                 label="Default Serving Quantity"
                 value={meal?.default_serving_quantity}
-              />
+              /> */}
               <DetailItem
                 label="Per Serving Calories"
                 value={meal?.per_serving?.calories}

@@ -229,7 +229,9 @@ export const useUpdateAdmin = (handleSubmission: (data: any) => void) => {
   return useMutation(updateTask, {
     onSuccess: (res: any) => {
       handleSubmission(res.data)
-      enqueueSnackbar('Details updated successfully', { variant: 'success' })
+      const message = res?.data?.message || res?.message
+
+      enqueueSnackbar(message, { variant: 'success' })
     },
 
     onError: (error: any) => {

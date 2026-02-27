@@ -25,6 +25,7 @@ const fieldKeys = [
   'ongoing_medicines',
   'supplements',
   'food_dislikes',
+  'food_allergies',
   'social_habits',
   'social_habits_other',
   'tea_coffee_consumption',
@@ -132,10 +133,9 @@ const dropdownOptions: Partial<Record<keyof AdditionalData, SelectOption[]>> = {
     { id: 'frequent', name: '3+ times/week' },
   ],
   preferred_exercise: [
+    { id: 'workout', name: 'Workout' },
     { id: 'yoga', name: 'Yoga' },
-    { id: 'strength', name: 'Strength training' },
-    { id: 'cardio', name: 'Cardio' },
-    { id: 'mobility', name: 'Mobility' },
+    { id: 'walking', name: 'Walking' },
   ],
   preferred_workout_yoga_time: [
     { id: 'morning', name: 'Morning' },
@@ -211,6 +211,7 @@ const sections: SectionDefinition[] = [
         type: 'textarea',
       },
       { key: 'supplements', label: 'Supplements', type: 'textarea' },
+      { key: 'food_allergies', label: 'Food allergies', type: 'textarea' },
       { key: 'food_dislikes', label: 'Food dislikes', type: 'textarea' },
       {
         key: 'social_habits',
@@ -491,16 +492,31 @@ export default function AdditionalInfo({
     const persist =
       modalMode === 'edit' ? updateUserAdditionalData : saveUserAdditionalData
 
+    // persist(userId, payload, subscriptionId)
+    //   .then((res) => {
+    //     const payloadFromResponse =
+    //       normalizeAdditionalData(res?.additional_data) ||
+    //       normalizeAdditionalData(res?.data?.additional_data) ||
+    //       payload
+    //     setData(payloadFromResponse)
+    //     reset(transformForForm(payloadFromResponse))
+    //     setModalMode(null)
+    //     enqueueSnackbar('Additional information saved successfully.', {
+    //       variant: 'success',
+    //     })
+    //   })
     persist(userId, payload, subscriptionId)
       .then((res) => {
         const payloadFromResponse =
           normalizeAdditionalData(res?.additional_data) ||
           normalizeAdditionalData(res?.data?.additional_data) ||
           payload
+
         setData(payloadFromResponse)
         reset(transformForForm(payloadFromResponse))
         setModalMode(null)
-        enqueueSnackbar('Additional information saved successfully.', {
+
+        enqueueSnackbar(res?.message || 'Saved successfully', {
           variant: 'success',
         })
       })
