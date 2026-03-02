@@ -292,10 +292,13 @@ export default function AdminUser() {
         ? deActivateAdmin(targetId)
         : activateAdmin(targetId)
     actionPromise
-      .then(() => {
-        enqueueSnackbar('Status Updated successfully', {
-          variant: 'success',
-        })
+      .then((res) => {
+        enqueueSnackbar(
+          res.message ? res.message : 'Status Updated successfully',
+          {
+            variant: 'success',
+          }
+        )
         setloader(false)
         refetch()
         setSelectedRows(
