@@ -50,9 +50,12 @@ export const recipeFormSchema = z.object({
     .array(
       z.object({
         name: z.string().min(1, 'Required'),
-        quantity: numberFromText
-          .refine((val) => val !== undefined, 'Required')
-          .refine((val) => val > 0, 'Required'),
+        quantity: z
+          .string()
+          .min(1, 'Required')
+          .refine((val) => !Number.isNaN(Number(val)), 'Must be a number')
+          .refine((val) => Number(val) > 0, 'Required')
+          .transform((val) => Number(val)),
         unit: z.string().min(1, 'Required'),
       })
     )

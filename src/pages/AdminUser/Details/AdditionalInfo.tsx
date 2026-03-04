@@ -35,6 +35,7 @@ const fieldKeys = [
   'outside_food_frequency',
   'preferred_exercise',
   'preferred_workout_yoga_time',
+  'preferred_workout_yoga_time_other',
   'workout_preference',
   'bmi',
   'location',
@@ -77,7 +78,12 @@ type SectionDefinition = {
   description?: string
   fields: SectionField[]
 }
-
+const capitalizeWords = (value: string) => {
+  if (!value) return ''
+  return value
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (match) => match.toUpperCase())
+}
 const dropdownOptions: Partial<Record<keyof AdditionalData, SelectOption[]>> = {
   package: [
     { id: 'diet_only', name: 'Diet only' },
@@ -141,6 +147,7 @@ const dropdownOptions: Partial<Record<keyof AdditionalData, SelectOption[]>> = {
     { id: 'morning', name: 'Morning' },
     { id: 'afternoon', name: 'Afternoon' },
     { id: 'evening', name: 'Evening' },
+    { id: 'others', name: 'Others' },
   ],
   workout_preference: [
     { id: 'home', name: 'Home workouts' },
@@ -158,6 +165,10 @@ const dropdownOptions: Partial<Record<keyof AdditionalData, SelectOption[]>> = {
 
 const SOCIAL_HABIT_OPTION_IDS = new Set(
   (dropdownOptions.social_habits ?? []).map((opt) => opt.id)
+)
+
+const PREFERRED_WORKOUT_YOGA_TIME_OPTION_IDS = new Set(
+  (dropdownOptions.preferred_workout_yoga_time ?? []).map((opt) => opt.id)
 )
 
 const today = new Date()
@@ -262,6 +273,15 @@ const sections: SectionDefinition[] = [
         options: dropdownOptions.preferred_workout_yoga_time,
       },
       {
+        key: 'preferred_workout_yoga_time_other',
+        label: 'Specify preferred workout/yoga time',
+        placeholder: 'Describe preferred workout/yoga time',
+        showWhen: (values) =>
+          isOthersSelectionPreferredWorkoutYogaTime(
+            values.preferred_workout_yoga_time
+          ),
+      },
+      {
         key: 'workout_preference',
         label: 'Workout preference',
         options: dropdownOptions.workout_preference,
@@ -304,8 +324,14 @@ const resolveSelectionValue = (value: any) =>
 const normalizeSocialHabit = (value: any) =>
   String(resolveSelectionValue(value) ?? '').trim()
 
+const normalizePreferredWorkoutYogaTime = (value: any) =>
+  String(resolveSelectionValue(value) ?? '').trim()
+
 const isOthersSelection = (value: any) =>
   normalizeSocialHabit(value).toLowerCase() === 'others'
+
+const isOthersSelectionPreferredWorkoutYogaTime = (value: any) =>
+  normalizePreferredWorkoutYogaTime(value).toLowerCase() === 'others'
 
 const isCustomSocialHabit = (value: any) => {
   const normalized = normalizeSocialHabit(value)
@@ -314,8 +340,19 @@ const isCustomSocialHabit = (value: any) => {
   return true
 }
 
+const isCustomPreferredWorkoutYogaTime = (value: any) => {
+  const normalized = normalizePreferredWorkoutYogaTime(value)
+  if (!normalized) return false
+  if (PREFERRED_WORKOUT_YOGA_TIME_OPTION_IDS.has(normalized)) return false
+  return true
+}
+
 const shouldShowSocialHabitsOther = (value: any) =>
   isOthersSelection(value) || isCustomSocialHabit(value)
+
+const shouldShowPreferredWorkoutYogaTimeOther = (value: any) =>
+  isOthersSelectionPreferredWorkoutYogaTime(value) ||
+  isCustomPreferredWorkoutYogaTime(value)
 
 const formatDateValue = (value: string | null | undefined) => {
   if (!value) return '--'
@@ -330,7 +367,13 @@ const formatValue = (
   if (key === 'date_of_assessment') {
     return formatDateValue(value)
   }
-  if ((key === 'native_cuisine' || key === 'social_habits') && value) {
+  if (
+    (key === 'native_cuisine' ||
+      key === 'social_habits' ||
+      key === 'preferred_workout_yoga_time' ||
+      key === 'location') &&
+    value
+  ) {
     return value
       .toLowerCase()
       .replace(/\b([a-z])/g, (match) => match.toUpperCase())
@@ -425,16 +468,40 @@ export default function AdditionalInfo({
   const watchedValues = {
     ...watchedValuesRaw,
     social_habits: normalizeSocialHabit(watchedValuesRaw.social_habits),
+    preferred_workout_yoga_time: normalizePreferredWorkoutYogaTime(
+      watchedValuesRaw.preferred_workout_yoga_time
+    ),
   }
 
   const transformForForm = (payload: AdditionalData | null) => {
     if (!payload) return defaultValues
     const next = { ...payload }
+    if (next.location) {
+      next.location = capitalizeWords(next.location)
+    }
+    if (next.preferred_workout_yoga_time) {
+      next.preferred_workout_yoga_time = capitalizeWords(
+        next.preferred_workout_yoga_time
+      )
+    }
+
+    // Capitalize preferred_workout_yoga_time_other
+    if (next.preferred_workout_yoga_time_other) {
+      next.preferred_workout_yoga_time_other = capitalizeWords(
+        next.preferred_workout_yoga_time_other
+      )
+    }
     if (isCustomSocialHabit(next.social_habits)) {
       next.social_habits_other = next.social_habits
       next.social_habits = 'others'
     } else {
       next.social_habits_other = ''
+    }
+    if (isCustomPreferredWorkoutYogaTime(next.preferred_workout_yoga_time)) {
+      next.preferred_workout_yoga_time_other = next.preferred_workout_yoga_time
+      next.preferred_workout_yoga_time = 'others'
+    } else {
+      next.preferred_workout_yoga_time_other = ''
     }
     return next
   }
@@ -488,6 +555,20 @@ export default function AdditionalInfo({
       payload.social_habits = normalizeSocialHabit(values.social_habits)
     }
     payload.social_habits_other = ''
+
+    if (
+      shouldShowPreferredWorkoutYogaTimeOther(
+        values.preferred_workout_yoga_time
+      )
+    ) {
+      payload.preferred_workout_yoga_time =
+        values.preferred_workout_yoga_time_other?.trim() || ''
+    } else {
+      payload.preferred_workout_yoga_time = normalizePreferredWorkoutYogaTime(
+        values.preferred_workout_yoga_time
+      )
+    }
+    payload.preferred_workout_yoga_time_other = ''
 
     const persist =
       modalMode === 'edit' ? updateUserAdditionalData : saveUserAdditionalData

@@ -48,10 +48,10 @@ const medicalConditionOptions: MedicalConditionOption[] = [
 const foodAllergyOptions: FoodAllergyOption[] = [
   { id: 'None', name: 'None' },
   { id: 'Peanuts', name: 'Peanuts' },
-  { id: 'Tree nuts', name: 'Tree nuts' },
+  { id: 'Tree Nuts', name: 'Tree Nuts' },
   { id: 'Gluten', name: 'Gluten' },
   { id: 'Shellfish', name: 'Shellfish' },
-  { id: 'Latex fruit syndrome', name: 'Latex fruit syndrome' },
+  { id: 'Latex Fruit Syndrome', name: 'Latex Fruit Syndrome' },
   { id: 'Other', name: 'Other' },
 ]
 
@@ -838,7 +838,11 @@ export default function CreateAdmin({
             // Return the first custom allergy found
             return customAllergies.length > 0 ? customAllergies[0] : ''
           })(),
-          state: rowData?.user?.state ?? '',
+          state: rowData?.user?.state
+            ? rowData?.user?.state
+                .toLowerCase()
+                .replace(/\b([a-z])/gi, (letter: any) => letter.toUpperCase())
+            : '',
           ethnicity: rowData?.user?.ethnicity
             ? rowData?.user?.ethnicity.charAt(0).toUpperCase() +
               rowData?.user?.ethnicity.slice(1).toLowerCase()

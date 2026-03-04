@@ -628,6 +628,8 @@ export default function WorkoutPlanDetails() {
       updateSubcategoryLookup(subcategories)
     }
 
+    // Enable filters when pre-filling selection
+    setWorkoutFiltersEnabled(true)
     prefillAppliedRef.current = true
   }, [
     assignOpen,
@@ -1202,7 +1204,7 @@ export default function WorkoutPlanDetails() {
       const exercisesPayload = buildExercisesPayload()
       if (!exercisesPayload.length) return
 
-      await addExercisesAsync({
+      const res = await addExercisesAsync({
         id: wp.id,
         payload: {
           exercises: exercisesPayload,
@@ -1215,7 +1217,7 @@ export default function WorkoutPlanDetails() {
       userSelectionTouchedRef.current = false
       setReviewOpen(false)
       setSearchParams({ tab: 'assign' })
-      enqueueSnackbar('Exercises replaced successfully', { variant: 'success' })
+      enqueueSnackbar(res?.data?.message || 'Success', { variant: 'success' })
     } catch (err: any) {
       enqueueSnackbar(
         err?.response?.data?.message || 'Failed to assign workouts',

@@ -2876,7 +2876,7 @@ export default function Subscriptions({
         <div className="w-full">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-              <div className="text-sm font-medium"></div>
+              <div className="text-md font-bold mb-2">Yogas</div>
               <div className="flex flex-col sm:flex-row sm:items-end gap-4 w-full md:w-auto">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs text-gray-600">Category</label>
@@ -2925,9 +2925,15 @@ export default function Subscriptions({
                     Unselect All
                   </button>
                 </div>
-                <div className="flex items-center gap-1 text-[11px] text-gray-600">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                  Duration
+                <div className="flex items-center gap-4 text-[11px] text-gray-600 ml-auto justify-end">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                    Intensity
+                  </span>
+                  <div className="flex items-center gap-1 text-[11px] text-gray-600">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    Duration
+                  </div>
                 </div>
               </div>
             )}
@@ -2981,6 +2987,12 @@ export default function Subscriptions({
                             <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-500 text-white px-2 py-0.5 font-medium backdrop-blur">
                               <span className="w-2 h-2 rounded-full bg-white" />
                               {durationLabel}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                              <Icons name="activity" className="w-3 h-3" />
+                              {y?.intensity_level ||
+                                y?.yoga?.intensity_level ||
+                                '--'}
                             </span>
                           </div>
                         )}

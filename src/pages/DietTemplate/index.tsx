@@ -6,6 +6,7 @@ import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
+import { useSnackbarManager } from '../../components/common/snackbar'
 import { checkPermissions } from '../../layout/store'
 import { useAuthStore } from '../../store/authStore'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
@@ -34,9 +35,13 @@ export default function DietTemplateMain() {
   const [searchDebounce, setSearchDebounce] = useState<any>(null)
   const [deleteTemplateModal, setDeleteTemplateModal] = useState(false)
   const [deleteTemplateId, setDeleteTemplateId] = useState<string>('')
+  const [deleteTemplateError, setDeleteTemplateError] = useState<string | null>(
+    null
+  )
   const [loader, setLoader] = useState(false)
   const { roleData } = useAuthStore()
   const isNutritionist = roleData?.name === 'nutritionist'
+  const { enqueueSnackbar } = useSnackbarManager()
   const params = useParams()
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
@@ -153,7 +158,13 @@ export default function DietTemplateMain() {
       await deleteTemplate(String(deleteTemplateId))
       setDeleteTemplateModal(false)
       setDeleteTemplateId('')
+      setDeleteTemplateError(null)
       refetch()
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.errors?.[0] || 'Failed to delete template'
+      setDeleteTemplateError(errorMessage)
+      enqueueSnackbar(errorMessage, { variant: 'error' })
     } finally {
       setLoader(false)
     }
@@ -287,11 +298,15 @@ export default function DietTemplateMain() {
           </div>
           <ConfirmDeleteModal
             isOpen={deleteTemplateModal}
-            onClose={() => setDeleteTemplateModal(false)}
+            onClose={() => {
+              setDeleteTemplateModal(false)
+              setDeleteTemplateError(null)
+            }}
             onConfirm={() => handleDeleteTemplate()}
             loading={loader}
             title={'Are you sure?'}
             subTitle={
+              deleteTemplateError ||
               'Do you really want to delete this diet template? This process cannot be undone.'
             }
             confirmLabel="Delete"

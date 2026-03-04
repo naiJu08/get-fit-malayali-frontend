@@ -288,10 +288,10 @@ const DietSummaryCard = ({ dietSummary }: { dietSummary: any }) => {
         <div className="bg-gray-50 rounded-lg p-3">
           <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
             Items Assigned
-            {hints?.items_completed && (
+            {hints?.total_items_assigned && (
               <HintTooltip
                 hint={{
-                  ...hints.items_completed,
+                  ...hints.total_items_assigned,
                   label: 'Items Assigned',
                   compliance_description: undefined,
                 }}

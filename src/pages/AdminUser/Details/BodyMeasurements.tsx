@@ -261,7 +261,7 @@ export default function BodyMeasurements({
                         <span>Chest</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.chest ?? '—'}
+                        {row?.chest ?? '—'} cm
                       </div>
                     </div>
                   )}
@@ -272,7 +272,7 @@ export default function BodyMeasurements({
                         <span>Waist</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.waist ?? '—'}
+                        {row?.waist ?? '—'} cm
                       </div>
                     </div>
                   )}
@@ -283,7 +283,7 @@ export default function BodyMeasurements({
                         <span>Hip</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.hip ?? '—'}
+                        {row?.hip ?? '—'} cm
                       </div>
                     </div>
                   )}
@@ -294,7 +294,7 @@ export default function BodyMeasurements({
                         <span>Arm</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.arm ?? '—'}
+                        {row?.arm ?? '—'} cm
                       </div>
                     </div>
                   )}
@@ -305,7 +305,7 @@ export default function BodyMeasurements({
                         <span>Thigh</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.thigh ?? '—'}
+                        {row?.thigh ?? '—'} cm
                       </div>
                     </div>
                   )}
@@ -316,7 +316,7 @@ export default function BodyMeasurements({
                         <span>Neck</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.neck ?? '—'}
+                        {row?.neck ?? '—'} cm
                       </div>
                     </div>
                   )}
@@ -327,7 +327,7 @@ export default function BodyMeasurements({
                         <span>Weight</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.weight ?? '—'}
+                        {row?.weight ?? '—'} kg
                       </div>
                     </div>
                   )}
@@ -338,7 +338,7 @@ export default function BodyMeasurements({
                         <span>Height</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.height ?? '—'}
+                        {row?.height ?? '—'} cm
                       </div>
                     </div>
                   )}

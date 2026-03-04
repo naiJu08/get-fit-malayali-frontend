@@ -429,6 +429,7 @@ export default function Plans() {
                         action: (row: any) => handleToggleStatus(row),
                         icon: <Icons name="deactivate-icon" />,
                         toolTip: 'Deactivate',
+                        variant: 'danger',
                         hide: (row: any) => {
                           const v = row?.active
                           const isActive =
@@ -444,6 +445,7 @@ export default function Plans() {
                         action: (row: any) => handleToggleStatus(row),
                         icon: <Icons name="activate-icon" />,
                         toolTip: 'Activate',
+                        variant: 'success',
                         hide: (row: any) => {
                           const v = row?.active
                           const isActive =
