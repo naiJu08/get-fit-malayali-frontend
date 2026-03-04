@@ -71,7 +71,10 @@ export default function CreateRecipe({
         ingredients: Array.isArray(rowData?.ingredients)
           ? rowData.ingredients.map((ing: any) => ({
               name: toTitleCase(ing?.name) ?? '',
-              quantity: ing?.quantity ?? 0,
+              quantity:
+                ing?.quantity === undefined || ing?.quantity === null
+                  ? ''
+                  : String(ing.quantity),
               unit: toTitleCase(ing?.unit) ?? '',
             }))
           : [],
@@ -94,7 +97,7 @@ export default function CreateRecipe({
       ingredients: [
         {
           name: '',
-          quantity: 0,
+          quantity: '' as any,
           unit: '',
         },
       ],
@@ -111,6 +114,13 @@ export default function CreateRecipe({
   useEffect(() => {
     methods.reset(getDefaultValues())
   }, [edit, rowData, methods])
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!isDrawerOpen) {
+      methods.reset(getDefaultValues())
+    }
+  }, [isDrawerOpen, methods, edit, rowData])
   const {
     handleSubmit,
     control,
@@ -511,32 +521,26 @@ export default function CreateRecipe({
                     </div>
                     <div>
                       <Controller
-                        name={`ingredients.${index}.quantity` as const}
+                        name={`ingredients.${index}.quantity`}
                         control={control}
-                        render={({ field: { onChange, value } }) => (
+                        render={({ field }) => (
                           <TextField
                             id={`ingredients.${index}.quantity`}
                             name={`ingredients.${index}.quantity`}
                             label="Quantity"
                             type="text"
                             placeholder="e.g. 800"
-                            maxLength={10}
-                            value={
-                              value === undefined ||
-                              value === null ||
-                              value === 0
-                                ? ''
-                                : String(value)
-                            }
+                            maxLength={6}
+                            value={String(field.value ?? '')}
                             onChange={(e) => {
                               const val = e.target.value
-                              // Only allow numbers
-                              if (val === '' || /^\d+$/.test(val)) {
-                                onChange(val === '' ? '' : Number(val))
+
+                              // Allow decimals and empty
+                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                field.onChange(val)
                               }
                             }}
                             required
-                            allowPositiveOnly
                             errors={errors}
                           />
                         )}

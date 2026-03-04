@@ -320,9 +320,7 @@ const ReminderSettings = ({ userId }: ReminderSettingsProps) => {
                               End
                             </p>
                             <p className="text-sm font-semibold text-gray-900">
-                              {showInterval
-                                ? `${reminder.end_time} mins`
-                                : '--'}
+                              {formatTime(reminder?.end_time)}
                             </p>
                           </div>
                         </>

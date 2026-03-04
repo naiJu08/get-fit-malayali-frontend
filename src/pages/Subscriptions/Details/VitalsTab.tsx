@@ -58,15 +58,7 @@ export default function SubscriptionVitalsTab({
     const rowHeight = 7
     const usableHeight = pageHeight - topMargin - bottomMargin
 
-    const columns = [
-      'Date',
-      'Heart Rate',
-      'Blood Pressure',
-      'Sugar',
-      'Sleep',
-      'Water',
-      'Steps',
-    ]
+    const columns = ['Date', 'Sleep', 'Water', 'Steps']
 
     const tableWidth = pageWidth - leftMargin - rightMargin
     const baseColWidths = [0.18, 0.13, 0.17, 0.14, 0.12, 0.12, 0.14]
@@ -143,18 +135,18 @@ export default function SubscriptionVitalsTab({
       const dateStr = row?.recorded_at
         ? moment(row.recorded_at).format('DD MMM YYYY')
         : '-'
-      const heartRate = row?.heart_rate != null ? `${row.heart_rate} bpm` : '-'
-      const bloodPressure = row?.blood_pressure ? row.blood_pressure : '-'
-      const sugar = row?.sugar_level != null ? `${row.sugar_level} mg/dL` : '-'
+      // const heartRate = row?.heart_rate != null ? `${row.heart_rate} bpm` : '-'
+      // const bloodPressure = row?.blood_pressure ? row.blood_pressure : '-'
+      // const sugar = row?.sugar_level != null ? `${row.sugar_level} mg/dL` : '-'
       const sleep = row?.sleep_hours != null ? `${row.sleep_hours} hrs` : '-'
       const water = row?.water_intake != null ? `${row.water_intake} L` : '-'
       const steps = row?.steps != null ? `${row.steps}` : '-'
 
       const values = [
         dateStr,
-        heartRate,
-        bloodPressure,
-        sugar,
+        // heartRate,
+        // bloodPressure,
+        // sugar,
         sleep,
         water,
         steps,

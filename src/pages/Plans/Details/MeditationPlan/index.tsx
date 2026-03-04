@@ -4,6 +4,7 @@ import CustomDrawer from '../../../../components/common/drawer'
 import { useMeditationList } from '../../../Meditation/api'
 import { useAssignMeditations } from './api'
 import { useAuthStore } from '../../../../store/authStore'
+import { useSnackbarManager } from '../../../../components/common/snackbar'
 import Icons from '../../../../components/common/icons'
 
 export type MeditationAssignCTAConfig = {
@@ -22,6 +23,7 @@ export default function MeditationPlanIndex({
 }: Props) {
   const { id: routePlanId } = useParams()
   const planId = routePlanId as string
+  const { enqueueSnackbar } = useSnackbarManager()
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [page, setPage] = useState<number>(1)
@@ -151,12 +153,26 @@ export default function MeditationPlanIndex({
           sequence_number: idx + 1,
         })),
       }
-      await assignMeditationsAsync({ planId, payload })
+      const response = await assignMeditationsAsync({ planId, payload })
       setAssignOpen(false)
       setReviewOpen(false)
       setSelectedMeditations([])
       setDragIndex(null)
       refetchMeditations()
+
+      // Show success message from API response
+      const message =
+        response?.data?.message ||
+        response?.message ||
+        'Meditations assigned successfully'
+      enqueueSnackbar(message, { variant: 'success' })
+    } catch (error: any) {
+      // Show error message from API response if available
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to assign meditations'
+      enqueueSnackbar(errorMessage, { variant: 'error' })
     } finally {
       setAssigning(false)
     }

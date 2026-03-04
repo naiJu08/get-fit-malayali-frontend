@@ -111,7 +111,7 @@ export default function DetailsInfo({
                 />
                 <DetailItem
                   label="Food Allergies"
-                  value={user?.food_allergies}
+                  value={capitalizeWord(user?.food_allergies)}
                 />
                 <DetailItem
                   label="Nationality"
