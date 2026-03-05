@@ -45,6 +45,7 @@ const BatchHistoryDetail = lazy(
 )
 const RecipeDetail = lazy(() => import('../pages/Recipe/Detail'))
 const UserDetails = lazy(() => import('../pages/AdminUser/Details'))
+// const SubscriptionHistory = lazy(() => import('../pages/AdminUser/Details/SubscriptionHistory'))
 const WorkoutDetails = lazy(() => import('../pages/Workout/Details'))
 const CategoriesMain = lazy(() => import('../pages/Categories'))
 const CategoriesDetails = lazy(() => import('../pages/Categories/Details'))
@@ -313,6 +314,15 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/users/:id/recipes"
+      />
+
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/:id/subscription-history"
       />
 
       <Route

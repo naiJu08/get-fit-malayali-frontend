@@ -80,29 +80,29 @@ export function HintTooltip({ text }: { text: string }) {
       </button>
       {open && (
         <div
-          className="absolute z-50 left-1/2 -translate-x-1/2 bottom-full mb-2 w-64"
+          className="absolute overflow-visible z-50 left-[250%] -translate-x-1/2 bottom-[87%] mb-2 w-64"
           style={{ filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.15))' }}
         >
           <div
-            className="rounded-xl overflow-hidden border border-indigo-100"
+            className="rounded-xl overflow-visible border border-indigo-100"
             style={{ background: 'linear-gradient(145deg,#fafafe,#f0f0ff)' }}
           >
             <div
-              className="px-3 py-2"
+              className="px-3 py-1"
               style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)' }}
             >
               <div className="text-white text-[10px] font-semibold uppercase tracking-wide">
                 About this metric
               </div>
             </div>
-            <div className="px-3 py-2">
+            <div className="px-3 py-0">
               <p className="text-[11px] text-gray-700 leading-relaxed">
                 {text}
               </p>
             </div>
           </div>
           {/* caret */}
-          <div className="flex justify-center">
+          {/* <div className="flex justify-center">
             <div
               className="w-3 h-3 rotate-45 -mt-1.5"
               style={{
@@ -112,7 +112,7 @@ export function HintTooltip({ text }: { text: string }) {
                 borderLeft: 'none',
               }}
             />
-          </div>
+          </div> */}
         </div>
       )}
     </div>

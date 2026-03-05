@@ -477,6 +477,35 @@ export const useSubscriptionReport = (
   )
 }
 
+// User subscription history
+const fetchUserSubscriptionHistory = async (
+  input: QueryParams & { user_id?: string | number }
+) => {
+  const url = buildUrlWithParams(apiUrl.SUBSCRIPTION_HISTORY, {
+    ...input,
+  })
+  const response = await getData(url)
+  return response
+}
+
+export const useUserSubscriptionHistory = (
+  userId?: string | number | null,
+  options?: QueryParams
+) => {
+  return useQuery(
+    ['user_subscription_history', userId, options],
+    () =>
+      fetchUserSubscriptionHistory({
+        user_id: userId || '',
+        page: options?.page || 1,
+        ...options,
+      }),
+    {
+      enabled: !!userId,
+    }
+  )
+}
+
 export const getUserAdditionalData = (
   userId: string | number,
   subscriptionId?: string | number | null

@@ -14,6 +14,7 @@ import Reports from './Details/Reports'
 import ReminderSettings from './Details/ReminderSettings'
 import AdditionalInfo from './Details/AdditionalInfo'
 import RecipesTab from './Details/Recipe.tsx/Recipes'
+import SubscriptionHistory from './Details/SubscriptionHistory'
 import { useAuthStore } from '../../store/authStore'
 import CreateAdmin from './create'
 
@@ -130,6 +131,7 @@ export default function UserDetails() {
             { id: 'reminders', label: 'Reminder settings' },
             { id: 'recipes', label: 'Recipes' },
             { id: 'additional-info', label: 'Nutritional assessment' },
+            { id: 'subscription-history', label: 'Subscription History' },
             ...(loginRole !== 'nutritionist'
               ? [{ id: 'reports', label: 'Reports' }]
               : []),
@@ -218,6 +220,11 @@ export default function UserDetails() {
           {!isNutritionist && (
             <Tab id="additional-info">
               <AdditionalInfo user={user} subscriptionId={subscriptionId} />
+            </Tab>
+          )}
+          {!isNutritionist && (
+            <Tab id="subscription-history">
+              <SubscriptionHistory />
             </Tab>
           )}
           {!isNutritionist && loginRole !== 'nutritionist' && (

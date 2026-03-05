@@ -261,7 +261,10 @@ function AssignTabContent({
                           {/* TITLE BELOW VIDEO */}
                           <div className="px-2 py-2 text-xs">
                             <div className="font-medium line-clamp-1">
-                              {ex?.workout_name || 'Untitled'}
+                              {ex?.workout_name
+                                ? ex.workout_name.charAt(0).toUpperCase() +
+                                  ex.workout_name.slice(1)
+                                : 'Untitled'}
                             </div>
                           </div>
                         </div>

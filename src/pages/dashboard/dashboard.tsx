@@ -113,9 +113,9 @@ export default function DashboardView({
     switch (activeTab) {
       case 'overview':
         return (
-          <div className="space-y-6">
+          <div className="space-y-6 overflow-visible">
             <EngagementChart data={data} />
-            <div className="db-grid-3">
+            <div className="db-grid-3 overflow-visible">
               <SubsStatusCard data={data} />
               <UserRoleCard data={data} />
               <StreaksCard data={data} />
@@ -194,6 +194,10 @@ export default function DashboardView({
                 {
                   label: 'Meditations',
                   value: data?.meditations?.total_meditations,
+                },
+                {
+                  label: 'Yogas',
+                  value: data?.yoga?.total_yoga_items,
                 },
               ].map((p) => (
                 <div key={p.label} className="db-header-pill">

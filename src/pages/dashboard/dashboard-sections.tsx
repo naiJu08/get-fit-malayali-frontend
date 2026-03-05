@@ -754,14 +754,14 @@ export function HealthCard({ data }: Props) {
           </div>
           <div className="space-y-2">
             {[
-              {
-                label: '❤️ Heart Rate',
-                value: `${vs?.avg_heart_rate ?? '--'} bpm`,
-              },
-              {
-                label: '🩸 Sugar',
-                value: `${vs?.avg_sugar_level ?? '--'} mg/dL`,
-              },
+              // {
+              //   label: '❤️ Heart Rate',
+              //   value: `${vs?.avg_heart_rate ?? '--'} bpm`,
+              // },
+              // {
+              //   label: '🩸 Sugar',
+              //   value: `${vs?.avg_sugar_level ?? '--'} mg/dL`,
+              // },
               {
                 label: '😴 Sleep',
                 value: `${vs?.avg_sleep_hours ?? '--'} hrs`,
@@ -789,24 +789,24 @@ export function VitalsCard({ data }: Props) {
   const v = data?.vitals
   const hints = v?.hints ?? {}
   const metrics = [
-    {
-      label: 'Heart Rate',
-      avg: v?.heart_rate_analytics?.avg,
-      min: v?.heart_rate_analytics?.min,
-      max: v?.heart_rate_analytics?.max,
-      normal: v?.heart_rate_analytics?.normal_percentage,
-      unit: 'bpm',
-      color: '#fc8181',
-      hk: 'heart_rate',
-    },
-    {
-      label: 'Sugar',
-      avg: v?.sugar_analytics?.avg,
-      unit: 'mg/dL',
-      normal: v?.sugar_analytics?.normal_percentage,
-      color: '#f6ad55',
-      hk: 'sugar',
-    },
+    // {
+    //   label: 'Heart Rate',
+    //   avg: v?.heart_rate_analytics?.avg,
+    //   min: v?.heart_rate_analytics?.min,
+    //   max: v?.heart_rate_analytics?.max,
+    //   normal: v?.heart_rate_analytics?.normal_percentage,
+    //   unit: 'bpm',
+    //   color: '#fc8181',
+    //   hk: 'heart_rate',
+    // },
+    // {
+    //   label: 'Sugar',
+    //   avg: v?.sugar_analytics?.avg,
+    //   unit: 'mg/dL',
+    //   normal: v?.sugar_analytics?.normal_percentage,
+    //   color: '#f6ad55',
+    //   hk: 'sugar',
+    // },
     {
       label: 'Sleep',
       avg: v?.sleep_analytics?.avg_hours,
@@ -925,6 +925,7 @@ export function BodyMeasurementsCard({ data }: Props) {
             { label: 'Hip', value: `${om.hip_avg ?? '--'} cm` },
             { label: 'Arm', value: `${om.arm_avg ?? '--'} cm` },
             { label: 'Thigh', value: `${om.thigh_avg ?? '--'} cm` },
+            { label: 'Neck', value: `${om.neck_avg ?? '--'} cm` },
           ].map((r, i) => (
             <div
               key={i}

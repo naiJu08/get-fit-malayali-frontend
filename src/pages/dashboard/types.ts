@@ -140,6 +140,7 @@ export type DashboardResponse = {
       hip_avg?: string
       arm_avg?: string
       thigh_avg?: string
+      neck_avg?: string
     }
     hints?: Record<string, string>
   }

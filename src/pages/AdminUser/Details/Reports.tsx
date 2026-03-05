@@ -341,6 +341,29 @@ const DietSummaryCard = ({ dietSummary }: { dietSummary: any }) => {
             {dietSummary?.total_calories_consumed ?? 0}
           </div>
         </div>
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+            Outside Items Completions
+            {hints?.items_completed_outside && (
+              <HintTooltip hint={hints.items_completed_outside} />
+            )}
+          </div>
+          <div className="text-lg font-bold text-gray-900">
+            {dietSummary?.total_items_completed_outside ?? 0}
+          </div>
+        </div>
+
+        <div className="bg-gray-50 rounded-lg p-3">
+          <div className="flex items-center gap-1 text-xs text-gray-500 mb-1">
+            Outside Items Calories
+            {hints?.calories_consumed_outside && (
+              <HintTooltip hint={hints.calories_consumed_outside} />
+            )}
+          </div>
+          <div className="text-lg font-bold text-gray-900">
+            {dietSummary?.total_calories_consumed_outside ?? 0}
+          </div>
+        </div>
       </div>
 
       <div className="border-t pt-3">
@@ -397,8 +420,8 @@ const MealTimingCard = ({
       ) : (
         <div className="space-y-3">
           {mealTypes.map(([mealType, data]: [string, any]) => {
-            const adherence = Number(data.adherence_percentage ?? 0)
-            const adherenceColor = getHealthColor(adherence)
+            // const adherence = Number(data.adherence_percentage ?? 0)
+            // const adherenceColor = getHealthColor(adherence)
 
             return (
               <div
@@ -414,14 +437,14 @@ const MealTimingCard = ({
                     {data.calories_consumed ?? 0} cal
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                   <span
                     className="text-xs font-bold px-2 py-1 rounded-full text-white"
                     style={{ backgroundColor: adherenceColor }}
                   >
                     {adherence.toFixed(0)}%
                   </span>
-                </div>
+                </div> */}
               </div>
             )
           })}
@@ -449,10 +472,10 @@ const CategoryConsumptionCard = ({
     )
     .slice(0, 6)
 
-  const totalCalories = categories.reduce(
-    (sum, [, data]: [string, any]) => sum + (data.calories_consumed || 0),
-    0
-  )
+  // const totalCalories = categories.reduce(
+  //   (sum, [, data]: [string, any]) => sum + (data.calories_consumed || 0),
+  //   0
+  // )
 
   return (
     <div className="border rounded-xl bg-white shadow-sm p-4">
@@ -470,10 +493,10 @@ const CategoryConsumptionCard = ({
       ) : (
         <div className="space-y-3">
           {categories.map(([category, data]: [string, any]) => {
-            const percentage =
-              totalCalories > 0
-                ? (data.calories_consumed / totalCalories) * 100
-                : 0
+            // const percentage =
+            //   totalCalories > 0
+            //     ? (data.calories_consumed / totalCalories) * 100
+            //     : 0
 
             return (
               <div key={category} className="flex items-center justify-between">
@@ -486,9 +509,9 @@ const CategoryConsumptionCard = ({
                     {data.calories_consumed ?? 0} cal
                   </div>
                 </div>
-                <div className="text-sm font-bold text-gray-700">
+                {/* <div className="text-sm font-bold text-gray-700">
                   {percentage.toFixed(1)}%
-                </div>
+                </div> */}
               </div>
             )
           })}
@@ -818,8 +841,8 @@ const DailyActivityCard = ({ dailyBreakdown }: { dailyBreakdown: any[] }) => {
     const assigned = Number(activity.assigned ?? activity.total_assigned ?? 0)
     const completedBase =
       type === 'diet'
-        ? Number(activity.completed_total ?? activity.completed ?? 0)
-        : Number(activity.completed ?? activity.completed_total ?? 0)
+        ? Number(activity.assigned_completion ?? activity.completed ?? 0)
+        : Number(activity.completed ?? activity.assigned_completion ?? 0)
     const completionRate = assigned > 0 ? (completedBase / assigned) * 100 : 0
 
     return {
@@ -899,9 +922,9 @@ const DailyActivityCard = ({ dailyBreakdown }: { dailyBreakdown: any[] }) => {
                             <div className="text-gray-500">
                               {metrics.completed}/{metrics.assigned}
                             </div>
-                            {type === 'diet' && (
+                            {/* {type === 'diet' && (
                               <div className="text-[11px] text-gray-500">{`In-plan: ${metrics.assignedCompletion} · Outside: ${metrics.outsideCompletion}`}</div>
-                            )}
+                            )} */}
                           </div>
                         </div>
                         <div className="flex flex-col items-end gap-0.5">
