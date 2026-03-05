@@ -9,14 +9,7 @@ import { Icon } from '../../components/common'
 const toTitleCase = (value: unknown) => {
   const str = typeof value === 'string' ? value : ''
   if (!str) return str
-  return str
-    .split(' ')
-    .map((word) =>
-      word
-        ? `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`
-        : word
-    )
-    .join(' ')
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
 }
 
 const MealDetail: React.FC = () => {

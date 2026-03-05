@@ -96,10 +96,7 @@ export default function CreateAdmin({
   }
   const capitalizeWords = (val?: string) => {
     if (!val) return ''
-    return val
-      .split(' ')
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-      .join(' ')
+    return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
   }
   useEffect(() => {
     if (isDrawerOpen && edit && !viewMode && rowData) {

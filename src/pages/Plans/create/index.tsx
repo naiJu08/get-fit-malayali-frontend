@@ -50,6 +50,11 @@ export default function CreatePlan({
       rowData)
     : undefined
 
+  const toTitleCase = (value?: string | null) => {
+    if (!value) return ''
+    return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+  }
+
   const onSubmit = (values: PlanSchema | any) => {
     const thumbVal: any = values.thumbnail
     const hasNewThumbnail = thumbVal instanceof File
@@ -123,7 +128,7 @@ export default function CreatePlan({
     if (!isDrawerOpen) return
     if (edit && resolvedPlan) {
       reset({
-        name: resolvedPlan?.name ?? '',
+        name: toTitleCase(resolvedPlan?.name) ?? '',
         category: resolvedPlan?.category ?? '',
         description: resolvedPlan?.description ?? '',
         duration_days: resolvedPlan?.duration_days ?? 0,

@@ -19,12 +19,16 @@ export default function BodyMeasurements({
   const [pageSize] = useState(10)
   const [allItems, setAllItems] = useState<any[]>([])
 
-  const { data: bodyData, isFetching: bodyLoading } = useBodyMeasurements({
-    user_id: user?.id,
-    subscription_id: subscriptionId ?? undefined,
-    page,
-    per_page: pageSize,
-  } as any)
+  const { data: bodyData, isFetching: bodyLoading } = useBodyMeasurements(
+    user?.id && subscriptionId
+      ? ({
+          user_id: user?.id,
+          subscription_id: subscriptionId,
+          page,
+          per_page: pageSize,
+        } as any)
+      : ({ user_id: '' } as any) // Pass invalid user_id to prevent API call when subscriptionId is not available
+  )
 
   const items = allItems
   const totalPages = bodyData?.total_pages ?? 1

@@ -241,13 +241,8 @@ export default function CreateAdmin({
         categoryOptions.find((opt) => opt.id === normalizedCategory) ?? null
       methods.reset({
         name: rowData?.name
-          ? rowData.name
-              .split(' ')
-              .map(
-                (word: string) =>
-                  word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-              )
-              .join(' ')
+          ? rowData.name.charAt(0).toUpperCase() +
+            rowData.name.slice(1).toLowerCase()
           : '',
         description: rowData?.description ?? '',
         intensity_level: rowData?.intensity_level ?? '',

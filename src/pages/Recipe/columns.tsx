@@ -5,7 +5,7 @@ const toTitleCase = (value: any) => {
   if (value === null || value === undefined) return ''
   const str = String(value)
   if (!str) return ''
-  return str.replace(/\b([a-zA-Z])/g, (match) => match.toUpperCase())
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
 }
 
 const defaultColumnProps = {

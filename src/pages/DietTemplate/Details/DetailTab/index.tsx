@@ -121,5 +121,5 @@ function safeStr(v: any) {
 function capitalizeFirst(v: any) {
   const s = safeStr(v)
   if (s === '--') return s
-  return s.toLowerCase().replace(/\b([a-z])/g, (letter) => letter.toUpperCase())
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
 }

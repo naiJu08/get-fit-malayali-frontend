@@ -1214,6 +1214,13 @@ export default function WorkoutPlanDetails() {
       await refreshDetails()
       setSelectedWorkouts([])
       setWorkoutCounts({})
+      setSelectedCategoryId(undefined)
+      setSelectedCategoryName('')
+      setSelectedSubcategories([])
+      setWorkoutFiltersEnabled(false)
+      prefillAppliedRef.current = false
+      drawerSelectionInitializedRef.current = false
+      selectAllNextWorkoutsRef.current = false
       userSelectionTouchedRef.current = false
       setReviewOpen(false)
       setSearchParams({ tab: 'assign' })

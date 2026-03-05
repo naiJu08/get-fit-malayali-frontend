@@ -51,12 +51,11 @@ export default function CreateAdmin({
   rowData,
   setEditViewIndicator,
 }: Props) {
-  const titleCase = (value?: string | null) =>
-    (value ?? '')
-      .split(' ')
-      .filter((part) => part.trim().length)
-      .map((part) => part[0].toUpperCase() + part.slice(1).toLowerCase())
-      .join(' ')
+  const titleCase = (value?: string | null) => {
+    const str = value ?? ''
+    if (!str) return ''
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+  }
   const textField = (
     name: string,
     label: string,

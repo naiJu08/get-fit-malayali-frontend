@@ -72,11 +72,8 @@ export default function YogaDetails() {
               label="Name"
               value={
                 typeof yoga?.name === 'string'
-                  ? yoga.name.replace(
-                      /\w\S*/g,
-                      (w: string) =>
-                        w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
-                    )
+                  ? yoga.name.charAt(0).toUpperCase() +
+                    yoga.name.slice(1).toLowerCase()
                   : yoga?.name
               }
             />

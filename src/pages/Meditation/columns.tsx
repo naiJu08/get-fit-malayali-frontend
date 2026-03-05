@@ -47,10 +47,7 @@ export const getColumns = ({
         const propertyValue = getNestedProperty(row, key)
         const val = typeof propertyValue === 'string' ? propertyValue : ''
         const cap = val
-          ? val.replace(
-              /\w\S*/g,
-              (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
-            )
+          ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
           : ''
         return {
           cell: cap,
@@ -132,11 +129,7 @@ export const getColumns = ({
         const value = getNestedProperty(row, 'title')
         const raw = typeof value === 'string' ? value : ''
         const formatted = raw
-          ? raw.replace(
-              /\w\S*/g,
-              (word) =>
-                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-            )
+          ? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
           : ''
         const display = truncateText(formatted, 50)
         if (!disableNameLink && onNameClick) {

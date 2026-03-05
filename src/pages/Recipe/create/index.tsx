@@ -32,14 +32,7 @@ export default function CreateRecipe({
 }: Props) {
   const toTitleCase = (value?: string | null) => {
     if (!value) return ''
-    return value
-      .split(' ')
-      .map((word) =>
-        word
-          ? `${word.charAt(0).toUpperCase()}${word.slice(1).toLowerCase()}`
-          : word
-      )
-      .join(' ')
+    return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
   }
 
   const getDefaultValues = () => {

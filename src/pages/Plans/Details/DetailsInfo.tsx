@@ -8,7 +8,7 @@ function safeStr(v: any) {
 function capitalizeFirst(v: any) {
   const s = safeStr(v)
   if (s === '--') return s
-  return s.charAt(0).toUpperCase() + s.slice(1)
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
 }
 function mapActive(v: any) {
   if (v === true || v === 'true' || v === 1 || v === '1') return 'Active'

@@ -20,9 +20,7 @@ import { WorkoutSchema, formSchema } from './schema'
 
 const toTitleCase = (value?: string) => {
   if (!value) return ''
-  return value
-    .toLowerCase()
-    .replace(/\b\w+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1))
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
 }
 
 type Props = {
@@ -268,7 +266,7 @@ export default function CreateAdmin({
       (mainCategory?.id ? rawCategory?.name : (parentInfo?.subName ?? ''))
 
     methods.reset({
-      name: rowData?.name ?? '',
+      name: toTitleCase(rowData?.name) ?? '',
       description: rowData?.description ?? '',
       intensity_level: rowData?.intensity_level ?? '',
       category: resolvedCategoryName ?? '',

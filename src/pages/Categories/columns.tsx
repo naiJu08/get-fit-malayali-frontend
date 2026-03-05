@@ -52,11 +52,7 @@ export const getColumns = ({
         const value = getNestedProperty(row, 'name') as string | undefined
         const raw = typeof value === 'string' ? value : ''
         const formatted = raw
-          ? raw.replace(
-              /\w\S*/g,
-              (word) =>
-                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-            )
+          ? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
           : ''
         const displayValue = truncateText(formatted, 50)
 
