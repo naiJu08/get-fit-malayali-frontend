@@ -40,6 +40,7 @@ const MEAL_CATEGORIES = 'meal_categories'
 const SERVING_UNITS = 'references/serving_units'
 const CATEGORIES = '/categories'
 const DIET_TEMPLATE = 'diet_plan_templates'
+const INACTIVE_USERS = '/admin/inactive_users'
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
   ASSESSOR_LIST_URL,
@@ -81,6 +82,7 @@ const apiUrl: { [key: string]: string } = {
   SERVING_UNITS,
   CATEGORIES,
   DIET_TEMPLATE,
+  INACTIVE_USERS,
 }
 
 export default apiUrl

@@ -23,6 +23,7 @@ const ForgetPassword = lazy(
 )
 
 const AdminUser = lazy(() => import('../pages/AdminUser'))
+const InactiveUsers = lazy(() => import('../pages/AdminUser/InactiveUsers'))
 const Subscriptions = lazy(() => import('../pages/Subscriptions'))
 const Workout = lazy(() => import('../pages/Workout'))
 const Plans = lazy(() => import('../pages/Plans'))
@@ -294,10 +295,18 @@ export default function MainRoutes() {
       <Route
         element={
           <UserRoute slug_key="ADMIN_USER">
-            <UserDetails />
+            <AdminUser />
           </UserRoute>
         }
         path="/users/nutritionist/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <InactiveUsers />
+          </UserRoute>
+        }
+        path="/admin/inactive-users"
       />
       <Route
         element={
@@ -307,6 +316,7 @@ export default function MainRoutes() {
         }
         path="/users/:id/reminders"
       />
+
       <Route
         element={
           <UserRoute slug_key="ADMIN_USER">

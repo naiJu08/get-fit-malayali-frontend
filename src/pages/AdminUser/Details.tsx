@@ -131,7 +131,7 @@ export default function UserDetails() {
             { id: 'reminders', label: 'Reminder settings' },
             { id: 'recipes', label: 'Recipes' },
             { id: 'additional-info', label: 'Nutritional assessment' },
-            { id: 'subscription-history', label: 'Subscription History' },
+            { id: 'subscription-history', label: 'Subscription history' },
             ...(loginRole !== 'nutritionist'
               ? [{ id: 'reports', label: 'Reports' }]
               : []),

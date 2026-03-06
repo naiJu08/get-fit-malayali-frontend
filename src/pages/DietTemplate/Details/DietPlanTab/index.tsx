@@ -260,16 +260,19 @@ function DietPlanContent({
   const [formValues, setFormValues] = useState<any | null>(null)
   const [editMode, setEditMode] = useState(false)
 
-  const openCreate = () => {
+  const openCreate = (dayInfo?: { day_name: string; day_number: number }) => {
     setEditMode(false)
-    setFormValues({
+    const initialValues: any = {
       diet_plan_template_id: templateId,
-      day_number: 1,
-      sequence_number: 1,
-      meal_time: '',
-      meal_name: '',
-      calories: '',
-    })
+    }
+
+    // If creating meal for a specific day, prefill and disable day fields
+    if (dayInfo) {
+      initialValues.day_name = dayInfo.day_name
+      initialValues.day_number = dayInfo.day_number
+    }
+
+    setFormValues(initialValues)
     setFormOpen(true)
   }
 
@@ -557,6 +560,21 @@ function DietPlanContent({
               label="Create Diet Plan"
               icon="plus"
               onClick={openCreate}
+            />
+          )}
+        {viewingDay &&
+          !isNutritionist &&
+          checkPermissions('Employee', 'create') && (
+            <Button
+              className="bg-primaryGreen"
+              label="Create Meal"
+              icon="plus"
+              onClick={() =>
+                openCreate({
+                  day_name: selectedDayMeta?.day_name || '',
+                  day_number: selectedDayMeta?.day_number || 0,
+                })
+              }
             />
           )}
       </div>

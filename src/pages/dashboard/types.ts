@@ -176,6 +176,7 @@ export type DashboardResponse = {
     unique_users_completing?: number
     completion_rate_percentage?: number
     plan_default_meditations?: number
+    with_video?: any
     user_specific_meditations?: number
     top_performing?: {
       id?: number
@@ -192,6 +193,7 @@ export type DashboardResponse = {
     total_completions?: number
     completed_count?: number
     skipped_count?: number
+    with_video?: any
     missed_count?: number
     unique_users_completing?: number
     completion_rate_percentage?: number

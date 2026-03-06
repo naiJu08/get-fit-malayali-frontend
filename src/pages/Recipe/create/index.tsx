@@ -340,7 +340,7 @@ export default function CreateRecipe({
       type: 'text',
       placeholder: 'Enter protein',
       maxLength: 4,
-      required: true,
+      required: false,
       allowPositiveOnly: true,
     },
     {
@@ -349,7 +349,7 @@ export default function CreateRecipe({
       type: 'text',
       placeholder: 'Enter carbs',
       maxLength: 4,
-      required: true,
+      required: false,
       allowPositiveOnly: true,
     },
     {
@@ -358,7 +358,7 @@ export default function CreateRecipe({
       type: 'text',
       placeholder: 'Enter fat',
       maxLength: 4,
-      required: true,
+      required: false,
       allowPositiveOnly: true,
     },
     {
@@ -367,7 +367,7 @@ export default function CreateRecipe({
       type: 'text',
       placeholder: 'Enter fiber',
       maxLength: 4,
-      required: true,
+      required: false,
       allowPositiveOnly: true,
     },
     {
@@ -375,7 +375,7 @@ export default function CreateRecipe({
       label: 'Total Calories',
       type: 'text',
       placeholder: 'Enter total calories',
-      required: true,
+      required: false,
       allowPositiveOnly: true,
       disabled: true,
     },

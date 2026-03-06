@@ -64,14 +64,14 @@ const isNoneMedicalCondition = (value: any) => {
   return String(candidate).trim().toLowerCase() === 'none'
 }
 
-const isNoneFoodAllergy = (value: any) => {
-  if (!value) return false
-  const candidate =
-    typeof value === 'string'
-      ? value
-      : (value?.name ?? value?.label ?? value?.value ?? value?.id ?? '')
-  return String(candidate).trim().toLowerCase() === 'none'
-}
+// const isNoneFoodAllergy = (value: any) => {
+//   if (!value) return false
+//   const candidate =
+//     typeof value === 'string'
+//       ? value
+//       : (value?.name ?? value?.label ?? value?.value ?? value?.id ?? '')
+//   return String(candidate).trim().toLowerCase() === 'none'
+// }
 
 const closeMedicalConditionsDropdown = () => {
   if (typeof document === 'undefined') return
@@ -307,7 +307,7 @@ type Props = {
   subSection?: boolean
   setEditViewIndicator?: (value: boolean) => void
   editViewIndicator?: boolean
-  activeRole?: 'user' | 'nutritionist'
+  activeRole?: 'user' | 'nutritionist' | 'inactive-user'
 }
 
 export default function CreateAdmin({
@@ -340,7 +340,7 @@ export default function CreateAdmin({
   const [deleteModal, setDeleteModal] = useState(false)
   const [showOtherMedicalCondition, setShowOtherMedicalCondition] =
     useState(false)
-  const [showOtherFoodAllergy, setShowOtherFoodAllergy] = useState(false)
+  // const [showOtherFoodAllergy, setShowOtherFoodAllergy] = useState(false)
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
   // useEffect(() => {
@@ -568,19 +568,19 @@ export default function CreateAdmin({
             initialLoad: true,
             isMultiple: true,
           },
-          ...(showOtherFoodAllergy
-            ? [
-                {
-                  ...textField(
-                    'other_food_allergy',
-                    'Specify Food Allergy',
-                    'Enter food allergy',
-                    showOtherFoodAllergy
-                  ),
-                  type: 'text',
-                },
-              ]
-            : []),
+          // ...(showOtherFoodAllergy
+          //   ? [
+          //       {
+          //         ...textField(
+          //           'other_food_allergy',
+          //           'Specify Food Allergy',
+          //           'Enter food allergy',
+          //           showOtherFoodAllergy
+          //         ),
+          //         type: 'text',
+          //       },
+          //     ]
+          //   : []),
           { ...textField('state', 'State', 'Enter state') },
           { ...textField('ethnicity', 'Nationality', 'e.g., Indian') },
         ]
@@ -964,34 +964,34 @@ export default function CreateAdmin({
     closeMedicalConditionsDropdown()
   }, [medicalConditionsValue, isDrawerOpen])
 
-  const foodAllergiesValue = (methods as any).watch?.('food_allergies')
+  // const foodAllergiesValue = (methods as any).watch?.('food_allergies')
 
   // Check if "Other" is selected in food allergies
-  useEffect(() => {
-    if (!isDrawerOpen) return
-    if (!Array.isArray(foodAllergiesValue) || !foodAllergiesValue.length) {
-      setShowOtherFoodAllergy(false)
-      return
-    }
-    const hasOtherSelected = foodAllergiesValue.some((allergy: any) =>
-      typeof allergy === 'string'
-        ? allergy.toLowerCase() === 'other'
-        : allergy?.name?.toLowerCase?.() === 'other' ||
-          allergy?.id?.toString?.().toLowerCase() === 'other'
-    )
-    setShowOtherFoodAllergy(hasOtherSelected)
+  // useEffect(() => {
+  //   if (!isDrawerOpen) return
+  //   if (!Array.isArray(foodAllergiesValue) || !foodAllergiesValue.length) {
+  //     setShowOtherFoodAllergy(false)
+  //     return
+  //   }
+  //   const hasOtherSelected = foodAllergiesValue.some((allergy: any) =>
+  //     typeof allergy === 'string'
+  //       ? allergy.toLowerCase() === 'other'
+  //       : allergy?.name?.toLowerCase?.() === 'other' ||
+  //         allergy?.id?.toString?.().toLowerCase() === 'other'
+  //   )
+  //   setShowOtherFoodAllergy(hasOtherSelected)
 
-    const hasNoneSelected = foodAllergiesValue.some(isNoneFoodAllergy)
-    if (!hasNoneSelected) return
+  //   const hasNoneSelected = foodAllergiesValue.some(isNoneFoodAllergy)
+  //   if (!hasNoneSelected) return
 
-    const onlyNone = foodAllergiesValue.filter(isNoneFoodAllergy)
-    if (onlyNone.length !== foodAllergiesValue.length) {
-      methods.setValue('food_allergies' as any, onlyNone as any, {
-        shouldValidate: true,
-        shouldDirty: true,
-      })
-    }
-  }, [foodAllergiesValue, isDrawerOpen])
+  //   const onlyNone = foodAllergiesValue.filter(isNoneFoodAllergy)
+  //   if (onlyNone.length !== foodAllergiesValue.length) {
+  //     methods.setValue('food_allergies' as any, onlyNone as any, {
+  //       shouldValidate: true,
+  //       shouldDirty: true,
+  //     })
+  //   }
+  // }, [foodAllergiesValue, isDrawerOpen])
 
   const onSubmit = async (details: any) => {
     console.log('Form details submitted:', details)
@@ -1125,34 +1125,7 @@ export default function CreateAdmin({
           }
           return conditions
         })(),
-        food_allergies: (() => {
-          const allergies = foodAllergiesToPayload(details?.food_allergies)
-          const otherAllergy = details?.other_food_allergy?.trim()
-
-          // If "Other" is selected and other allergy is provided, include both predefined allergies and the custom one
-          if (allergies.toLowerCase().includes('other') && otherAllergy) {
-            // Get all predefined allergies (exclude "Other")
-            const predefinedAllergies = allergies
-              .split(',')
-              .map((allergy: string) => allergy.trim())
-              .filter((allergy: string) => allergy.toLowerCase() !== 'other')
-
-            // Add the custom allergy
-            predefinedAllergies.push(otherAllergy)
-
-            return predefinedAllergies.join(',')
-          }
-          // If "Other" is selected but no other allergy provided, exclude "Other"
-          if (allergies.toLowerCase().includes('other')) {
-            return allergies
-              .split(',')
-              .filter(
-                (allergy: string) => allergy.trim().toLowerCase() !== 'other'
-              )
-              .join(',')
-          }
-          return allergies
-        })(),
+        food_allergies: foodAllergiesToPayload(details?.food_allergies),
         state: details?.state ?? '',
         ethnicity: details?.ethnicity ?? '',
         ...(statusValue !== undefined ? { status: statusValue } : {}),

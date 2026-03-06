@@ -1715,10 +1715,15 @@ export default function Reports({
   const canDownloadWithRecipes = selectedRecipeIds.length > 0
 
   // Extract data for PDF section
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const workout = report.workout_summary || {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const yoga = report.yoga_summary || {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const meditation = report.meditation_summary || {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const vitals = report.vitals || {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const weightBmi = report.weight_and_bmi || {}
 
   const renderRecipePreviewCards = (recipes: any[]) => (

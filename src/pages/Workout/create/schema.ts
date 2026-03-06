@@ -30,8 +30,8 @@ const requiredSelectId = (fieldLabel: string) =>
     })
   )
 
-const optionalSelectId = () =>
-  z.preprocess(preprocessSelectValue, z.coerce.number().optional())
+// const optionalSelectId = () =>
+//   z.preprocess(preprocessSelectValue, z.coerce.number().optional())
 
 // export const formSchema = z.object({
 //   name: z
@@ -76,11 +76,15 @@ export const formSchema = z.object({
     .string({ invalid_type_error: 'Required.' })
     .min(1, { message: 'Required.' }),
 
-  category: z.string().optional(),
+  category: z
+    .string({ invalid_type_error: 'Required.' })
+    .min(1, { message: 'Required.' }),
   category_id: requiredSelectId('Category'),
 
-  subcategory: z.string().optional(),
-  subcategory_id: optionalSelectId(),
+  subcategory: z
+    .string({ invalid_type_error: 'Required.' })
+    .min(1, { message: 'Required.' }),
+  subcategory_id: requiredSelectId('Subcategory'),
 
   video_url: z.string().optional(), // added support for existing video
 

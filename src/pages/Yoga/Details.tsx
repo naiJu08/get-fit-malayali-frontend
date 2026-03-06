@@ -77,15 +77,23 @@ export default function YogaDetails() {
                   : yoga?.name
               }
             />
+            <DetailItem label="Duration" value={yoga?.duration_minutes} />
+            <DetailItem label="Intensity Level" value={yoga?.intensity_level} />
+            <DetailItem
+              label="Category"
+              value={
+                typeof yoga?.category === 'string'
+                  ? yoga.category.charAt(0).toUpperCase() +
+                    yoga.category.slice(1).toLowerCase()
+                  : yoga?.category
+              }
+            />
+            {/* <DetailItem label="Average Rating" value={yoga?.average_rating} /> */}
+            {/* <DetailItem label="Feedback Count" value={yoga?.feedbacks_count} /> */}
             <DetailItem
               label="Description"
               value={yoga?.description || yoga?.description}
             />
-            <DetailItem label="Intensity Level" value={yoga?.intensity_level} />
-            {/* <DetailItem label="Average Rating" value={yoga?.average_rating} /> */}
-            {/* <DetailItem label="Feedback Count" value={yoga?.feedbacks_count} /> */}
-            <DetailItem label="Duration" value={yoga?.duration_minutes} />
-
             {(() => {
               const raw = yoga?.thumbnail_url
               const t = typeof raw === 'string' ? raw.trim() : ''

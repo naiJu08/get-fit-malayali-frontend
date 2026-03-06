@@ -553,3 +553,28 @@ export const updateUserAdditionalData = (
     additional_data: payload,
   })
 }
+
+// Inactive Users
+const fetchInactiveUsers = async (input: QueryParams) => {
+  const url = buildUrlWithParams(apiUrl.INACTIVE_USERS, {
+    ...input,
+  })
+  const response = await getData(url)
+  return {
+    items: response?.users || [],
+    total: response?.pagination?.total_count ?? 0,
+    total_pages: response?.pagination?.total_pages ?? 1,
+    current_page: response?.pagination?.current_page ?? 1,
+    threshold_days: response?.threshold_days ?? 5,
+  }
+}
+
+export const useInactiveUsers = (input: QueryParams) => {
+  return useQuery(
+    ['inactive_users_list', input],
+    () => fetchInactiveUsers(input),
+    {
+      enabled: !DISABLE_NONLOGIN_APIS,
+    }
+  )
+}

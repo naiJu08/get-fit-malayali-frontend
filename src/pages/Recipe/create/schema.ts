@@ -19,6 +19,25 @@ const numberFromText = z.preprocess(
     .nonnegative({ message: 'Cannot be negative' })
 )
 
+const optionalNumberFromText = z.preprocess(
+  (val) => {
+    if (typeof val === 'number') return val
+    if (typeof val === 'string') {
+      const trimmed = val.trim()
+      if (!trimmed.length) return undefined
+      const n = Number(trimmed)
+      return Number.isNaN(n) ? val : n
+    }
+    return val
+  },
+  z
+    .number({
+      invalid_type_error: 'Must be a number',
+    })
+    .nonnegative({ message: 'Cannot be negative' })
+    .optional()
+)
+
 const numberFromSelect = z.preprocess((val) => {
   if (val && typeof val === 'object' && 'id' in (val as any)) {
     return (val as any).id
@@ -40,11 +59,11 @@ export const recipeFormSchema = z.object({
   serving_unit: z.string().min(1, 'Required'),
 
   // Nutrition fields
-  calories: numberFromText,
-  protein: numberFromText,
-  carbs: numberFromText,
-  fat: numberFromText,
-  fiber: numberFromText,
+  calories: optionalNumberFromText,
+  protein: optionalNumberFromText,
+  carbs: optionalNumberFromText,
+  fat: optionalNumberFromText,
+  fiber: optionalNumberFromText,
 
   ingredients: z
     .array(

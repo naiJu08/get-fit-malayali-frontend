@@ -57,7 +57,7 @@ export function KPIBanner({ data }: Props) {
       sub: `Lifetime: ${fmtCurrency(data?.subscriptions?.revenue?.lifetime_total_fees)}`,
       gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
       icon: '💰',
-      badge: 'AED',
+      badge: 'INR',
     },
     {
       title: 'Plans Library',
@@ -78,7 +78,7 @@ export function KPIBanner({ data }: Props) {
     {
       title: 'Meditation',
       value: fmt(data?.meditations?.total_meditations),
-      sub: `${fmtPct(data?.meditations?.completion_rate_percentage)} done · ${fmt(data?.meditations?.unique_users_completing)} users`,
+      sub: `${fmt(data?.meditations?.with_video)} with video · ${fmt(data?.meditations?.user_specific_meditations)} personalised`,
       gradient: 'linear-gradient(135deg,#9f7aea,#667eea)',
       icon: '🧘',
       badge: undefined,
@@ -86,7 +86,7 @@ export function KPIBanner({ data }: Props) {
     {
       title: 'Yoga',
       value: fmt(data?.yoga?.total_yoga_items),
-      sub: `${fmt(data?.yoga?.total_completions)} completions · ${fmt(data?.yoga?.unique_users_completing)} users`,
+      sub: `${fmt(data?.yoga?.with_video)} with video · ${fmt(data?.yoga?.user_specific_yoga_exercises)} personalised`,
       gradient: 'linear-gradient(135deg,#38b2ac,#4299e1)',
       icon: '🧘‍♀️',
       badge: undefined,

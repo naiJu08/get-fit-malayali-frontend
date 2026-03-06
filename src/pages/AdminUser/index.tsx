@@ -65,7 +65,9 @@ export default function AdminUser() {
   } | null>(null)
 
   const params = useParams()
-  const [activeRole, setActiveRole] = useState<'user' | 'nutritionist'>('user')
+  const [activeRole, setActiveRole] = useState<
+    'user' | 'nutritionist' | 'inactive-user'
+  >('user')
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
@@ -424,6 +426,17 @@ export default function AdminUser() {
                     Nutritionist
                   </button>
                 )}
+                <button
+                  type="button"
+                  className={`px-3 py-2 -mb-px ${
+                    activeRole === 'inactive-user'
+                      ? 'border-b-2 border-blue-600 text-blue-600'
+                      : 'text-gray-600'
+                  }`}
+                  onClick={() => navigate('/admin/inactive-users')}
+                >
+                  Inactive Users
+                </button>
               </div>
 
               {loginRole !== 'nutritionist' &&
@@ -461,7 +474,7 @@ export default function AdminUser() {
                     >
                       <option value="all">All</option>
                       <option value="active">Active</option>
-                      <option value="suspended">Suspended</option>
+                      <option value="deactivated">Inactive</option>
                     </select>
                   </div>
                 }

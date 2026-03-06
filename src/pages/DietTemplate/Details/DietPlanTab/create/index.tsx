@@ -99,7 +99,7 @@ type Props = {
   existingPlans?: any[]
 }
 
-export default function DietPlanForm({
+const DietPlanForm = ({
   isOpen,
   handleClose,
   edit,
@@ -107,10 +107,14 @@ export default function DietPlanForm({
   planId,
   planDurationDays,
   existingPlans = [],
-}: Props) {
+}: Props) => {
   const { enqueueSnackbar } = useSnackbarManager()
   const [initialDayName, setInitialDayName] = useState('')
   const { data: detailData } = useDietPlanDetail(edit ? rowData?.id : undefined)
+
+  // Check if this is creating a meal for a specific day (prefilled day info)
+  const isCreatingForSpecificDay =
+    !edit && rowData?.day_name && rowData?.day_number
 
   const durationDays =
     Number(planDurationDays ?? 0) ||
@@ -150,6 +154,7 @@ export default function DietPlanForm({
     reset,
     watch,
     setValue,
+    trigger,
     control,
     formState: { errors },
   } = methods
@@ -704,7 +709,7 @@ export default function DietPlanForm({
                         placeholder="Select day name"
                         data={dayNameOptions}
                         value={value || ''}
-                        disabled={!!edit}
+                        disabled={!!edit || isCreatingForSpecificDay}
                         className="w-full"
                         onChange={(option: any) => {
                           const nextValue = option?.value ?? option?.name ?? ''
@@ -732,7 +737,7 @@ export default function DietPlanForm({
                         placeholder="Select day number"
                         data={filteredDayOptions}
                         value={value ? String(value) : ''}
-                        disabled={!!edit}
+                        disabled={!!edit || isCreatingForSpecificDay}
                         className="w-full"
                         onChange={(option: any) => {
                           const raw =
@@ -767,6 +772,7 @@ export default function DietPlanForm({
                     )
                     const mealErrors = (errors?.meals as any)?.[index]
                     const countError = mealErrors?.count
+                    const mealIdError = mealErrors?.meal_id
                     const selectedIdsAll: number[] = (mealsFormValues || [])
                       .map((m: any) => Number(m?.meal_id || 0))
                       .filter((v: number) => Number.isFinite(v) && v > 0)
@@ -854,9 +860,17 @@ export default function DietPlanForm({
                                   mealId === '' ? 0 : Number(mealId),
                                   { shouldValidate: true }
                                 )
+                                // Trigger validation for both meal_id and count to show errors
+                                trigger(`meals.${index}.meal_id`)
+                                trigger(`meals.${index}.count`)
                                 refetchMeals()
                               }}
                             />
+                            {mealIdError && (
+                              <div className="text-xs text-red-500 mt-1">
+                                {mealIdError?.message as string}
+                              </div>
+                            )}
                           </div>
 
                           <div>
@@ -884,6 +898,9 @@ export default function DietPlanForm({
                                   onChange={(e: any) => {
                                     const v = e.target.value
                                     onChange(v === '' ? 0 : Number(v))
+                                    // Trigger validation for both meal_id and count to show errors
+                                    trigger(`meals.${index}.count`)
+                                    trigger(`meals.${index}.meal_id`)
                                   }}
                                   allowPositiveOnly
                                   errors={
@@ -1076,3 +1093,5 @@ export default function DietPlanForm({
     />
   )
 }
+
+export default DietPlanForm
