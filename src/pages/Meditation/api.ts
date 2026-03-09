@@ -67,14 +67,28 @@ export const useCreateMeditation = (handleSubmission: (data: any) => void) => {
     },
 
     onError: (error: any) => {
-      enqueueSnackbar(
-        getErrorMessage(
-          error.response.data.error || error?.response?.data?.detail
-        ),
-        {
-          variant: 'error',
-        }
-      )
+      // Handle different error response formats
+      const errorData = error?.response?.data
+      let errorMessage = 'Failed to create meditation'
+
+      if (
+        errorData?.errors &&
+        Array.isArray(errorData.errors) &&
+        errorData.errors.length > 0
+      ) {
+        // Format: {"errors":["Name has already been taken"]}
+        errorMessage = errorData.errors.join(', ')
+      } else if (errorData?.error) {
+        errorMessage = errorData.error
+      } else if (errorData?.detail) {
+        errorMessage = errorData.detail
+      } else if (typeof errorData === 'string') {
+        errorMessage = errorData
+      }
+
+      enqueueSnackbar(errorMessage, {
+        variant: 'error',
+      })
     },
   })
 }
