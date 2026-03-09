@@ -3,7 +3,7 @@ import { createElement, useEffect, useState, type ComponentType } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import type { IconBaseProps, IconType } from 'react-icons'
-import { Link } from 'react-router-dom'
+// import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/common'
 import { useAppStore } from '../../../store/appStore'
@@ -105,9 +105,6 @@ export default function Login() {
             {/* Text Overlay on Lower Left */}
             <div className="absolute bottom-6 left-6 right-6 bg-black/60 backdrop-blur-sm rounded-2xl p-6 text-white transform transition-all duration-500 hover:bg-black/70 hover:scale-[1.02]">
               <div className="flex items-center space-x-3 mb-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-500 rounded-full flex items-center justify-center">
-                  <span className="text-lg">💪</span>
-                </div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-orange-200 to-red-200 bg-clip-text text-transparent">
                   Transform Your Journey
                 </h3>
@@ -145,7 +142,7 @@ export default function Login() {
               </div>
 
               {/* Header */}
-              <div className="text-center mb-10">
+              <div className="text-center mb-5">
                 <div className="flex items-center justify-center w-full">
                   <img
                     src="/gfm-logo.png"
@@ -153,7 +150,7 @@ export default function Login() {
                     className="w-28 h-28 object-contain mx-auto"
                   />
                 </div>
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-red-700 to-orange-600 bg-clip-text text-transparent mb-3">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-red-700 to-orange-600 bg-clip-text text-transparent mb-2">
                   {logText}
                 </h2>
                 <p className="text-neutral-600 text-lg leading-relaxed">
@@ -166,10 +163,10 @@ export default function Login() {
                 {/* Username Field */}
                 <div className="group">
                   <label
-                    className="block text-sm font-semibold text-neutral-700 mb-3 transition-all duration-200 group-focus-within:text-red-600"
+                    className="block text-sm font-semibold text-gray-600 mb-3 transition-all duration-200 group-focus-within:text-gray-800"
                     htmlFor="username"
                   >
-                    Username
+                    Email
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -191,7 +188,9 @@ export default function Login() {
                       id="username"
                       type="email"
                       required={true}
-                      className="rounded appearance-none relative block w-full px-3 py-2 border border-formBorder placeholder-gray-500 textfield focus:outline-none focus:ring-primaryBlue focus:border-primaryBlue focus:z-10 sm:text-sm"
+                      className={`rounded appearance-none relative block w-full px-3 py-2 border ${
+                        errors.username ? 'border-red-500' : 'border-formBorder'
+                      } placeholder-gray-500 textfield focus:outline-none focus:ring-primaryBlue focus:border-primaryBlue focus:z-10 sm:text-sm`}
                       placeholder="Enter your username or email"
                       autoComplete="username"
                       spellCheck={false}
@@ -199,27 +198,16 @@ export default function Login() {
                     />
                   </div>
                   {errors.username && (
-                    <div className="flex items-center mt-2 text-sm text-red-500 animate-pulse">
-                      <svg
-                        className="w-4 h-4 mr-1"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                    <p className="mt-1 text-sm text-red-500">
                       {errors.username.message as string}
-                    </div>
+                    </p>
                   )}
                 </div>
 
                 {/* Password Field */}
                 <div className="group">
                   <label
-                    className="block text-sm font-semibold text-neutral-700 mb-3 transition-all duration-200 group-focus-within:text-red-600"
+                    className="block text-sm font-semibold text-gray-600 mb-3 transition-all duration-200 group-focus-within:text-gray-800"
                     htmlFor="password"
                   >
                     Password
@@ -244,7 +232,9 @@ export default function Login() {
                       id="password"
                       type={showPassword ? 'text' : 'password'}
                       required={true}
-                      className="w-full pl-10 pr-12 py-4 bg-white border border-neutral-200 rounded-2xl text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-4 focus:ring-red-100 focus:border-red-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                      className={`rounded appearance-none relative block w-full px-3 py-2 border ${
+                        errors.password ? 'border-red-500' : 'border-formBorder'
+                      } placeholder-gray-500 textfield focus:outline-none focus:ring-primaryBlue focus:border-primaryBlue focus:z-10 sm:text-sm`}
                       autoComplete="current-password"
                       spellCheck={false}
                       {...register('password')}
@@ -263,34 +253,23 @@ export default function Login() {
                     </button>
                   </div>
                   {errors.password && (
-                    <div className="flex items-center mt-2 text-sm text-red-500 animate-pulse">
-                      <svg
-                        className="w-4 h-4 mr-1"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                    <p className="mt-1 text-sm text-red-500">
                       {errors.password.message as string}
-                    </div>
+                    </p>
                   )}
                 </div>
 
                 {/* Login Button */}
-                <div className="space-y-4 pt-4">
+                <div className="space-y-4 pt-2">
                   <Button
-                    label="Get Started"
+                    label="Login"
                     className="w-full py-4 bg-primaryBlue  text-white font-semibold rounded-2xl transition-all duration-300 transform hover:scale-[1.02] focus:outline-none focus:ring-4 focus:ring-red-200 focus:ring-offset-2 shadow-lg hover:shadow-xl active:scale-95"
                     isLoading={isLoading}
                     type="submit"
                   />
 
                   {/* Forgot Password */}
-                  <div className="text-center">
+                  {/* <div className="text-center">
                     <Link
                       to="/forget-password"
                       className="inline-flex items-center text-red-600 hover:text-red-800 text-sm font-semibold transition-all duration-200 hover:underline"
@@ -310,12 +289,12 @@ export default function Login() {
                       </svg>
                       Forgot your password?
                     </Link>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
               {/* Additional Info */}
-              <div className="mt-4 text-center">
+              {/* <div className="mt-4 text-center">
                 <div className="bg-gradient-to-r from-transparent via-neutral-200 to-transparent h-px w-full mb-3"></div>
                 <p className="text-neutral-600 text-sm">
                   Don`t have an account?{' '}
@@ -326,10 +305,10 @@ export default function Login() {
                     Register
                   </Link>
                 </p>
-              </div>
+              </div> */}
 
               {/* Fitness Motivation */}
-              <div className="mt-3 text-center">
+              <div className="mt-6 text-center">
                 <div className="inline-flex items-center space-x-2 text-xs text-neutral-500 bg-orange-50 rounded-full px-4 py-2">
                   <span>💪</span>
                   <span>Start strong, finish stronger!</span>

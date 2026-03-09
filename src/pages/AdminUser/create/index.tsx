@@ -19,6 +19,275 @@ import {
   formSchemaNutritionistEdit,
 } from './schema'
 
+type MedicalConditionOption = {
+  id: string
+  name: string
+}
+
+type FoodAllergyOption = {
+  id: string
+  name: string
+}
+
+const isMedicalConditionOption = (
+  option: MedicalConditionOption | null
+): option is MedicalConditionOption => Boolean(option)
+
+const isFoodAllergyOption = (
+  option: FoodAllergyOption | null
+): option is FoodAllergyOption => Boolean(option)
+
+const medicalConditionOptions: MedicalConditionOption[] = [
+  { id: 'None', name: 'None' },
+  { id: 'PCOD', name: 'PCOD' },
+  { id: 'Diabetes', name: 'Diabetes' },
+  { id: 'Hypertension', name: 'Hypertension' },
+  { id: 'Other', name: 'Other' },
+]
+
+const foodAllergyOptions: FoodAllergyOption[] = [
+  { id: 'None', name: 'None' },
+  { id: 'Peanuts', name: 'Peanuts' },
+  { id: 'Tree Nuts', name: 'Tree Nuts' },
+  { id: 'Gluten', name: 'Gluten' },
+  { id: 'Shellfish', name: 'Shellfish' },
+  { id: 'Latex Fruit Syndrome', name: 'Latex Fruit Syndrome' },
+  { id: 'Other', name: 'Other' },
+]
+
+const isNoneMedicalCondition = (value: any) => {
+  if (!value) return false
+  const candidate =
+    typeof value === 'string'
+      ? value
+      : (value?.name ?? value?.label ?? value?.value ?? value?.id ?? '')
+  return String(candidate).trim().toLowerCase() === 'none'
+}
+
+// const isNoneFoodAllergy = (value: any) => {
+//   if (!value) return false
+//   const candidate =
+//     typeof value === 'string'
+//       ? value
+//       : (value?.name ?? value?.label ?? value?.value ?? value?.id ?? '')
+//   return String(candidate).trim().toLowerCase() === 'none'
+// }
+
+const closeMedicalConditionsDropdown = () => {
+  if (typeof document === 'undefined') return
+  const container = document.querySelector('[data-testid="medical_conditions"]')
+  if (!container) return
+  const target =
+    (container.querySelector('input') as HTMLElement | null) ||
+    (container as HTMLElement)
+
+  const dropdownOpen = container.querySelector('.qbs-autocomplete-suggestions')
+  if (dropdownOpen) {
+    const toggleButton = container.querySelector(
+      'button[aria-label="toggle"]'
+    ) as HTMLButtonElement | null
+    toggleButton?.click()
+  }
+
+  target?.blur()
+  target?.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+  )
+}
+
+const STATUS_OPTIONS = [
+  { id: 0, name: 'Active' },
+  { id: 1, name: 'Inactive' },
+] as const
+
+type StatusOption = (typeof STATUS_OPTIONS)[number]
+
+const deriveStatusLabel = (value: any): StatusOption['name'] | '' => {
+  if (value && typeof value === 'object') {
+    const nested = value?.id ?? value?.value ?? value?.name
+    return deriveStatusLabel(nested)
+  }
+
+  if (value === 0 || value === '0') return STATUS_OPTIONS[0].name
+  if (value === 1 || value === '1') return STATUS_OPTIONS[1].name
+
+  const normalized = String(value ?? '')
+    .trim()
+    .toLowerCase()
+
+  if (!normalized) return ''
+  if (normalized === 'active') return STATUS_OPTIONS[0].name
+  if (normalized === 'inactive' || normalized === 'suspended')
+    return STATUS_OPTIONS[1].name
+
+  return ''
+}
+
+const matchMedicalCondition = (
+  value: string
+): MedicalConditionOption | null => {
+  const normalized = value?.trim?.().toLowerCase()
+  if (!normalized) return null
+  const match = medicalConditionOptions.find((option) => {
+    const name = option.name?.toLowerCase?.()
+    const id = option.id?.toString?.().toLowerCase?.()
+    return name === normalized || id === normalized
+  })
+  return match ? { ...match } : null
+}
+
+const matchFoodAllergy = (value: string): FoodAllergyOption | null => {
+  const normalized = value?.trim?.().toLowerCase()
+  if (!normalized) return null
+  const match = foodAllergyOptions.find((option) => {
+    const name = option.name?.toLowerCase?.()
+    const id = option.id?.toString?.().toLowerCase?.()
+    return name === normalized || id === normalized
+  })
+  return match ? { ...match } : null
+}
+
+const normalizeMedicalConditions = (value: any): MedicalConditionOption[] => {
+  const toOption = (
+    entry: any,
+    index: number
+  ): MedicalConditionOption | null => {
+    if (typeof entry === 'string') {
+      const match = matchMedicalCondition(entry)
+      if (match) return match
+      const trimmed = entry.trim()
+      if (!trimmed) return null
+      return { id: `${trimmed}-${index}`, name: trimmed }
+    }
+    if (entry && typeof entry === 'object') {
+      const label = entry.name ?? entry.label ?? entry.value ?? entry.id ?? ''
+      if (typeof label === 'string' && label.trim()) {
+        const match = matchMedicalCondition(label)
+        if (match) return match
+        return { id: entry.id ?? `${label}-${index}`, name: label }
+      }
+      if (entry.id !== undefined && entry.id !== null) {
+        const idString = String(entry.id)
+        const match = matchMedicalCondition(idString)
+        if (match) return match
+        return { id: entry.id, name: idString }
+      }
+    }
+    return null
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry, index) => toOption(entry, index))
+      .filter(isMedicalConditionOption)
+  }
+
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((entry, index) => toOption(entry, index))
+      .filter(isMedicalConditionOption)
+  }
+
+  if (value && typeof value === 'object') {
+    return normalizeMedicalConditions([value])
+  }
+
+  return []
+}
+
+const medicalConditionsToPayload = (value: any): string => {
+  if (!value) return ''
+  const values = Array.isArray(value) ? value : [value]
+  return values
+    .map((entry) => {
+      if (typeof entry === 'string') return entry.trim()
+      if (entry && typeof entry === 'object') {
+        if (typeof entry.name === 'string' && entry.name.trim()) {
+          return entry.name.trim()
+        }
+        if (entry.value !== undefined && entry.value !== null) {
+          return String(entry.value).trim()
+        }
+        if (entry.id !== undefined && entry.id !== null) {
+          return String(entry.id).trim()
+        }
+      }
+      return ''
+    })
+    .filter((entry) => entry)
+    .join(',')
+}
+
+const normalizeFoodAllergies = (value: any): FoodAllergyOption[] => {
+  const toOption = (entry: any, index: number): FoodAllergyOption | null => {
+    if (typeof entry === 'string') {
+      const match = matchFoodAllergy(entry)
+      if (match) return match
+      const trimmed = entry.trim()
+      if (!trimmed) return null
+      return { id: `${trimmed}-${index}`, name: trimmed }
+    }
+    if (entry && typeof entry === 'object') {
+      const label = entry.name ?? entry.label ?? entry.value ?? entry.id ?? ''
+      if (typeof label === 'string' && label.trim()) {
+        const match = matchFoodAllergy(label)
+        if (match) return match
+        return { id: entry.id ?? `${label}-${index}`, name: label }
+      }
+      if (entry.id !== undefined && entry.id !== null) {
+        const idString = String(entry.id)
+        const match = matchFoodAllergy(idString)
+        if (match) return match
+        return { id: entry.id, name: idString }
+      }
+    }
+    return null
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((entry, index) => toOption(entry, index))
+      .filter(isFoodAllergyOption)
+  }
+
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((entry, index) => toOption(entry, index))
+      .filter(isFoodAllergyOption)
+  }
+
+  if (value && typeof value === 'object') {
+    return normalizeFoodAllergies([value])
+  }
+
+  return []
+}
+
+const foodAllergiesToPayload = (value: any): string => {
+  if (!value) return ''
+  const values = Array.isArray(value) ? value : [value]
+  return values
+    .map((entry) => {
+      if (typeof entry === 'string') return entry.trim()
+      if (entry && typeof entry === 'object') {
+        if (typeof entry.name === 'string' && entry.name.trim()) {
+          return entry.name.trim()
+        }
+        if (entry.value !== undefined && entry.value !== null) {
+          return String(entry.value).trim()
+        }
+        if (entry.id !== undefined && entry.id !== null) {
+          return String(entry.id).trim()
+        }
+      }
+      return ''
+    })
+    .filter((entry) => entry)
+    .join(',')
+}
+
 type Props = {
   isDrawerOpen: boolean
   disabled?: boolean
@@ -38,7 +307,7 @@ type Props = {
   subSection?: boolean
   setEditViewIndicator?: (value: boolean) => void
   editViewIndicator?: boolean
-  activeRole?: 'user' | 'nutritionist'
+  activeRole?: 'user' | 'nutritionist' | 'inactive-user'
 }
 
 export default function CreateAdmin({
@@ -69,6 +338,9 @@ export default function CreateAdmin({
     ...(disabled ? { disabled: true } : {}),
   })
   const [deleteModal, setDeleteModal] = useState(false)
+  const [showOtherMedicalCondition, setShowOtherMedicalCondition] =
+    useState(false)
+  // const [showOtherFoodAllergy, setShowOtherFoodAllergy] = useState(false)
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
   // useEffect(() => {
@@ -167,22 +439,19 @@ export default function CreateAdmin({
       type: 'date',
       required: true,
     },
-    {
-      name: 'status',
-      label: 'Status',
-      id: 'status',
-      desc: 'name',
-      descId: 'id',
-      data: [
-        { id: 0, name: 'Active' },
-        { id: 1, name: 'Inactive' },
-      ],
-      type: 'custom_select',
-      placeholder: 'Select Status',
-      async: false,
-      initialLoad: true,
-      hidden: !edit,
-    },
+    // {
+    //   name: 'status',
+    //   label: 'Status',
+    //   id: 'status',
+    //   desc: 'name',
+    //   descId: 'id',
+    //   data: STATUS_OPTIONS,
+    //   type: 'custom_select',
+    //   placeholder: 'Select Status',
+    //   async: false,
+    //   initialLoad: true,
+    //   hidden: !edit,
+    // },
     ...(!isNutritionistTab
       ? [
           {
@@ -216,7 +485,7 @@ export default function CreateAdmin({
               },
             ],
             type: 'custom_select',
-            placeholder: 'Select Lifestyle',
+            placeholder: 'Select lifestyle',
             async: false,
             initialLoad: true,
           },
@@ -254,7 +523,7 @@ export default function CreateAdmin({
               { id: 'Pescatarian', name: 'Pescatarian' },
             ],
             type: 'custom_select',
-            placeholder: 'Select Food Preference',
+            placeholder: 'Select food preference',
             async: false,
             initialLoad: true,
           },
@@ -264,41 +533,55 @@ export default function CreateAdmin({
             id: 'medical_conditions',
             desc: 'name',
             descId: 'id',
-            data: [
-              { id: 'None', name: 'None' },
-              { id: 'PCOD', name: 'PCOD' },
-              { id: 'Diabetes', name: 'Diabetes' },
-              { id: 'Hypertension', name: 'Hypertension' },
-              { id: 'Other', name: 'Other' },
-            ],
-            type: 'custom_select',
-            placeholder: 'Select Medical Condition',
+            data: medicalConditionOptions,
+            getData: () => medicalConditionOptions,
+            type: 'multi_select',
+            placeholder: 'Select medical conditions',
             async: false,
             initialLoad: true,
+            isMultiple: true,
           },
+          ...(showOtherMedicalCondition
+            ? [
+                {
+                  ...textField(
+                    'other_medical_condition',
+                    'Specify Medical Condition',
+                    'Enter medical condition',
+                    showOtherMedicalCondition
+                  ),
+                  type: 'text',
+                },
+              ]
+            : []),
           {
             name: 'food_allergies',
             label: 'Food Allergies',
             id: 'food_allergies',
             desc: 'name',
             descId: 'id',
-            data: [
-              { id: 'None', name: 'None' },
-              { id: 'Peanuts', name: 'Peanuts' },
-              { id: 'Tree nuts', name: 'Tree nuts' },
-              { id: 'Gluten', name: 'Gluten' },
-              { id: 'Shellfish', name: 'Shellfish' },
-              {
-                id: 'Latex fruit syndrome',
-                name: 'Latex fruit syndrome',
-              },
-              { id: 'Other', name: 'Other' },
-            ],
-            type: 'custom_select',
-            placeholder: 'Select Food Allergy',
+            data: foodAllergyOptions,
+            getData: () => foodAllergyOptions,
+            type: 'multi_select',
+            placeholder: 'Select food allergies',
             async: false,
             initialLoad: true,
+            isMultiple: true,
           },
+          // ...(showOtherFoodAllergy
+          //   ? [
+          //       {
+          //         ...textField(
+          //           'other_food_allergy',
+          //           'Specify Food Allergy',
+          //           'Enter food allergy',
+          //           showOtherFoodAllergy
+          //         ),
+          //         type: 'text',
+          //       },
+          //     ]
+          //   : []),
+          { ...textField('state', 'State', 'Enter state') },
           { ...textField('ethnicity', 'Nationality', 'e.g., Indian') },
         ]
       : []),
@@ -326,8 +609,11 @@ export default function CreateAdmin({
       lifestyle: '',
       goal: '',
       food_preferences: '',
-      medical_conditions: '',
-      food_allergies: '',
+      medical_conditions: [],
+      other_medical_condition: '',
+      food_allergies: [],
+      other_food_allergy: '',
+      state: '',
       ethnicity: '',
       status: '',
     } as any)
@@ -350,7 +636,11 @@ export default function CreateAdmin({
       lifestyle: '',
       goal: '',
       food_preferences: '',
-      medical_conditions: '',
+      medical_conditions: [],
+      other_medical_condition: '',
+      food_allergies: [],
+      other_food_allergy: '',
+      state: '',
       ethnicity: '',
       status: '',
     } as any)
@@ -401,15 +691,163 @@ export default function CreateAdmin({
           lifestyle: rowData?.user?.lifestyle ?? '',
           goal: rowData?.user?.goal ?? '',
           food_preferences: rowData?.user?.food_preferences ?? '',
-          medical_conditions: rowData?.user?.medical_conditions ?? '',
-          food_allergies: rowData?.user?.food_allergies ?? '',
-          ethnicity: rowData?.user?.ethnicity ?? '',
-          status:
-            rowData?.user?.status === 'Inactive' ||
-            rowData?.user?.status === 1 ||
-            rowData?.user?.status === '1'
-              ? 'Inactive'
-              : 'Active',
+          medical_conditions: (() => {
+            const conditions = normalizeMedicalConditions(
+              rowData?.user?.medical_conditions
+            )
+            const medicalConditionsStr = Array.isArray(conditions)
+              ? conditions
+                  .map((c) => (typeof c === 'string' ? c : c.name))
+                  .join(',')
+              : String(conditions || '')
+
+            // Check if the stored medical condition is not in the predefined options
+            // If it's a custom condition, we need to show "Other" selected and the custom value
+            const predefinedOptions = medicalConditionOptions.map((opt) =>
+              opt.name.toLowerCase()
+            )
+            const conditionsArray = medicalConditionsStr
+              .split(',')
+              .map((c) => c.trim().toLowerCase())
+
+            const customConditions = conditionsArray.filter(
+              (condition) => condition && !predefinedOptions.includes(condition)
+            )
+            const predefinedConditions = conditionsArray.filter(
+              (condition) => condition && predefinedOptions.includes(condition)
+            )
+
+            // Get the actual option objects for predefined conditions
+            const selectedPredefinedOptions = predefinedConditions
+              .map((conditionName) =>
+                medicalConditionOptions.find(
+                  (opt) => opt.name.toLowerCase() === conditionName
+                )
+              )
+              .filter(Boolean)
+
+            // If there are custom conditions, add "Other" to the selection
+            if (customConditions.length > 0) {
+              const otherOption = medicalConditionOptions.find(
+                (opt) => opt.name.toLowerCase() === 'other'
+              )
+              if (otherOption) {
+                selectedPredefinedOptions.push(otherOption)
+              }
+            }
+
+            return selectedPredefinedOptions
+          })(),
+          other_medical_condition: (() => {
+            const conditions = normalizeMedicalConditions(
+              rowData?.user?.medical_conditions
+            )
+            const medicalConditionsStr = Array.isArray(conditions)
+              ? conditions
+                  .map((c) => (typeof c === 'string' ? c : c.name))
+                  .join(',')
+              : String(conditions || '')
+
+            const predefinedOptions = medicalConditionOptions.map((opt) =>
+              opt.name.toLowerCase()
+            )
+            const conditionsArray = medicalConditionsStr
+              .split(',')
+              .map((c) => c.trim())
+
+            // Find custom conditions (not in predefined options)
+            const customConditions = conditionsArray.filter(
+              (condition) =>
+                condition &&
+                !predefinedOptions.includes(condition.toLowerCase())
+            )
+
+            // Return the first custom condition found
+            return customConditions.length > 0 ? customConditions[0] : ''
+          })(),
+          food_allergies: (() => {
+            const allergies = normalizeFoodAllergies(
+              rowData?.user?.food_allergies
+            )
+            const foodAllergiesStr = Array.isArray(allergies)
+              ? allergies
+                  .map((a) => (typeof a === 'string' ? a : a.name))
+                  .join(',')
+              : String(allergies || '')
+
+            // Check if the stored food allergy is not in the predefined options
+            // If it's a custom allergy, we need to show "Other" selected and the custom value
+            const predefinedOptions = foodAllergyOptions.map((opt) =>
+              opt.name.toLowerCase()
+            )
+            const allergiesArray = foodAllergiesStr
+              .split(',')
+              .map((a) => a.trim().toLowerCase())
+
+            const customAllergies = allergiesArray.filter(
+              (allergy) => allergy && !predefinedOptions.includes(allergy)
+            )
+            const predefinedAllergies = allergiesArray.filter(
+              (allergy) => allergy && predefinedOptions.includes(allergy)
+            )
+
+            // Get the actual option objects for predefined allergies
+            const selectedPredefinedOptions = predefinedAllergies
+              .map((allergyName) =>
+                foodAllergyOptions.find(
+                  (opt) => opt.name.toLowerCase() === allergyName
+                )
+              )
+              .filter(Boolean)
+
+            // If there are custom allergies, add "Other" to the selection
+            if (customAllergies.length > 0) {
+              const otherOption = foodAllergyOptions.find(
+                (opt) => opt.name.toLowerCase() === 'other'
+              )
+              if (otherOption) {
+                selectedPredefinedOptions.push(otherOption)
+              }
+            }
+
+            return selectedPredefinedOptions
+          })(),
+          other_food_allergy: (() => {
+            const allergies = normalizeFoodAllergies(
+              rowData?.user?.food_allergies
+            )
+            const foodAllergiesStr = Array.isArray(allergies)
+              ? allergies
+                  .map((a) => (typeof a === 'string' ? a : a.name))
+                  .join(',')
+              : String(allergies || '')
+
+            const predefinedOptions = foodAllergyOptions.map((opt) =>
+              opt.name.toLowerCase()
+            )
+            const allergiesArray = foodAllergiesStr
+              .split(',')
+              .map((a) => a.trim())
+
+            // Find custom allergies (not in predefined options)
+            const customAllergies = allergiesArray.filter(
+              (allergy) =>
+                allergy && !predefinedOptions.includes(allergy.toLowerCase())
+            )
+
+            // Return the first custom allergy found
+            return customAllergies.length > 0 ? customAllergies[0] : ''
+          })(),
+          state: rowData?.user?.state
+            ? rowData?.user?.state
+                .toLowerCase()
+                .replace(/\b([a-z])/gi, (letter: any) => letter.toUpperCase())
+            : '',
+          ethnicity: rowData?.user?.ethnicity
+            ? rowData?.user?.ethnicity.charAt(0).toUpperCase() +
+              rowData?.user?.ethnicity.slice(1).toLowerCase()
+            : '',
+          status: deriveStatusLabel(rowData?.user?.status),
         } as any)
       }
     }
@@ -492,7 +930,72 @@ export default function CreateAdmin({
       }
     }
   }, [roleIdValue, isDrawerOpen])
+
+  const medicalConditionsValue = (methods as any).watch?.('medical_conditions')
+
+  // Check if "Other" is selected in medical conditions
+  useEffect(() => {
+    if (!isDrawerOpen) return
+    if (
+      !Array.isArray(medicalConditionsValue) ||
+      !medicalConditionsValue.length
+    ) {
+      setShowOtherMedicalCondition(false)
+      return
+    }
+    const hasOtherSelected = medicalConditionsValue.some((condition: any) =>
+      typeof condition === 'string'
+        ? condition.toLowerCase() === 'other'
+        : condition?.name?.toLowerCase?.() === 'other' ||
+          condition?.id?.toString?.().toLowerCase() === 'other'
+    )
+    setShowOtherMedicalCondition(hasOtherSelected)
+
+    const hasNoneSelected = medicalConditionsValue.some(isNoneMedicalCondition)
+    if (!hasNoneSelected) return
+
+    const onlyNone = medicalConditionsValue.filter(isNoneMedicalCondition)
+    if (onlyNone.length !== medicalConditionsValue.length) {
+      methods.setValue('medical_conditions' as any, onlyNone as any, {
+        shouldValidate: true,
+        shouldDirty: true,
+      })
+    }
+    closeMedicalConditionsDropdown()
+  }, [medicalConditionsValue, isDrawerOpen])
+
+  // const foodAllergiesValue = (methods as any).watch?.('food_allergies')
+
+  // Check if "Other" is selected in food allergies
+  // useEffect(() => {
+  //   if (!isDrawerOpen) return
+  //   if (!Array.isArray(foodAllergiesValue) || !foodAllergiesValue.length) {
+  //     setShowOtherFoodAllergy(false)
+  //     return
+  //   }
+  //   const hasOtherSelected = foodAllergiesValue.some((allergy: any) =>
+  //     typeof allergy === 'string'
+  //       ? allergy.toLowerCase() === 'other'
+  //       : allergy?.name?.toLowerCase?.() === 'other' ||
+  //         allergy?.id?.toString?.().toLowerCase() === 'other'
+  //   )
+  //   setShowOtherFoodAllergy(hasOtherSelected)
+
+  //   const hasNoneSelected = foodAllergiesValue.some(isNoneFoodAllergy)
+  //   if (!hasNoneSelected) return
+
+  //   const onlyNone = foodAllergiesValue.filter(isNoneFoodAllergy)
+  //   if (onlyNone.length !== foodAllergiesValue.length) {
+  //     methods.setValue('food_allergies' as any, onlyNone as any, {
+  //       shouldValidate: true,
+  //       shouldDirty: true,
+  //     })
+  //   }
+  // }, [foodAllergiesValue, isDrawerOpen])
+
   const onSubmit = async (details: any) => {
+    console.log('Form details submitted:', details)
+    console.log('State field value:', details?.state)
     const pickId = (v: any, fallback = 0) => {
       if (v === null || v === undefined) return fallback
       if (typeof v === 'object') {
@@ -594,83 +1097,132 @@ export default function CreateAdmin({
               details?.food_preferences?.id ??
               '')
             : (details?.food_preferences ?? ''),
-        medical_conditions:
-          typeof details?.medical_conditions === 'object'
-            ? (details?.medical_conditions?.name ??
-              details?.medical_conditions?.id ??
-              '')
-            : (details?.medical_conditions ?? ''),
-        food_allergies:
-          typeof details?.food_allergies === 'object'
-            ? (details?.food_allergies?.name ??
-              details?.food_allergies?.id ??
-              '')
-            : (details?.food_allergies ?? ''),
+        medical_conditions: (() => {
+          const conditions = medicalConditionsToPayload(
+            details?.medical_conditions
+          )
+          const otherCondition = details?.other_medical_condition?.trim()
+
+          // If "Other" is selected and other condition is provided, include both predefined conditions and the custom one
+          if (conditions.toLowerCase().includes('other') && otherCondition) {
+            // Get all predefined conditions (exclude "Other")
+            const predefinedConditions = conditions
+              .split(',')
+              .map((cond: string) => cond.trim())
+              .filter((cond: string) => cond.toLowerCase() !== 'other')
+
+            // Add the custom condition
+            predefinedConditions.push(otherCondition)
+
+            return predefinedConditions.join(',')
+          }
+          // If "Other" is selected but no other condition provided, exclude "Other"
+          if (conditions.toLowerCase().includes('other')) {
+            return conditions
+              .split(',')
+              .filter((cond: string) => cond.trim().toLowerCase() !== 'other')
+              .join(',')
+          }
+          return conditions
+        })(),
+        food_allergies: foodAllergiesToPayload(details?.food_allergies),
+        state: details?.state ?? '',
         ethnicity: details?.ethnicity ?? '',
         ...(statusValue !== undefined ? { status: statusValue } : {}),
       },
     }
 
-    const extractEmailErrorMessage = (apiData: any) => {
-      const takeFirstString = (v: any): string => {
-        if (!v) return ''
-        if (typeof v === 'string') return v
-        if (Array.isArray(v)) {
-          const first = v.find((x) => typeof x === 'string')
-          return first ? String(first) : ''
+    console.log('Final payload:', payload)
+
+    const takeFirstString = (v: any): string => {
+      if (!v) return ''
+      if (typeof v === 'string') return v
+      if (Array.isArray(v)) {
+        for (const item of v) {
+          const str = takeFirstString(item)
+          if (str) return str
         }
-        if (typeof v === 'object') {
-          if (typeof v.message === 'string') return v.message
-          if (typeof v.error === 'string') return v.error
+        return ''
+      }
+      if (typeof v === 'object') {
+        if (typeof v.message === 'string') return v.message
+        if (typeof v.error === 'string') return v.error
+      }
+      return ''
+    }
+
+    const extractFieldErrorMessage = (
+      apiData: any,
+      fieldKeywords: string[]
+    ) => {
+      if (!apiData || !fieldKeywords.length) return ''
+      const normalized = fieldKeywords
+        .map((keyword) => keyword?.toLowerCase?.())
+        .filter(Boolean) as string[]
+
+      const includesKeyword = (text: string) => {
+        const lowerText = text.toLowerCase()
+        return normalized.some((keyword) => lowerText.includes(keyword))
+      }
+
+      const readFromObject = (source: any): string => {
+        if (!source || typeof source !== 'object') return ''
+        const entries = Object.entries(source)
+        for (const [key, value] of entries) {
+          if (typeof key === 'string' && includesKeyword(key)) {
+            const msg = takeFirstString(value)
+            if (msg) return msg
+          }
+        }
+        for (const [, value] of entries) {
+          if (Array.isArray(value)) {
+            for (const item of value) {
+              if (typeof item === 'string' && includesKeyword(item)) return item
+              const nested = readFromObject(item)
+              if (nested) return nested
+            }
+          } else if (typeof value === 'object') {
+            const nested = readFromObject(value)
+            if (nested) return nested
+          } else if (typeof value === 'string' && includesKeyword(value)) {
+            return value
+          }
         }
         return ''
       }
 
-      const direct =
-        takeFirstString(apiData?.errors?.email) ||
-        takeFirstString(apiData?.error?.email) ||
-        takeFirstString(apiData?.error?.errors?.email) ||
-        takeFirstString(apiData?.error?.errors?.[0]) ||
-        takeFirstString(apiData?.error?.errors) ||
-        takeFirstString(apiData?.errors?.[0]) ||
-        takeFirstString(apiData?.errors) ||
-        takeFirstString(apiData?.error) ||
-        takeFirstString(apiData?.message) ||
-        takeFirstString(apiData?.error?.message)
-      if (direct) return direct
-
-      const errorsObj = apiData?.errors
-      if (
-        errorsObj &&
-        typeof errorsObj === 'object' &&
-        !Array.isArray(errorsObj)
-      ) {
-        for (const k of Object.keys(errorsObj)) {
-          if (String(k).toLowerCase().includes('email')) {
-            const m = takeFirstString((errorsObj as any)[k])
-            if (m) return m
-          }
+      const containers = [
+        apiData?.errors,
+        apiData?.error?.errors,
+        apiData?.error,
+      ]
+      for (const container of containers) {
+        if (!container) continue
+        if (typeof container === 'string' && includesKeyword(container)) {
+          return container
         }
+        if (Array.isArray(container)) {
+          for (const entry of container) {
+            if (typeof entry === 'string' && includesKeyword(entry))
+              return entry
+            const msg = readFromObject(entry)
+            if (msg) return msg
+          }
+          continue
+        }
+        const msg = readFromObject(container)
+        if (msg) return msg
       }
 
-      const msgText =
-        takeFirstString(apiData?.message) ||
-        takeFirstString(apiData?.error?.message)
-      if (msgText && msgText.toLowerCase().includes('email')) return msgText
-
-      // fallback: backend may send a generic duplicate message without the word "email"
-      const generic =
-        takeFirstString(apiData?.message) ||
-        takeFirstString(apiData?.detail) ||
-        takeFirstString(apiData?.error?.message)
-      if (generic) {
-        const g = generic.toLowerCase()
-        if (
-          g.includes('taken') ||
-          g.includes('already') ||
-          g.includes('exists')
-        ) {
-          return generic
+      const genericSources = [
+        apiData?.message,
+        apiData?.error?.message,
+        apiData?.detail,
+      ]
+      for (const source of genericSources) {
+        const text = takeFirstString(source)
+        if (text && includesKeyword(text)) {
+          return text
         }
       }
 
@@ -686,25 +1238,66 @@ export default function CreateAdmin({
     } catch (error: any) {
       const apiData = (error?.response?.data ?? error?.data ?? error) as any
       const statusCode: number | undefined = error?.response?.status
-      const msg =
-        extractEmailErrorMessage(apiData) ||
-        (typeof error?.message === 'string' ? error.message : '')
-      const fallbackMsg =
-        statusCode === 409 || statusCode === 422
+      const phoneErrorMessage = extractFieldErrorMessage(apiData, [
+        'phone',
+        'mobile',
+      ])
+      const emailErrorMessage = extractFieldErrorMessage(apiData, [
+        'email',
+        'username',
+      ])
+      const fallbackEmailMsg =
+        !phoneErrorMessage &&
+        !emailErrorMessage &&
+        (statusCode === 409 || statusCode === 422)
           ? 'Email has already been taken.'
           : ''
+      const finalEmailMsg =
+        emailErrorMessage ||
+        fallbackEmailMsg ||
+        (typeof error?.message === 'string' &&
+        error?.message?.toLowerCase?.().includes('email')
+          ? error.message
+          : '')
 
-      const finalMsg = msg || fallbackMsg
+      if (phoneErrorMessage) {
+        ;(methods as any).setError?.(
+          'phone',
+          {
+            type: 'server',
+            message: String(phoneErrorMessage),
+          },
+          { shouldFocus: true }
+        )
+      }
 
-      if (finalMsg) {
+      if (finalEmailMsg) {
         ;(methods as any).setError?.(
           'email',
           {
             type: 'server',
-            message: String(finalMsg),
+            message: String(finalEmailMsg),
           },
-          { shouldFocus: true }
+          { shouldFocus: !phoneErrorMessage }
         )
+      }
+
+      if (!phoneErrorMessage && !finalEmailMsg) {
+        const genericError =
+          takeFirstString(apiData?.message) ||
+          takeFirstString(apiData?.error?.message) ||
+          takeFirstString(apiData?.detail) ||
+          (typeof error?.message === 'string' ? error.message : '')
+        if (genericError) {
+          ;(methods as any).setError?.(
+            'email',
+            {
+              type: 'server',
+              message: String(genericError),
+            },
+            { shouldFocus: true }
+          )
+        }
       }
     }
   }
@@ -797,7 +1390,12 @@ export default function CreateAdmin({
             {!viewMode ? (
               <>
                 <FormProvider {...methods}>
-                  <FormBuilder data={formBuilderProps} edit={true} spacing />
+                  <FormBuilder
+                    data={formBuilderProps}
+                    edit={true}
+                    spacing
+                    fromPopup
+                  />
                 </FormProvider>
               </>
             ) : (

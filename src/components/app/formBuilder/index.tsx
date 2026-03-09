@@ -434,39 +434,43 @@ const FormBuilder: React.FC<Props> = (props) => {
         )
       case 'multi_select':
         return (
-          <Controller
-            name={`${field.name}`}
-            control={control}
-            key={`${updatekey}${field.name}`}
-            render={({}) => (
-              <AutoComplete
-                key={`${updatekey}${field.name}`}
-                name={field.name}
-                type="auto_suggestion"
-                desc={field.desc as string}
-                descId={field.descId as string}
-                onChange={(e) => handleMultiChange(e, field)}
-                // value={value}
-                className={errors[field.name] ? 'textfield-error' : ''}
-                selectedItems={field.selectedItems ?? watch()[field.name] ?? []}
-                label={field.label}
-                errors={errors[field.name]}
-                async={field.async}
-                paginationEnabled={field.paginationEnabled}
-                nextBlock={field.nextBlock ?? undefined}
-                notDataMessage={field.notDataMessage}
-                getData={field.getData}
-                data-testid={field.name}
-                initialLoad={field?.initialLoad}
-                placeholder={field.placeholder}
-                disabled={isEditable()}
-                required={field.required}
-                actionLabel={field.actionLabel}
-                handleAction={field.handleAction}
-                isMultiple={field.isMultiple}
-              />
-            )}
-          />
+          <div data-testid={field.id || field.name}>
+            <Controller
+              name={`${field.name}`}
+              control={control}
+              key={`${updatekey}${field.name}`}
+              render={({}) => (
+                <AutoComplete
+                  key={`${updatekey}${field.name}`}
+                  name={field.name}
+                  type="auto_suggestion"
+                  desc={field.desc as string}
+                  descId={field.descId as string}
+                  onChange={(e) => handleMultiChange(e, field)}
+                  // value={value}
+                  className={errors[field.name] ? 'textfield-error' : ''}
+                  selectedItems={
+                    field.selectedItems ?? watch()[field.name] ?? []
+                  }
+                  label={field.label}
+                  errors={errors[field.name]}
+                  async={field.async}
+                  paginationEnabled={field.paginationEnabled}
+                  nextBlock={field.nextBlock ?? undefined}
+                  notDataMessage={field.notDataMessage}
+                  getData={field.getData}
+                  data-testid={field.name}
+                  initialLoad={field?.initialLoad}
+                  placeholder={field.placeholder}
+                  disabled={isEditable()}
+                  required={field.required}
+                  actionLabel={field.actionLabel}
+                  handleAction={field.handleAction}
+                  isMultiple={field.isMultiple}
+                />
+              )}
+            />
+          </div>
         )
       case 'custom_search_select':
         return (
@@ -633,6 +637,10 @@ const FormBuilder: React.FC<Props> = (props) => {
                     accept={field.accept}
                     required={field?.required}
                     disabled={field?.disabled ?? isEditable()}
+                    aspectRatio={field.aspectRatio}
+                    requiredWidth={field.requiredWidth}
+                    requiredHeight={field.requiredHeight}
+                    dimensionLabel={field.dimensionLabel}
                   />
                 </>
               )

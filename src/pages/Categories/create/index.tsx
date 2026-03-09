@@ -56,14 +56,18 @@ export default function CreateAdmin({
     ...(disabled ? { disabled: true } : {}),
   })
   const formBuilderProps = [
-    { ...textField('name', 'Name', 'Enter category name', true) },
+    {
+      ...textField('name', 'Name', 'Enter category name', true),
+      maxLength: 50,
+    },
     {
       name: 'description',
       label: 'Description',
       id: 'description',
       type: 'textarea',
       placeholder: 'Enter description',
-      required: true,
+      required: false,
+      maxLength: 255,
     },
   ]
 
@@ -90,10 +94,14 @@ export default function CreateAdmin({
     handleRefresh?.()
     handleClearAndClose()
   }
+  const capitalizeWords = (val?: string) => {
+    if (!val) return ''
+    return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
+  }
   useEffect(() => {
     if (isDrawerOpen && edit && !viewMode && rowData) {
       methods.reset({
-        name: rowData?.name ?? '',
+        name: capitalizeWords(rowData?.name) ?? '',
         description: rowData?.description ?? '',
       } as any)
     }

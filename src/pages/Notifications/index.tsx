@@ -1045,7 +1045,7 @@ export default function Notifications() {
               clearCreateForm()
             }}
             title={'Create Notification'}
-            actionLabel={'Create'}
+            actionLabel={'Save'}
             actionLoader={isCreating}
             onSubmit={handleCreateSubmit}
             secondaryAction={() => {
@@ -1271,7 +1271,7 @@ export default function Notifications() {
             onSubmit={handleCreateBatch}
             onChange={handleBatchFormChange}
             title={editingBatchId ? 'Update Batch' : 'Create Batch'}
-            actionLabel={editingBatchId ? 'Update' : 'Create'}
+            actionLabel={editingBatchId ? 'Update' : 'Save'}
           />
 
           <ConfirmDeleteModal

@@ -288,6 +288,28 @@ export default function SubscriptionBodyMeasurementsTab({
                       </div>
                     </div>
                   )}
+                  {row?.height != null && (
+                    <div className="border rounded-lg p-3 bg-emerald-50">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                        <Icons name="height-icon" />
+                        <span>Height</span>
+                      </div>
+                      <div className="mt-1 text-gray-800 font-semibold text-center">
+                        {row?.height ?? '—'}
+                      </div>
+                    </div>
+                  )}
+                  {row?.weight != null && (
+                    <div className="border rounded-lg p-3 bg-emerald-50">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                        <Icons name="weight-icon" />
+                        <span>Weight</span>
+                      </div>
+                      <div className="mt-1 text-gray-800 font-semibold text-center">
+                        {row?.weight ?? '—'}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

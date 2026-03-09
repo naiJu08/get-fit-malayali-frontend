@@ -12,6 +12,7 @@ type Props = {
   edit?: boolean
   rowData?: any
   planId?: string | number
+  onSuccess?: (res?: any) => void
 }
 
 export default function WorkoutPlanForm({
@@ -20,6 +21,7 @@ export default function WorkoutPlanForm({
   edit,
   rowData,
   planId,
+  onSuccess,
 }: Props) {
   const methods = useForm<WorkoutPlanSchema>({
     resolver: zodResolver(workoutPlanFormSchema),
@@ -50,6 +52,11 @@ export default function WorkoutPlanForm({
     }
   }, [isOpen, planId, rowData, reset])
 
+  const handleSuccess = (res?: any) => {
+    onSuccess?.(res)
+    handleClose()
+  }
+
   const onSubmit = (values: WorkoutPlanSchema) => {
     const fd = new FormData()
     fd.append('workout_plan[plan_id]', String(Number(values.plan_id ?? planId)))
@@ -62,10 +69,18 @@ export default function WorkoutPlanForm({
     if (edit && rowData?.id) {
       updateMutate(
         { id: rowData.id, payload: fd },
-        { onSuccess: () => handleClose() }
+        {
+          onSuccess: (res?: any) => {
+            handleSuccess(res)
+          },
+        }
       )
     } else {
-      createMutate(fd as any, { onSuccess: () => handleClose() })
+      createMutate(fd as any, {
+        onSuccess: (res?: any) => {
+          handleSuccess(res)
+        },
+      })
     }
   }
 

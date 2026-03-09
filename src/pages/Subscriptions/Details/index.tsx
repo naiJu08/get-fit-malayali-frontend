@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import moment from 'moment'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import { getSubscriptionDetails } from '../api'
 import { Tab, TabContainer } from '../../../components/common/tab'
@@ -8,6 +9,9 @@ import SubscriptionBodyMeasurementsTab from './BodyMeasurementsTab'
 // import SubscriptionBodyCompositionTab from './BodyCompositionTab'
 import SubscriptionVitalsTab from './VitalsTab'
 import Icons from '../../../components/common/icons'
+import ReminderSettings from '../../AdminUser/Details/ReminderSettings'
+import AdditionalInfoTab from './AdditionalInfoTab'
+import Reports from '../../AdminUser/Details/Reports'
 
 export default function SubscriptionDetailsMain() {
   const { id } = useParams()
@@ -60,6 +64,9 @@ export default function SubscriptionDetailsMain() {
     { id: 'body', label: 'Body measurements' },
     // { id: 'body-composition', label: 'Body composition' },
     { id: 'vitals', label: 'Vitals' },
+    { id: 'additional-information', label: 'Nutritional assessment' },
+    { id: 'reminders', label: 'Reminder settings' },
+    { id: 'reports', label: 'Reports' },
   ] as const
 
   type TabId = (typeof tabs)[number]['id']
@@ -469,7 +476,9 @@ export default function SubscriptionDetailsMain() {
                     <div className="flex justify-between py-2 border-b border-gray-100">
                       <span className="text-gray-600">Frozen Days</span>
                       <span className="text-gray-900 text-sm text-right">
-                        {freezeDays.join(', ')}
+                        {freezeDays
+                          .map((day) => moment(day).format('DD-MM-YYYY'))
+                          .join(', ')}
                       </span>
                     </div>
                   )}
@@ -480,11 +489,15 @@ export default function SubscriptionDetailsMain() {
         </Tab>
 
         <Tab id="subscriptions">
-          <SubscriptionUserSubscriptionsTab subscription={subscription} />
+          {activeTab === 'subscriptions' ? (
+            <SubscriptionUserSubscriptionsTab subscription={subscription} />
+          ) : null}
         </Tab>
 
         <Tab id="body">
-          <SubscriptionBodyMeasurementsTab subscription={subscription} />
+          {activeTab === 'body' ? (
+            <SubscriptionBodyMeasurementsTab subscription={subscription} />
+          ) : null}
         </Tab>
 
         {/* <Tab id="body-composition">
@@ -492,7 +505,33 @@ export default function SubscriptionDetailsMain() {
         </Tab> */}
 
         <Tab id="vitals">
-          <SubscriptionVitalsTab subscription={subscription} />
+          {activeTab === 'vitals' ? (
+            <SubscriptionVitalsTab subscription={subscription} />
+          ) : null}
+        </Tab>
+
+        <Tab id="additional-information">
+          {activeTab === 'additional-information' ? (
+            <AdditionalInfoTab subscription={subscription} />
+          ) : null}
+        </Tab>
+
+        <Tab id="reminders">
+          {activeTab === 'reminders' ? (
+            <ReminderSettings userId={subscription?.user_id} />
+          ) : null}
+        </Tab>
+
+        <Tab id="reports">
+          {activeTab === 'reports' ? (
+            <Reports
+              user={{
+                id: subscription?.user_id,
+                name: subscription?.user_name,
+              }}
+              subscriptionId={subscription?.id}
+            />
+          ) : null}
         </Tab>
       </TabContainer>
     </div>

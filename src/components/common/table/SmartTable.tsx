@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import Icons from '../icons'
 import ColumnIcon from '../icons/ColumnIcon'
 import { TableColumns } from '../../../common/types'
@@ -7,9 +7,10 @@ type Action = {
   title: string
   icon: React.ReactNode
   toolTip?: string
-  action: (row: any) => void
+  action: (row: any) => void | Promise<void>
   hide?: (row: any) => boolean
   variant?: 'primary' | 'secondary' | 'danger' | 'success'
+  disabled?: (row: any) => boolean
 }
 
 type PaginationProps = {
@@ -50,6 +51,7 @@ type SmartTableProps = {
   toolbarExtra?: React.ReactNode
   searchPlaceholder?: string
   createButton?: React.ReactNode
+  columnWidths?: Record<string, string | number>
 }
 
 const SmartTable: React.FC<SmartTableProps> = ({
@@ -77,6 +79,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
   toolbarExtra,
   searchPlaceholder,
   createButton,
+  columnWidths = {},
 }) => {
   const [visibleColumns, setVisibleColumns] = useState<TableColumns[]>(columns)
   const [showColumnMenu, setShowColumnMenu] = useState(false)
@@ -84,6 +87,11 @@ const SmartTable: React.FC<SmartTableProps> = ({
   const [selectedRowKey, setSelectedRowKey] = useState<any | null>(null)
   const [hoveredRow, setHoveredRow] = useState<any | null>(null)
   const [actionAnimation, setActionAnimation] = useState<string | null>(null)
+  const latestOnSearchRef = useRef(onSearch)
+
+  useEffect(() => {
+    latestOnSearchRef.current = onSearch
+  }, [onSearch])
 
   useEffect(() => {
     setVisibleColumns(columns)
@@ -105,13 +113,26 @@ const SmartTable: React.FC<SmartTableProps> = ({
     handleColumnSort(col.sortKey || col.field, next)
   }
 
+  const collapseExternalActionBar = () => {
+    setSelectedRow(null)
+    setSelectedRowKey(null)
+  }
+
   const handleActionClick = (action: Action, row: any) => {
+    if (action.disabled?.(row)) return
     // Trigger animation
     setActionAnimation(`${action.title}-${row[dataRowKey]}`)
     setTimeout(() => setActionAnimation(null), 600)
 
     // Execute action
-    action.action(row)
+    const result = action.action(row)
+    if (result && typeof (result as Promise<void>).then === 'function') {
+      ;(result as Promise<void>)
+        .catch(() => null)
+        .finally(() => collapseExternalActionBar())
+    } else {
+      collapseExternalActionBar()
+    }
   }
 
   const getActionVariantStyles = (variant: Action['variant'] = 'secondary') => {
@@ -145,19 +166,33 @@ const SmartTable: React.FC<SmartTableProps> = ({
     return row[col.field]
   }
 
+  const handleClearSearch = () => {
+    if (!searchValue) return
+    onSearchChange?.('')
+    if (latestOnSearchRef.current) {
+      setTimeout(() => {
+        latestOnSearchRef.current?.('')
+      }, 0)
+    }
+  }
+
   const header = (
     <thead className="bg-white border-b border-gray-200 shadow-sm">
       <tr>
         {renderedColumns.map((col) => (
           <th
             key={col.field}
-            className={`px-6 py-3 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wide min-w-[140px] ${
+            className={`px-6 py-3 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wide ${
               col.align === 'right'
                 ? 'text-right'
                 : col.align === 'center'
                   ? 'text-center'
                   : 'text-left'
             }`}
+            style={{
+              width: columnWidths[col.field] || col.colWidth || 'auto',
+              minWidth: columnWidths[col.field] || col.colWidth || '140px',
+            }}
           >
             <div className="flex items-center gap-2 select-none">
               <span className="text-gray-700 whitespace-nowrap">
@@ -192,7 +227,13 @@ const SmartTable: React.FC<SmartTableProps> = ({
           </th>
         ))}
         {!!actionProps.length && (
-          <th className="px-6 py-4 text-[11px] font-semibold text-gray-600 uppercase tracking-wider text-left">
+          <th
+            className="px-6 py-4 text-[11px] font-semibold text-gray-600 uppercase tracking-wider text-left"
+            style={{
+              width: columnWidths['actions'] || '120px',
+              minWidth: columnWidths['actions'] || '120px',
+            }}
+          >
             Actions
           </th>
         )}
@@ -397,7 +438,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
                 <label className="text-xs text-gray-600">Search</label>
                 <div className="relative">
                   <input
-                    className="pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-lg w-80 bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200"
+                    className="pl-10 pr-9 py-2.5 text-sm border border-gray-200 rounded-lg w-80 bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200"
                     // placeholder="Search records..."
                     placeholder={searchPlaceholder}
                     value={searchValue || ''}
@@ -411,6 +452,16 @@ const SmartTable: React.FC<SmartTableProps> = ({
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                     <Icons name="search" className="w-4 h-4" />
                   </span>
+                  {searchValue ? (
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                      onClick={handleClearSearch}
+                    >
+                      <Icons name="close" className="w-4 h-4" />
+                    </button>
+                  ) : null}
                 </div>
               </div>
             )}
@@ -524,6 +575,12 @@ const SmartTable: React.FC<SmartTableProps> = ({
                           }
                           ${isHovered ? 'text-gray-900' : ''}
                         `}
+                        style={{
+                          width:
+                            columnWidths[col.field] || col.colWidth || 'auto',
+                          minWidth:
+                            columnWidths[col.field] || col.colWidth || '140px',
+                        }}
                       >
                         {(() => {
                           const content = renderCell(col, row)
@@ -551,7 +608,13 @@ const SmartTable: React.FC<SmartTableProps> = ({
 
                     {/* Actions Column */}
                     {!!actionProps.length && (
-                      <td className="px-6 py-4">
+                      <td
+                        className="px-6 py-4"
+                        style={{
+                          width: columnWidths['actions'] || '120px',
+                          minWidth: columnWidths['actions'] || '120px',
+                        }}
+                      >
                         {externalActions ? (
                           <button
                             className={`
@@ -578,7 +641,9 @@ const SmartTable: React.FC<SmartTableProps> = ({
                             {actionProps.map((a, i) => {
                               const isHidden = a.hide ? a.hide(row) : false
                               if (isHidden) return null
-
+                              const isDisabled = a.disabled
+                                ? a.disabled(row)
+                                : false
                               const actionKey = `${a.title}-${rowKey}`
                               const isAnimating = actionAnimation === actionKey
 
@@ -589,9 +654,11 @@ const SmartTable: React.FC<SmartTableProps> = ({
                                     ${getActionVariantStyles(a.variant)}
                                     ${isAnimating ? 'animate-pulse scale-110' : ''}
                                     ${isHovered ? 'opacity-100' : 'opacity-90'}
+                                    ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}
                                   `}
                                   title={a.toolTip || a.title}
                                   onClick={() => handleActionClick(a, row)}
+                                  disabled={isDisabled}
                                 >
                                   <span
                                     className={`transition-transform duration-200 ${isAnimating ? 'scale-125' : ''}`}
@@ -620,7 +687,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
       {/* External Action Bar */}
       {externalActions && selectedRow && !!actionProps.length && (
         <div className="border-t bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 animate-slideUp">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-3">
             <span className="text-sm font-medium text-gray-700 mr-2">
               Actions for Selected Row
               {/* <strong className="text-blue-600">
@@ -631,7 +698,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
               {actionProps.map((a, i) => {
                 const isHidden = a.hide ? a.hide(selectedRow) : false
                 if (isHidden) return null
-
+                const isDisabled = a.disabled ? a.disabled(selectedRow) : false
                 const actionKey = `${a.title}-${selectedRowKey}`
                 const isAnimating = actionAnimation === actionKey
 
@@ -641,10 +708,12 @@ const SmartTable: React.FC<SmartTableProps> = ({
                     className={`
                       ${getActionVariantStyles(a.variant)}
                       ${isAnimating ? 'animate-bounce scale-110' : ''}
+                      ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}
                       transition-all duration-300
                     `}
                     title={a.toolTip || a.title}
                     onClick={() => handleActionClick(a, selectedRow)}
+                    disabled={isDisabled}
                   >
                     <span
                       className={`transition-transform duration-200 ${isAnimating ? 'rotate-12 scale-125' : ''}`}

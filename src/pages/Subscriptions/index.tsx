@@ -1,7 +1,6 @@
 import SmartTable from '../../components/common/table/SmartTable'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
@@ -28,7 +27,6 @@ import {
 } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
-
 export default function Subscriptions() {
   const navigate = useNavigate()
   const [columns, setColumns] = useState<TableColumns[]>([])
@@ -54,11 +52,15 @@ export default function Subscriptions() {
     end_date: '',
   })
   const [unfreezeConfirm, setUnfreezeConfirm] = useState(false)
+  const [selectedUnfreezeDates, setSelectedUnfreezeDates] = useState<string[]>(
+    []
+  )
   const [planIdFilter, setPlanIdFilter] = useState<string>('')
   const [planLabel, setPlanLabel] = useState<string>('All Plans')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [statusLabel, setStatusLabel] = useState<string>('All')
   const [plansCache, setPlansCache] = useState<Record<string, string>>({})
+  const plansDropdownRef = useRef<{ id: any; value: string }[] | null>(null)
   const location = useLocation()
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
@@ -126,11 +128,24 @@ export default function Subscriptions() {
     }
   }, [filters])
   useEffect(() => {
+    const nextFilters: any = { ...(pageParams?.filters || {}) }
+    const hadPlanFilter = Object.prototype.hasOwnProperty.call(
+      nextFilters,
+      'plan_id'
+    )
+    if (hadPlanFilter) delete nextFilters.plan_id
+
     setPageParams({
       ...pageParams,
       page: 1,
       search: '',
+      filters: nextFilters,
     })
+
+    if (hadPlanFilter) {
+      setPlanIdFilter('')
+      setPlanLabel('All Plans')
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, setPageParams])
   const resolvePlanLabel = async (id?: number | string) => {
@@ -149,28 +164,21 @@ export default function Subscriptions() {
     }
   }
 
-  const isFrozen = (rowData: any) => {
+  const isFrozen = useCallback((rowData: any) => {
     const val = String(rowData?.status ?? '').toLowerCase()
     return val === 'suspended' || val === 'paused'
-  }
+  }, [])
 
-  const handleUnfreezeRow = async (row: any) => {
-    if (!row?.id) return
-    try {
-      setloader(true)
-      await unfreezeUser(String(row.id))
-      enqueueSnackbar('Subscription unfrozen successfully', {
-        variant: 'success',
-      })
-      refetch()
-    } catch (err: any) {
-      enqueueSnackbar(
-        err?.response?.data?.error?.message || err?.response?.data?.message,
-        { variant: 'error' }
-      )
-    } finally {
-      setloader(false)
-    }
+  const normalizeDate = (value: any) => {
+    if (!value) return ''
+    if (typeof value === 'number') return ''
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return ''
+    return new Date(
+      Date.UTC(parsed.getFullYear(), parsed.getMonth(), parsed.getDate())
+    )
+      .toISOString()
+      .slice(0, 10)
   }
 
   const handleFreezeChange = ({
@@ -181,13 +189,26 @@ export default function Subscriptions() {
     value: any
   }) => {
     if (name === 'start_date' || name === 'end_date') {
-      const d = value ? new Date(value) : null
-      const iso = d
-        ? new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-            .toISOString()
-            .slice(0, 10)
-        : ''
-      setFreezeForm((prev) => ({ ...prev, [name]: iso }))
+      const normalized = normalizeDate(value)
+      setFreezeForm((prev) => {
+        const next = { ...prev, [name]: normalized }
+        if (
+          name === 'start_date' &&
+          next.end_date &&
+          normalized > next.end_date
+        ) {
+          next.end_date = normalized
+        }
+        if (
+          name === 'end_date' &&
+          next.start_date &&
+          normalized &&
+          normalized < next.start_date
+        ) {
+          next.start_date = normalized
+        }
+        return next
+      })
     } else {
       setFreezeForm((prev) => ({ ...prev, [name]: value }))
     }
@@ -217,24 +238,172 @@ export default function Subscriptions() {
   const [toggleFreezeOpen, setToggleFreezeOpen] = useState(false)
   const [toggleFreezeRow, setToggleFreezeRow] = useState<any>(null)
 
+  const freezeWindow = useMemo(
+    () => ({
+      start: normalizeDate(toggleFreezeRow?.start_date),
+      end: normalizeDate(toggleFreezeRow?.end_date),
+    }),
+    [toggleFreezeRow]
+  )
+
+  const availableUnfreezeDates = useMemo(() => {
+    if (!toggleFreezeRow) return []
+    const unique = new Set<string>()
+
+    const addDate = (value: any) => {
+      const normalized = normalizeDate(value)
+      if (normalized) unique.add(normalized)
+    }
+
+    const addFromString = (value: string) => {
+      if (!value) return
+      const matches = value.match(/\d{4}-\d{2}-\d{2}/g)
+      if (matches?.length) {
+        matches.forEach((m) => addDate(m))
+        return
+      }
+
+      value
+        .split(/[\s,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .forEach((s) => addDate(s))
+    }
+
+    const pushValue = (value: any) => {
+      if (value === null || value === undefined) return
+      if (Array.isArray(value)) {
+        value.forEach(pushValue)
+        return
+      }
+      if (typeof value === 'string') {
+        addFromString(value)
+        return
+      }
+      if (value instanceof Date) {
+        addDate(value)
+        return
+      }
+      if (typeof value === 'object') {
+        const maybeDate =
+          (value as any)?.date ??
+          (value as any)?.day ??
+          (value as any)?.freeze_date ??
+          (value as any)?.start_date ??
+          (value as any)?.end_date
+        if (maybeDate) addDate(maybeDate)
+        Object.values(value).forEach(pushValue)
+        return
+      }
+
+      addDate(value)
+    }
+
+    const directCandidates = [
+      toggleFreezeRow?.freeze_dates,
+      toggleFreezeRow?.freeze_date,
+      toggleFreezeRow?.freeze_start_date,
+      toggleFreezeRow?.freeze_start,
+      toggleFreezeRow?.frozen_days,
+      toggleFreezeRow?.paused_dates,
+      toggleFreezeRow?.pause_dates,
+    ]
+    directCandidates.forEach(pushValue)
+
+    Object.keys(toggleFreezeRow).forEach((k) => {
+      const key = String(k).toLowerCase()
+      if (
+        !key.includes('freeze') &&
+        !key.includes('frozen') &&
+        !key.includes('pause')
+      )
+        return
+      if (!key.includes('date') && key !== 'frozen_days') return
+      pushValue((toggleFreezeRow as any)[k])
+    })
+
+    return Array.from(unique).sort()
+  }, [toggleFreezeRow])
+
+  useEffect(() => {
+    if (!toggleFreezeRow) {
+      setFreezeForm({ reason: '', start_date: '', end_date: '' })
+      return
+    }
+    setFreezeForm((prev) => ({
+      ...prev,
+      reason: '',
+      start_date: '',
+      end_date: '',
+    }))
+  }, [freezeWindow.end, freezeWindow.start, toggleFreezeRow])
+
+  useEffect(() => {
+    if (!toggleFreezeOpen || !toggleFreezeRow || !isFrozen(toggleFreezeRow)) {
+      setSelectedUnfreezeDates([])
+      return
+    }
+    setSelectedUnfreezeDates([])
+  }, [availableUnfreezeDates, isFrozen, toggleFreezeOpen, toggleFreezeRow])
+
+  const closeFreezeDialog = useCallback(() => {
+    setToggleFreezeOpen(false)
+    setToggleFreezeRow(null)
+    setSelectedUnfreezeDates([])
+    setFreezeForm({ reason: '', start_date: '', end_date: '' })
+  }, [])
+
+  const handleToggleUnfreezeDate = (value: string) => {
+    setSelectedUnfreezeDates((prev) => {
+      if (prev.includes(value)) {
+        return prev.filter((d) => d !== value)
+      }
+      return [...prev, value].sort()
+    })
+  }
+
+  const formatDisplayDate = (value: string) => {
+    if (!value) return ''
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return value
+    return date.toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
+  }
+
   const handleConfirmToggleFreeze = async () => {
     if (!toggleFreezeRow) return
+    const rowIsFrozen = isFrozen(toggleFreezeRow)
+    if (rowIsFrozen && selectedUnfreezeDates.length === 0) {
+      enqueueSnackbar('Select at least one date to unfreeze', {
+        variant: 'warning',
+      })
+      return
+    }
+
+    if (!rowIsFrozen) {
+      const { reason, start_date, end_date } = freezeForm
+      if (!reason || !start_date || !end_date) {
+        enqueueSnackbar('Please fill reason, start date and end date', {
+          variant: 'warning',
+        })
+        return
+      }
+    }
+
     try {
       setloader(true)
-      if (isFrozen(toggleFreezeRow)) {
-        await unfreezeUser(String(toggleFreezeRow.id))
+      if (rowIsFrozen) {
+        await unfreezeUser(String(toggleFreezeRow.id), {
+          unfreeze_dates: selectedUnfreezeDates,
+        })
         enqueueSnackbar('Subscription unfrozen successfully', {
           variant: 'success',
         })
       } else {
         const { reason, start_date, end_date } = freezeForm
-        if (!reason || !start_date || !end_date) {
-          enqueueSnackbar('Please fill reason, start date and end date', {
-            variant: 'warning',
-          })
-          setloader(false)
-          return
-        }
         await freezeUser(String(toggleFreezeRow.id), {
           reason,
           start_date,
@@ -245,8 +414,7 @@ export default function Subscriptions() {
         })
       }
       refetch()
-      setToggleFreezeOpen(false)
-      setToggleFreezeRow(null)
+      closeFreezeDialog()
     } catch (err: any) {
       enqueueSnackbar(
         err?.response?.data?.error?.message || err?.response?.data?.message,
@@ -357,29 +525,41 @@ export default function Subscriptions() {
     ]
   }
 
-  const getPlansDropdown = async (search: string, pageNum: number) => {
-    const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    params.set('per_page', '1000')
-    if (pageNum) params.set('page', String(pageNum))
-    const url = `${apiUrl.PLANS}?${params.toString()}`
-    const res = await getData(url)
-    const items: any[] = Array.isArray(res)
-      ? (res as any[])
-      : (res?.items ?? res?.plans ?? [])
-    const mapped = items.map((p: any) => ({
-      id: p?.id,
-      value: p?.name ?? p?.plan_name ?? 'Plan',
-    }))
-    // update local cache for instant label setting on selection
-    const nextCache: Record<string, string> = { ...plansCache }
-    for (const it of mapped) {
-      if (it?.id != null) nextCache[String(it.id)] = it.value
+  const getPlansDropdown = useCallback(async (search: string) => {
+    if (!plansDropdownRef.current) {
+      const params = new URLSearchParams()
+      params.set('per_page', '1000')
+      const url = `${apiUrl.PLANS}?${params.toString()}`
+      const res = await getData(url)
+      const items: any[] = Array.isArray(res)
+        ? (res as any[])
+        : (res?.items ?? res?.plans ?? [])
+      const mapped = items.map((p: any) => ({
+        id: p?.id,
+        value: p?.name ?? p?.plan_name ?? 'Plan',
+      }))
+      plansDropdownRef.current = mapped
+      // update local cache for instant label setting on selection
+      setPlansCache((prev) => {
+        const nextCache: Record<string, string> = { ...prev }
+        for (const it of mapped) {
+          if (it?.id != null) nextCache[String(it.id)] = it.value
+        }
+        return nextCache
+      })
     }
-    setPlansCache(nextCache)
+
+    const source = plansDropdownRef.current ?? []
+    const normalizedSearch = search?.trim().toLowerCase()
+    const filtered = normalizedSearch
+      ? source.filter((item) =>
+          item?.value?.toLowerCase().includes(normalizedSearch)
+        )
+      : source
+
     // Prepend an 'All Plans' option so users can clear via the dropdown
-    return [{ id: null, value: 'All Plans' }, ...mapped]
-  }
+    return [{ id: null, value: 'All Plans' }, ...filtered]
+  }, [])
 
   const handleClose = () => {
     setCreateOpen(false)
@@ -443,25 +623,84 @@ export default function Subscriptions() {
           <ListingHeader data={basicData} checkPermission={false} />
           <DialogModal
             isOpen={toggleFreezeOpen}
-            onClose={() => setToggleFreezeOpen(false)}
+            onClose={closeFreezeDialog}
             title={
               isFrozen(toggleFreezeRow)
                 ? 'Unfreeze Subscription'
                 : 'Freeze Subscription'
             }
             onSubmit={handleConfirmToggleFreeze}
-            secondaryAction={() => {
-              setToggleFreezeOpen(false)
-              setToggleFreezeRow(null)
-            }}
+            secondaryAction={closeFreezeDialog}
             secondaryActionLabel="Cancel"
             actionLabel={isFrozen(toggleFreezeRow) ? 'Unfreeze' : 'Freeze'}
             actionLoader={loader}
             body={
               isFrozen(toggleFreezeRow) ? (
-                <InfoBox
-                  content={'Do you want to unfreeze this subscription?'}
-                />
+                availableUnfreezeDates.length ? (
+                  <div className="flex flex-col gap-4">
+                    {/* Description */}
+                    <p className="text-sm text-gray-500">
+                      Choose the frozen days you’d like to unfreeze.
+                    </p>
+
+                    {/* Dates container */}
+                    <div className="max-h-60 overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        {availableUnfreezeDates.map((date) => {
+                          const checked = selectedUnfreezeDates.includes(date)
+
+                          return (
+                            <label
+                              key={date}
+                              className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-xs cursor-pointer transition
+              ${
+                checked
+                  ? 'border-primary bg-white text-primary'
+                  : 'border-gray-200 bg-white hover:border-primary/40 hover:bg-primary/5'
+              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => handleToggleUnfreezeDate(date)}
+                                className="h-4 w-4 accent-primary"
+                              />
+                              <span className="font-medium">
+                                {formatDisplayDate(date)}
+                              </span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-xs">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedUnfreezeDates(availableUnfreezeDates)
+                        }
+                        className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-1 font-semibold text-gray-600
+               hover:bg-primaryGreen/10 hover:border-primaryBlue hover:text-primaryBlue transition"
+                      >
+                        Select all
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setSelectedUnfreezeDates([])}
+                        className="rounded-lg border border-gray-300 bg-white px-3 py-1 font-semibold text-gray-600
+               hover:border-red-400 hover:text-red-600 hover:bg-red-50 transition"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <InfoBox
+                    content={'No freeze dates are available to unfreeze.'}
+                  />
+                )
               ) : (
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col gap-1">
@@ -489,6 +728,11 @@ export default function Subscriptions() {
                         className="textfield"
                         name="start_date"
                         value={freezeForm.start_date}
+                        min={freezeWindow.start || undefined}
+                        max={
+                          freezeForm.end_date || freezeWindow.end || undefined
+                        }
+                        placeholder="Select start date"
                         onChange={(e) =>
                           handleFreezeChange({
                             name: e.target.name,
@@ -504,6 +748,13 @@ export default function Subscriptions() {
                         className="textfield"
                         name="end_date"
                         value={freezeForm.end_date}
+                        min={
+                          freezeForm.start_date ||
+                          freezeWindow.start ||
+                          undefined
+                        }
+                        max={freezeWindow.end || undefined}
+                        placeholder="Select end date"
                         onChange={(e) =>
                           handleFreezeChange({
                             name: e.target.name,
@@ -523,7 +774,7 @@ export default function Subscriptions() {
               dataRowKey="id"
               toolbar={true}
               search={true}
-              searchPlaceholder="Search Client Name"
+              searchPlaceholder="Search"
               searchValue={pageParams?.search || ''}
               onSearchChange={(val) =>
                 setPageParams({ ...pageParams, search: val, page: 1 })
@@ -615,6 +866,8 @@ export default function Subscriptions() {
                 {
                   title: 'Freeze',
                   action: (row) => {
+                    setFreezeForm({ reason: '', start_date: '', end_date: '' })
+                    setSelectedUnfreezeDates([])
                     setToggleFreezeRow(row)
                     setToggleFreezeOpen(true)
                   },
@@ -627,7 +880,12 @@ export default function Subscriptions() {
                 },
                 {
                   title: 'Unfreeze',
-                  action: (row) => handleUnfreezeRow(row),
+                  action: (row) => {
+                    setFreezeForm({ reason: '', start_date: '', end_date: '' })
+                    setSelectedUnfreezeDates([])
+                    setToggleFreezeRow(row)
+                    setToggleFreezeOpen(true)
+                  },
                   icon: <Icons name="lock-icon" />,
                   toolTip: 'Toggle Freeze',
                   hide: (rowData: any) => (isFrozen(rowData) ? false : true),

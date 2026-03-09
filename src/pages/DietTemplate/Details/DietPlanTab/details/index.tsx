@@ -1,0 +1,336 @@
+import { useCallback, useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+
+import Icons from '../../../../../components/common/icons'
+import InfoBox from '../../../../../components/app/alertBox/infoBox'
+import { fetchDietPlans, getDietPlanDetails } from '../api'
+import DietPlanForm from '../create'
+import { QueryParams } from '../../../../../common/types'
+
+const buildDayKey = (input: {
+  day_name?: string | null
+  day_number?: number | string | null
+  id?: string | number | null
+}) => {
+  const num = Number(input?.day_number)
+  if (Number.isFinite(num) && num > 0) {
+    return `number:${num}`
+  }
+  const name = input?.day_name?.toString().trim().toLowerCase()
+  if (name) return `name:${name}`
+  if (input?.id) return `plan-${input.id}`
+  return ''
+}
+
+export default function DietPlanDetails() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string>('')
+  const [editOpen, setEditOpen] = useState(false)
+  const [existingPlans, setExistingPlans] = useState<any[]>([])
+
+  const loadDietPlan = useCallback(async () => {
+    if (!id) return
+    try {
+      setLoading(true)
+      const res = await getDietPlanDetails(String(id))
+      setData(res)
+      setError('')
+      const templateId =
+        res?.diet_plan?.diet_plan_template_id ??
+        res?.diet_plan_template_id ??
+        res?.plan_id
+      if (templateId) {
+        try {
+          const plansResponse = await fetchDietPlans({
+            page: 1,
+            per_page: 1000,
+            diet_plan_template_id: Number(templateId),
+          } as QueryParams)
+          const plans = Array.isArray(plansResponse?.diet_plans)
+            ? plansResponse.diet_plans
+            : []
+          setExistingPlans(plans)
+        } catch (planErr) {
+          console.warn('Failed to load related diet plans', planErr)
+        }
+      } else {
+        setExistingPlans([])
+      }
+    } catch (e: any) {
+      setError(e?.response?.data?.message || 'Failed to load diet plan')
+    } finally {
+      setLoading(false)
+    }
+  }, [id])
+
+  useEffect(() => {
+    loadDietPlan()
+  }, [loadDietPlan])
+
+  const dp = data?.diet_plan || data || {}
+
+  const goBack = () => {
+    const templateId = dp?.diet_plan_template_id ?? dp?.plan_id
+    if (!templateId) {
+      navigate(-1)
+      return
+    }
+
+    const dayKey = buildDayKey({
+      day_name: dp?.day_name,
+      day_number: dp?.day_number,
+      id: dp?.id,
+    })
+
+    if (dayKey) {
+      navigate(
+        `/diet-template/${templateId}/diet-plan?day=${encodeURIComponent(dayKey)}`
+      )
+      return
+    }
+
+    navigate(`/diet-template/${templateId}/diet-plan`)
+  }
+
+  return (
+    <div className="p-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <button onClick={goBack} aria-label="Back">
+            <Icons name="left-arrow-icon" />
+          </button>
+          <h1 className="text-xl font-semibold">Diet Plan Details</h1>
+        </div>
+        {dp?.id && (
+          <button
+            type="button"
+            className="inline-flex items-center rounded-lg bg-primaryGreen text-white px-4 py-2 text-sm font-medium hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"
+            onClick={() => setEditOpen(true)}
+          >
+            <Icons name="edit" />
+            <span className="ml-2">Edit Diet Plan</span>
+          </button>
+        )}
+      </div>
+
+      {loading && (
+        <div className="p-6">
+          <InfoBox content="Loading diet plan details..." />
+        </div>
+      )}
+      {error && !loading && (
+        <div className="p-6">
+          <InfoBox content={error} />
+        </div>
+      )}
+      {!loading && !error && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <DetailItem
+              label="Template Name"
+              value={capitalizeFirst(dp?.diet_plan_template_name)}
+            />
+            <DetailItem
+              label="Day Name"
+              value={capitalizeFirst(dp?.day_name)}
+            />
+            <DetailItem label="Day Number" value={safeStr(dp?.day_number)} />
+            <DetailItem
+              label="Sequence Number"
+              value={safeStr(dp?.sequence_number)}
+            />
+            <DetailItem label="Meal Time" value={safeStr(dp?.meal_time)} />
+            <DetailItem label="Notes" value={safeStr(dp?.notes)} />
+          </div>
+
+          {dp?.calories_breakdown && (
+            <div className="mt-4 mb-6">
+              <h2 className="text-lg font-semibold mb-3">Calories Summary</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <DetailItem
+                  label="Protein"
+                  value={safeStr(dp?.calories_breakdown?.protein)}
+                />
+                <DetailItem
+                  label="Carbs"
+                  value={safeStr(dp?.calories_breakdown?.carbs)}
+                />
+                <DetailItem
+                  label="Fat"
+                  value={safeStr(dp?.calories_breakdown?.fat)}
+                />
+                <DetailItem
+                  label="Fiber"
+                  value={safeStr(dp?.calories_breakdown?.fiber)}
+                />
+                <DetailItem
+                  label="Effective Total Calories"
+                  value={safeStr(dp?.effective_total_calories)}
+                />
+              </div>
+            </div>
+          )}
+
+          {Array.isArray(dp?.items) && dp.items.length > 0 && (
+            <div className="mt-4">
+              <h2 className="text-lg font-semibold mb-3">Meals in this Slot</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {dp.items.map((it: any) => (
+                  <div
+                    key={it.id}
+                    className="border rounded-lg p-3 bg-white text-sm"
+                  >
+                    <div className="mb-1 text-[16px] flex items-center justify-between">
+                      <div className="font-semibold">
+                        {safeStr(it.meal_name)}
+                      </div>
+                      <span
+                        className={((): string => {
+                          const reqRaw = (
+                            it?.requirement ??
+                            it?.key_requirement ??
+                            ''
+                          )
+                            .toString()
+                            .toLowerCase()
+                          const isMandatory = reqRaw === 'mandatory'
+                          const isOptional = reqRaw === 'optional'
+                          const color = isMandatory
+                            ? 'text-red-600'
+                            : isOptional
+                              ? 'text-green-600'
+                              : 'text-gray-400'
+                          return `${color} font-semibold text-sm`
+                        })()}
+                      >
+                        {(() => {
+                          const reqRaw = (
+                            it?.requirement ??
+                            it?.key_requirement ??
+                            ''
+                          )
+                            .toString()
+                            .toLowerCase()
+                          if (reqRaw === 'mandatory') return 'Mandatory'
+                          if (reqRaw === 'optional') return 'Optional'
+                          return '--'
+                        })()}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs mb-2">
+                      <div>
+                        <div className="text-gray-500">Quantity</div>
+                        <div>{safeStr(it.quantity)}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                        Nutrition
+                      </div>
+                      <div className="bg-gray-50 rounded-md p-3">
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <div className="text-gray-500">Protein</div>
+                            <div>
+                              {(() => {
+                                const qty = Number(it?.quantity) || 1
+                                const v = Number(it?.per_serving?.protein) || 0
+                                return (v * qty).toFixed(2)
+                              })()}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Carbs</div>
+                            <div>
+                              {(() => {
+                                const qty = Number(it?.quantity) || 1
+                                const v = Number(it?.per_serving?.carbs) || 0
+                                return (v * qty).toFixed(2)
+                              })()}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Fat</div>
+                            <div>
+                              {(() => {
+                                const qty = Number(it?.quantity) || 1
+                                const v = Number(it?.per_serving?.fat) || 0
+                                return (v * qty).toFixed(2)
+                              })()}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">Fiber</div>
+                            <div>
+                              {(() => {
+                                const qty = Number(it?.quantity) || 1
+                                const v = Number(it?.per_serving?.fiber) || 0
+                                return (v * qty).toFixed(2)
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex items-center gap-4 text-sm">
+                          <div className="font-semibold">Total Calories :</div>
+                          <div className="font-semibold">
+                            {(() => {
+                              const qty = Number(it?.quantity) || 1
+                              const calPer = Number(it?.per_serving?.calories)
+                              if (!isNaN(calPer))
+                                return (calPer * qty).toFixed(2)
+                              const p = Number(it?.per_serving?.protein) || 0
+                              const c = Number(it?.per_serving?.carbs) || 0
+                              const f = Number(it?.per_serving?.fat) || 0
+                              const fi = Number(it?.per_serving?.fiber) || 0
+                              const cal = p * 4 + c * 4 + f * 9 + fi * 2
+                              return (cal * qty).toFixed(2)
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      <DietPlanForm
+        isOpen={editOpen}
+        handleClose={() => {
+          setEditOpen(false)
+          loadDietPlan()
+        }}
+        edit
+        rowData={dp}
+        planId={dp?.diet_plan_template_id ?? dp?.plan_id}
+        existingPlans={existingPlans}
+      />
+    </div>
+  )
+}
+
+function DetailItem({ label, value }: { label: string; value: any }) {
+  return (
+    <div className="border rounded-lg p-3 bg-white">
+      <div className="text-xs text-gray-500 mb-1">{label}</div>
+      <div className="text-sm">{safeStr(value)}</div>
+    </div>
+  )
+}
+
+function safeStr(v: any) {
+  if (v === null || v === undefined || v === '') return '--'
+  return String(v)
+}
+
+function capitalizeFirst(v: any) {
+  const s = safeStr(v)
+  if (s === '--') return s
+  return s.toLowerCase().replace(/\b([a-z])/g, (letter) => letter.toUpperCase())
+}

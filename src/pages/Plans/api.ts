@@ -28,8 +28,8 @@ const fetchPlans = async (input: QueryParams) => {
   const response = await getData(url)
   return response
 }
-export const usePlans = (input: QueryParams) => {
-  return useQuery(['plans_list', input], () => fetchPlans(input))
+export const usePlans = (input: QueryParams, options?: any) => {
+  return useQuery(['plans_list', input], () => fetchPlans(input), options)
 }
 
 // Fetch a single plan by id

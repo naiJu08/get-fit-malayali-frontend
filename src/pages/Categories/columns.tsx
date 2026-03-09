@@ -6,6 +6,19 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
+const truncateText = (value?: string, limit = 40) => {
+  if (!value) return ''
+  const trimmed = value.trim()
+  if (trimmed.length <= limit) return trimmed
+  return `${trimmed.slice(0, limit).trim()}…`
+}
+const stripHtml = (value?: string) =>
+  (value || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
 export const getColumns = ({
   onNameClick,
   disableNameLink = false,
@@ -37,10 +50,11 @@ export const getColumns = ({
       field: 'name',
       renderCell: (row: any) => {
         const value = getNestedProperty(row, 'name') as string | undefined
-        const displayValue =
-          typeof value === 'string' && value.length > 0
-            ? value.charAt(0).toUpperCase() + value.slice(1)
-            : (value ?? '')
+        const raw = typeof value === 'string' ? value : ''
+        const formatted = raw
+          ? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
+          : ''
+        const displayValue = truncateText(formatted, 50)
 
         if (!disableNameLink && onNameClick) {
           return {
@@ -53,13 +67,13 @@ export const getColumns = ({
                 {displayValue}
               </button>
             ),
-            toolTip: displayValue,
+            toolTip: formatted,
           }
         }
 
         return {
           cell: displayValue,
-          toolTip: displayValue,
+          toolTip: formatted,
         }
       },
       customCell: true,
@@ -76,18 +90,17 @@ export const getColumns = ({
       renderCell: (row: any) => {
         const raw = getNestedProperty(row, 'description')
         const html = typeof raw === 'string' ? raw : ''
+        const plain = stripHtml(html)
+        const display = truncateText(plain, 120)
         return {
           cell: (
             <div
-              className="truncate max-w-xs"
-              dangerouslySetInnerHTML={{ __html: html }}
+              className="max-w-xs truncate"
+              title={plain}
+              dangerouslySetInnerHTML={{ __html: display }}
             />
           ),
-          toolTip: html
-            .replace(/<[^>]*>/g, ' ')
-            .replace(/&nbsp;/gi, ' ')
-            .replace(/\s+/g, ' ')
-            .trim(),
+          toolTip: plain,
         }
       },
       customCell: true,

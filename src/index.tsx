@@ -27,12 +27,6 @@ const isResizeObserverLoopError = (args: any[]) => {
   )
 }
 
-const originalConsoleError = console.error
-console.error = (...args: any[]) => {
-  if (isResizeObserverLoopError(args)) return
-  originalConsoleError(...args)
-}
-
 const originalConsoleWarn = console.warn
 console.warn = (...args: any[]) => {
   if (isResizeObserverLoopError(args)) return

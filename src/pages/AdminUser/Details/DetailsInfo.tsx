@@ -4,7 +4,9 @@ import InfoBox from '../../../components/app/alertBox/infoBox'
 function capitalizeWord(v: any) {
   const s = safeStr(v)
   if (s === '--') return s
-  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+  return s
+    .toLowerCase()
+    .replace(/\b([a-z])/gi, (letter) => letter.toUpperCase())
 }
 function mapGender(g: any) {
   if (g === 0 || g === '0') return 'Male'
@@ -49,12 +51,15 @@ export default function DetailsInfo({
   loading,
   error,
   isNutritionist,
+  onEdit,
 }: {
   user: any
   loading: boolean
   error: string
   isNutritionist: boolean
+  onEdit?: () => void
 }) {
+  const canEdit = typeof onEdit === 'function' && Boolean(user?.id)
   return (
     <>
       {loading && (
@@ -68,34 +73,55 @@ export default function DetailsInfo({
         </div>
       )}
       {!loading && !error && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <DetailItem label="Name" value={capitalizeWord(user?.name)} />
-          <DetailItem label="Email" value={user?.email || user?.username} />
-          <DetailItem label="Phone" value={user?.phone} />
-          <DetailItem label="Role" value={mapRole(user?.role)} />
-          <DetailItem label="Gender" value={mapGender(user?.gender)} />
-          <DetailItem
-            label="Date of Birth"
-            value={formatDate(user?.date_of_birth)}
-          />
-          {!isNutritionist && (
-            <>
-              <DetailItem label="Height (cm)" value={safeStr(user?.height)} />
-              <DetailItem label="Weight (kg)" value={safeStr(user?.weight)} />
-              <DetailItem label="Lifestyle" value={user?.lifestyle} />
-              <DetailItem label="Goal" value={user?.goal} />
-              <DetailItem
-                label="Food Preferences"
-                value={user?.food_preferences}
-              />
-              <DetailItem
-                label="Medical Conditions"
-                value={user?.medical_conditions}
-              />
-              <DetailItem label="Nationality" value={user?.ethnicity} />
-            </>
+        <div className="flex flex-col gap-4">
+          {canEdit && (
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => onEdit?.()}
+                className="px-3 py-1.5 rounded-md bg-primaryGreen text-white text-sm font-medium hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"
+              >
+                Edit details
+              </button>
+            </div>
           )}
-          <DetailItem label="Status" value={mapStatus(user?.status)} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <DetailItem label="Name" value={capitalizeWord(user?.name)} />
+            <DetailItem label="Email" value={user?.email || user?.username} />
+            <DetailItem label="Phone" value={user?.phone} />
+            <DetailItem label="Role" value={mapRole(user?.role)} />
+            <DetailItem label="Gender" value={mapGender(user?.gender)} />
+            <DetailItem
+              label="Date of Birth"
+              value={formatDate(user?.date_of_birth)}
+            />
+            {!isNutritionist && (
+              <>
+                <DetailItem label="Height (cm)" value={safeStr(user?.height)} />
+                <DetailItem label="Weight (kg)" value={safeStr(user?.weight)} />
+                <DetailItem label="Lifestyle" value={user?.lifestyle} />
+                <DetailItem label="Goal" value={user?.goal} />
+                <DetailItem
+                  label="Food Preferences"
+                  value={user?.food_preferences}
+                />
+                <DetailItem
+                  label="Medical Conditions"
+                  value={capitalizeWord(user?.medical_conditions)}
+                />
+                <DetailItem
+                  label="Food Allergies"
+                  value={capitalizeWord(user?.food_allergies)}
+                />
+                <DetailItem
+                  label="Nationality"
+                  value={capitalizeWord(user?.ethnicity)}
+                />
+                <DetailItem label="State" value={capitalizeWord(user?.state)} />
+              </>
+            )}
+            <DetailItem label="Status" value={mapStatus(user?.status)} />
+          </div>
         </div>
       )}
     </>

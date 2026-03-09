@@ -10,10 +10,42 @@ import { DialogModal, TextField } from '../../../../../components/common'
 import FormBuilder from '../../../../../components/app/formBuilder'
 import ToggleSwitch from '../../../../../components/common/inputs/ToggleSwitch'
 import { useCreateDietPlan, useDietPlanDetail, useUpdateDietPlan } from '../api'
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMeals } from '../../../../Meals/api'
 import { usePlan } from '../../../api'
 import { AutoComplete } from 'qbs-core'
+import Button from '../../../../../components/common/buttons/Button'
+import { useSnackbarManager } from '../../../../../components/common/snackbar'
+
+const DAY_NAMES = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+]
+
+const DAY_NAME_INDEX_MAP = DAY_NAMES.reduce<Record<string, number>>(
+  (acc, name, index) => {
+    acc[name.toLowerCase()] = index
+    return acc
+  },
+  {}
+)
+
+const getDayIndexFromName = (name?: string | null) => {
+  if (!name) return null
+  return DAY_NAME_INDEX_MAP[name.toLowerCase()] ?? null
+}
+
+const getDayNameFromNumber = (dayNumber?: number | string | null) => {
+  const num = Number(dayNumber)
+  if (!Number.isFinite(num) || num <= 0) return ''
+  const index = (num - 1) % DAY_NAMES.length
+  return DAY_NAMES[index] ?? ''
+}
 
 type Props = {
   isOpen: boolean
@@ -31,6 +63,8 @@ export default function DietPlanForm({
   planId,
 }: Props) {
   console.log('DietPlanForm edit:', edit, 'rowData:', rowData)
+  const { enqueueSnackbar } = useSnackbarManager()
+  const [initialDayName, setInitialDayName] = useState('')
   const { data: detailData } = useDietPlanDetail(edit ? rowData?.id : undefined)
 
   // Load plan to derive duration_days for day_number dropdown
@@ -40,12 +74,14 @@ export default function DietPlanForm({
     (planData as any)?.duration_days ??
     0
 
-  const dayOptions =
-    Number(durationDays) > 0
-      ? Array.from({ length: Number(durationDays) }, (_, i) => i + 1).map(
-          (d) => ({ id: d, name: String(d), value: d })
-        )
-      : []
+  const dayOptions = useMemo(() => {
+    if (Number(durationDays) > 0) {
+      return Array.from({ length: Number(durationDays) }, (_, i) => i + 1).map(
+        (d) => ({ id: d, name: String(d), value: d })
+      )
+    }
+    return []
+  }, [durationDays])
 
   const methods = useForm<DietPlanSchema>({
     resolver: zodResolver(dietPlanFormSchema),
@@ -53,10 +89,12 @@ export default function DietPlanForm({
     reValidateMode: 'onChange',
     defaultValues: {
       plan_id: Number(planId ?? rowData?.plan_id ?? 0),
-      day_number: Number(rowData?.day_number ?? 1),
+      day_number: edit ? Number(rowData?.day_number ?? 1) : 0,
       sequence_number: Number(rowData?.sequence_number ?? 1),
       meal_time: rowData?.meal_time ?? '',
       meal_name: rowData?.meal_name ?? '',
+      day_name:
+        rowData?.day_name ?? getDayNameFromNumber(rowData?.day_number) ?? '',
       protein: (rowData as any)?.protein ?? '',
       carbs: (rowData as any)?.carbs ?? '',
       fat: (rowData as any)?.fat ?? '',
@@ -89,6 +127,8 @@ export default function DietPlanForm({
 
   // Selected meal time from the form
   const selectedMealTime = watch('meal_time')
+  const selectedDayName = watch('day_name')
+  const selectedDayNumber = watch('day_number')
 
   // Call meals API with per_page=999.
   // For both create and edit, filter by the currently selected meal_time
@@ -103,6 +143,47 @@ export default function DietPlanForm({
   const { data: mealsData, refetch: refetchMeals } = useMeals(
     searchParams as any
   ) as any
+
+  const dayNameOptions = useMemo(() => {
+    if (dayOptions.length === 0) {
+      return DAY_NAMES.map((name) => ({
+        id: name.toLowerCase(),
+        name,
+        value: name,
+      }))
+    }
+
+    const availableIndices = new Set<number>()
+    dayOptions.forEach((option) => {
+      const value = Number(option.value ?? option.id ?? 0)
+      if (!Number.isFinite(value) || value <= 0) return
+      const idx = (value - 1) % DAY_NAMES.length
+      availableIndices.add(idx)
+    })
+
+    const applicableNames =
+      availableIndices.size > 0
+        ? DAY_NAMES.filter((_, idx) => availableIndices.has(idx))
+        : DAY_NAMES
+
+    return applicableNames.map((name) => ({
+      id: name.toLowerCase(),
+      name,
+      value: name,
+    }))
+  }, [dayOptions])
+
+  const filteredDayOptions = useMemo(() => {
+    if (!selectedDayName) return dayOptions
+    const index = getDayIndexFromName(selectedDayName)
+    if (index == null) return dayOptions
+
+    return dayOptions.filter((option) => {
+      const value = Number(option.value ?? option.id ?? 0)
+      if (!Number.isFinite(value) || value <= 0) return false
+      return (value - 1) % DAY_NAMES.length === index
+    })
+  }, [dayOptions, selectedDayName])
 
   const allMeals = (mealsData as any)?.meals ?? []
   // API is already filtered by meal_time via searchParams; use it directly
@@ -135,6 +216,25 @@ export default function DietPlanForm({
 
     return sum + perServingTotal * count
   }, 0)
+
+  useEffect(() => {
+    if (edit) return
+    if (!selectedDayName) return
+
+    if (filteredDayOptions.length === 0) {
+      setValue('day_number', 0, { shouldValidate: true })
+      return
+    }
+
+    const nextValue = Number(
+      filteredDayOptions[0]?.value ?? filteredDayOptions[0]?.id ?? 0
+    )
+
+    if (!Number.isFinite(nextValue) || nextValue <= 0) return
+    if (Number(selectedDayNumber) === nextValue) return
+
+    setValue('day_number', nextValue, { shouldValidate: true })
+  }, [edit, filteredDayOptions, selectedDayName, selectedDayNumber, setValue])
 
   useEffect(() => {
     if (!selectedMealTime || edit) return
@@ -173,6 +273,11 @@ export default function DietPlanForm({
         ? ((detailData as any).diet_plan ?? detailData)
         : rowData || {}
 
+    // Store initial day name for resetting after "Add New"
+    const dayName =
+      source?.day_name ?? getDayNameFromNumber(source?.day_number) ?? ''
+    setInitialDayName(dayName)
+
     // For meals: in detail response it's "meals", in table row it's "items"
     const itemsSource =
       edit && Array.isArray((detailData as any)?.meals)
@@ -206,11 +311,13 @@ export default function DietPlanForm({
 
     reset({
       plan_id: Number(planId ?? source?.plan_id ?? 0),
-      day_number: Number(source?.day_number ?? 1),
+      day_number: edit ? Number(source?.day_number ?? 1) : 0,
       // In create mode, start with 0 and let meal_time mapping set sequence_number
       sequence_number: edit ? Number(source?.sequence_number ?? 1) : 0,
       meal_time: source?.meal_time ?? '',
       meal_name: source?.meal_name ?? '',
+      day_name:
+        source?.day_name ?? getDayNameFromNumber(source?.day_number) ?? '',
       protein: (source as any)?.protein ?? '',
       carbs: (source as any)?.carbs ?? '',
       fat: (source as any)?.fat ?? '',
@@ -255,7 +362,7 @@ export default function DietPlanForm({
     }
   }, [isOpen, planId, edit, rowData, detailData, reset, replaceMeals])
 
-  const onSubmit = (values: DietPlanSchema) => {
+  const onSubmit = (values: DietPlanSchema, keepOpen = false) => {
     const itemsPayload = (values.meals || [])
       .filter((m: any) => typeof m.meal_id === 'number' && m.meal_id && m.count)
       .map((m: any) => ({
@@ -270,6 +377,7 @@ export default function DietPlanForm({
       diet_plan: {
         plan_id: Number(values.plan_id ?? planId),
         day_number: Number(values.day_number),
+        day_name: values.day_name,
         sequence_number: Number(values.sequence_number),
         meal_time: values.meal_time,
         meal_name: values.meal_name || '',
@@ -283,10 +391,68 @@ export default function DietPlanForm({
     if (edit && rowData?.id) {
       updateMutate(
         { id: rowData.id, payload },
-        { onSuccess: () => handleClose() }
+        {
+          onSuccess: () => {
+            enqueueSnackbar('Diet plan updated successfully', {
+              variant: 'success',
+            })
+            handleClose()
+          },
+        }
       )
     } else {
-      createMutate(payload, { onSuccess: () => handleClose() })
+      createMutate(payload, {
+        onSuccess: () => {
+          enqueueSnackbar('Diet plan created successfully', {
+            variant: 'success',
+          })
+          if (keepOpen) {
+            // Keep the form open and reset for new entry with same day
+            const currentDayNumber = values.day_number
+            const currentDayName = initialDayName || values.day_name
+            reset({
+              plan_id: Number(planId ?? values.plan_id ?? 0),
+              day_number: currentDayNumber,
+              day_name: currentDayName,
+              sequence_number: 0,
+              meal_time: '',
+              meal_name: '',
+              protein: '',
+              carbs: '',
+              fat: '',
+              fiber: '',
+              total_calories: '',
+              calories: '',
+              meals: [
+                {
+                  meal_id: 0,
+                  count: 0,
+                  requirement: 'Optional',
+                  protein: '',
+                  carbs: '',
+                  fat: '',
+                  fiber: '',
+                  total_calories: '',
+                },
+              ],
+            } as any)
+            replaceMeals([
+              {
+                meal_id: 0,
+                count: 0,
+                requirement: 'Optional',
+                protein: '',
+                carbs: '',
+                fat: '',
+                fiber: '',
+                total_calories: '',
+              },
+            ])
+          } else {
+            handleClose()
+          }
+        },
+      })
     }
   }
 
@@ -301,6 +467,19 @@ export default function DietPlanForm({
   ]
 
   const formFields = [
+    {
+      name: 'day_name',
+      label: 'Day Name',
+      type: 'custom_search_select',
+      desc: 'name',
+      descId: 'id',
+      id: 'day_name_id',
+      placeholder: 'Select day name',
+      data: dayNameOptions,
+      required: true,
+      initialLoad: rowData?.day_name ?? '',
+      disabled: !!edit,
+    },
     edit
       ? {
           name: 'day_number',
@@ -317,8 +496,8 @@ export default function DietPlanForm({
           desc: 'name',
           descId: 'id',
           id: 'day_number_id',
-          placeholder: 'Select day',
-          data: dayOptions,
+          placeholder: 'Select day number',
+          data: filteredDayOptions,
           required: true,
         },
     {
@@ -361,10 +540,38 @@ export default function DietPlanForm({
       title={edit ? 'Edit Diet Plan' : 'Create Diet Plan'}
       actionLabel={edit ? 'Update' : 'Create'}
       actionLoader={creating || updating}
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={handleSubmit((values) => onSubmit(values, false))}
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"
       small={false}
+      actionBody={
+        <div className="flex flex-row gap-2 w-full justify-end">
+          <Button
+            disabled={creating || updating}
+            label="Cancel"
+            onClick={handleClose}
+            outlined
+          />
+          {!edit && (
+            <Button
+              disabled={creating || updating}
+              isLoading={creating}
+              label="Add New"
+              onClick={handleSubmit((values) => onSubmit(values, true))}
+              className="bg-blue-500 hover:bg-blue-600"
+            />
+          )}
+          {edit && (
+            <Button
+              disabled={creating || updating}
+              isLoading={creating || updating}
+              label="Update"
+              onClick={handleSubmit((values) => onSubmit(values, false))}
+              primary
+            />
+          )}
+        </div>
+      }
       body={
         <div className="max-h-[70vh] min-h-[250px] pr-1">
           <FormProvider {...methods}>

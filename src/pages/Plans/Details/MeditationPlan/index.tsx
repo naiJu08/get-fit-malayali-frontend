@@ -1,18 +1,29 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import CustomDrawer from '../../../../components/common/drawer'
 import { useMeditationList } from '../../../Meditation/api'
-import { useAssignMeditations, useRemoveMeditationsFromPlan } from './api'
+import { useAssignMeditations } from './api'
 import { useAuthStore } from '../../../../store/authStore'
 import { useSnackbarManager } from '../../../../components/common/snackbar'
+import Icons from '../../../../components/common/icons'
+
+export type MeditationAssignCTAConfig = {
+  handler: () => void
+  visible: boolean
+}
 
 type Props = {
   planName?: string
+  registerAssignCTA?: (config: MeditationAssignCTAConfig | null) => void
 }
 
-export default function MeditationPlanIndex({ planName }: Props) {
+export default function MeditationPlanIndex({
+  planName,
+  registerAssignCTA,
+}: Props) {
   const { id: routePlanId } = useParams()
   const planId = routePlanId as string
+  const { enqueueSnackbar } = useSnackbarManager()
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [page, setPage] = useState<number>(1)
@@ -21,18 +32,10 @@ export default function MeditationPlanIndex({ planName }: Props) {
   const [selectedMeditations, setSelectedMeditations] = useState<any[]>([])
   const [assigning, setAssigning] = useState(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [preventAutoSeed, setPreventAutoSeed] = useState(false)
   const { mutateAsync: assignMeditationsAsync } = useAssignMeditations()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
-
-  useEffect(() => {
-    if (!assignOpen && !reviewOpen) {
-      setSelectedMeditations([])
-      setSearch('')
-      setPage(1)
-      setDragIndex(null)
-    }
-  }, [assignOpen, reviewOpen])
 
   const {
     data: medResp,
@@ -44,8 +47,6 @@ export default function MeditationPlanIndex({ planName }: Props) {
     search,
     // plan_id: planId,
   } as any)
-  const meditations = medResp?.meditations ?? medResp?.items ?? []
-
   const isSelected = (id: any) =>
     selectedMeditations.some((m) => String(m?.id) === String(id))
   const toggleSelected = (m: any) => {
@@ -55,34 +56,74 @@ export default function MeditationPlanIndex({ planName }: Props) {
         : [...prev, m]
     )
   }
+  const meditations = medResp?.meditations ?? medResp?.items ?? []
+  const allVisibleSelected =
+    Array.isArray(meditations) &&
+    meditations.length > 0 &&
+    meditations.every((m: any) => isSelected(m?.id))
+  const assignedMeditations = useMemo(() => {
+    if (!Array.isArray(meditations) || !planId) return []
+    const currentPlanId = String(planId)
+    return meditations
+      .map((m: any) => {
+        const plans = (m?.assigned_plans || []) as any[]
+        const match = plans.find(
+          (p: any) => String(p?.plan_id) === currentPlanId
+        )
+        if (!match) return null
+        return { ...m, sequence_number: match?.sequence_number }
+      })
+      .filter(Boolean)
+      .sort(
+        (a: any, b: any) =>
+          (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
+      )
+  }, [meditations, planId])
+
+  const handleSelectAllVisible = () => {
+    if (!Array.isArray(meditations) || meditations.length === 0) return
+    setSelectedMeditations((prev) => {
+      const existingIds = new Set(prev.map((item) => String(item?.id)))
+      const next = [...prev]
+      meditations.forEach((m: any) => {
+        const id = String(m?.id)
+        if (!existingIds.has(id)) {
+          existingIds.add(id)
+          next.push(m)
+        }
+      })
+      return next
+    })
+  }
+
+  const handleUnselectVisible = () => {
+    if (selectedMeditations.length === 0) return
+    setPreventAutoSeed(true)
+    setSelectedMeditations([])
+  }
 
   useEffect(() => {
-    if (assignOpen) {
-      setDragIndex(null)
-      setReviewOpen(false)
-
-      // Pre-select currently assigned meditations when opening the drawer.
-      if (selectedMeditations.length === 0 && Array.isArray(meditations)) {
-        const currentPlanId = planId ? String(planId) : undefined
-        const assigned = (meditations || [])
-          .map((m: any) => {
-            const plans = (m?.assigned_plans || []) as any[]
-            const match = plans.find(
-              (p: any) => String(p?.plan_id) === currentPlanId
-            )
-            if (!match) return null
-            return { ...m, sequence_number: match?.sequence_number }
-          })
-          .filter((x: any) => x)
-          .slice()
-          .sort(
-            (a: any, b: any) =>
-              (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
-          )
-        if (assigned.length > 0) setSelectedMeditations(assigned)
-      }
+    if (!assignOpen) {
+      setPreventAutoSeed(false)
+      return
     }
-  }, [assignOpen, meditations, planId, selectedMeditations.length])
+
+    setDragIndex(null)
+    setReviewOpen(false)
+
+    if (
+      !preventAutoSeed &&
+      selectedMeditations.length === 0 &&
+      assignedMeditations.length > 0
+    ) {
+      setSelectedMeditations(assignedMeditations)
+    }
+  }, [
+    assignOpen,
+    assignedMeditations,
+    selectedMeditations.length,
+    preventAutoSeed,
+  ])
 
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
@@ -112,12 +153,26 @@ export default function MeditationPlanIndex({ planName }: Props) {
           sequence_number: idx + 1,
         })),
       }
-      await assignMeditationsAsync({ planId, payload })
+      const response = await assignMeditationsAsync({ planId, payload })
       setAssignOpen(false)
       setReviewOpen(false)
       setSelectedMeditations([])
       setDragIndex(null)
       refetchMeditations()
+
+      // Show success message from API response
+      const message =
+        response?.data?.message ||
+        response?.message ||
+        'Meditations assigned successfully'
+      enqueueSnackbar(message, { variant: 'success' })
+    } catch (error: any) {
+      // Show error message from API response if available
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to assign meditations'
+      enqueueSnackbar(errorMessage, { variant: 'error' })
     } finally {
       setAssigning(false)
     }
@@ -144,28 +199,38 @@ export default function MeditationPlanIndex({ planName }: Props) {
     setDragIndex(null)
   }
 
+  const openAssignDrawer = useCallback(() => {
+    setDragIndex(null)
+    setReviewOpen(false)
+    setAssignOpen(true)
+    setSearch('')
+    setPage(1)
+  }, [])
+
+  useEffect(() => {
+    if (!registerAssignCTA) return
+    if (isNutritionist) {
+      registerAssignCTA(null)
+      return
+    }
+    registerAssignCTA({ handler: openAssignDrawer, visible: true })
+    return () => {
+      registerAssignCTA(null)
+    }
+  }, [registerAssignCTA, openAssignDrawer, isNutritionist])
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div className="text-lg font-semibold">
           {planName || 'Meditation Plan'}
         </div>
-        {!isNutritionist && (
-          <div>
-            <button
-              className="px-3 py-1.5 text-sm border rounded btn-primary"
-              onClick={() => {
-                setDragIndex(null)
-                setReviewOpen(false)
-                setAssignOpen(true)
-                setSearch('')
-                setPage(1)
-              }}
-            >
-              Assign
-            </button>
-          </div>
-        )}
+        <div className="text-[11px] text-gray-600">
+          <span className="inline-flex items-center gap-1 text-xs text-gray-600">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            Duration
+          </span>
+        </div>
       </div>
       <AssignedMeditationsSection
         planId={planId}
@@ -182,6 +247,9 @@ export default function MeditationPlanIndex({ planName }: Props) {
           setAssignOpen(false)
           setSearch('')
           setPage(1)
+          setDragIndex(null)
+          setSelectedMeditations(assignedMeditations)
+          setPreventAutoSeed(false)
         }}
         className="w-screen max-w-[100vw]"
         unmountOnClose
@@ -194,31 +262,65 @@ export default function MeditationPlanIndex({ planName }: Props) {
       >
         <div className="w-full">
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-              <div className="text-sm font-medium">Meditations</div>
-              <div className="flex items-center gap-2">
-                <input
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value)
-                    setPage(1)
-                  }}
-                  placeholder="Search meditations..."
-                  className="border rounded px-2 py-1 text-sm"
-                />
-                <select
-                  className="border rounded px-2 py-1 text-sm"
-                  value={perPage}
-                  onChange={(e) => {
-                    setPerPage(Number(e.target.value))
-                    setPage(1)
-                  }}
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div className="flex flex-col gap-2">
+                  <div className="text-sm font-medium">Meditations</div>
+                </div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 w-full md:w-auto">
+                  <div className="flex items-center gap-2 sm:ml-auto">
+                    <input
+                      value={search}
+                      onChange={(e) => {
+                        setSearch(e.target.value)
+                        setPage(1)
+                      }}
+                      placeholder="Search meditations..."
+                      className="border rounded px-2 py-1 text-sm"
+                    />
+                    <select
+                      className="border rounded px-2 py-1 text-sm"
+                      value={perPage}
+                      onChange={(e) => {
+                        setPerPage(Number(e.target.value))
+                        setPage(1)
+                      }}
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-between text-[11px] text-gray-600">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                    onClick={handleSelectAllVisible}
+                    disabled={
+                      medLoading ||
+                      meditations.length === 0 ||
+                      allVisibleSelected
+                    }
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                    onClick={handleUnselectVisible}
+                    disabled={selectedMeditations.length === 0}
+                  >
+                    Unselect All
+                  </button>
+                </div>
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  Duration
+                </span>
               </div>
             </div>
 
@@ -232,12 +334,13 @@ export default function MeditationPlanIndex({ planName }: Props) {
             )}
 
             {!medLoading && meditations.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 xl:grid-cols-8 gap-4">
                 {meditations.map((m: any) => {
                   const url = m?.video_url || m?.meditation_video_url || ''
                   const embed = getEmbedUrl(url)
                   const checked = isSelected(m?.id)
-                  const title = m?.name || m?.title || 'Untitled'
+                  const title = formatMeditationName(m?.name || m?.title)
+                  const durationLabel = getMeditationDurationLabel(m)
                   return (
                     <div
                       key={m?.id}
@@ -253,8 +356,8 @@ export default function MeditationPlanIndex({ planName }: Props) {
                         }
                       }}
                     >
-                      {embed ? (
-                        <div className="w-full h-40 bg-black/5">
+                      <div className="relative w-full h-40 bg-black/5">
+                        {embed ? (
                           <iframe
                             src={embed}
                             title={`Meditation Video ${m?.id}`}
@@ -262,27 +365,38 @@ export default function MeditationPlanIndex({ planName }: Props) {
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             allowFullScreen
                           />
-                        </div>
-                      ) : url ? (
-                        <video
-                          className="w-full h-32 object-cover rounded"
-                          src={String(url)}
-                          muted
-                          controls
-                        />
-                      ) : (
-                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                          No video
-                        </div>
-                      )}
-                      <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
+                        ) : url ? (
+                          <video
+                            className="w-full h-full object-cover"
+                            src={String(url)}
+                            muted
+                            controls
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                            No video
+                          </div>
+                        )}
+
+                        {durationLabel && (
+                          <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                            <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                              <span className="w-2 h-2 rounded-full bg-white" />
+                              {durationLabel}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="px-3 py-5 text-sm flex flex-col gap-2">
                         <div className="font-medium line-clamp-1">{title}</div>
-                        <input
-                          type="checkbox"
-                          className="mt-0.5 shrink-0"
-                          checked={checked}
-                          onChange={() => toggleSelected(m)}
-                        />
+                        <div className="flex items-center justify-end">
+                          <input
+                            type="checkbox"
+                            className="mt-0.5 shrink-0"
+                            checked={checked}
+                            onChange={() => toggleSelected(m)}
+                          />
+                        </div>
                       </div>
                     </div>
                   )
@@ -323,7 +437,7 @@ export default function MeditationPlanIndex({ planName }: Props) {
         open={reviewOpen}
         handleClose={() => {
           setReviewOpen(false)
-          setSelectedMeditations([])
+          setAssignOpen(true)
           setDragIndex(null)
         }}
         className="w-screen max-w-[100vw] h-screen"
@@ -334,23 +448,24 @@ export default function MeditationPlanIndex({ planName }: Props) {
         actionLoader={assigning}
         actionLabel={'Confirm'}
       >
-        <div className="mt-4">
+        <div className="">
           <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
-            <span className="text-blue-600 text-xl">🎬</span>
-            <span className="text-gray-600  bg-clip-text ">
-              Drag and drop the videos below into the order you want them to
-              appear in the meditation plan, then click{' '}
-              <span className="font-semibold">Assign</span> to save this
-              sequence.
-            </span>
+            {selectedMeditations.length > 1 && (
+              <span className="text-gray-600  bg-clip-text ">
+                Drag and drop the videos below into the order you want them to
+                appear in the meditation plan, then click{' '}
+                <span className="font-semibold">Assign</span> to save this
+                sequence.
+              </span>
+            )}
           </h2>
           {selectedMeditations.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-5">
               {selectedMeditations.map((m: any, i: number) => {
                 const rawUrl = m?.video_url || m?.meditation_video_url || ''
                 const url = String(rawUrl || '')
                 const embed = getEmbedUrl(url)
-                const title = m?.name || m?.title || 'Untitled'
+                const title = formatMeditationName(m?.name || m?.title)
                 return (
                   <div
                     key={m?.id ?? `${title}-${i}`}
@@ -366,28 +481,32 @@ export default function MeditationPlanIndex({ planName }: Props) {
                       </span>
                     </div>
 
-                    {embed ? (
-                      <iframe
-                        className="w-full h-48"
-                        src={embed}
-                        allowFullScreen
-                      ></iframe>
-                    ) : url ? (
-                      <video
-                        src={url}
-                        controls
-                        muted
-                        className="w-full h-48 object-cover"
-                      />
-                    ) : (
-                      <div className="text-sm text-gray-500 italic">
-                        No video URL available.
+                    <div className="relative w-full h-48 bg-black/5">
+                      {embed ? (
+                        <iframe
+                          className="w-full h-full"
+                          src={embed}
+                          allowFullScreen
+                        ></iframe>
+                      ) : url ? (
+                        <video
+                          src={url}
+                          controls
+                          muted
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-sm text-gray-500 italic flex items-center justify-center h-full">
+                          No video URL available.
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedMeditations.length > 1 && (
+                      <div className="px-4 py-2 text-xs text-gray-600 flex flex-col gap-1">
+                        <span>Hold and drag to rearrange</span>
                       </div>
                     )}
-
-                    <div className="px-4 py-2 text-xs text-gray-600">
-                      Hold and drag to rearrange
-                    </div>
                   </div>
                 )
               })}
@@ -403,13 +522,113 @@ export default function MeditationPlanIndex({ planName }: Props) {
   )
 }
 
+function formatMeditationName(value?: any) {
+  const raw =
+    value === null || value === undefined || value === ''
+      ? 'Untitled'
+      : String(value)
+  return raw.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
+}
+
+function getMeditationDurationLabel(item: any) {
+  const secondsCandidates = [
+    item?.duration_seconds,
+    item?.meditation_duration_seconds,
+    item?.duration_secs,
+  ]
+
+  for (const candidate of secondsCandidates) {
+    const parsed = toPositiveInteger(candidate)
+    if (parsed) {
+      return formatMeditationDuration(parsed)
+    }
+  }
+
+  const minuteLikeRaw =
+    item?.duration_minutes ??
+    item?.meditation_duration_minutes ??
+    item?.meditation?.duration_minutes ??
+    item?.duration ??
+    item?.meditation_duration
+
+  const totalSeconds = minuteLikeRawToSeconds(minuteLikeRaw)
+  if (!totalSeconds) return null
+  return formatMeditationDuration(totalSeconds)
+}
+
+function toPositiveInteger(value: any) {
+  if (value === null || value === undefined || value === '') return null
+  const num = Number(value)
+  if (!Number.isFinite(num) || num <= 0) return null
+  return Math.round(num)
+}
+
+function minuteLikeRawToSeconds(raw: any) {
+  if (raw === null || raw === undefined || raw === '') return null
+
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim()
+    if (!trimmed) return null
+
+    if (trimmed.includes(':')) {
+      const [minPart, secPart] = trimmed.split(':')
+      const minutes = Number(minPart)
+      const seconds = Number(secPart)
+      if (
+        Number.isFinite(minutes) &&
+        minutes >= 0 &&
+        Number.isFinite(seconds) &&
+        seconds >= 0
+      ) {
+        return minutes * 60 + seconds
+      }
+    }
+
+    const decimalIndex = trimmed.indexOf('.')
+    if (decimalIndex !== -1) {
+      const minutesPart = trimmed.slice(0, decimalIndex) || '0'
+      const secondsPart = trimmed.slice(decimalIndex + 1)
+      if (/^\d{1,2}$/.test(secondsPart)) {
+        const minutes = Number(minutesPart)
+        const seconds = Number(secondsPart)
+        if (
+          Number.isFinite(minutes) &&
+          minutes >= 0 &&
+          Number.isFinite(seconds) &&
+          seconds >= 0 &&
+          seconds < 60
+        ) {
+          return minutes * 60 + seconds
+        }
+      }
+    }
+  }
+
+  const numeric = Number(raw)
+  if (!Number.isFinite(numeric) || numeric <= 0) return null
+  return Math.round(numeric * 60)
+}
+
+function formatMeditationDuration(totalSeconds: number) {
+  if (totalSeconds < 60) {
+    return `${totalSeconds} sec`
+  }
+
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+
+  if (seconds === 0) {
+    return `${minutes} min`
+  }
+
+  return `${minutes}m ${seconds.toString().padStart(2, '0')}s`
+}
+
 function AssignedMeditationsSection({
   planId,
   meditations,
   loading,
   getEmbedUrl,
-  isNutritionist,
-  refreshList,
 }: {
   planId?: string
   meditations: any[]
@@ -419,37 +638,6 @@ function AssignedMeditationsSection({
   refreshList: () => void
 }) {
   const currentPlanId = planId ? String(planId) : undefined
-  const [selectedMeditationIds, setSelectedMeditationIds] = useState<any[]>([])
-  const [removedMeditationIds, setRemovedMeditationIds] = useState<any[]>([])
-  const { enqueueSnackbar } = useSnackbarManager()
-  const { mutateAsync: removeMeditationsAsync } = useRemoveMeditationsFromPlan()
-
-  const toggleSelectedMeditation = (meditationId: any) => {
-    if (!meditationId) return
-    setSelectedMeditationIds((prev) =>
-      prev.includes(meditationId)
-        ? prev.filter((x) => x !== meditationId)
-        : [...prev, meditationId]
-    )
-  }
-
-  const handleRemoveSelected = async () => {
-    if (!planId || selectedMeditationIds.length === 0) return
-    try {
-      const res: any = await removeMeditationsAsync({
-        planId,
-        meditationIds: selectedMeditationIds,
-      })
-      setRemovedMeditationIds((prev) => [...prev, ...selectedMeditationIds])
-      setSelectedMeditationIds([])
-      const msg = res?.message || 'Meditations removed successfully'
-      enqueueSnackbar(msg, { variant: 'success' })
-      refreshList?.()
-    } catch (e: any) {
-      console.error(e)
-    }
-  }
-
   const assigned = (meditations || [])
     .map((m: any) => {
       const plans = (m?.assigned_plans || []) as any[]
@@ -461,22 +649,11 @@ function AssignedMeditationsSection({
       }
     })
     .filter((x: any) => x)
-    .filter((m: any) => !removedMeditationIds.includes(m?.id))
 
   return (
     <div className="border rounded p-3">
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm font-semibold">Meditations</div>
-        {!isNutritionist &&
-          assigned.length > 0 &&
-          selectedMeditationIds.length > 0 && (
-            <button
-              className="px-3 py-1 text-xs border rounded  btn-primary"
-              onClick={handleRemoveSelected}
-            >
-              Remove Meditation
-            </button>
-          )}
       </div>
       {loading && (
         <div className="text-xs text-gray-500">
@@ -489,7 +666,8 @@ function AssignedMeditationsSection({
         </div>
       )}
       {!loading && assigned.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 place-items-stretch">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 xl-grid-cols-8 gap-3 place-items-stretch">
+          <div className="col-span-full flex items-center justify-end text-[11px] text-gray-600 gap-4"></div>
           {assigned
             .slice()
             .sort(
@@ -500,16 +678,15 @@ function AssignedMeditationsSection({
               const rawUrl = m?.video_url || m?.meditation_video_url || ''
               const url = String(rawUrl || '')
               const embed = getEmbedUrl(url)
-              const title = m?.name || m?.title || 'Untitled'
-              const meditationId = m?.id
-              const checked = selectedMeditationIds.includes(meditationId)
+              const title = formatMeditationName(m?.name || m?.title)
+              const durationLabel = getMeditationDurationLabel(m)
               return (
                 <div
                   key={m?.id ?? `${title}-${i}`}
                   className="border rounded bg-white overflow-hidden w-full"
                 >
                   {embed ? (
-                    <div className="w-full h-40 bg-black/5">
+                    <div className="relative w-full h-40 bg-black/5">
                       <iframe
                         src={embed}
                         title={`Meditation Video ${m?.id ?? i}`}
@@ -517,29 +694,47 @@ function AssignedMeditationsSection({
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                         allowFullScreen
                       />
+                      {durationLabel && (
+                        <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                          <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                            <Icons name="clock" className="w-3 h-3" />
+                            {durationLabel}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ) : url ? (
-                    <video
-                      className="w-full h-32 object-cover"
-                      src={String(url)}
-                      controls
-                    />
+                    <div className="relative">
+                      <video
+                        className="w-full h-32 object-cover"
+                        src={String(url)}
+                        controls
+                      />
+                      {durationLabel && (
+                        <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                          <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                            <span className="w-2 h-2 rounded-full bg-white" />
+                            {durationLabel}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   ) : (
-                    <div className="w-full h-40 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                    <div className="relative w-full h-40 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
                       No video URL available.
+                      {durationLabel && (
+                        <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                          <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
+                            <Icons name="clock" className="w-3 h-3" />
+                            {durationLabel}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  <div className="px-2 py-1 text-xs flex items-center justify-between gap-2">
+                  <div className="px-2 py-3 text-xs flex flex-col gap-1">
                     <div className="font-medium line-clamp-1">{title}</div>
-                    {!isNutritionist && (
-                      <input
-                        type="checkbox"
-                        className="shrink-0"
-                        checked={checked}
-                        onChange={() => toggleSelectedMeditation(meditationId)}
-                      />
-                    )}
                   </div>
                 </div>
               )

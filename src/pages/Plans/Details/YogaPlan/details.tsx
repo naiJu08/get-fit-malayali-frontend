@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 
 import Icons from '../../../../components/common/icons'
@@ -8,7 +8,6 @@ import {
   getYogaPlanDetails,
   useAddYogaExercise,
   useAddYogaExercises,
-  deleteYogaPlanExercise,
 } from './api'
 import { TabContainer } from '../../../../components/common'
 import Tab from '../../../../components/common/tab/Tab'
@@ -16,6 +15,13 @@ import { TabItemProps } from '../../../../common/types'
 import { useYogaList } from '../../../Yoga/api'
 import { useSnackbarManager } from '../../../../components/common/snackbar'
 import { useAuthStore } from '../../../../store/authStore'
+import YogaPlanForm from './create'
+
+const YOGA_CATEGORY_OPTIONS: { label: string; value: string }[] = [
+  { label: 'Basic', value: 'basic' },
+  { label: 'Intermediate', value: 'intermediate' },
+  { label: 'Advanced', value: 'advanced' },
+]
 
 function DetailsTabContent({
   yp,
@@ -64,50 +70,23 @@ function AssignTabContent({
   yp,
   loading,
   error,
-  // selectedWorkouts,
   getEmbedUrl,
-}: any) {
-  const [selectedExerciseIds, setSelectedExerciseIds] = useState<any[]>([])
-  const [removedExerciseIds, setRemovedExerciseIds] = useState<any[]>([])
-  const { enqueueSnackbar } = useSnackbarManager()
-  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
-  const isNutritionist = roleName === 'nutritionist'
-
-  const toggleSelectedExercise = (yogaId: any) => {
-    if (!yogaId) return
-    setSelectedExerciseIds((prev) =>
-      prev.includes(yogaId)
-        ? prev.filter((x) => x !== yogaId)
-        : [...prev, yogaId]
-    )
-  }
-
-  const handleRemoveSelected = async () => {
-    if (!yp?.id || selectedExerciseIds.length === 0) return
-    try {
-      const res: any = await deleteYogaPlanExercise(yp.id, selectedExerciseIds)
-      setRemovedExerciseIds((prev) => [...prev, ...selectedExerciseIds])
-      setSelectedExerciseIds([])
-      const msg = res?.message || 'Exercises removed successfully'
-      enqueueSnackbar(msg, { variant: 'success' })
-    } catch (e: any) {
-      enqueueSnackbar(
-        e?.response?.data?.message || 'Failed to remove exercises',
-        { variant: 'error' }
-      )
-    }
-  }
-
+  getDurationLabel,
+  onVideoDuration,
+}: {
+  yp: any
+  loading: boolean
+  error: string
+  getEmbedUrl: (url?: string) => string
+  getDurationLabel: (fallbackData: any, key: string) => string | null
+  onVideoDuration: (key: string, durationSeconds: number) => void
+}) {
   const exercises = Array.isArray(yp?.exercises)
     ? yp.exercises
         .slice()
         .sort(
           (a: any, b: any) =>
             (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
-        )
-        .filter(
-          (ex: any) =>
-            !removedExerciseIds.includes(ex?.yoga_id || ex?.yoga?.id || ex?.id)
         )
     : []
 
@@ -127,19 +106,17 @@ function AssignTabContent({
         <>
           <div className="flex items-center justify-between mb-3">
             <div className="text-md font-semibold">Exercises</div>
-            {!isNutritionist &&
-              exercises.length > 0 &&
-              selectedExerciseIds.length > 0 && (
-                <button
-                  className="px-3 py-1 text-xs border rounded  btn-primary"
-                  onClick={handleRemoveSelected}
-                >
-                  Remove Exercise
-                </button>
-              )}
+            <div className="flex items-center gap-2 text-[11px] text-gray-600">
+              <span className="inline-flex items-center gap-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                Duration
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                Intensity
+              </span>
+            </div>
           </div>
           {exercises.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 place-items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-3 place-items-stretch">
               {exercises.map((ex: any) => {
                 const rawUrl =
                   ex?.video_url ||
@@ -148,15 +125,15 @@ function AssignTabContent({
                   ''
                 const url = String(rawUrl || '')
                 const embed = getEmbedUrl(url)
-                const yogaIdForEx = ex?.yoga_id || ex?.yoga?.id || ex?.id
-                const checked = selectedExerciseIds.includes(yogaIdForEx)
+                const durationKey = String(ex?.id ?? ex?.yoga_id ?? url)
+                const durationLabel = getDurationLabel(ex, durationKey)
                 return (
                   <div
                     key={ex?.id}
                     className="border rounded bg-white overflow-hidden w-full"
                   >
-                    {embed ? (
-                      <div className="w-full h-36 bg-black/5">
+                    <div className="relative w-full h-36 bg-black/5">
+                      {embed ? (
                         <iframe
                           src={embed}
                           title={`Yoga Video ${ex?.yoga_id ?? ex?.workout_id ?? ex?.id}`}
@@ -164,35 +141,47 @@ function AssignTabContent({
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                           allowFullScreen
                         />
+                      ) : url ? (
+                        <video
+                          className="w-full h-full object-cover rounded"
+                          src={String(url)}
+                          muted
+                          controls
+                          onLoadedMetadata={(event) =>
+                            onVideoDuration(
+                              durationKey,
+                              event.currentTarget?.duration || 0
+                            )
+                          }
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                          No video
+                        </div>
+                      )}
+
+                      <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                        {durationLabel && (
+                          <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
+                            <span className="w-2 h-2 rounded-full bg-white" />
+                            {durationLabel}
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                          <span className="w-2 h-2 rounded-full bg-white" />
+                          {ex?.intensity_level ? ex.intensity_level : '--'}
+                        </span>
                       </div>
-                    ) : url ? (
-                      <video
-                        className="w-full h-32 object-cover rounded"
-                        src={String(url)}
-                        muted
-                        controls
-                      />
-                    ) : (
-                      <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                        No video
-                      </div>
-                    )}
+                    </div>
                     <div className="px-2 py-1 text-xs flex items-center justify-between gap-2">
                       <div className="font-medium line-clamp-1">
-                        {ex?.workout_name ||
-                          ex?.name ||
-                          ex?.title ||
-                          ex?.yoga_name ||
-                          'Untitled'}
+                        {getYogaDisplayName(
+                          ex?.workout_name ||
+                            ex?.name ||
+                            ex?.title ||
+                            ex?.yoga_name
+                        )}
                       </div>
-                      {!isNutritionist && (
-                        <input
-                          type="checkbox"
-                          className="shrink-0"
-                          checked={checked}
-                          onChange={() => toggleSelectedExercise(yogaIdForEx)}
-                        />
-                      )}
                     </div>
                   </div>
                 )
@@ -261,11 +250,13 @@ export default function YogaPlanDetails() {
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
-  const [wpPage, setWpPage] = useState<number>(1)
-  const [wpPerPage, setWpPerPage] = useState<number>(20)
-  const [wpSearch, setWpSearch] = useState<string>('')
+  const canReorderYogas = selectedWorkouts.length > 1
+  const [autoSelectEnabled, setAutoSelectEnabled] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState<string>('')
+  const selectAllNextYogasRef = useRef(false)
   const [assigning, setAssigning] = useState<boolean>(false)
   const [dragIndex, setDragIndex] = useState<number | null>(null)
+  const [editPlanOpen, setEditPlanOpen] = useState(false)
   const { mutateAsync: addYogaExerciseAsync } = useAddYogaExercise()
   const { mutateAsync: addYogaExercisesAsync } = useAddYogaExercises()
   const { enqueueSnackbar } = useSnackbarManager()
@@ -305,20 +296,86 @@ export default function YogaPlanDetails() {
     }
   }
 
-  // Load yogas for assignment
-  const { data: yogasResp, isFetching: yogasLoading } = useYogaList({
-    page: wpPage,
-    per_page: wpPerPage,
-    search: wpSearch,
-  } as any)
-  const yogas = yogasResp?.yogas ?? []
+  const submittedWorkouts = useMemo(() => {
+    if (!Array.isArray(yp?.exercises) || yp.exercises.length === 0) return []
 
-  const assignedYogaIds = new Set(
-    Array.isArray(yp?.exercises)
-      ? yp.exercises
-          .map((ex: any) => ex?.yoga_id || ex?.yoga?.id || null)
-          .filter((exId: any) => exId !== null && exId !== undefined)
-      : []
+    const map = new Map<any, any>()
+    yp.exercises.forEach((ex: any) => {
+      const exId = ex?.yoga_id || ex?.yoga?.id || ex?.id
+      if (!exId || map.has(exId)) return
+
+      map.set(exId, {
+        id: exId,
+        name: getYogaDisplayName(
+          ex?.workout_name ||
+            ex?.yoga_name ||
+            ex?.name ||
+            ex?.title ||
+            ex?.yoga?.name
+        ),
+        video_url:
+          ex?.video_url ||
+          ex?.workout_video_url ||
+          ex?.workout?.video_url ||
+          ex?.yoga?.video_url ||
+          '',
+      })
+    })
+
+    return Array.from(map.values())
+  }, [yp?.exercises])
+  const isSelected = (wid: any) => selectedWorkouts.some((w) => w?.id === wid)
+
+  // Load yogas for assignment
+  const yogaListParams: any = {
+    page: 1,
+    per_page: 99999,
+  }
+  if (categoryFilter) {
+    yogaListParams.category = categoryFilter
+  }
+  const { data: yogasResp, isFetching: yogasLoading } =
+    useYogaList(yogaListParams)
+  const yogas = yogasResp?.yogas ?? []
+  const allVisibleSelected =
+    Array.isArray(yogas) &&
+    yogas.length > 0 &&
+    yogas.every((item: any) => isSelected(item?.id))
+  const [videoDurations, setVideoDurations] = useState<Record<string, number>>(
+    {}
+  )
+
+  const handleVideoDuration = useCallback(
+    (key: string, durationSeconds: number) => {
+      if (!key || !Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+        return
+      }
+      setVideoDurations((prev) => {
+        const existing = prev[key]
+        if (existing && Math.abs(existing - durationSeconds) < 0.5) {
+          return prev
+        }
+        return {
+          ...prev,
+          [key]: durationSeconds,
+        }
+      })
+    },
+    []
+  )
+
+  const getDurationLabel = useCallback(
+    (fallbackData: any, key: string) => {
+      if (
+        key &&
+        Number.isFinite(videoDurations[key]) &&
+        videoDurations[key] > 0
+      ) {
+        return formatDurationLabel(Math.floor(videoDurations[key]))
+      }
+      return getYogaDurationLabel(fallbackData)
+    },
+    [videoDurations]
   )
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
@@ -338,54 +395,95 @@ export default function YogaPlanDetails() {
     return ''
   }
 
-  const isSelected = (wid: any) => selectedWorkouts.some((w) => w?.id === wid)
+  const toSelectableYoga = (yoga: any) => ({
+    id: yoga?.id,
+    name: getYogaDisplayName(
+      yoga?.name || yoga?.title || yoga?.yoga_name || yoga?.workout_name
+    ),
+    video_url:
+      yoga?.video_url ||
+      yoga?.yoga?.video_url ||
+      yoga?.workout_video_url ||
+      yoga?.workout?.video_url ||
+      '',
+  })
+
   const toggleSelected = (w: any) => {
+    setAutoSelectEnabled(false)
     setSelectedWorkouts((prev) =>
       prev.some((x) => x?.id === w?.id)
         ? prev.filter((x) => x?.id !== w?.id)
-        : [...prev, w]
+        : [...prev, toSelectableYoga(w)]
     )
   }
 
   useEffect(() => {
-    if (assignOpen) {
-      setDragIndex(null)
-      setReviewOpen(false)
+    if (!assignOpen) return
 
-      // On first open (or after successful assign when selection was cleared),
-      // pre-select yogas that are already assigned in this plan.
-      if (selectedWorkouts.length === 0 && Array.isArray(yp?.exercises)) {
-        const map = new Map<any, any>()
-        yp.exercises.forEach((ex: any) => {
-          const exId = ex?.yoga_id || ex?.yoga?.id || ex?.id
-          if (!exId) return
-          if (!map.has(exId)) {
-            map.set(exId, {
-              id: exId,
-              name:
-                ex?.workout_name ||
-                ex?.yoga_name ||
-                ex?.name ||
-                ex?.title ||
-                ex?.yoga?.name,
-              video_url:
-                ex?.video_url ||
-                ex?.workout_video_url ||
-                ex?.workout?.video_url ||
-                ex?.yoga?.video_url ||
-                '',
-            })
-          }
-        })
-        setSelectedWorkouts(Array.from(map.values()))
-      }
+    setDragIndex(null)
+    setReviewOpen(false)
+
+    const hasPrefills = submittedWorkouts.length > 0
+
+    if (hasPrefills) {
+      setSelectedWorkouts(submittedWorkouts)
+      setAutoSelectEnabled(false)
+    } else {
+      setSelectedWorkouts([])
+      setAutoSelectEnabled(true)
     }
-  }, [assignOpen, yp?.exercises, selectedWorkouts.length])
+  }, [assignOpen])
+
+  useEffect(() => {
+    if (!assignOpen) {
+      selectAllNextYogasRef.current = false
+      return
+    }
+    if (yogasLoading) return
+    if (!selectAllNextYogasRef.current) return
+
+    if (!Array.isArray(yogas) || yogas.length === 0) {
+      setSelectedWorkouts([])
+      selectAllNextYogasRef.current = false
+      return
+    }
+
+    const unique = new Map<string, any>()
+    yogas.forEach((item: any) => {
+      const normalized = toSelectableYoga(item)
+      const normalizedId = normalized?.id
+      if (normalizedId == null) return
+      const key = String(normalizedId)
+      if (!unique.has(key)) {
+        unique.set(key, normalized)
+      }
+    })
+
+    setSelectedWorkouts(Array.from(unique.values()))
+    selectAllNextYogasRef.current = false
+  }, [assignOpen, yogasLoading, yogas, toSelectableYoga])
+
+  useEffect(() => {
+    if (!assignOpen || !autoSelectEnabled || yogasLoading) return
+
+    const nextSelections = yogas
+      .filter((y: any) => y?.id != null)
+      .map((y: any) => toSelectableYoga(y))
+
+    const hasDiff =
+      nextSelections.length !== selectedWorkouts.length ||
+      nextSelections.some(
+        (item: any, idx: number) => item.id !== selectedWorkouts[idx]?.id
+      )
+
+    if (hasDiff) {
+      setSelectedWorkouts(nextSelections)
+    }
+  }, [assignOpen, autoSelectEnabled, yogasLoading, yogas, selectedWorkouts])
 
   useEffect(() => {
     if (currentTab !== 'assign') {
       setAssignOpen(false)
-      setSelectedWorkouts([])
       setReviewOpen(false)
     }
   }, [currentTab])
@@ -400,18 +498,6 @@ export default function YogaPlanDetails() {
     if (!yp?.id || selectedWorkouts.length === 0) return
     setAssigning(true)
     try {
-      const selectedIds = new Set(
-        selectedWorkouts
-          .map((w: any) => w?.id)
-          .filter((x: any) => x !== null && x !== undefined)
-      )
-      const toRemove = (
-        Array.from(assignedYogaIds) as (string | number)[]
-      ).filter((exId) => !selectedIds.has(exId))
-      if (toRemove.length > 0) {
-        await deleteYogaPlanExercise(yp.id, toRemove)
-      }
-
       // Mirror workout-plan behavior: treat the checked list as the source of truth
       // (already assigned + newly checked), in the visual order.
       const items = selectedWorkouts
@@ -455,8 +541,7 @@ export default function YogaPlanDetails() {
     } finally {
       setAssigning(false)
       setDragIndex(null)
-      setWpSearch('')
-      setWpPage(1)
+      setCategoryFilter('')
     }
   }
 
@@ -474,6 +559,31 @@ export default function YogaPlanDetails() {
       return next
     })
     setDragIndex(null)
+  }
+
+  const handleSelectAllVisible = () => {
+    if (!Array.isArray(yogas) || yogas.length === 0) return
+    setAutoSelectEnabled(false)
+    setSelectedWorkouts((prev) => {
+      const existingIds = new Set(prev.map((item) => String(item?.id)))
+      const next = [...prev]
+      yogas.forEach((yoga: any) => {
+        const normalized = toSelectableYoga(yoga)
+        if (normalized?.id == null) return
+        const key = String(normalized.id)
+        if (!existingIds.has(key)) {
+          existingIds.add(key)
+          next.push(normalized)
+        }
+      })
+      return next
+    })
+  }
+
+  const handleUnselectAll = () => {
+    if (selectedWorkouts.length === 0) return
+    setAutoSelectEnabled(false)
+    setSelectedWorkouts([])
   }
 
   const tabs: TabItemProps[] = [
@@ -503,7 +613,6 @@ export default function YogaPlanDetails() {
               className="px-3 py-1 text-sm border rounded btn-primary"
               onClick={() => {
                 setAssignOpen(true)
-                setWpPage(1)
               }}
             >
               Assign
@@ -521,6 +630,16 @@ export default function YogaPlanDetails() {
             setSearchParams(next === 'assign' ? { tab: 'assign' } : {})
           }}
         >
+          {currentTab === 'details' && !isNutritionist && (
+            <div className="flex justify-end mb-4">
+              <button
+                className="px-4 py-2 text-sm border rounded btn-primary"
+                onClick={() => setEditPlanOpen(true)}
+              >
+                Edit Plan
+              </button>
+            </div>
+          )}
           <Tab id="details">
             <DetailsTabContent yp={yp} loading={loading} error={error} />
           </Tab>
@@ -529,8 +648,9 @@ export default function YogaPlanDetails() {
               yp={yp}
               loading={loading}
               error={error}
-              selectedWorkouts={selectedWorkouts}
               getEmbedUrl={getEmbedUrl}
+              getDurationLabel={getDurationLabel}
+              onVideoDuration={handleVideoDuration}
             />
           </Tab>
         </TabContainer>
@@ -540,8 +660,9 @@ export default function YogaPlanDetails() {
         open={assignOpen}
         handleClose={() => {
           setAssignOpen(false)
-          setWpSearch('')
-          setWpPage(1)
+          setCategoryFilter('')
+          setAutoSelectEnabled(false)
+          setSelectedWorkouts(submittedWorkouts)
         }}
         className="w-screen max-w-[100vw]"
         unmountOnClose
@@ -554,30 +675,33 @@ export default function YogaPlanDetails() {
       >
         <div className="w-full">
           <div className="flex flex-col gap-3">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-              <div className="text-sm font-medium">Yoga</div>
-              <div className="flex items-center gap-2">
-                <input
-                  value={wpSearch}
-                  onChange={(e) => {
-                    setWpSearch(e.target.value)
-                    setWpPage(1)
-                  }}
-                  placeholder="Search yoga..."
-                  className="border rounded px-2 py-1 text-sm"
-                />
+            <div className="flex flex-col gap-2"></div>
+            <div className="flex flex-col md:flex-row md:items-end gap-4 md:ml-auto">
+              {/* Category */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-600">Category</label>
                 <select
                   className="border rounded px-2 py-1 text-sm"
-                  value={wpPerPage}
+                  value={categoryFilter}
                   onChange={(e) => {
-                    setWpPerPage(Number(e.target.value))
-                    setWpPage(1)
+                    const nextCategory = e.target.value
+                    const changed =
+                      String(nextCategory ?? '') !==
+                      String(categoryFilter ?? '')
+                    setCategoryFilter(nextCategory)
+                    if (assignOpen && changed) {
+                      selectAllNextYogasRef.current = true
+                      setSelectedWorkouts([])
+                      setAutoSelectEnabled(false)
+                    }
                   }}
                 >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
+                  <option value="">All</option>
+                  {YOGA_CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -589,12 +713,49 @@ export default function YogaPlanDetails() {
               <div className="text-xs text-gray-500 p-2">No yoga found.</div>
             )}
 
+            <div className="flex flex-wrap items-center justify-between text-xs text-gray-600">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                  onClick={handleSelectAllVisible}
+                  disabled={
+                    yogasLoading ||
+                    (Array.isArray(yogas) && yogas.length === 0) ||
+                    allVisibleSelected
+                  }
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                  onClick={handleUnselectAll}
+                  disabled={selectedWorkouts.length === 0}
+                >
+                  Unselect All
+                </button>
+              </div>
+              <div className="inline-flex items-center gap-1 text-[11px]">
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                  Intensity
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                  Duration
+                </span>
+              </div>
+            </div>
+
             {!yogasLoading && yogas.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
                 {yogas.map((w: any) => {
                   const url = w?.video_url || ''
                   const embed = getEmbedUrl(url)
                   const checked = isSelected(w?.id)
+                  const durationKey = String(w?.id ?? url)
+                  const durationLabel = getDurationLabel(w, durationKey)
                   return (
                     <div
                       key={w?.id}
@@ -610,8 +771,8 @@ export default function YogaPlanDetails() {
                         }
                       }}
                     >
-                      {embed ? (
-                        <div className="w-full h-40 bg-black/5">
+                      <div className="relative w-full h-40 bg-black/5">
+                        {embed ? (
                           <iframe
                             src={embed}
                             title={`Yoga Video ${w?.id}`}
@@ -619,22 +780,48 @@ export default function YogaPlanDetails() {
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                             allowFullScreen
                           />
+                        ) : url ? (
+                          <video
+                            className="w-full h-full object-cover"
+                            src={String(url)}
+                            muted
+                            controls
+                            onLoadedMetadata={(event) =>
+                              handleVideoDuration(
+                                durationKey,
+                                event.currentTarget?.duration || 0
+                              )
+                            }
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                            No video
+                          </div>
+                        )}
+
+                        <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                          {durationLabel && (
+                            <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
+                              <span className="w-2 h-2 rounded-full bg-white" />
+                              {durationLabel}
+                            </span>
+                          )}
+                          <span className="items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                            <Icons name="activity" className="w-3 h-3" />
+                            {w?.intensity_level ||
+                              w?.workout?.intensity_level ||
+                              '--'}
+                          </span>
                         </div>
-                      ) : url ? (
-                        <video
-                          className="w-full h-32 object-cover rounded"
-                          src={String(url)}
-                          muted
-                          controls
-                        />
-                      ) : (
-                        <div className="w-full h-36 flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                          No video
-                        </div>
-                      )}
+                      </div>
                       <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
-                        <div className="font-medium line-clamp-1">
-                          {w?.name || 'Untitled'}
+                        <div className="font-medium break-words w-40">
+                          {getYogaDisplayName(
+                            w?.name ||
+                              w?.title ||
+                              w?.yoga_name ||
+                              w?.workout_name
+                          )}
                         </div>
                         <input
                           type="checkbox"
@@ -648,39 +835,16 @@ export default function YogaPlanDetails() {
                 })}
               </div>
             )}
-
-            <div className="flex items-center justify-between pt-2 text-xs text-gray-600">
-              <div>
-                Page {yogasResp?.meta?.current_page ?? wpPage} /{' '}
-                {yogasResp?.meta?.total_pages ?? 1}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  className="px-2 py-1 border rounded disabled:opacity-50"
-                  disabled={(yogasResp?.meta?.current_page ?? wpPage) <= 1}
-                  onClick={() => setWpPage((p) => Math.max(1, p - 1))}
-                >
-                  Prev
-                </button>
-                <button
-                  className="px-2 py-1 border rounded disabled:opacity-50"
-                  disabled={
-                    (yogasResp?.meta?.current_page ?? wpPage) >=
-                    (yogasResp?.meta?.total_pages ?? 1)
-                  }
-                  onClick={() => setWpPage((p) => p + 1)}
-                >
-                  Next
-                </button>
-              </div>
-            </div>
           </div>
         </div>
       </CustomDrawer>
 
       <CustomDrawer
         open={reviewOpen}
-        handleClose={() => setReviewOpen(false)}
+        handleClose={() => {
+          setReviewOpen(false)
+          setAssignOpen(true)
+        }}
         className="w-screen max-w-[100vw] h-screen"
         unmountOnClose
         title={'Review & Order Exercises'}
@@ -689,18 +853,19 @@ export default function YogaPlanDetails() {
         actionLoader={assigning}
         actionLabel={'Confirm'}
       >
-        <div className="mt-4">
+        <div className="">
           <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
-            <span className="text-blue-600 text-xl">🎬</span>
-            <span className="text-gray-600  bg-clip-text ">
-              Drag and drop the videos below into the order you want them to
-              appear in the yogaplan, then click{' '}
-              <span className="font-semibold">Assign</span> to save this
-              sequence.
-            </span>
+            {canReorderYogas && (
+              <span className="text-gray-600  bg-clip-text ">
+                Drag and drop the videos below into the order you want them to
+                appear in the yoga plan, then click{' '}
+                <span className="font-semibold">Assign</span> to save this
+                sequence.
+              </span>
+            )}
           </h2>
           {selectedWorkouts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-5">
               {selectedWorkouts.map((w, i) => {
                 const embed = getEmbedUrl(w?.video_url)
                 const url = w?.video_url || ''
@@ -715,7 +880,7 @@ export default function YogaPlanDetails() {
                   >
                     <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
                       <span className="line-clamp-1">
-                        {i + 1}. {w?.name}
+                        {i + 1}. {getYogaDisplayName(w?.name)}
                       </span>
                     </div>
 
@@ -738,9 +903,11 @@ export default function YogaPlanDetails() {
                       </div>
                     )}
 
-                    <div className="px-4 py-2 text-xs text-gray-600">
-                      Hold and drag to rearrange
-                    </div>
+                    {canReorderYogas && (
+                      <div className="px-4 py-2 text-xs text-gray-600">
+                        Hold and drag to rearrange
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -752,6 +919,21 @@ export default function YogaPlanDetails() {
           )}
         </div>
       </CustomDrawer>
+
+      <YogaPlanForm
+        isOpen={editPlanOpen}
+        handleClose={() => {
+          setEditPlanOpen(false)
+          refreshDetails()
+        }}
+        edit
+        rowData={yp}
+        planId={yp?.plan_id}
+        onSuccess={(res?: any) => {
+          const msg = res?.message || 'Yoga plan updated successfully'
+          enqueueSnackbar(msg, { variant: 'success' })
+        }}
+      />
     </div>
   )
 }
@@ -768,6 +950,112 @@ function DetailItem({ label, value }: { label: string; value: any }) {
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
+}
+
+function getYogaDisplayName(value?: any) {
+  const raw =
+    value === null || value === undefined || value === ''
+      ? 'Untitled'
+      : String(value)
+  const lowered = raw.toLowerCase()
+  return lowered.replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function getYogaDurationLabel(item: any) {
+  const secondsCandidates = [
+    item?.duration_seconds,
+    item?.yoga_duration_seconds,
+    item?.workout_duration_seconds,
+    item?.duration_secs,
+  ]
+
+  for (const candidate of secondsCandidates) {
+    const parsedSeconds = toPositiveInteger(candidate)
+    if (parsedSeconds) {
+      return formatDurationLabel(parsedSeconds)
+    }
+  }
+
+  const minuteLikeRaw =
+    item?.duration_minutes ??
+    item?.yoga_duration_minutes ??
+    item?.duration ??
+    item?.yoga?.duration_minutes ??
+    item?.workout_duration ??
+    item?.duration_min ??
+    item?.duration_minute
+
+  const totalSeconds = minuteLikeRawToSeconds(minuteLikeRaw)
+  if (!totalSeconds) return null
+  return formatDurationLabel(totalSeconds)
+}
+
+function toPositiveInteger(value: any) {
+  if (value === null || value === undefined || value === '') return null
+  const num = Number(value)
+  if (!Number.isFinite(num) || num <= 0) return null
+  return Math.round(num)
+}
+
+function minuteLikeRawToSeconds(raw: any) {
+  if (raw === null || raw === undefined || raw === '') return null
+
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim()
+    if (!trimmed) return null
+
+    if (trimmed.includes(':')) {
+      const [minPart, secPart] = trimmed.split(':')
+      const minutes = Number(minPart)
+      const seconds = Number(secPart)
+      if (
+        Number.isFinite(minutes) &&
+        minutes >= 0 &&
+        Number.isFinite(seconds) &&
+        seconds >= 0
+      ) {
+        return minutes * 60 + seconds
+      }
+    }
+
+    const decimalIndex = trimmed.indexOf('.')
+    if (decimalIndex !== -1) {
+      const minutesPart = trimmed.slice(0, decimalIndex) || '0'
+      const secondsPart = trimmed.slice(decimalIndex + 1)
+      if (/^\d{1,2}$/.test(secondsPart)) {
+        const seconds = Number(secondsPart)
+        const minutes = Number(minutesPart)
+        if (
+          Number.isFinite(minutes) &&
+          minutes >= 0 &&
+          Number.isFinite(seconds) &&
+          seconds >= 0 &&
+          seconds < 60
+        ) {
+          return minutes * 60 + seconds
+        }
+      }
+    }
+  }
+
+  const numeric = Number(raw)
+  if (!Number.isFinite(numeric) || numeric <= 0) return null
+  return Math.round(numeric * 60)
+}
+
+function formatDurationLabel(totalSeconds: number) {
+  if (totalSeconds < 60) {
+    return `${totalSeconds} sec`
+  }
+
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+
+  if (seconds === 0) {
+    return `${minutes} min`
+  }
+
+  return `${minutes}m ${seconds.toString().padStart(2, '0')}s`
 }
 
 // import moment from 'moment'

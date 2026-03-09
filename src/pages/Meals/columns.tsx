@@ -7,10 +7,10 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-const capitalizeFirst = (value: unknown) => {
+const toTitleCase = (value: unknown) => {
   const str = typeof value === 'string' ? value : ''
   if (!str) return str
-  return `${str.charAt(0).toUpperCase()}${str.slice(1)}`
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
 }
 
 export const getMealsColumns = (onNameClick?: (row: any) => void) => {
@@ -30,7 +30,7 @@ export const getMealsColumns = (onNameClick?: (row: any) => void) => {
         return { cell: label, toolTip: label }
       }
       const rawValue = getNestedProperty(row, key)
-      const displayValue = key === 'name' ? capitalizeFirst(rawValue) : rawValue
+      const displayValue = key === 'name' ? toTitleCase(rawValue) : rawValue
       return {
         cell: displayValue,
         toolTip: displayValue ?? '',
@@ -64,13 +64,6 @@ export const getMealsColumns = (onNameClick?: (row: any) => void) => {
       ...defaultColumnProps,
     },
     {
-      title: 'Serving Quantity',
-      field: 'default_serving_quantity',
-      renderCell: createRenderCell('default_serving_quantity'),
-      customCell: true,
-      ...defaultColumnProps,
-    },
-    {
       title: 'Serving Unit',
       field: 'serving_unit',
       renderCell: createRenderCell('serving_unit'),
@@ -81,7 +74,18 @@ export const getMealsColumns = (onNameClick?: (row: any) => void) => {
     {
       title: 'Total Calories',
       field: 'total_calories',
-      renderCell: createRenderCell('total_calories'),
+      renderCell: (row: any) => {
+        const calories =
+          getNestedProperty(row, 'per_serving.calories') ??
+          getNestedProperty(row, 'per_serving_calories') ??
+          getNestedProperty(row, 'total_calories') ??
+          '--'
+        const displayValue = calories === '--' ? calories : `${calories}`
+        return {
+          cell: displayValue,
+          toolTip: displayValue,
+        }
+      },
       customCell: true,
       ...defaultColumnProps,
     },

@@ -31,16 +31,22 @@ export const createMeal = (payload: any) => {
 export const useCreateMeal = () => {
   const { enqueueSnackbar } = useSnackbarManager()
   const queryClient = useQueryClient()
+
   return useMutation(createMeal, {
     onSuccess: () => {
       enqueueSnackbar('Meal created successfully', { variant: 'success' })
       queryClient.invalidateQueries({ queryKey: ['meals_list'] })
     },
     onError: (error: any) => {
-      enqueueSnackbar(
-        error?.response?.data?.message || 'Failed to create meal',
-        { variant: 'error' }
-      )
+      const errorData = error?.response?.data
+      if (Array.isArray(errorData?.errors)) {
+        // Show the first error message from the array
+        enqueueSnackbar(errorData.errors[0], { variant: 'error' })
+      } else {
+        enqueueSnackbar(errorData?.message || 'Failed to create meal', {
+          variant: 'error',
+        })
+      }
     },
   })
 }
@@ -61,10 +67,15 @@ export const useUpdateMeal = () => {
         queryClient.invalidateQueries({ queryKey: ['meals_list'] })
       },
       onError: (error: any) => {
-        enqueueSnackbar(
-          error?.response?.data?.message || 'Failed to update meal',
-          { variant: 'error' }
-        )
+        const errorData = error?.response?.data
+        if (Array.isArray(errorData?.errors)) {
+          // Show the first error message from the array
+          enqueueSnackbar(errorData.errors[0], { variant: 'error' })
+        } else {
+          enqueueSnackbar(errorData?.message || 'Failed to update meal', {
+            variant: 'error',
+          })
+        }
       },
     }
   )
@@ -83,10 +94,11 @@ export const useDeleteMeal = () => {
       queryClient.invalidateQueries({ queryKey: ['meals_list'] })
     },
     onError: (error: any) => {
-      enqueueSnackbar(
-        error?.response?.data?.message || 'Failed to delete meal',
-        { variant: 'error' }
-      )
+      const apiMessage =
+        error?.response?.data?.errors?.[0] || error?.response?.data?.message
+      enqueueSnackbar(apiMessage || 'Failed to delete meal', {
+        variant: 'error',
+      })
     },
   })
 }

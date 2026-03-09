@@ -33,7 +33,7 @@ export default function CreateMeal({
     mode: 'onChange',
     reValidateMode: 'onChange',
   })
-  const { handleSubmit, reset } = methods
+  const { handleSubmit, reset, setError } = methods
   // Watch macro fields
   // const protein = methods.watch('protein')
   // const carbs = methods.watch('carbs')
@@ -55,34 +55,6 @@ export default function CreateMeal({
   //   //   shouldDirty: true,
   //   // })
   // }, [methods])
-  const perServingProtein = methods.watch('per_serving_protein')
-  const perServingCarbs = methods.watch('per_serving_carbs')
-  const perServingFat = methods.watch('per_serving_fat')
-  const perServingFiber = methods.watch('per_serving_fiber')
-
-  useEffect(() => {
-    const toNumber = (v: any) => {
-      const n = Number(v)
-      return Number.isNaN(n) ? 0 : n
-    }
-
-    const total =
-      toNumber(perServingProtein) +
-      toNumber(perServingCarbs) +
-      toNumber(perServingFat) +
-      toNumber(perServingFiber)
-
-    methods.setValue('per_serving_calories', total as any, {
-      shouldValidate: true,
-      shouldDirty: true,
-    })
-  }, [
-    perServingProtein,
-    perServingCarbs,
-    perServingFat,
-    perServingFiber,
-    methods,
-  ])
   const { mutate: createMealMutate } = useCreateMeal()
   const { mutate: updateMealMutate } = useUpdateMeal()
   const queryClient = useQueryClient()
@@ -121,9 +93,9 @@ export default function CreateMeal({
       })
     }
   }, [selectedMealCategoryId, methods, edit])
-  const capitalizeFirstLetter = (value?: string | null) => {
+  const toTitleCase = (value?: string | null) => {
     if (!value) return ''
-    return value.charAt(0).toUpperCase() + value.slice(1)
+    return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
   }
 
   const onSubmit = (values: MealSchema) => {
@@ -143,11 +115,11 @@ export default function CreateMeal({
     // }
     const payload = {
       meal: {
-        name: capitalizeFirstLetter(values.name),
+        name: toTitleCase(values.name),
         meal_time: values.meal_time,
         meal_category_id: values.meal_category_id,
         serving_unit: values.serving_unit,
-        default_serving_quantity: values.default_serving_quantity,
+        default_serving_quantity: 1,
         per_serving_calories: values.per_serving_calories,
         per_serving_protein: values.per_serving_protein,
         per_serving_carbs: values.per_serving_carbs,
@@ -165,6 +137,22 @@ export default function CreateMeal({
             handleRefresh?.()
             handleClose()
           },
+          onError: (error: any) => {
+            const errorData = error?.response?.data
+
+            if (Array.isArray(errorData?.errors)) {
+              const nameError = errorData.errors.find((err: string) =>
+                err.toLowerCase().includes('name')
+              )
+
+              if (nameError) {
+                setError('name', {
+                  type: 'server',
+                  message: nameError,
+                })
+              }
+            }
+          },
         }
       )
     } else {
@@ -174,6 +162,22 @@ export default function CreateMeal({
           handleRefresh?.()
           handleClose()
         },
+        onError: (error: any) => {
+          const errorData = error?.response?.data
+
+          if (Array.isArray(errorData?.errors)) {
+            const nameError = errorData.errors.find((err: string) =>
+              err.toLowerCase().includes('name')
+            )
+
+            if (nameError) {
+              setError('name', {
+                type: 'server',
+                message: nameError,
+              })
+            }
+          }
+        },
       })
     }
   }
@@ -181,12 +185,12 @@ export default function CreateMeal({
   useEffect(() => {
     if (isDrawerOpen && edit && rowData) {
       reset({
-        name: rowData?.name ?? '',
+        name: toTitleCase(rowData?.name) ?? '',
         meal_time: rowData?.meal_time ?? '',
         meal_category: rowData?.meal_category ?? '',
         meal_category_id: rowData?.meal_category_id ?? undefined,
         serving_unit: rowData?.serving_unit ?? '',
-        default_serving_quantity: rowData?.default_serving_quantity ?? 1,
+        default_serving_quantity: 1,
         per_serving_calories:
           rowData?.per_serving?.calories ?? rowData?.per_serving_calories ?? 0,
         per_serving_protein:
@@ -206,7 +210,7 @@ export default function CreateMeal({
         meal_category: '',
         meal_category_id: undefined,
         serving_unit: '',
-        default_serving_quantity: '' as any,
+        default_serving_quantity: 1,
         per_serving_calories: '' as any,
         per_serving_protein: '' as any,
         per_serving_carbs: '' as any,
@@ -277,11 +281,11 @@ export default function CreateMeal({
     },
     {
       name: 'default_serving_quantity',
-      label: 'Serving Quantity',
+      label: 'Default Serving Quantity',
       type: 'text',
-      placeholder: 'e.g. 2',
-      required: true,
-      allowPositiveOnly: true,
+      required: false,
+      disabled: true,
+      value: '1',
     },
     {
       name: 'per_serving_protein',
@@ -313,11 +317,10 @@ export default function CreateMeal({
     },
     {
       name: 'per_serving_calories',
-      label: 'TotalCalories',
+      label: 'Total Calories',
       type: 'text',
-      required: false,
+      required: true,
       allowPositiveOnly: true,
-      disabled: true,
     },
   ]
 
@@ -325,8 +328,8 @@ export default function CreateMeal({
     <DialogModal
       isOpen={isDrawerOpen}
       onClose={handleClose}
-      title={edit ? 'Edit Meal' : 'Create Meal'}
-      actionLabel={edit ? 'Update' : 'Create'}
+      title={edit ? 'Edit Food' : 'Create Food'}
+      actionLabel={edit ? 'Save' : 'Save'}
       onSubmit={handleSubmit(onSubmit)}
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"

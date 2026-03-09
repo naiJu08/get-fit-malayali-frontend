@@ -178,6 +178,14 @@ import Meals from './Meals'
 import StepsIcon from './steps'
 import CategoryIcon from './CategoryIcon'
 import CategoryHeaderIcon from './CategoryHeaderIcon'
+import TemplateIcon from './TemplateIcon'
+import TemplateIconWhite from './TemplateIconWhite'
+import WeightIcon from './WeightIcon'
+import HeightIcon from './HeightIcon'
+import ExerciseIcon from './ExerciseIcon'
+import HeaderSideArrow from './HeaderArrow'
+import HamburgerIcon from './Hamburger'
+// import ExerciseIcon from './ExerciseIcon'
 
 const Icons: React.FC<IconsProps> = ({
   name,
@@ -540,6 +548,20 @@ const Icons: React.FC<IconsProps> = ({
         return <CategoryIcon />
       case 'category-header-icon':
         return <CategoryHeaderIcon />
+      case 'template-icon':
+        return <TemplateIcon />
+      case 'template-icon-white':
+        return <TemplateIconWhite />
+      case 'weight-icon':
+        return <WeightIcon />
+      case 'height-icon':
+        return <HeightIcon />
+      case 'exercise-icon':
+        return <ExerciseIcon />
+      case 'header-side-arrow':
+        return <HeaderSideArrow />
+      case 'hamburger-icon':
+        return <HamburgerIcon />
       default:
         return <></>
     }

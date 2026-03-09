@@ -19,12 +19,16 @@ export default function BodyMeasurements({
   const [pageSize] = useState(10)
   const [allItems, setAllItems] = useState<any[]>([])
 
-  const { data: bodyData, isFetching: bodyLoading } = useBodyMeasurements({
-    user_id: user?.id,
-    subscription_id: subscriptionId ?? undefined,
-    page,
-    per_page: pageSize,
-  } as any)
+  const { data: bodyData, isFetching: bodyLoading } = useBodyMeasurements(
+    user?.id && subscriptionId
+      ? ({
+          user_id: user?.id,
+          subscription_id: subscriptionId,
+          page,
+          per_page: pageSize,
+        } as any)
+      : ({ user_id: '' } as any) // Pass invalid user_id to prevent API call when subscriptionId is not available
+  )
 
   const items = allItems
   const totalPages = bodyData?.total_pages ?? 1
@@ -60,11 +64,21 @@ export default function BodyMeasurements({
     const rowHeight = 7
     const usableHeight = pageHeight - topMargin - bottomMargin
 
-    const columns = ['Date', 'Chest', 'Waist', 'Hip', 'Arm', 'Thigh', 'Neck']
+    const columns = [
+      'Date',
+      'Chest',
+      'Waist',
+      'Hip',
+      'Arm',
+      'Thigh',
+      'Neck',
+      'Height',
+      'Weight',
+    ]
 
     // Distribute columns across available width
     const tableWidth = pageWidth - leftMargin - rightMargin
-    const baseColWidths = [0.2, 0.13, 0.13, 0.13, 0.13, 0.14, 0.14] // percentages
+    const baseColWidths = [0.13, 0.11, 0.11, 0.11, 0.11, 0.11, 0.11, 0.13, 0.13] // percentages
     const colWidths = baseColWidths.map((p) => p * tableWidth)
 
     let y = topMargin
@@ -155,8 +169,20 @@ export default function BodyMeasurements({
       const arm = row?.arm != null ? String(row.arm) : '-'
       const thigh = row?.thigh != null ? String(row.thigh) : '-'
       const neck = row?.neck != null ? String(row.neck) : '-'
+      const height = row?.height != null ? String(row.height) : '-'
+      const weight = row?.weight != null ? String(row.weight) : '-'
 
-      const values = [dateStr, chest, waist, hip, arm, thigh, neck]
+      const values = [
+        dateStr,
+        chest,
+        waist,
+        hip,
+        arm,
+        thigh,
+        neck,
+        height,
+        weight,
+      ]
 
       pdf.setFontSize(9)
       pdf.setTextColor(31, 41, 55) // gray-800
@@ -239,7 +265,7 @@ export default function BodyMeasurements({
                         <span>Chest</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.chest ?? '—'}
+                        {row?.chest ?? '—'} cm
                       </div>
                     </div>
                   )}
@@ -250,7 +276,7 @@ export default function BodyMeasurements({
                         <span>Waist</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.waist ?? '—'}
+                        {row?.waist ?? '—'} cm
                       </div>
                     </div>
                   )}
@@ -261,7 +287,7 @@ export default function BodyMeasurements({
                         <span>Hip</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.hip ?? '—'}
+                        {row?.hip ?? '—'} cm
                       </div>
                     </div>
                   )}
@@ -272,7 +298,7 @@ export default function BodyMeasurements({
                         <span>Arm</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.arm ?? '—'}
+                        {row?.arm ?? '—'} cm
                       </div>
                     </div>
                   )}
@@ -283,7 +309,7 @@ export default function BodyMeasurements({
                         <span>Thigh</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.thigh ?? '—'}
+                        {row?.thigh ?? '—'} cm
                       </div>
                     </div>
                   )}
@@ -294,7 +320,29 @@ export default function BodyMeasurements({
                         <span>Neck</span>
                       </div>
                       <div className="mt-1 text-gray-800 font-semibold text-center">
-                        {row?.neck ?? '—'}
+                        {row?.neck ?? '—'} cm
+                      </div>
+                    </div>
+                  )}
+                  {row?.weight != null && (
+                    <div className="border rounded-lg p-3 bg-emerald-50">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                        <Icons name="weight-icon" />
+                        <span>Weight</span>
+                      </div>
+                      <div className="mt-1 text-gray-800 font-semibold text-center">
+                        {row?.weight ?? '—'} kg
+                      </div>
+                    </div>
+                  )}
+                  {row?.height != null && (
+                    <div className="border rounded-lg p-3 bg-emerald-50">
+                      <div className="text-[11px] uppercase tracking-wide text-gray-500 flex flex-col items-center gap-1">
+                        <Icons name="height-icon" />
+                        <span>Height</span>
+                      </div>
+                      <div className="mt-1 text-gray-800 font-semibold text-center">
+                        {row?.height ?? '—'} cm
                       </div>
                     </div>
                   )}

@@ -30,8 +30,8 @@ const requiredSelectId = (fieldLabel: string) =>
     })
   )
 
-const optionalSelectId = () =>
-  z.preprocess(preprocessSelectValue, z.coerce.number().optional())
+// const optionalSelectId = () =>
+//   z.preprocess(preprocessSelectValue, z.coerce.number().optional())
 
 // export const formSchema = z.object({
 //   name: z
@@ -62,57 +62,71 @@ const optionalSelectId = () =>
 //   //   }),
 
 // })
-export const formSchema = z
-  .object({
-    name: z
-      .string({ invalid_type_error: 'Required.' })
-      .min(1, { message: 'Required.' })
-      .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
+export const formSchema = z.object({
+  name: z
+    .string({ invalid_type_error: 'Required.' })
+    .min(1, { message: 'Required.' })
+    .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
 
-    description: z
-      .string({ invalid_type_error: 'Required.' })
-      .min(1, { message: 'Required.' }),
+  description: z
+    .string({ invalid_type_error: 'Required.' })
+    .min(1, { message: 'Required.' }),
 
-    intensity_level: z
-      .string({ invalid_type_error: 'Required.' })
-      .min(1, { message: 'Required.' }),
+  intensity_level: z
+    .string({ invalid_type_error: 'Required.' })
+    .min(1, { message: 'Required.' }),
 
-    category: z.string().optional(),
-    category_id: requiredSelectId('Category'),
+  category: z
+    .string({ invalid_type_error: 'Required.' })
+    .min(1, { message: 'Required.' }),
+  category_id: requiredSelectId('Category'),
 
-    subcategory: z.string().optional(),
-    subcategory_id: optionalSelectId(),
+  subcategory: z
+    .string({ invalid_type_error: 'Required.' })
+    .min(1, { message: 'Required.' }),
+  subcategory_id: requiredSelectId('Subcategory'),
 
-    video_url: z.string().optional(), // added support for existing video
+  video_url: z.string().optional(), // added support for existing video
 
-    video_file: z.any().optional(), // file becomes optional here
+  video_file: z
+    .any()
+    .optional()
+    .refine(
+      (val) =>
+        val === undefined ||
+        val === null ||
+        val === '' ||
+        typeof val === 'string' ||
+        val instanceof File,
+      { message: 'Video is required.' }
+    ),
 
-    thumbnail: z.any().optional(),
-  })
-  .refine(
-    (data) => {
-      const baseFilled =
-        typeof data.name === 'string' &&
-        data.name.trim().length > 0 &&
-        typeof data.description === 'string' &&
-        data.description.trim().length > 0 &&
-        typeof data.intensity_level === 'string' &&
-        data.intensity_level.trim().length > 0
+  thumbnail: z.any().optional(),
+})
+// .refine(
+//   (data) => {
+//     const baseFilled =
+//       typeof data.name === 'string' &&
+//       data.name.trim().length > 0 &&
+//       typeof data.description === 'string' &&
+//       data.description.trim().length > 0 &&
+//       typeof data.intensity_level === 'string' &&
+//       data.intensity_level.trim().length > 0
 
-      // If base required fields are not yet filled, don't enforce video requirement
-      if (!baseFilled) return true
+//     // If base required fields are not yet filled, don't enforce video requirement
+//     if (!baseFilled) return true
 
-      const hasExistingVideo = !!data.video_url
-      const hasNewVideoFile = data.video_file instanceof File
+//     const hasExistingVideo = !!data.video_url
+//     const hasNewVideoFile = data.video_file instanceof File
 
-      // Once base fields are filled, a video is required – either file OR existing URL
-      return hasExistingVideo || hasNewVideoFile
-    },
-    {
-      message: 'Video is required.',
-      path: ['video_file'], // the error appears under video file field
-    }
-  )
+//     // Once base fields are filled, a video is required – either file OR existing URL
+//     return hasExistingVideo || hasNewVideoFile
+//   },
+//   {
+//     message: 'Video is required.',
+//     path: ['video_file'], // the error appears under video file field
+//   }
+// )
 
 export const changePasswordSchema = z.object({
   new_password: z

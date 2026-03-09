@@ -1,5 +1,5 @@
 import SmartTable from '../../components/common/table/SmartTable'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
@@ -18,6 +18,7 @@ import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
 import { handleReturnEmptyMsg } from '../../utilities/validation'
 import {
+  activateAdmin,
   deActivateAdmin,
   getAdminDetails,
   sendAdminInvitation,
@@ -30,6 +31,8 @@ import {
 import { getColumns } from './columns'
 import CreateAdmin from './create'
 import { useAuthStore } from '../../store/authStore'
+
+type StatusFilterValue = 'all' | 'active' | 'suspended'
 
 export default function AdminUser() {
   const navigate = useNavigate()
@@ -50,25 +53,21 @@ export default function AdminUser() {
   const [openConfirm, setOpenConfirm] = useState(false)
   const [deleteUserModal, setDeleteUserModal] = useState(false)
   const [deleteUserId, setDeleteUserId] = useState<string>('')
-  // const [freezeModal, setFreezeModal] = useState(false)
-  // const [freezeUserId, setFreezeUserId] = useState<string>('')
-  // const [freezeForm, setFreezeForm] = useState<{
-  //   reason: string
-  //   start_date: string
-  //   end_date: string
-  // }>({
-  //   reason: '',
-  //   start_date: '',
-  //   end_date: '',
-  // })
-  // const [unfreezeConfirm, setUnfreezeConfirm] = useState(false)
-
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
   const [loader, setloader] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
+  const [activePlanWarningOpen, setActivePlanWarningOpen] = useState(false)
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    id: string
+    username: string
+    status: string
+  } | null>(null)
 
   const params = useParams()
-  const [activeRole, setActiveRole] = useState<'user' | 'nutritionist'>('user')
+  const [activeRole, setActiveRole] = useState<
+    'user' | 'nutritionist' | 'inactive-user'
+  >('user')
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
@@ -80,17 +79,6 @@ export default function AdminUser() {
     ordering: ordering,
     ...filters,
   }
-  // const isFrozen = (rowData: any) => {
-  //   const val = String(rowData?.status ?? '').toLowerCase()
-  //   return val === 'suspended'
-  // }
-  // const handleOpenFreeze = (row: any) => {
-  //   setFreezeUserId(row?.id)
-  //   setFreezeForm({ reason: '', start_date: '', end_date: '' })
-  //   setFreezeModal(true)
-  // }
-
-  // Sync activeRole with URL path
   useEffect(() => {
     const path = location.pathname || ''
     if (path.startsWith('/users/nutritionist')) {
@@ -111,74 +99,17 @@ export default function AdminUser() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, setPageParams])
 
-  // const handleFreezeChange = ({
-  //   name,
-  //   value,
-  // }: {
-  //   name: string
-  //   value: any
-  // }) => {
-  //   if (name === 'start_date' || name === 'end_date') {
-  //     const d = value ? new Date(value) : null
-  //     const iso = d
-  //       ? new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
-  //           .toISOString()
-  //           .slice(0, 10)
-  //       : ''
-  //     setFreezeForm((prev) => ({ ...prev, [name]: iso }))
-  //   } else {
-  //     setFreezeForm((prev) => ({ ...prev, [name]: value }))
-  //   }
-  // }
-
-  // const handleSubmitFreeze = () => {
-  //   if (!freezeUserId) return
-  //   setloader(true)
-  //   freezeUser(freezeUserId, freezeForm)
-  //     .then(() => {
-  //       enqueueSnackbar('User frozen successfully', { variant: 'success' })
-  //       setloader(false)
-  //       setFreezeModal(false)
-  //       refetch()
-  //     })
-  //     .catch((err) => {
-  //       setloader(false)
-  //       enqueueSnackbar(
-  //         err?.response?.data?.error?.message || err?.response?.data?.message,
-  //         { variant: 'error' }
-  //       )
-  //     })
-  // }
-
-  // const handleOpenUnfreeze = (row: any) => {
-  //   setFreezeUserId(row?.id)
-  //   setUnfreezeConfirm(true)
-  // }
-
-  // const handleSubmitUnfreeze = () => {
-  //   if (!freezeUserId) return
-  //   setloader(true)
-  //   unfreezeUser(freezeUserId)
-  //     .then(() => {
-  //       enqueueSnackbar('User unfrozen successfully', { variant: 'success' })
-  //       setloader(false)
-  //       setUnfreezeConfirm(false)
-  //       refetch()
-  //     })
-  //     .catch((err) => {
-  //       setloader(false)
-  //       enqueueSnackbar(
-  //         err?.response?.data?.error?.message || err?.response?.data?.message,
-  //         { variant: 'error' }
-  //       )
-  //     })
-  // }
-
   const { data, refetch, isFetching } = useAdminUser(searchParams)
   useEffect(() => {
     const latestParams = useAdminUserFilterStore.getState().pageParams
     if (latestParams?.search) {
       setPageParams({ ...latestParams, search: '', page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    if (pageParams?.search) {
+      setPageParams({ ...pageParams, search: '', page: 1 })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -229,10 +160,18 @@ export default function AdminUser() {
 
   // Ensure role filter follows active tab
   useEffect(() => {
-    // initialize filters object if missing and set role
+    const nextFilters: Record<string, any> = {
+      ...(pageParams?.filters || {}),
+      role: activeRole,
+    }
+    if (nextFilters.status) {
+      delete nextFilters.status
+    }
+    setStatusFilter('all')
     setPageParams({
       ...pageParams,
-      filters: { ...(pageParams?.filters || {}), role: activeRole },
+      filters: nextFilters,
+      search: '',
       page: 1,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -246,11 +185,75 @@ export default function AdminUser() {
     })
   }
 
-  const handleDeleteModel = (id: string, username: string, status: string) => {
-    setDeleteItem(id)
-    setDeleteModal(true)
-    setUserName(username)
-    setStatus(status)
+  const syncStatusFromParams = useCallback(
+    (nextFilters?: Record<string, any>) => {
+      const currentStatus = (
+        nextFilters?.status as string | undefined
+      )?.toLowerCase?.()
+      if (currentStatus === 'active' || currentStatus === 'suspended') {
+        setStatusFilter(currentStatus)
+      } else {
+        setStatusFilter('all')
+      }
+    },
+    []
+  )
+
+  useEffect(() => {
+    syncStatusFromParams(pageParams?.filters)
+  }, [pageParams?.filters, syncStatusFromParams])
+
+  const handleStatusChange = (value: StatusFilterValue) => {
+    setStatusFilter(value)
+    const nextFilters = {
+      ...(pageParams?.filters || {}),
+      status: value === 'all' ? undefined : value,
+    }
+
+    if (!nextFilters.status) {
+      delete nextFilters.status
+    }
+
+    setPageParams({
+      ...pageParams,
+      filters: nextFilters,
+      page: 1,
+    })
+  }
+
+  const handleDeleteModel = (
+    id: string,
+    username: string,
+    status: string,
+    hasActivePlan?: boolean
+  ) => {
+    const normalizedStatus = String(status || '').toLowerCase()
+    if (normalizedStatus !== 'active') {
+      handleDeleteAdmin({ id, status })
+      return
+    }
+    if (normalizedStatus === 'active' && hasActivePlan) {
+      setPendingStatusChange({ id, username, status })
+      setActivePlanWarningOpen(true)
+      return
+    }
+    handleDeleteAdmin({ id, status })
+  }
+
+  const confirmActivePlanWarning = () => {
+    if (pendingStatusChange) {
+      handleDeleteAdmin({
+        id: pendingStatusChange.id,
+        status: pendingStatusChange.status,
+      })
+    }
+    setActivePlanWarningOpen(false)
+    setPendingStatusChange(null)
+  }
+
+  const cancelActivePlanWarning = () => {
+    setActivePlanWarningOpen(false)
+    setPendingStatusChange(null)
   }
 
   const handleSendInvitation = () => {
@@ -280,20 +283,34 @@ export default function AdminUser() {
       })
   }
 
-  const handleDeleteAdmin = () => {
+  const handleDeleteAdmin = (override?: { id: string; status: string }) => {
+    const targetId = override?.id ?? deleteItem
+    const targetStatus = override?.status ?? status
+    if (!targetId) return
     setloader(true)
-    deActivateAdmin(deleteItem)
-      .then(() => {
-        enqueueSnackbar('Status Updated successfully', {
-          variant: 'success',
-        })
+    const normalizedStatus = String(targetStatus || '').toLowerCase()
+    const actionPromise =
+      normalizedStatus === 'active'
+        ? deActivateAdmin(targetId)
+        : activateAdmin(targetId)
+    actionPromise
+      .then((res) => {
+        enqueueSnackbar(
+          res.message ? res.message : 'Status Updated successfully',
+          {
+            variant: 'success',
+          }
+        )
         setloader(false)
         refetch()
         setSelectedRows(
-          selectedRows?.filter((sel: string | number) => sel !== deleteItem) ||
-            []
+          selectedRows?.filter((sel: string | number) => sel !== targetId) || []
         )
         setDeleteModal(false)
+        if (!override) {
+          setDeleteItem('')
+        }
+        setStatus(targetStatus)
       })
       .catch((err) => {
         setloader(false)
@@ -312,12 +329,6 @@ export default function AdminUser() {
       setEdit(true)
     }
   }
-  // const handleAction = () => {
-  //   setCreateOpen(true)
-  //   setRowData({})
-  //   setEdit(false)
-  //   setViewMode(false)
-  // }
   const handleClose = () => {
     setCreateOpen(false)
     setViewMode(false)
@@ -415,6 +426,17 @@ export default function AdminUser() {
                     Nutritionist
                   </button>
                 )}
+                <button
+                  type="button"
+                  className={`px-3 py-2 -mb-px ${
+                    activeRole === 'inactive-user'
+                      ? 'border-b-2 border-blue-600 text-blue-600'
+                      : 'text-gray-600'
+                  }`}
+                  onClick={() => navigate('/admin/inactive-users')}
+                >
+                  Inactive Users
+                </button>
               </div>
 
               {loginRole !== 'nutritionist' &&
@@ -438,7 +460,24 @@ export default function AdminUser() {
               <SmartTable
                 data={data?.items ?? []}
                 dataRowKey="id"
-                toolbar={true}
+                toolbarExtra={
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-600">Status</label>
+                    <select
+                      className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200 w-40"
+                      value={statusFilter}
+                      onChange={(event) =>
+                        handleStatusChange(
+                          event.target.value as StatusFilterValue
+                        )
+                      }
+                    >
+                      <option value="all">All</option>
+                      <option value="active">Active</option>
+                      <option value="deactivated">Inactive</option>
+                    </select>
+                  </div>
+                }
                 search={true}
                 searchPlaceholder={
                   activeRole === 'nutritionist'
@@ -485,32 +524,20 @@ export default function AdminUser() {
                     title: 'Edit',
                     toolTip: 'Edit',
                   },
-                  // {
-                  //   title: 'Freeze',
-                  //   action: (row) => handleOpenFreeze(row),
-                  //   icon: <Icons name="lock-icon" />,
-                  //   toolTip: 'Freeze User',
-                  //   hide: (rowData: any) => isFrozen(rowData),
-                  // },
-                  // {
-                  //   title: 'Unfreeze',
-                  //   action: (row) => handleOpenUnfreeze(row),
-                  //   icon: <Icons name="activate-icon" />,
-                  //   toolTip: 'Unfreeze User',
-                  //   hide: (rowData: any) => !isFrozen(rowData),
-                  // },
                   {
                     title: 'Deactivate',
                     action: (rowData) =>
                       handleDeleteModel(
                         rowData?.id,
                         rowData?.email,
-                        rowData?.status
+                        rowData?.status,
+                        !!rowData?.subscribed_plan
                       ),
                     icon: <Icons name="deactivate-icon" />,
                     toolTip: 'Deactivate',
-                    hide: (rowData: any) =>
-                      rowData?.status == 'Active' ? false : true,
+                    disabled: (rowData: any) =>
+                      String(rowData?.status).toLowerCase() !== 'active',
+                    variant: 'danger',
                   },
                   {
                     title: 'Activate',
@@ -518,12 +545,14 @@ export default function AdminUser() {
                       handleDeleteModel(
                         rowData?.id,
                         rowData?.email,
-                        rowData?.status
+                        rowData?.status,
+                        !!rowData?.subscribed_plan
                       ),
                     icon: <Icons name="activate-icon" />,
                     toolTip: 'Activate',
-                    hide: (rowData: any) =>
-                      rowData?.status == 'Inactive' ? false : true,
+                    disabled: (rowData: any) =>
+                      String(rowData?.status).toLowerCase() === 'active',
+                    variant: 'success',
                   },
                   {
                     title: 'Delete',
@@ -543,6 +572,15 @@ export default function AdminUser() {
             </div>
           </div>
 
+          <ConfirmDeleteModal
+            isOpen={activePlanWarningOpen}
+            onClose={cancelActivePlanWarning}
+            onConfirm={confirmActivePlanWarning}
+            title="Deactivate this user?"
+            subTitle="This user currently has an active plan. Are you sure you want to continue with deactivation?"
+            confirmLabel="Yes, Continue"
+            cancelLabel="No"
+          />
           <DialogModal
             isOpen={deleteModal}
             onClose={() => setDeleteModal(false)}
@@ -601,28 +639,8 @@ export default function AdminUser() {
             userName={userName}
             setUserName={setUserName}
           />
-
-          {/* <FreezeUserModal
-            isOpen={freezeModal}
-            onClose={() => setFreezeModal(false)}
-            onSubmit={handleSubmitFreeze}
-            loading={loader}
-            values={freezeForm}
-            onChange={handleFreezeChange}
-          /> */}
-
-          {/* <ConfirmDeleteModal
-            isOpen={unfreezeConfirm}
-            onClose={() => setUnfreezeConfirm(false)}
-            onConfirm={handleSubmitUnfreeze}
-            loading={loader}
-            title={'Are you sure?'}
-            subTitle={'Do you really want to unfreeze this user?'}
-            confirmLabel="Unfreeze"
-            cancelLabel="Cancel"
-          /> */}
-
           <CreateAdmin
+            key={`${activeRole}-${edit ? 'edit' : 'create'}-${viewMode ? 'view' : 'form'}`}
             isDrawerOpen={createOpen}
             rowData={rowData}
             edit={edit}

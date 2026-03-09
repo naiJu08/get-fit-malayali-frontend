@@ -83,14 +83,16 @@ export const useCreateCategories = (
     },
 
     onError: (error: any) => {
-      enqueueSnackbar(
-        getErrorMessage(
-          error.response.data.error || error?.response?.data?.detail
-        ),
-        {
-          variant: 'error',
-        }
-      )
+      const serverError =
+        error?.response?.data?.errors ??
+        error?.response?.data?.detail ??
+        error?.response?.data?.message ??
+        error?.response?.error ??
+        error
+
+      enqueueSnackbar(getErrorMessage(serverError), {
+        variant: 'error',
+      })
     },
   })
 }

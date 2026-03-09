@@ -32,25 +32,39 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
     tileItem?.value || tileItem?.placeholder || tileItem?.label || ''
   )
 
+  useEffect(() => {
+    const nextValue =
+      tileItem?.value || tileItem?.placeholder || tileItem?.label || ''
+    setMenuValue(nextValue)
+  }, [tileItem?.label, tileItem?.placeholder, tileItem?.value])
+
   const dropdownRef = useRef<HTMLDivElement | null>(null)
+
+  const closeDropdown = useCallback(() => {
+    setIsOpen(false)
+    setSearchKey('')
+  }, [])
 
   const handleMenuItemClick = useCallback(
     (item: any) => {
       setUpdateCREId?.(item?.id ?? null)
       setMenuValue(item?.value ?? '')
-      setIsOpen(false)
+      closeDropdown()
     },
-    [setUpdateCREId]
+    [closeDropdown, setUpdateCREId]
   )
 
-  const handleClickOutside = useCallback((event: MouseEvent) => {
-    if (
-      dropdownRef.current &&
-      !dropdownRef.current.contains(event.target as Node)
-    ) {
-      setIsOpen(false)
-    }
-  }, [])
+  const handleClickOutside = useCallback(
+    (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        closeDropdown()
+      }
+    },
+    [closeDropdown]
+  )
 
   useEffect(() => {
     document.addEventListener('click', handleClickOutside)
@@ -62,11 +76,14 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
   const fetchAddonData = useCallback(
     debounce(async (search: string) => {
       setIsLoading(true)
-      if (getData) {
-        const res = await getData(search, 1)
-        setDropdown(res)
+      try {
+        if (getData) {
+          const res = await getData(search, 1)
+          setDropdown(res)
+        }
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }, 300),
     [getData]
   )
@@ -89,9 +106,14 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
       <div
         className={`flex items-center justify-between gap-1 rounded-3xl ${!disabled && 'cursor-pointer'} w-full`}
         onClick={() => {
-          if (!disabled) {
-            setIsOpen((prev) => !prev)
-          }
+          if (disabled) return
+          setIsOpen((prev) => {
+            const nextState = !prev
+            if (!nextState) {
+              setSearchKey('')
+            }
+            return nextState
+          })
         }}
       >
         <p className="text-primary text-common font-medium leading-none truncate">

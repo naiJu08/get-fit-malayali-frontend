@@ -18,6 +18,11 @@ import { humanizeDatetime } from '../../../utilities/format'
 import { useCreateWorkout, useUpdateWorkout } from '../api'
 import { WorkoutSchema, formSchema } from './schema'
 
+const toTitleCase = (value?: string) => {
+  if (!value) return ''
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+}
+
 type Props = {
   isDrawerOpen: boolean
   disabled?: boolean
@@ -67,6 +72,7 @@ export default function CreateAdmin({
   })
   const [deleteModal, setDeleteModal] = useState(false)
   const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null)
+  console.log('videoDurationMs', videoDurationMs)
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
   // useEffect(() => {
@@ -77,43 +83,52 @@ export default function CreateAdmin({
   //   return () => clearTimeout(intervalId)
   // }, [])
 
-  const handleDeleteFile = () => {
-    console.log('handle delete')
-    // deleteAssessorImage(rowData?.user?.id)
-    //   .then((res: any) => {
-    //     enqueueSnackbar(res.message ? res.message : 'Deleted Successfully', {
-    //       variant: 'success',
-    //     })
-    //     handleRefresh?.()
-    //     setDeleteModal(false)
-    //   })
-    //   .catch((err: any) => {
-    //     enqueueSnackbar(
-    //       err?.response?.data?.error?.message || err?.response?.data?.message,
-    //       { variant: 'error' }
-    //     )
-    //   })
+  // const getReadableFileName = (value?: string) => {
+  //   if (!value) {
+  //     return ''
+  //   }
+  //   const segments = String(value).split('/')
+  //   const raw = segments[segments.length - 1] || String(value)
+  //   const sanitized = raw.split('?')[0].split('#')[0]
+  //   try {
+  //     return decodeURIComponent(sanitized)
+  //   } catch {
+  //     return sanitized
+  //   }
+  // }
+  const formatVideoDurationLabel = (durationMs: number | null) => {
+    if (durationMs === null) return ''
+    const totalSeconds = Math.max(0, Math.floor(durationMs / 1000))
+    const minutes = Math.floor(totalSeconds / 60)
+    const seconds = totalSeconds % 60
+    const paddedSeconds = seconds.toString().padStart(2, '0')
+    return `${minutes}:${paddedSeconds}`
   }
 
-  // Used to show existing video file in edit mode (based on video_url from API)
-  const existingVideoFile = rowData?.video_url
-    ? {
-        name:
-          String(rowData.video_url).split('/').pop() ||
-          String(rowData.video_url),
-        link: rowData.video_url,
-      }
-    : undefined
+  const parseDurationMinutesToMs = (value?: string | number | null) => {
+    if (value === null || value === undefined) return null
+    const strValue = String(value)
+    const parts = strValue.split('.')
+    const minutes = parseInt(parts[0] || '0', 10)
+    const seconds = parseInt(parts[1] || '0', 10)
+    if (Number.isNaN(minutes) || Number.isNaN(seconds)) return null
+    return Math.max(0, (minutes * 60 + seconds) * 1000)
+  }
+  // const existingVideoFile =
+  //   rowData?.video_url
+  //     ? {
+  //       name: getReadableFileName(rowData.video_url),
+  //       link: rowData.video_url,
+  //     }
+  //     : undefined
 
   // Used to show existing thumbnail image in edit mode (based on thumbnail_url from API)
-  const existingThumbnailFile = rowData?.thumbnail_url
-    ? {
-        name:
-          String(rowData.thumbnail_url).split('/').pop() ||
-          String(rowData.thumbnail_url),
-        link: rowData.thumbnail_url,
-      }
-    : undefined
+  // const existingThumbnailFile = rowData?.thumbnail_url
+  //   ? {
+  //     name: getReadableFileName(rowData.thumbnail_url),
+  //     link: rowData.thumbnail_url,
+  //   }
+  //   : undefined
 
   const { data: categoriesResponse } = useQuery(
     ['workout_categories'],
@@ -136,7 +151,7 @@ export default function CreateAdmin({
     () =>
       normalizedCategories.map((cat: any) => ({
         id: cat?.id,
-        name: cat?.name,
+        name: toTitleCase(cat?.name),
         subcategories: Array.isArray(cat?.subcategories)
           ? cat.subcategories
           : [],
@@ -205,75 +220,83 @@ export default function CreateAdmin({
     handleClearAndClose()
   }
   useEffect(() => {
-    if (isDrawerOpen && edit && !viewMode && rowData) {
-      const rawCategory = rowData?.category
-      const mainCategory = rawCategory?.main_category
+    if (!(isDrawerOpen && edit && !viewMode && rowData)) return
 
-      const derivedSubcategoryId =
-        rowData?.subcategory_id ??
-        rowData?.subcategory?.id ??
-        rowData?.subcategoryId ??
-        (mainCategory?.id ? rawCategory?.id : undefined)
+    const rawCategory = rowData?.category
+    const mainCategory = rawCategory?.main_category
+    const hydrationKey =
+      rowData?.id ?? rowData?.video_url ?? rowData?.thumbnail_url ?? 'unknown'
 
-      const parentInfo =
+    if (hydratedRowRef.current === hydrationKey) return
+
+    const derivedSubcategoryId =
+      rowData?.subcategory_id ??
+      rowData?.subcategory?.id ??
+      rowData?.subcategoryId ??
+      (mainCategory?.id ? rawCategory?.id : undefined)
+
+    const parentInfo =
+      derivedSubcategoryId !== undefined && derivedSubcategoryId !== null
+        ? subcategoryParentMap[String(derivedSubcategoryId)]
+        : undefined
+
+    const derivedCategoryId = (() => {
+      if (mainCategory?.id) return mainCategory.id
+      if (parentInfo?.parentId) return parentInfo.parentId
+      return rowData?.category_id ?? rawCategory?.id ?? undefined
+    })()
+
+    const resolvedCategoryName = (() => {
+      if (mainCategory?.name) return mainCategory.name
+      if (parentInfo?.parentName) return parentInfo.parentName
+      if (derivedCategoryId) {
+        return (
+          normalizedCategories.find(
+            (cat: any) => Number(cat?.id) === Number(derivedCategoryId)
+          )?.name ?? ''
+        )
+      }
+      return rawCategory?.name ?? ''
+    })()
+
+    const resolvedSubcategoryName =
+      rowData?.subcategory?.name ??
+      rowData?.subcategory ??
+      rowData?.subcategory_name ??
+      (mainCategory?.id ? rawCategory?.name : (parentInfo?.subName ?? ''))
+
+    methods.reset({
+      name: toTitleCase(rowData?.name) ?? '',
+      description: rowData?.description ?? '',
+      intensity_level: rowData?.intensity_level ?? '',
+      category: resolvedCategoryName ?? '',
+      category_id: derivedCategoryId ?? undefined,
+      subcategory:
         derivedSubcategoryId !== undefined && derivedSubcategoryId !== null
-          ? subcategoryParentMap[String(derivedSubcategoryId)]
-          : undefined
+          ? (resolvedSubcategoryName ?? '')
+          : '',
+      subcategory_id:
+        derivedSubcategoryId !== undefined && derivedSubcategoryId !== null
+          ? derivedSubcategoryId
+          : undefined,
+      video_file: getFileName(rowData?.video_url) ?? '',
+      thumbnail: getFileName(rowData?.thumbnail_url) ?? '',
+    } as any)
 
-      const derivedCategoryId = (() => {
-        if (mainCategory?.id) return mainCategory.id
-        if (parentInfo?.parentId) return parentInfo.parentId
-        return rowData?.category_id ?? rawCategory?.id ?? undefined
-      })()
-
-      const resolvedCategoryName = (() => {
-        if (mainCategory?.name) return mainCategory.name
-        if (parentInfo?.parentName) return parentInfo.parentName
-        if (derivedCategoryId) {
-          return (
-            normalizedCategories.find(
-              (cat: any) => Number(cat?.id) === Number(derivedCategoryId)
-            )?.name ?? ''
-          )
-        }
-        return rawCategory?.name ?? ''
-      })()
-
-      const resolvedSubcategoryName =
-        rowData?.subcategory?.name ??
-        rowData?.subcategory ??
-        rowData?.subcategory_name ??
-        (mainCategory?.id ? rawCategory?.name : (parentInfo?.subName ?? ''))
-
-      methods.reset({
-        name: rowData?.name ?? '',
-        description: rowData?.description ?? '',
-        intensity_level: rowData?.intensity_level ?? '',
-        category: resolvedCategoryName ?? '',
-        category_id: derivedCategoryId ?? undefined,
-        subcategory:
-          derivedSubcategoryId !== undefined && derivedSubcategoryId !== null
-            ? (resolvedSubcategoryName ?? '')
-            : '',
-        subcategory_id:
-          derivedSubcategoryId !== undefined && derivedSubcategoryId !== null
-            ? derivedSubcategoryId
-            : undefined,
-        // video_url: rowData?.video_url ?? '',
-        // // seed video_file with existing URL so validation passes when no new file is chosen
-        // video_file: rowData?.video_url ?? '',
-        video_file: '',
-        video_url: rowData?.video_url ?? '',
-      } as any)
-    }
+    hydratedRowRef.current = hydrationKey
   }, [
-    edit,
     isDrawerOpen,
     normalizedCategories,
-    rowData,
+    // rowData,
     subcategoryParentMap,
-    viewMode,
+    // viewMode,
   ])
+
+  useEffect(() => {
+    if (!isDrawerOpen) {
+      hydratedRowRef.current = null
+    }
+  }, [isDrawerOpen])
   const onSuccess = () => {
     handleSubmission()
   }
@@ -297,11 +320,18 @@ export default function CreateAdmin({
     if (!category) return []
     return (category.subcategories ?? []).map((sub: any) => ({
       id: sub?.id,
-      name: sub?.name,
+      name: toTitleCase(sub?.name),
     }))
   }, [categoryOptions, selectedCategoryId])
 
   const categoryChangeRef = useRef<any>()
+  const hydratedRowRef = useRef<string | number | null>(null)
+  const getFileName = (path?: string) => {
+    if (!path) return ''
+
+    const fileName = path.split('/').pop() || ''
+    return decodeURIComponent(fileName).replace(/%/g, '')
+  }
 
   useEffect(() => {
     if (categoryChangeRef.current === undefined) {
@@ -323,7 +353,10 @@ export default function CreateAdmin({
 
   const formBuilderProps = useMemo(
     () => [
-      { ...textField('name', 'Name', 'Enter workout name', true) },
+      {
+        ...textField('name', 'Name', 'Enter workout name', true),
+        maxLength: 50,
+      },
       {
         name: 'intensity_level',
         label: 'Intensity Level',
@@ -370,6 +403,7 @@ export default function CreateAdmin({
         type: 'textarea',
         placeholder: 'Enter description',
         required: true,
+        maxlength: 250,
       },
       {
         name: 'thumbnail',
@@ -386,12 +420,18 @@ export default function CreateAdmin({
         ],
         acceptedFiles: 'PNG, JPG, JPEG, WEBP',
         fileSize: 5,
-        selectedFiles: existingThumbnailFile,
+        selectedFiles: getFileName(rowData?.thumbnail_url),
         subName: 'thumbnail',
+        handleDeleteFile: () => {
+          methods.setValue('thumbnail', '')
+        },
       },
       {
         name: 'video_file',
         label: 'Video File',
+        labelAddon: videoDurationMs
+          ? formatVideoDurationLabel(videoDurationMs)
+          : '',
         id: 'video_file',
         type: 'file_upload',
         placeholder: 'Upload video file',
@@ -404,22 +444,63 @@ export default function CreateAdmin({
         ],
         acceptedFiles: 'MP4, MOV, AVI',
         fileSize: 5,
-        selectedFiles: existingVideoFile,
+        selectedFiles: getFileName(rowData?.video_url),
         subName: 'video_file',
+        handleDeleteFile: () => {
+          methods.setValue('video_file', '')
+          methods.setValue('video_url', '')
+          setVideoDurationMs(null)
+        },
       },
     ],
     [
       categoryOptions,
-      existingThumbnailFile,
-      existingVideoFile,
+      // existingThumbnailFile,
+      // existingVideoFile,
       selectedCategoryId,
       subcategoryOptions,
     ]
   )
 
   useEffect(() => {
+    const fallbackFromExistingDuration = () => {
+      const fallbackMs = parseDurationMinutesToMs(rowData?.duration_minutes)
+      setVideoDurationMs(fallbackMs)
+    }
+
     if (!watchedVideoFile) {
-      setVideoDurationMs(null)
+      if (rowData?.video_url) {
+        const videoElement = document.createElement('video')
+        videoElement.preload = 'metadata'
+        videoElement.crossOrigin = 'anonymous'
+        videoElement.src = rowData.video_url
+
+        const handleLoadedMetadata = () => {
+          const durationSeconds = videoElement.duration
+          if (!Number.isNaN(durationSeconds)) {
+            setVideoDurationMs(durationSeconds * 1000)
+          } else {
+            fallbackFromExistingDuration()
+          }
+        }
+
+        const handleError = () => {
+          fallbackFromExistingDuration()
+        }
+
+        videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+        videoElement.addEventListener('error', handleError)
+
+        return () => {
+          videoElement.removeEventListener(
+            'loadedmetadata',
+            handleLoadedMetadata
+          )
+          videoElement.removeEventListener('error', handleError)
+        }
+      }
+
+      fallbackFromExistingDuration()
       return
     }
 
@@ -438,16 +519,23 @@ export default function CreateAdmin({
         URL.revokeObjectURL(objectUrl)
       }
 
+      const handleError = () => {
+        fallbackFromExistingDuration()
+        URL.revokeObjectURL(objectUrl)
+      }
+
       videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+      videoElement.addEventListener('error', handleError)
 
       return () => {
         videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata)
+        videoElement.removeEventListener('error', handleError)
         URL.revokeObjectURL(objectUrl)
       }
-    } else {
-      setVideoDurationMs(null)
     }
-  }, [watchedVideoFile])
+
+    fallbackFromExistingDuration()
+  }, [watchedVideoFile, rowData?.video_url, rowData?.duration_minutes])
   // const onSubmit = (details: any) => {
   //   // Ensure a video file is always present (for both create and edit)
   //   if (!details?.video_file && !rowData?.video_url) {
@@ -491,46 +579,59 @@ export default function CreateAdmin({
   // }
   const onSubmit = (details: any) => {
     const hasNewVideoFile = details?.video_file instanceof File
-    const hasExistingVideoUrl = !!(details?.video_url || rowData?.video_url)
+    const hasExistingVideoUrl =
+      typeof details?.video_file === 'string' && details.video_file !== ''
 
+    // If user deleted video → both will be false
     if (!hasNewVideoFile && !hasExistingVideoUrl) {
       setError('video_file', { type: 'manual', message: 'Video is required.' })
       return
     }
+
     clearErrors('video_file')
 
     const fd = new FormData()
     fd.append('workout[name]', details?.name ?? '')
     fd.append('workout[description]', details?.description ?? '')
     fd.append('workout[intensity_level]', details?.intensity_level ?? '')
+
     const categoryIdForPayload = details?.subcategory_id ?? details?.category_id
+
     fd.append(
       'workout[category_id]',
       categoryIdForPayload ? String(categoryIdForPayload) : ''
     )
 
-    // Send video_url only if no new file is provided
-    if (!details?.video_file) {
-      fd.append('workout[video_url]', rowData?.video_url ?? '')
-    }
-
-    // Only send binary if user uploaded a new file
-    if (details?.video_file instanceof File) {
+    // CASE 1: user uploaded new video
+    if (hasNewVideoFile) {
       fd.append('video', details.video_file)
     }
 
-    // Thumbnail logic (same as before)
+    // CASE 2: keep existing video (edit mode, not deleted)
+    else if (hasExistingVideoUrl) {
+      fd.append('workout[video_url]', details.video_file)
+    }
+
+    // Thumbnail handling
     const thumbVal = details?.thumbnail
-    if (thumbVal && typeof thumbVal !== 'string') {
+
+    // CASE 1: New thumbnail uploaded
+    if (thumbVal instanceof File) {
       fd.append('workout[thumbnail]', thumbVal)
+    }
+
+    // CASE 2: Thumbnail manually removed
+    else if (thumbVal === '') {
+      fd.append('workout[thumbnail]', null as any)
     }
 
     // Duration
     if (videoDurationMs !== null) {
-      fd.append(
-        'workout[duration_minutes]',
-        (videoDurationMs / 60000).toFixed(2)
-      )
+      const totalSeconds = Math.max(0, Math.floor(videoDurationMs / 1000))
+      const minutes = Math.floor(totalSeconds / 60)
+      const seconds = totalSeconds % 60
+      const paddedSeconds = seconds.toString().padStart(2, '0')
+      fd.append('workout[duration_minutes]', `${minutes}.${paddedSeconds}`)
     }
 
     if (rowData?.id) {
@@ -597,7 +698,7 @@ export default function CreateAdmin({
         isOpen={deleteModal}
         onClose={() => setDeleteModal(false)}
         title={'Delete File'}
-        onSubmit={() => handleDeleteFile()}
+        // onSubmit={() => handleDeleteFile()}
         secondaryAction={() => setDeleteModal(false)}
         secondaryActionLabel="No, Cancel"
         actionLabel="Yes, I am"
@@ -630,15 +731,14 @@ export default function CreateAdmin({
                 <FormProvider {...methods}>
                   <FormBuilder data={formBuilderProps} edit={true} spacing />
                 </FormProvider>
-                {videoDurationMs !== null && (
-                  <div className="text-sm text-primaryText">
-                    {(() => {
-                      const minutes = videoDurationMs / 60000
-                      const formatted = minutes.toFixed(2).padStart(5, '0')
-                      return `Video duration: ${formatted} minutes`
-                    })()}
-                  </div>
-                )}
+                {videoDurationMs !== null &&
+                  (watchedVideoFile instanceof File ||
+                    (typeof watchedVideoFile === 'string' &&
+                      watchedVideoFile !== '')) && (
+                    <div className="text-sm text-primaryText">
+                      {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
+                    </div>
+                  )}
               </>
             ) : (
               <CustomeSideViewer

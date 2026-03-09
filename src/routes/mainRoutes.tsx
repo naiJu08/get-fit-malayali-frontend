@@ -13,7 +13,8 @@ import UserRoute from './components/userRoute'
 import SubscriptionDetailsMain from '../pages/Subscriptions/Details'
 import PaymentHistory from '../pages/PaymentHistory'
 import YogaPlanDetails from '../pages/Plans/Details/YogaPlan/details'
-
+import DietTemplateDetails from '../pages/DietTemplate/Details'
+//
 // Users sample page is no longer used for the Users route; using AdminUser instead
 
 const Login = lazy(() => import('../pages/userManagement/login'))
@@ -22,6 +23,7 @@ const ForgetPassword = lazy(
 )
 
 const AdminUser = lazy(() => import('../pages/AdminUser'))
+const InactiveUsers = lazy(() => import('../pages/AdminUser/InactiveUsers'))
 const Subscriptions = lazy(() => import('../pages/Subscriptions'))
 const Workout = lazy(() => import('../pages/Workout'))
 const Plans = lazy(() => import('../pages/Plans'))
@@ -30,7 +32,7 @@ const WorkoutPlanDetails = lazy(
   () => import('../pages/Plans/Details/WorkoutPlan/details')
 )
 const DietPlanDetails = lazy(
-  () => import('../pages/Plans/Details/DietPlan/details')
+  () => import('../pages/DietTemplate/Details/DietPlanTab/details')
 )
 // const YogaplanDetails = lazy(
 //   () => import('../pages/Plans/Details/YogaPlan/index')
@@ -44,6 +46,7 @@ const BatchHistoryDetail = lazy(
 )
 const RecipeDetail = lazy(() => import('../pages/Recipe/Detail'))
 const UserDetails = lazy(() => import('../pages/AdminUser/Details'))
+// const SubscriptionHistory = lazy(() => import('../pages/AdminUser/Details/SubscriptionHistory'))
 const WorkoutDetails = lazy(() => import('../pages/Workout/Details'))
 const CategoriesMain = lazy(() => import('../pages/Categories'))
 const CategoriesDetails = lazy(() => import('../pages/Categories/Details'))
@@ -62,6 +65,8 @@ const YogaDetails = lazy(() => import('../pages/Yoga/Details'))
 const YogaMain = lazy(() => import('../pages/Yoga'))
 const MeditationMain = lazy(() => import('../pages/Meditation'))
 const MeditationDetails = lazy(() => import('../pages/Meditation/Details'))
+const DietTemplateMain = lazy(() => import('../pages/DietTemplate'))
+
 const routes: any = [
   { slug: 'DASHBOARD', component: <Dashboard /> },
   { slug: 'SETTINGS_SAMPLE', component: <Settings /> },
@@ -71,6 +76,9 @@ const routes: any = [
   { slug: 'PLAN_DETAILS', component: <PlanDetails /> },
   { slug: 'CATEGORIES', component: <CategoriesMain /> },
   { slug: 'CATEGORIES_DETAILS', component: <CategoriesDetails /> },
+  { slug: 'DIET_TEMPLATE', component: <DietTemplateMain /> },
+  { slug: 'DIET_TEMPLATE_DETAILS', component: <DietTemplateDetails /> },
+  { slug: 'DIET_TEMPLATE_DIET_PLAN', component: <DietTemplateDetails /> },
   { slug: 'WORKOUT_PLAN_DETAILS', component: <WorkoutPlanDetails /> },
   { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
   { slug: 'YOGAPLAN', component: <PlanDetails /> },
@@ -93,6 +101,7 @@ const routes: any = [
   { slug: 'PLAN_DETAILS_WORKOUT', component: <PlanDetails /> },
   { slug: 'PLAN_DETAILS_DIET', component: <PlanDetails /> },
   { slug: 'PAYMENT_HISTORY', component: <PaymentHistory /> },
+  { slug: 'REMINDER_SETTINGS', component: <UserDetails /> },
 
   {
     isAuthRoute: true,
@@ -257,6 +266,14 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
+        path="/users/:id/additional-info"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
         path="/users/:id/vitals"
       />
       <Route
@@ -278,10 +295,44 @@ export default function MainRoutes() {
       <Route
         element={
           <UserRoute slug_key="ADMIN_USER">
-            <UserDetails />
+            <AdminUser />
           </UserRoute>
         }
         path="/users/nutritionist/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <InactiveUsers />
+          </UserRoute>
+        }
+        path="/admin/inactive-users"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/:id/reminders"
+      />
+
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/:id/recipes"
+      />
+
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/:id/subscription-history"
       />
 
       <Route
@@ -339,6 +390,31 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/subscriptions/:id/vitals"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/additional-information"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/reminders"
+      />
+
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/reports"
       />
       <Route
         element={

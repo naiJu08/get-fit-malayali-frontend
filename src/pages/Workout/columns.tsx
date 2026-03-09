@@ -81,10 +81,7 @@ export const getColumns = ({
         const propertyValue = getNestedProperty(row, key)
         const val = typeof propertyValue === 'string' ? propertyValue : ''
         const cap = val
-          ? val.replace(
-              /\w\S*/g,
-              (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
-            )
+          ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
           : ''
         return {
           cell: cap,
@@ -166,7 +163,7 @@ export const getColumns = ({
         const value = getNestedProperty(row, 'name') as string | undefined
         const displayValue =
           typeof value === 'string' && value.length > 0
-            ? value.charAt(0).toUpperCase() + value.slice(1)
+            ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
             : (value ?? '')
 
         if (!disableNameLink && onNameClick) {
@@ -261,8 +258,6 @@ export const getColumns = ({
       renderCell: createRenderCell('duration_minutes'),
       customCell: true,
       ...defaultColumnProps,
-      sortable: true,
-      sortKey: 'duration_minutes',
     },
     // {
     //   title: 'Video URL',
