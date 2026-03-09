@@ -9,16 +9,11 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-export const getInactiveUserColumns = (
-  {
-    // onNameClick,
-  }:
-    | {
-        onNameClick?: (row: any) => void
-      }
-    | AdminListResponse
-    | any
-) => {
+export const getInactiveUserColumns = ({
+  onNameClick,
+}: {
+  onNameClick?: (row: any) => void
+}) => {
   const createRenderCell =
     (key: string, isCustom?: string) => (row: AdminListResponse) => {
       if (isCustom === 'capitalize') {
@@ -128,8 +123,8 @@ export const getInactiveUserColumns = (
         }
       },
       customCell: true,
-      // link: true,
-      // rowClick: (row: any) => onNameClick && onNameClick(row),
+      link: true,
+      rowClick: (row: any) => onNameClick && onNameClick(row),
       ...defaultColumnProps,
     },
     {
