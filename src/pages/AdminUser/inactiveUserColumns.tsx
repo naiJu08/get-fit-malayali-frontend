@@ -8,9 +8,11 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-export const getInactiveUserColumns = (params: any) => {
-  const { onNameClick, navigate } = params || {}
-
+export const getInactiveUserColumns = ({
+  onNameClick,
+}: {
+  onNameClick?: (row: any) => void
+}) => {
   const createRenderCell =
     (key: string, isCustom?: string) => (row: AdminListResponse) => {
       if (isCustom === 'capitalize') {
@@ -124,8 +126,8 @@ export const getInactiveUserColumns = (params: any) => {
               href={`/users/${userId}/details`}
               onClick={(e) => {
                 e.preventDefault()
-                if (navigate) {
-                  navigate(`/users/${userId}/details`)
+                if (onNameClick) {
+                  onNameClick(row)
                 }
               }}
               className="text-blue-600 hover:text-blue-800 cursor-pointer"
@@ -139,15 +141,7 @@ export const getInactiveUserColumns = (params: any) => {
       },
       customCell: true,
       link: true,
-      rowClick: (row: any) => {
-        const userId = getNestedProperty(row, 'id')
-        if (navigate) {
-          navigate(`/users/${userId}/details`)
-        }
-        if (onNameClick) {
-          onNameClick(row)
-        }
-      },
+      rowClick: (row: any) => onNameClick && onNameClick(row),
       ...defaultColumnProps,
     },
     {

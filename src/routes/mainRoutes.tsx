@@ -314,6 +314,14 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
+        path="/admin/inactive-users/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
         path="/users/:id/reminders"
       />
 

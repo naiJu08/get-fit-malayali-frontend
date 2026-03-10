@@ -1821,6 +1821,221 @@ export default function Reports({
           )
         }
 
+        // Detailed Diet Log
+        const detailedDietLog = report?.detailed_diet_log
+        if (
+          detailedDietLog &&
+          Array.isArray(detailedDietLog) &&
+          detailedDietLog.length > 0
+        ) {
+          pdf.addPage()
+          yPosition = margin
+          addText('Detailed Diet Log', 14, 'bold')
+          yPosition += 5
+
+          detailedDietLog.forEach((dayLog: any, dayIndex: number) => {
+            // Calculate day totals
+            let totalAssigned = 0
+            let totalConsumed = 0
+            let totalOutside = 0
+            const allMeals: {
+              name: string
+              consumed: number
+              assigned: number
+              outside: number
+              items: {
+                name: string
+                consumed: boolean
+                status: string
+                calories: number
+                assignedQty: number
+                consumedQty: number
+                servingUnit: string
+                requirement: string
+              }[]
+              outsideItems: {
+                name: string
+                calories: number
+                quantity: string
+              }[]
+            }[] = []
+
+            dayLog?.meal_slots?.forEach((mealSlot: any) => {
+              const assignedItems = mealSlot?.assigned_items || []
+              const outsideItems = mealSlot?.outside_consumed_items || []
+
+              const mealAssigned = assignedItems.length
+              const mealConsumed = assignedItems.filter(
+                (item: any) => item?.consumed
+              ).length
+              const mealOutside = outsideItems.length
+
+              totalAssigned += mealAssigned
+              totalConsumed += mealConsumed
+              totalOutside += mealOutside
+
+              // Collect item details
+              const itemDetails = assignedItems.map((item: any) => ({
+                name: item?.meal_name || 'Unknown Item',
+                consumed: item?.consumed || false,
+                status: item?.status || 'not_recorded',
+                calories:
+                  item?.consumed_calories || item?.calories_per_serving || 0,
+                assignedQty: item?.assigned_quantity || 0,
+                consumedQty: item?.consumed_quantity || 0,
+                servingUnit: item?.serving_unit || '',
+                requirement: item?.requirement || '',
+              }))
+
+              const outsideItemDetails = outsideItems.map((item: any) => ({
+                name: item?.meal_name || 'Unknown Item',
+                calories:
+                  item?.consumed_calories || item?.calories_per_serving || 0,
+                quantity:
+                  `${item?.quantity || item?.consumed_quantity || 1} ${item?.serving_unit || ''}`.trim(),
+              }))
+
+              allMeals.push({
+                name: mealSlot?.meal_time || 'Meal',
+                consumed: mealConsumed,
+                assigned: mealAssigned,
+                outside: mealOutside,
+                items: itemDetails,
+                outsideItems: outsideItemDetails,
+              })
+            })
+
+            // Get day status
+            const dayCompletionRate =
+              totalAssigned > 0 ? (totalConsumed / totalAssigned) * 100 : 0
+            const getDayStatus = () => {
+              if (totalAssigned === 0 && totalOutside === 0) return 'No Data'
+              if (dayCompletionRate >= 80) return 'Excellent'
+              if (dayCompletionRate >= 50) return 'Good'
+              if (dayCompletionRate > 0) return 'Poor'
+              return 'Not Started'
+            }
+
+            // Calculate required height for this day block
+            const totalItems = allMeals.reduce(
+              (sum, meal) => sum + meal.items.length + meal.outsideItems.length,
+              0
+            )
+            const dayBlockHeight =
+              20 + allMeals.length * 10 + totalItems * 5 + 20
+            checkPageBreak(dayBlockHeight)
+
+            // Day header with background
+            pdf.setFillColor(230, 235, 250)
+            pdf.rect(margin, yPosition - 4, contentWidth, 10, 'F')
+            pdf.setFont('helvetica', 'bold')
+            pdf.setFontSize(10)
+            pdf.text(
+              `Day ${dayLog?.day_number} - ${formatDate(dayLog?.date)}`,
+              margin + 2,
+              yPosition + 2
+            )
+
+            // Status on the right
+            const statusText = getDayStatus()
+            const statusWidth = pdf.getTextWidth(statusText)
+            pdf.text(
+              statusText,
+              margin + contentWidth - statusWidth - 2,
+              yPosition + 2
+            )
+            yPosition += 14
+
+            // Meals list with item details grouped by status
+            allMeals.forEach((meal) => {
+              // Check page break before each meal
+              const mealHeight =
+                12 + meal.items.length * 5 + meal.outsideItems.length * 5 + 20
+              checkPageBreak(mealHeight)
+
+              // Meal header
+              pdf.setFont('helvetica', 'bold')
+              pdf.setFontSize(9)
+              const mealHeader = `${meal.name} (${meal.consumed}/${meal.assigned})`
+              const outsideLabel =
+                meal.outside > 0 ? ` +${meal.outside} outside` : ''
+              pdf.text(mealHeader + outsideLabel, margin + 3, yPosition)
+              yPosition += 7
+
+              // Separate items by status
+
+              pdf.setFontSize(8)
+              pdf.setFont('helvetica', 'normal')
+
+              // Show all items with their status
+              meal.items.forEach((item) => {
+                const reqLabel =
+                  item.requirement === 'mandatory'
+                    ? '(M)'
+                    : item.requirement === 'optional'
+                      ? '(O)'
+                      : ''
+                const statusLabel = item.consumed ? 'Consumed' : 'Not Recorded'
+                const itemText = `    - ${item.name} ${reqLabel} | ${item.assignedQty} ${item.servingUnit} | ${item.calories} kcal  - ${statusLabel}`
+
+                const maxWidth = contentWidth - 15
+                let displayText = itemText
+                while (
+                  pdf.getTextWidth(displayText) > maxWidth &&
+                  displayText.length > 20
+                ) {
+                  displayText = displayText.slice(0, -4) + '...'
+                }
+
+                pdf.text(displayText, margin + 8, yPosition)
+                yPosition += 5
+              })
+
+              // Outside items section
+              if (meal.outsideItems.length > 0) {
+                pdf.setFont('helvetica', 'bold')
+                pdf.text('  Outside Items:', margin + 5, yPosition)
+                yPosition += 5
+                pdf.setFont('helvetica', 'normal')
+
+                meal.outsideItems.forEach((item) => {
+                  const itemText = `    - ${item.name} | ${item.quantity} | ${item.calories} kcal`
+
+                  const maxWidth = contentWidth - 15
+                  let displayText = itemText
+                  while (
+                    pdf.getTextWidth(displayText) > maxWidth &&
+                    displayText.length > 20
+                  ) {
+                    displayText = displayText.slice(0, -4) + '...'
+                  }
+
+                  pdf.text(displayText, margin + 10, yPosition)
+                  yPosition += 5
+                })
+              }
+
+              yPosition += 3
+            })
+
+            // Summary row
+            pdf.setFont('helvetica', 'bold')
+            pdf.setFontSize(9)
+            const summaryText = `Total: ${totalConsumed}/${totalAssigned} items completed`
+            const outsideSummary =
+              totalOutside > 0 ? ` | Outside: ${totalOutside} items` : ''
+            pdf.text(summaryText + outsideSummary, margin + 3, yPosition)
+            yPosition += 8
+
+            // Add separator line between days
+            if (dayIndex < detailedDietLog.length - 1) {
+              pdf.setDrawColor(180, 180, 200)
+              pdf.line(margin, yPosition, margin + contentWidth, yPosition)
+              yPosition += 8
+            }
+          })
+        }
+
         // Add recipes if provided
         if (recipes.length > 0) {
           pdf.addPage()
@@ -2498,6 +2713,619 @@ export default function Reports({
 
           {/* Daily Activity Timeline */}
           <DailyActivityCard dailyBreakdown={report.daily_breakdown} />
+
+          {/* Detailed Diet Log Section */}
+          {report?.detailed_diet_log &&
+            Array.isArray(report.detailed_diet_log) &&
+            report.detailed_diet_log.length > 0 && (
+              <div className="border rounded-xl bg-white shadow-sm p-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-4">
+                  🍽️ Detailed Diet Log
+                </h3>
+
+                <div className="space-y-3">
+                  {report.detailed_diet_log.map(
+                    (dayLog: any, dayIndex: number) => (
+                      <div
+                        key={dayLog?.date || dayIndex}
+                        className="border rounded-lg p-3 bg-gray-50"
+                      >
+                        {/* Day Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="text-sm font-medium text-gray-900">
+                            📅 Day {dayLog?.day_number} •{' '}
+                            {moment(dayLog?.date).format('DD MMM YYYY')}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {dayLog?.meal_slots &&
+                              dayLog.meal_slots.length > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <span>🍽️</span>
+                                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                                </div>
+                              )}
+                            {dayLog?.is_frozen && (
+                              <span className="inline-flex items-center gap-1 rounded-sm bg-blue-500 text-white px-2 py-0.5 font-medium text-xs">
+                                ❄️ Frozen
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Meal Slots */}
+                        {dayLog?.meal_slots &&
+                        Array.isArray(dayLog.meal_slots) &&
+                        dayLog.meal_slots.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {dayLog.meal_slots.map(
+                              (mealSlot: any, mealIndex: number) => {
+                                // Calculate meal completion metrics
+                                const assignedItems =
+                                  mealSlot?.assigned_items || []
+                                const outsideItems =
+                                  mealSlot?.outside_consumed_items || []
+                                const totalAssigned = assignedItems.length
+                                const consumedAssigned = assignedItems.filter(
+                                  (item: any) => item?.consumed
+                                ).length
+                                const totalOutside = outsideItems.length
+                                const completionRate =
+                                  totalAssigned > 0
+                                    ? (consumedAssigned / totalAssigned) * 100
+                                    : 0
+                                const completionColor =
+                                  completionRate >= 80
+                                    ? '#10b981'
+                                    : completionRate >= 50
+                                      ? '#f59e0b'
+                                      : '#ef4444'
+
+                                // Get meal icon based on meal time
+                                const getMealIcon = (mealTime: string) => {
+                                  const time = mealTime?.toLowerCase() || ''
+                                  if (
+                                    time.includes('morning') ||
+                                    time.includes('drink')
+                                  )
+                                    return '☕'
+                                  if (time.includes('breakfast')) return '🥞'
+                                  if (
+                                    time.includes('mid') ||
+                                    time.includes('lunch')
+                                  )
+                                    return '🍽️'
+                                  if (
+                                    time.includes('evening') ||
+                                    time.includes('snack')
+                                  )
+                                    return '🍿'
+                                  if (time.includes('dinner')) return '🍽️'
+                                  return '🍽️'
+                                }
+
+                                return (
+                                  <div
+                                    key={mealSlot?.diet_plan_id || mealIndex}
+                                    className="bg-white rounded-lg p-3 border border-gray-200"
+                                  >
+                                    {/* Meal Header */}
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-lg">
+                                          {getMealIcon(mealSlot?.meal_time)}
+                                        </span>
+                                        <div>
+                                          <div className="text-sm font-medium text-gray-900 capitalize">
+                                            {mealSlot?.meal_time || 'Meal'}
+                                          </div>
+                                          {mealSlot?.meal_name && (
+                                            <div className="text-xs text-gray-500">
+                                              {mealSlot.meal_name}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <div className="flex flex-col items-end">
+                                          <span
+                                            className="text-xs font-bold"
+                                            style={{ color: completionColor }}
+                                          >
+                                            {completionRate.toFixed(0)}%
+                                          </span>
+                                          <div className="text-[10px] text-gray-500">
+                                            {consumedAssigned}/{totalAssigned}
+                                          </div>
+                                        </div>
+                                        <div
+                                          className="w-2 h-2 rounded-full"
+                                          style={{
+                                            backgroundColor: completionColor,
+                                          }}
+                                        />
+                                      </div>
+                                    </div>
+
+                                    {/* Assigned Items */}
+                                    {assignedItems.length > 0 && (
+                                      <div className="space-y-2 mb-2">
+                                        {/* Mandatory Items */}
+                                        {(() => {
+                                          const mandatoryItems =
+                                            assignedItems.filter(
+                                              (item: any) =>
+                                                item?.requirement ===
+                                                'mandatory'
+                                            )
+                                          const consumedMandatory =
+                                            mandatoryItems.filter(
+                                              (item: any) => item?.consumed
+                                            ).length
+
+                                          return (
+                                            mandatoryItems.length > 0 && (
+                                              <div className="space-y-1">
+                                                <div className="text-xs font-semibold text-red-600 flex items-center gap-1">
+                                                  🔴 Mandatory Items (
+                                                  {consumedMandatory}/
+                                                  {mandatoryItems.length})
+                                                </div>
+                                                <div className="space-y-1">
+                                                  {mandatoryItems.map(
+                                                    (
+                                                      item: any,
+                                                      itemIndex: number
+                                                    ) => (
+                                                      <div
+                                                        key={
+                                                          item?.item_id ||
+                                                          itemIndex
+                                                        }
+                                                        className="flex items-center justify-between p-2 bg-red-50 rounded border border-red-200"
+                                                      >
+                                                        <div className="flex items-center gap-2">
+                                                          <span
+                                                            className={`text-sm ${item?.consumed ? '✅' : '❌'}`}
+                                                          >
+                                                            {item?.consumed
+                                                              ? '✅'
+                                                              : '❌'}
+                                                          </span>
+                                                          <div>
+                                                            <div className="text-xs font-medium text-red-800">
+                                                              {item?.meal_name ||
+                                                                'Unknown Item'}
+                                                            </div>
+                                                            <div className="text-[10px] text-red-600">
+                                                              {
+                                                                item?.calories_per_serving
+                                                              }{' '}
+                                                              kcal per{' '}
+                                                              {
+                                                                item?.serving_unit
+                                                              }
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                          <div className="flex flex-col items-end gap-1">
+                                                            <div className="flex items-center gap-2 text-xs">
+                                                              {item?.consumed_quantity ? (
+                                                                <span className="text-green-600 font-medium">
+                                                                  Consumed{' '}
+                                                                  {
+                                                                    item.consumed_quantity
+                                                                  }{' '}
+                                                                  of{' '}
+                                                                  {
+                                                                    item?.assigned_quantity
+                                                                  }{' '}
+                                                                  {
+                                                                    item?.serving_unit
+                                                                  }
+                                                                </span>
+                                                              ) : (
+                                                                <span className="text-red-600 font-medium">
+                                                                  Consumed 0 of{' '}
+                                                                  {
+                                                                    item?.assigned_quantity
+                                                                  }{' '}
+                                                                  {
+                                                                    item?.serving_unit
+                                                                  }
+                                                                </span>
+                                                              )}
+                                                            </div>
+                                                            {item?.consumed_calories && (
+                                                              <div className="text-[9px] text-gray-600">
+                                                                Calories:{' '}
+                                                                {
+                                                                  item.consumed_calories
+                                                                }{' '}
+                                                                kcal
+                                                              </div>
+                                                            )}
+                                                            <div
+                                                              className={`text-xs font-medium capitalize ${
+                                                                item?.consumed
+                                                                  ? 'text-green-600'
+                                                                  : item?.status ===
+                                                                      'not_recorded'
+                                                                    ? 'text-red-600'
+                                                                    : 'text-red-600'
+                                                              }`}
+                                                            >
+                                                              {item?.consumed
+                                                                ? '✅ Completed'
+                                                                : item?.status?.replace(
+                                                                    /_/g,
+                                                                    ' '
+                                                                  ) ||
+                                                                  '❌ Missed'}
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    )
+                                                  )}
+                                                </div>
+                                              </div>
+                                            )
+                                          )
+                                        })()}
+
+                                        {/* Optional Items */}
+                                        {(() => {
+                                          const optionalItems =
+                                            assignedItems.filter(
+                                              (item: any) =>
+                                                item?.requirement === 'optional'
+                                            )
+                                          const consumedOptional =
+                                            optionalItems.filter(
+                                              (item: any) => item?.consumed
+                                            ).length
+
+                                          return (
+                                            optionalItems.length > 0 && (
+                                              <div className="space-y-1">
+                                                <div className="text-xs font-semibold text-blue-600 flex items-center gap-1">
+                                                  🔵 Optional Items (
+                                                  {consumedOptional}/
+                                                  {optionalItems.length})
+                                                </div>
+                                                <div className="space-y-1">
+                                                  {optionalItems.map(
+                                                    (
+                                                      item: any,
+                                                      itemIndex: number
+                                                    ) => (
+                                                      <div
+                                                        key={
+                                                          item?.item_id ||
+                                                          itemIndex
+                                                        }
+                                                        className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200"
+                                                      >
+                                                        <div className="flex items-center gap-2">
+                                                          <span
+                                                            className={`text-sm ${item?.consumed ? '✅' : '⭕'}`}
+                                                          >
+                                                            {item?.consumed
+                                                              ? '✅'
+                                                              : '⭕'}
+                                                          </span>
+                                                          <div>
+                                                            <div className="text-xs font-medium text-blue-800">
+                                                              {item?.meal_name ||
+                                                                'Unknown Item'}
+                                                            </div>
+                                                            <div className="text-[10px] text-blue-600">
+                                                              {
+                                                                item?.calories_per_serving
+                                                              }{' '}
+                                                              kcal per{' '}
+                                                              {
+                                                                item?.serving_unit
+                                                              }
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                          <div className="flex flex-col items-end gap-1">
+                                                            <div className="flex items-center gap-2 text-xs">
+                                                              {item?.consumed_quantity ? (
+                                                                <span className="text-green-600 font-medium">
+                                                                  Consumed{' '}
+                                                                  {
+                                                                    item.consumed_quantity
+                                                                  }{' '}
+                                                                  of{' '}
+                                                                  {
+                                                                    item?.assigned_quantity
+                                                                  }{' '}
+                                                                  {
+                                                                    item?.serving_unit
+                                                                  }
+                                                                </span>
+                                                              ) : (
+                                                                <span className="text-gray-500 font-medium">
+                                                                  Consumed 0 of{' '}
+                                                                  {
+                                                                    item?.assigned_quantity
+                                                                  }{' '}
+                                                                  {
+                                                                    item?.serving_unit
+                                                                  }
+                                                                </span>
+                                                              )}
+                                                            </div>
+                                                            {item?.consumed_calories && (
+                                                              <div className="text-[9px] text-gray-600">
+                                                                Calories:{' '}
+                                                                {
+                                                                  item.consumed_calories
+                                                                }{' '}
+                                                                kcal
+                                                              </div>
+                                                            )}
+                                                            <div
+                                                              className={`text-xs font-medium capitalize ${
+                                                                item?.consumed
+                                                                  ? 'text-green-600'
+                                                                  : item?.status ===
+                                                                      'not_recorded'
+                                                                    ? 'text-gray-500'
+                                                                    : 'text-gray-500'
+                                                              }`}
+                                                            >
+                                                              {item?.consumed
+                                                                ? 'Completed'
+                                                                : item?.status?.replace(
+                                                                    /_/g,
+                                                                    ' '
+                                                                  ) ||
+                                                                  'Not taken'}
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    )
+                                                  )}
+                                                </div>
+                                              </div>
+                                            )
+                                          )
+                                        })()}
+
+                                        {/* Items without requirement specified */}
+                                        {(() => {
+                                          const unspecifiedItems =
+                                            assignedItems.filter(
+                                              (item: any) =>
+                                                !item?.requirement ||
+                                                (item?.requirement !==
+                                                  'mandatory' &&
+                                                  item?.requirement !==
+                                                    'optional')
+                                            )
+                                          const consumedUnspecified =
+                                            unspecifiedItems.filter(
+                                              (item: any) => item?.consumed
+                                            ).length
+
+                                          return (
+                                            unspecifiedItems.length > 0 && (
+                                              <div className="space-y-1">
+                                                <div className="text-xs font-semibold text-gray-600 flex items-center gap-1">
+                                                  ⚪ Other Items (
+                                                  {consumedUnspecified}/
+                                                  {unspecifiedItems.length})
+                                                </div>
+                                                <div className="space-y-1">
+                                                  {unspecifiedItems.map(
+                                                    (
+                                                      item: any,
+                                                      itemIndex: number
+                                                    ) => (
+                                                      <div
+                                                        key={
+                                                          item?.item_id ||
+                                                          itemIndex
+                                                        }
+                                                        className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200"
+                                                      >
+                                                        <div className="flex items-center gap-2">
+                                                          <span
+                                                            className={`text-sm ${item?.consumed ? '✅' : '⭕'}`}
+                                                          >
+                                                            {item?.consumed
+                                                              ? '✅'
+                                                              : '⭕'}
+                                                          </span>
+                                                          <div>
+                                                            <div className="text-xs font-medium text-gray-800">
+                                                              {item?.meal_name ||
+                                                                'Unknown Item'}
+                                                            </div>
+                                                            <div className="text-[10px] text-gray-600">
+                                                              {
+                                                                item?.calories_per_serving
+                                                              }{' '}
+                                                              kcal per{' '}
+                                                              {
+                                                                item?.serving_unit
+                                                              }
+                                                            </div>
+                                                            {item?.requirement && (
+                                                              <div className="text-[9px] text-gray-500">
+                                                                Requirement:{' '}
+                                                                {
+                                                                  item.requirement
+                                                                }
+                                                              </div>
+                                                            )}
+                                                          </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                          <div className="flex flex-col items-end gap-1">
+                                                            <div className="flex items-center gap-2 text-xs">
+                                                              {item?.consumed_quantity ? (
+                                                                <span className="text-green-600 font-medium">
+                                                                  Consumed{' '}
+                                                                  {
+                                                                    item.consumed_quantity
+                                                                  }{' '}
+                                                                  of{' '}
+                                                                  {
+                                                                    item?.assigned_quantity
+                                                                  }{' '}
+                                                                  {
+                                                                    item?.serving_unit
+                                                                  }
+                                                                </span>
+                                                              ) : (
+                                                                <span className="text-gray-500 font-medium">
+                                                                  Consumed 0 of{' '}
+                                                                  {
+                                                                    item?.assigned_quantity
+                                                                  }{' '}
+                                                                  {
+                                                                    item?.serving_unit
+                                                                  }
+                                                                </span>
+                                                              )}
+                                                            </div>
+                                                            {item?.consumed_calories && (
+                                                              <div className="text-[9px] text-gray-600">
+                                                                Calories:{' '}
+                                                                {
+                                                                  item.consumed_calories
+                                                                }{' '}
+                                                                kcal
+                                                              </div>
+                                                            )}
+                                                            <div
+                                                              className={`text-xs font-medium capitalize ${
+                                                                item?.consumed
+                                                                  ? 'text-green-600'
+                                                                  : item?.status ===
+                                                                      'not_recorded'
+                                                                    ? 'text-gray-500'
+                                                                    : 'text-gray-500'
+                                                              }`}
+                                                            >
+                                                              {item?.consumed
+                                                                ? '✅ Completed'
+                                                                : item?.status?.replace(
+                                                                    /_/g,
+                                                                    ' '
+                                                                  ) ||
+                                                                  '⭕ Not recorded'}
+                                                            </div>
+                                                          </div>
+                                                        </div>
+                                                      </div>
+                                                    )
+                                                  )}
+                                                </div>
+                                              </div>
+                                            )
+                                          )
+                                        })()}
+                                      </div>
+                                    )}
+
+                                    {/* Outside Consumed Items */}
+                                    {outsideItems.length > 0 && (
+                                      <div className="space-y-1">
+                                        <div className="text-xs font-semibold text-orange-600 flex items-center gap-1">
+                                          🍕 Outside Items ({totalOutside})
+                                        </div>
+                                        <div className="space-y-1">
+                                          {outsideItems.map(
+                                            (item: any, itemIndex: number) => (
+                                              <div
+                                                key={item?.id || itemIndex}
+                                                className="flex items-center justify-between p-2 bg-orange-50 rounded border border-orange-200"
+                                              >
+                                                <div className="flex items-center gap-2">
+                                                  <span className="text-sm">
+                                                    🍕
+                                                  </span>
+                                                  <div>
+                                                    <div className="text-xs font-medium text-orange-800">
+                                                      {item?.meal_name ||
+                                                        'Unknown Item'}
+                                                    </div>
+                                                    <div className="text-[10px] text-orange-600">
+                                                      {
+                                                        item?.calories_per_serving
+                                                      }{' '}
+                                                      kcal per{' '}
+                                                      {item?.serving_unit}
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <div className="text-right">
+                                                  <div className="flex flex-col items-end gap-1">
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                      <span className="text-orange-600 font-medium">
+                                                        Consumed{' '}
+                                                        {item?.quantity ||
+                                                          item?.consumed_quantity ||
+                                                          1}{' '}
+                                                        of{' '}
+                                                        {item?.quantity ||
+                                                          item?.consumed_quantity ||
+                                                          1}{' '}
+                                                        {item?.serving_unit}
+                                                      </span>
+                                                    </div>
+                                                    {item?.consumed_calories && (
+                                                      <div className="text-[9px] text-gray-600">
+                                                        Calories:{' '}
+                                                        {item.consumed_calories}{' '}
+                                                        kcal
+                                                      </div>
+                                                    )}
+                                                    <div className="text-xs font-medium text-orange-600">
+                                                      ✅ Outside
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            )
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* No items message */}
+                                    {assignedItems.length === 0 &&
+                                      outsideItems.length === 0 && (
+                                        <div className="text-xs text-gray-400 italic flex items-center gap-1">
+                                          <span>📭</span>
+                                          No items recorded for this meal.
+                                        </div>
+                                      )}
+                                  </div>
+                                )
+                              }
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-400 italic flex items-center gap-1">
+                            <span>📭</span>
+                            No meal slots recorded for this day.
+                          </div>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            )}
         </div>
 
         {hasRecipeSections && renderRecipePreviewCards(selectedRecipeDetails)}
@@ -3103,7 +3931,7 @@ export default function Reports({
           </div>
 
           {/* Daily Activity Breakdown */}
-          <div>
+          <div className="mb-6">
             <h4 className="font-semibold mb-2 text-gray-700">
               📅 Daily Activity Breakdown
             </h4>
@@ -3152,6 +3980,241 @@ export default function Reports({
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Detailed Diet Log */}
+          <div className="mb-6">
+            <h4 className="font-semibold mb-2 text-gray-700">
+              🍽️ Detailed Diet Log
+            </h4>
+            {(() => {
+              console.log('PDF - report object:', report)
+              console.log(
+                'PDF - detailed_diet_log from report:',
+                report?.detailed_diet_log
+              )
+              console.log(
+                'PDF - detailed_diet_log length:',
+                report?.detailed_diet_log?.length
+              )
+
+              const detailedDietLog = report?.detailed_diet_log
+
+              if (
+                !detailedDietLog ||
+                !Array.isArray(detailedDietLog) ||
+                detailedDietLog.length === 0
+              ) {
+                console.log('PDF - No detailed diet log data available')
+                return (
+                  <div className="text-center text-gray-500 py-4">
+                    No detailed diet log data available
+                  </div>
+                )
+              }
+
+              console.log(
+                'PDF - Rendering detailed diet log with',
+                detailedDietLog.length,
+                'days'
+              )
+
+              return (
+                <table className="w-full border border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-gray-100">
+                      <th className="border px-4 py-2 w-[110px] text-left">
+                        Date
+                      </th>
+                      <th className="border px-4 py-2 w-[90px] text-left">
+                        Day
+                      </th>
+                      <th className="border px-3 py-2 w-[420px] text-left">
+                        Meals Summary
+                      </th>
+                      <th className="border px-6 py-2 w-[140px] text-left">
+                        Total Consumption
+                      </th>
+                      <th className="border px-6 py-2 w-[140px] text-left">
+                        Day Status
+                      </th>
+                    </tr>
+                  </thead>{' '}
+                  <tbody>
+                    {detailedDietLog?.map?.((dayLog: any, dayIndex: number) => {
+                      // Calculate day totals
+                      let totalAssigned = 0
+                      let totalConsumed = 0
+                      let totalOutside = 0
+                      const allMeals: string[] = []
+
+                      dayLog?.meal_slots?.forEach((mealSlot: any) => {
+                        const assignedItems = mealSlot?.assigned_items || []
+                        const outsideItems =
+                          mealSlot?.outside_consumed_items || []
+
+                        const mealAssigned = assignedItems.length
+                        const mealConsumed = assignedItems.filter(
+                          (item: any) => item?.consumed
+                        ).length
+                        const mealOutside = outsideItems.length
+
+                        totalAssigned += mealAssigned
+                        totalConsumed += mealConsumed
+                        totalOutside += mealOutside
+
+                        // Format meal details
+                        const mealTime = mealSlot?.meal_time || 'Meal'
+                        const mealItems = []
+
+                        // Mandatory items with individual status
+                        const mandatoryItems = assignedItems.filter(
+                          (item: any) => item?.requirement === 'mandatory'
+                        )
+                        if (mandatoryItems.length > 0) {
+                          const mandatoryWithStatus = mandatoryItems.map(
+                            (item: any) => {
+                              const status = item?.consumed
+                                ? '✅ Completed'
+                                : item?.status === 'not_recorded'
+                                  ? '⭕ Not recorded'
+                                  : '❌ Missed'
+                              return `🔴 ${item?.meal_name || 'Unknown Item'} (${status})`
+                            }
+                          )
+                          mealItems.push(mandatoryWithStatus.join(', '))
+                        }
+
+                        // Optional items with individual status
+                        const optionalItems = assignedItems.filter(
+                          (item: any) => item?.requirement === 'optional'
+                        )
+                        if (optionalItems.length > 0) {
+                          const optionalWithStatus = optionalItems.map(
+                            (item: any) => {
+                              const status = item?.consumed
+                                ? '✅ Completed'
+                                : item?.status === 'not_recorded'
+                                  ? '⭕ Not taken'
+                                  : '⭕ Not taken'
+                              return `🔵 ${item?.meal_name || 'Unknown Item'} (${status})`
+                            }
+                          )
+                          mealItems.push(optionalWithStatus.join(', '))
+                        }
+
+                        // Other items with individual status
+                        const otherItems = assignedItems.filter(
+                          (item: any) =>
+                            !item?.requirement ||
+                            (item?.requirement !== 'mandatory' &&
+                              item?.requirement !== 'optional')
+                        )
+                        if (otherItems.length > 0) {
+                          const otherWithStatus = otherItems.map(
+                            (item: any) => {
+                              const status = item?.consumed
+                                ? '✅ Completed'
+                                : item?.status === 'not_recorded'
+                                  ? '⭕ Not recorded'
+                                  : '⭕ Not recorded'
+                              return `⚪ ${item?.meal_name || 'Unknown Item'} (${status})`
+                            }
+                          )
+                          mealItems.push(otherWithStatus.join(', '))
+                        }
+
+                        // Outside items with status
+                        if (outsideItems.length > 0) {
+                          const outsideWithStatus = outsideItems.map(
+                            (item: any) => {
+                              return `🍕 ${item?.meal_name || 'Unknown Item'} (✅ Outside)`
+                            }
+                          )
+                          mealItems.push(outsideWithStatus.join(', '))
+                        }
+
+                        const mealSummary =
+                          mealItems.length > 0 ? mealItems.join(' | ') : '—'
+                        const consumptionSummary = `${mealConsumed}/${mealAssigned}${mealOutside > 0 ? ` + 🍕${mealOutside}` : ''}`
+
+                        allMeals.push(
+                          `${mealTime}: ${mealSummary} (${consumptionSummary})`
+                        )
+                      })
+
+                      // Get day status
+                      const dayCompletionRate =
+                        totalAssigned > 0
+                          ? (totalConsumed / totalAssigned) * 100
+                          : 0
+                      const getDayStatus = () => {
+                        if (totalAssigned === 0 && totalOutside === 0)
+                          return '—'
+                        if (dayCompletionRate >= 80) return '✅ Excellent'
+                        if (dayCompletionRate >= 50) return '⚠️ Good'
+                        if (dayCompletionRate > 0) return '❌ Poor'
+                        return '❌ Not started'
+                      }
+
+                      // Get total consumption summary
+                      const getTotalConsumption = () => {
+                        if (totalAssigned === 0 && totalOutside === 0)
+                          return '—'
+                        if (totalAssigned === 0)
+                          return `🍕 ${totalOutside} outside`
+                        if (totalOutside === 0)
+                          return `${totalConsumed}/${totalAssigned}`
+                        return `${totalConsumed}/${totalAssigned} + 🍕${totalOutside}`
+                      }
+
+                      console.log(`PDF - Day ${dayIndex + 1}:`, {
+                        date: dayLog?.date,
+                        totalMeals: dayLog?.meal_slots?.length,
+                        totalAssigned,
+                        totalConsumed,
+                        totalOutside,
+                      })
+
+                      return (
+                        <tr key={dayLog?.date || dayIndex}>
+                          <td className="border px-2 py-1">
+                            {moment(dayLog?.date).format('DD-MM-YYYY')}
+                          </td>
+                          <td className="border px-2 py-1">
+                            Day {dayLog?.day_number}
+                            {dayLog?.is_frozen && (
+                              <span className="ml-1 text-xs text-blue-600">
+                                ❄️
+                              </span>
+                            )}
+                          </td>
+                          <td className="border px-2 py-1">
+                            <div
+                              className="max-w-md"
+                              title={allMeals.join('\n')}
+                            >
+                              {allMeals.map((meal, index) => (
+                                <div
+                                  key={index}
+                                  className="text-xs mb-1 border-b border-gray-200 pb-1 last:border-b-0 last:pb-0"
+                                >
+                                  {meal}
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="border px-2 py-1">
+                            {getTotalConsumption()}
+                          </td>
+                          <td className="border px-2 py-1">{getDayStatus()}</td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )
+            })()}
           </div>
         </div>
       </div>
