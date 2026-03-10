@@ -29,6 +29,7 @@ import apiUrl from '../../../apis/api.url'
 import { getData } from '../../../apis/api.helpers'
 import { getWorkoutPlanSubcategories } from '../../Plans/Details/WorkoutPlan/api'
 import DayDetailTabsSection from './DayDetailTabsSection'
+import jsPDF from 'jspdf'
 
 type DayDetailTab = 'diet' | 'workout' | 'yoga' | 'meditation'
 
@@ -123,6 +124,7 @@ export default function Subscriptions({
   const [medSearch, setMedSearch] = useState<string>('')
   const [medAssigning, setMedAssigning] = useState(false)
   const [medDragIndex, setMedDragIndex] = useState<number | null>(null)
+  const [downloadingTemplate, setDownloadingTemplate] = useState(false)
   const refreshEntirePage = useCallback(() => {
     if (
       typeof window !== 'undefined' &&
@@ -1880,6 +1882,221 @@ export default function Subscriptions({
     resetFreezeForm()
   }
 
+  const handleDownloadDietTemplate = async () => {
+    const templateId = overview?.subscription?.diet_plan_template_id
+    console.log('Template ID from subscription:', templateId)
+    console.log('Full subscription data:', overview?.subscription)
+
+    if (!templateId) {
+      enqueueSnackbar('No diet template assigned to this subscription', {
+        variant: 'error',
+      })
+      return
+    }
+    setDownloadingTemplate(true)
+    try {
+      // Use the diet plans API with template ID filter
+      const dietPlansApiUrl = `${apiUrl.DIET_PLAN}?page=1&per_page=1000&diet_plan_template_id=${templateId}`
+      console.log('Fetching diet plans from:', dietPlansApiUrl)
+      const response = await getData(dietPlansApiUrl)
+      const dietPlansData = response?.diet_plans || response || []
+      console.log('Diet plans received:', dietPlansData)
+
+      if (!dietPlansData || dietPlansData.length === 0) {
+        enqueueSnackbar('No diet plans found for this template', {
+          variant: 'error',
+        })
+        return
+      }
+
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const margin = 15
+      const contentWidth = pageWidth - 2 * margin
+      let yPosition = margin
+
+      // Helper function to add text with proper line height
+      const addText = (
+        text: string,
+        fontSize = 10,
+        fontStyle = 'normal',
+        xOffset = 0
+      ) => {
+        pdf.setFont('helvetica', fontStyle)
+        pdf.setFontSize(fontSize)
+        pdf.text(text, margin + xOffset, yPosition)
+        yPosition += fontSize * 0.5 + 2
+      }
+
+      // Helper function to check page break
+      const checkPageBreak = (requiredHeight: number) => {
+        if (
+          yPosition + requiredHeight >
+          pdf.internal.pageSize.getHeight() - margin
+        ) {
+          pdf.addPage()
+          yPosition = margin
+        }
+      }
+
+      // Add title with background
+      pdf.setFillColor(41, 128, 185)
+      pdf.rect(0, 0, pageWidth, 25, 'F')
+      pdf.setTextColor(255, 255, 255)
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(18)
+      pdf.text('Diet Template Details', margin, 16)
+      pdf.setTextColor(0, 0, 0)
+      yPosition = 35
+
+      // Template basic info
+      const templateName =
+        dietPlansData[0]?.diet_plan_template_name || 'Unknown Template'
+      addText(`Template Name: ${templateName}`, 14, 'bold')
+      // addText(`Template ID: ${templateId}`, 10, 'normal')
+      addText(`Total Meals: ${dietPlansData.length}`, 10, 'normal')
+      yPosition += 8
+
+      // Group diet plans by day_number
+      const groupedByDay = dietPlansData.reduce((acc: any, plan: any) => {
+        const dayNum = plan.day_number || 1
+        if (!acc[dayNum]) {
+          acc[dayNum] = []
+        }
+        acc[dayNum].push(plan)
+        return acc
+      }, {})
+
+      // Sort days numerically
+      const sortedDays = Object.keys(groupedByDay).sort(
+        (a, b) => Number(a) - Number(b)
+      )
+
+      // Diet plan details grouped by day
+      // pdf.setFillColor(236, 240, 241)
+      // pdf.rect(margin, yPosition - 4, contentWidth, 8, 'F')
+      // addText('Diet Plan Details', 12, 'bold')
+      yPosition += 4
+
+      sortedDays.forEach((dayNum) => {
+        checkPageBreak(25)
+
+        // Day header with background
+        pdf.setFillColor(52, 73, 94)
+        pdf.rect(margin, yPosition - 4, contentWidth, 8, 'F')
+        pdf.setTextColor(255, 255, 255)
+        pdf.setFont('helvetica', 'bold')
+        pdf.setFontSize(11)
+        pdf.text(`Option- ${dayNum}`, margin + 3, yPosition)
+        pdf.setTextColor(0, 0, 0)
+        yPosition += 8
+
+        const dayPlans = groupedByDay[dayNum]
+
+        // Sort by sequence_number
+        dayPlans.sort(
+          (a: any, b: any) =>
+            (a.sequence_number || 0) - (b.sequence_number || 0)
+        )
+
+        dayPlans.forEach((dietPlan: any) => {
+          checkPageBreak(20)
+
+          // Meal header with light background
+          pdf.setFillColor(241, 245, 249)
+          pdf.rect(margin + 3, yPosition - 3, contentWidth - 6, 7, 'F')
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(10)
+          pdf.text(
+            `${dietPlan.meal_time || 'Meal'} - ${dietPlan.effective_total_calories || 0} kcal`,
+            margin + 5,
+            yPosition
+          )
+          yPosition += 8
+
+          if (dietPlan.items && Array.isArray(dietPlan.items)) {
+            dietPlan.items.forEach((item: any) => {
+              checkPageBreak(15)
+
+              const reqLabel =
+                item.requirement === 'mandatory'
+                  ? '(Mandatory)'
+                  : item.requirement === 'optional'
+                    ? '(Optional)'
+                    : ''
+              const servingInfo = item.serving_unit
+                ? `${item.quantity} ${item.serving_unit}`
+                : `${item.quantity} units`
+              const caloriesInfo = item.per_serving?.calories || 0
+
+              // Item name
+              pdf.setFont('helvetica', 'bold')
+              pdf.setFontSize(9)
+              pdf.text(
+                `• ${item.meal_name || 'Unknown Item'} ${reqLabel}`,
+                margin + 8,
+                yPosition
+              )
+              yPosition += 5
+
+              // Item details
+              pdf.setFont('helvetica', 'normal')
+              pdf.setFontSize(8)
+              pdf.setTextColor(100, 100, 100)
+              pdf.text(
+                `Quantity: ${servingInfo}  |  Calories: ${caloriesInfo} kcal`,
+                margin + 12,
+                yPosition
+              )
+              yPosition += 4
+
+              // Calorie breakdown
+              if (item.per_serving) {
+                const protein = item.per_serving.protein || 0
+                const carbs = item.per_serving.carbs || 0
+                const fat = item.per_serving.fat || 0
+                const fiber = item.per_serving.fiber || 0
+
+                pdf.text(
+                  `Protein: ${protein}g  |  Carbs: ${carbs}g  |  Fat: ${fat}g  |  Fiber: ${fiber}g`,
+                  margin + 12,
+                  yPosition
+                )
+                yPosition += 6
+              } else {
+                yPosition += 2
+              }
+              pdf.setTextColor(0, 0, 0)
+            })
+          }
+          yPosition += 2
+        })
+        yPosition += 5
+      })
+
+      // Add timestamp
+      yPosition = pdf.internal.pageSize.getHeight() - 30
+      addText(
+        `Downloaded on: ${moment().format('MMM D, YYYY h:mm A')}`,
+        8,
+        'normal'
+      )
+
+      // Save PDF
+      pdf.save(`diet_template_${templateId}.pdf`)
+
+      enqueueSnackbar('Diet template PDF downloaded successfully', {
+        variant: 'success',
+      })
+    } catch (err) {
+      console.error('Failed to download diet template:', err)
+      enqueueSnackbar('Failed to download diet template', { variant: 'error' })
+    } finally {
+      setDownloadingTemplate(false)
+    }
+  }
+
   const handleConfirmToggleFreeze = async () => {
     const sid = String(toggleFreezeRow?.id || overview?.subscription?.id || '')
     if (!sid) {
@@ -2170,6 +2387,19 @@ export default function Subscriptions({
                   </div>
                 </div>
                 <div className="flex justify-end gap-2">
+                  <Button
+                    className="primaryButton"
+                    label={
+                      downloadingTemplate
+                        ? 'Downloading...'
+                        : 'Download Diet Template'
+                    }
+                    onClick={handleDownloadDietTemplate}
+                    disabled={
+                      downloadingTemplate ||
+                      !overview?.subscription?.diet_plan_template_id
+                    }
+                  />
                   <Button
                     className="primaryButton"
                     label={

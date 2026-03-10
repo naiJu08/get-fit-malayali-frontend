@@ -279,10 +279,13 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                   ) : (
                     'Diet Plans'
                   )}
-                  <div className="text-xs text-gray-600 mt-1">
-                    Total Calories:{' '}
-                    <span className="font-medium text-gray-900">
-                      {dayDetail?.total_proposed_calories ?? '--'} kcal
+                  <div className="text-xs text-gray-600 mt-1 flex gap-3">
+                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                      Proposed: {dayDetail?.total_proposed_calories ?? '--'}{' '}
+                      kcal
+                    </span>
+                    <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                      Consumed: {dayDetail?.total_consumed_calories ?? 0} kcal
                     </span>
                   </div>
                 </div>
