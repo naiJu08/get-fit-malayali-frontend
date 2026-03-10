@@ -130,7 +130,6 @@ export const formSchema = z
     medical_conditions: medicalConditionsFieldSchema.optional(),
     other_medical_condition: z.string().optional(),
     food_allergies: foodAllergiesFieldSchema.optional(),
-    other_food_allergy: z.string().optional(),
     state: z.string().optional(),
     ethnicity: z.string().optional(),
     status: z.union([z.number(), z.string()]).optional(),
@@ -227,7 +226,6 @@ export const formSchemaNutritionist = z
     medical_conditions: medicalConditionsFieldSchema.optional(),
     other_medical_condition: z.string().optional(),
     food_allergies: foodAllergiesFieldSchema.optional(),
-    // other_food_allergy: z.string().optional(),
     state: z.string().optional(),
     ethnicity: z.string().optional(),
   })
@@ -318,7 +316,6 @@ export const formSchemaNutritionistEdit = z
     medical_conditions: medicalConditionsFieldSchema.optional(),
     other_medical_condition: z.string().optional(),
     food_allergies: foodAllergiesFieldSchema.optional(),
-    other_food_allergy: z.string().optional(),
     state: z.string().optional(),
     ethnicity: z.string().optional(),
     status: z.union([z.number(), z.string()]).optional(),

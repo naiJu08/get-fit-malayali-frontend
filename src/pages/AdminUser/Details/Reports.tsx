@@ -1,5 +1,6 @@
 import moment from 'moment'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import jsPDF from 'jspdf'
 
 import { DialogModal } from '../../../components/common'
 import { QueryParams } from '../../../common/types'
@@ -1453,152 +1454,420 @@ export default function Reports({
   }, [])
 
   const handleDownloadPdf = useCallback(
-    async (recipes: any[]) => {
-      if (!pdfContainerRef.current) return
-
+    async (recipes: any[] = []) => {
+      setExporting(true)
       try {
-        setExporting(true)
+        // Create PDF instance
+        const pdf = new jsPDF('p', 'mm', 'a4')
+        const pageWidth = pdf.internal.pageSize.getWidth()
+        const pageHeight = pdf.internal.pageSize.getHeight()
+        const margin = 15
+        const contentWidth = pageWidth - 2 * margin
+        let yPosition = margin
 
-        const [html2canvasModule, jsPDFModule] = await Promise.all([
-          import('html2canvas'),
-          import('jspdf'),
-        ])
-
-        const html2canvas = html2canvasModule.default
-        const JsPDF = jsPDFModule.default
-
-        const pdf = new JsPDF('p', 'pt', 'a4')
-        const pdfWidth = pdf.internal.pageSize.getWidth()
-        const pdfHeight = pdf.internal.pageSize.getHeight()
-
-        // PAGE 1
-        const canvas1 = await html2canvas(pdfContainerRef.current, {
-          scale: 2,
-          useCORS: true,
-          backgroundColor: '#ffffff',
-        })
-
-        const img1 = canvas1.toDataURL('image/png')
-        const imgHeight1 = (canvas1.height * pdfWidth) / canvas1.width
-        let heightLeft = imgHeight1
-        let position = 0
-
-        pdf.addImage(img1, 'PNG', 0, position, pdfWidth, imgHeight1)
-        heightLeft -= pdfHeight
-
-        while (heightLeft > 0) {
-          position = heightLeft - imgHeight1
-          pdf.addPage()
-          pdf.addImage(img1, 'PNG', 0, position, pdfWidth, imgHeight1)
-          heightLeft -= pdfHeight
+        // Helper function to add new page if needed
+        const checkPageBreak = (requiredHeight: number) => {
+          if (yPosition + requiredHeight > pageHeight - margin) {
+            pdf.addPage()
+            yPosition = margin
+            return true
+          }
+          return false
         }
 
-        // PAGE 2 — recipe
-        // PAGE 2 — recipe
-        // PAGE 2+ — Recipes (NO SCREENSHOT, PURE PDF CONTENT)
-        if (recipes && recipes.length > 0) {
+        // Helper function to add text with word wrap
+        const addText = (text: string, fontSize = 12, fontStyle = 'normal') => {
+          pdf.setFontSize(fontSize)
+          pdf.setFont('helvetica', fontStyle)
+          const lines = pdf.splitTextToSize(text, contentWidth)
+          const lineHeight = fontSize * 0.35
+
+          checkPageBreak(lines.length * lineHeight)
+
+          lines.forEach((line: string) => {
+            pdf.text(line, margin, yPosition)
+            yPosition += lineHeight
+          })
+
+          yPosition += 2
+        }
+
+        // Helper function to add paragraph text with increased line spacing
+        const addParagraphText = (
+          text: string,
+          fontSize = 12,
+          fontStyle = 'normal'
+        ) => {
+          pdf.setFontSize(fontSize)
+          pdf.setFont('helvetica', fontStyle)
+          const lines = pdf.splitTextToSize(text, contentWidth)
+          const lineHeight = fontSize * 0.45 // Increased line height for paragraphs
+
+          checkPageBreak(lines.length * lineHeight)
+
+          lines.forEach((line: string) => {
+            pdf.text(line, margin, yPosition)
+            yPosition += lineHeight
+          })
+
+          yPosition += 4 // Extra spacing after paragraph
+        }
+
+        // Helper function to add table
+        const addTable = (
+          headers: string[],
+          data: string[][],
+          columnWidths: number[]
+        ) => {
+          const tableHeight = (data.length + 1) * 8
+          checkPageBreak(tableHeight + 10)
+
+          // Add headers
+          pdf.setFont('helvetica', 'bold')
+          pdf.setFontSize(10)
+          let xPosition = margin
+
+          headers.forEach((header, index) => {
+            pdf.text(header, xPosition, yPosition)
+            xPosition += columnWidths[index]
+          })
+          yPosition += 8
+
+          // Add data rows
+          pdf.setFont('helvetica', 'normal')
+          data.forEach((row) => {
+            xPosition = margin
+            row.forEach((cell, index) => {
+              pdf.text(cell, xPosition, yPosition)
+              xPosition += columnWidths[index]
+            })
+            yPosition += 8
+          })
+
+          yPosition += 10
+        }
+
+        // Title
+        addText('Subscription Report', 18, 'bold')
+        addText('Generated on ' + new Date().toLocaleDateString(), 10, 'normal')
+        yPosition += 10
+
+        // Subscription Details
+        addText('Subscription Details', 14, 'bold')
+        const subscriptionData = [
+          [
+            'Plan Name',
+            report?.plan?.name ? toTitleCase(report.plan.name) : '—',
+            'Category',
+            report?.plan?.category || '—',
+          ],
+          ['Name', report?.user?.name || user?.name || '—', '', ''],
+          [
+            'Start Date',
+            formatDate(report?.subscription?.start_date),
+            'End Date',
+            formatDate(report?.subscription?.end_date),
+          ],
+        ]
+        addTable(
+          ['Field', 'Value', 'Field', 'Value'],
+          subscriptionData,
+          [30, 60, 30, 60]
+        )
+
+        // Overall Analysis
+        if (report.overall_analysis) {
+          addText('Overall Analysis', 14, 'bold')
+          const analysis = report.overall_analysis
+          if (analysis.summary) {
+            addParagraphText(analysis.summary, 10, 'normal')
+          }
+          if (analysis.performance_score && analysis.performance_grade) {
+            addText(
+              `Performance Score: ${analysis.performance_score} (${analysis.performance_grade})`,
+              10,
+              'normal'
+            )
+          }
+          if (analysis.highlights && analysis.highlights.length > 0) {
+            addText('Highlights:', 12, 'bold')
+            analysis.highlights.forEach((highlight: string) => {
+              addText(`• ${highlight}`, 10, 'normal')
+            })
+          }
+          if (
+            analysis.areas_for_improvement &&
+            analysis.areas_for_improvement.length > 0
+          ) {
+            addText('Areas for Improvement:', 12, 'bold')
+            analysis.areas_for_improvement.forEach((area: string) => {
+              addText(`• ${area}`, 10, 'normal')
+            })
+          }
+          yPosition += 10
+        }
+
+        // Diet Analysis
+        addText('Diet Analysis', 14, 'bold')
+        const dietData = [
+          [
+            'Calories Assigned',
+            String(report.diet_summary?.total_calories_assigned ?? 0),
+          ],
+          [
+            'Calories Consumed',
+            String(report.diet_summary?.total_calories_consumed ?? 0),
+          ],
+          [
+            'Adherence',
+            `${Number(report.diet_summary?.calorie_adherence_percentage ?? 0).toFixed(1)}%`,
+          ],
+          [
+            'Items Assigned',
+            String(report.diet_summary?.total_items_assigned ?? 0),
+          ],
+          [
+            'Items Completed',
+            String(report.diet_summary?.total_items_completed ?? 0),
+          ],
+        ]
+        addTable(['Metric', 'Value'], dietData, [60, 60])
+
+        // Meal Timing Analysis
+        const mealTimingData = Object.entries(
+          report.diet_summary?.meal_timing_analysis || {}
+        )
+          .filter(
+            ([, data]: [string, any]) =>
+              data && (data.items_consumed > 0 || data.calories_consumed > 0)
+          )
+          .map(([mealType, data]: [string, any]) => [
+            mealType,
+            String(data.items_consumed ?? 0),
+            String(data.calories_consumed ?? 0),
+            `${Number(data.adherence_percentage ?? 0).toFixed(0)}%`,
+          ])
+
+        if (mealTimingData.length > 0) {
+          addText('Meal Timing Analysis', 12, 'bold')
+          addTable(
+            ['Meal Type', 'Items', 'Calories', 'Adherence'],
+            mealTimingData,
+            [40, 20, 20, 20]
+          )
+        }
+
+        // Food Category Consumption
+        const categoryData = Object.entries(
+          report.diet_summary?.category_consumption || {}
+        )
+          .filter(
+            ([, data]: [string, any]) =>
+              data && (data.items_consumed > 0 || data.calories_consumed > 0)
+          )
+          .sort(
+            ([, a], [, b]) =>
+              (b as any).calories_consumed - (a as any).calories_consumed
+          )
+          .slice(0, 8)
+          .map(([category, data]: [string, any]) => [
+            category,
+            String(data.items_consumed ?? 0),
+            String(data.calories_consumed ?? 0),
+          ])
+
+        if (categoryData.length > 0) {
+          addText('Food Category Consumption', 12, 'bold')
+          addTable(
+            ['Category', 'Items', 'Calories'],
+            categoryData,
+            [50, 25, 25]
+          )
+        }
+
+        // Body Metrics
+        addText('Body Metrics', 14, 'bold')
+        const bodyData = [
+          [
+            'Start Weight',
+            `${report?.weight_and_bmi?.start_weight ?? '—'} kg`,
+            'Start BMI',
+            String(report?.weight_and_bmi?.start_bmi ?? '—'),
+          ],
+          [
+            'End Weight',
+            `${report?.weight_and_bmi?.end_weight ?? '—'} kg`,
+            'End BMI',
+            String(report?.weight_and_bmi?.end_bmi ?? '—'),
+          ],
+          [
+            'Weight Change',
+            report?.weight_and_bmi?.weight_delta
+              ? `${report.weight_and_bmi.weight_delta} kg`
+              : '—',
+            'BMI Change',
+            report?.weight_and_bmi?.bmi_delta
+              ? String(report.weight_and_bmi.bmi_delta)
+              : '—',
+          ],
+        ]
+        addTable(
+          ['Metric', 'Value', 'Metric', 'Value'],
+          bodyData,
+          [30, 60, 30, 60]
+        )
+
+        // Vitals
+        addText('Vitals & Health Tracking', 14, 'bold')
+        const vitalsData = [
+          [
+            'Avg Sleep Hours',
+            `${report?.vitals?.avg_sleep_hours ?? '—'} hrs`,
+            'Adequate Sleep',
+            `${Number(report?.vitals?.adequate_sleep_percentage ?? 0).toFixed(0)}%`,
+          ],
+          [
+            'Avg Water Intake',
+            `${report?.vitals?.avg_water_intake ?? '—'} L`,
+            'Adequate Hydration',
+            `${Number(report?.vitals?.adequate_water_intake_percentage ?? 0).toFixed(0)}%`,
+          ],
+          ['Avg Steps', String(report?.vitals?.avg_steps ?? '—'), '', ''],
+        ]
+        addTable(
+          ['Metric', 'Value', 'Metric', 'Value'],
+          vitalsData,
+          [40, 50, 40, 50]
+        )
+
+        // Activity Performance
+        addText('Activity Performance Analysis', 14, 'bold')
+        const activityData = [
+          [
+            'Workout - Days Assigned',
+            String(report?.workout_summary?.total_assigned_days ?? 0),
+            'Workout - Days Completed',
+            String(report?.workout_summary?.total_completed_days ?? 0),
+          ],
+          [
+            'Workout - Adherence',
+            report?.workout_summary?.adherence_percentage
+              ? `${Number(report.workout_summary.adherence_percentage).toFixed(1)}%`
+              : '—',
+            'Workout - Exercises Completed',
+            `${report?.workout_summary?.total_exercises_completed ?? 0}/${report?.workout_summary?.total_exercises_assigned ?? 0}`,
+          ],
+          [
+            'Yoga - Days Assigned',
+            String(report?.yoga_summary?.total_assigned_days ?? 0),
+            'Yoga - Days Completed',
+            String(report?.yoga_summary?.total_completed_days ?? 0),
+          ],
+          [
+            'Yoga - Adherence',
+            report?.yoga_summary?.adherence_percentage
+              ? `${Number(report.yoga_summary.adherence_percentage).toFixed(1)}%`
+              : '—',
+            'Yoga - Exercises Completed',
+            `${report?.yoga_summary?.total_exercises_completed ?? 0}/${report?.yoga_summary?.total_exercises_assigned ?? 0}`,
+          ],
+          [
+            'Meditation - Sessions Assigned',
+            String(report?.meditation_summary?.total_sessions_assigned ?? 0),
+            'Meditation - Sessions Completed',
+            String(report?.meditation_summary?.total_sessions_completed ?? 0),
+          ],
+          [
+            'Meditation - Completion Rate',
+            report?.meditation_summary?.completion_rate
+              ? `${Number(report.meditation_summary.completion_rate).toFixed(1)}%`
+              : '—',
+            'Meditation - Total Duration',
+            `${report?.meditation_summary?.total_duration_seconds ?? 0}s`,
+          ],
+        ]
+        addTable(
+          ['Activity Metric', 'Value', 'Activity Metric', 'Value'],
+          activityData,
+          [55, 35, 55, 35]
+        )
+
+        // Daily Activity Breakdown
+        const dailyData =
+          report.daily_breakdown?.map((day: any) => {
+            const getActivityStatus = (activity: any) => {
+              const total = (activity.assigned || 0) + (activity.upcoming || 0)
+              const completed = activity.completed || 0
+              if (total === 0) return '—'
+              const rate = (completed / total) * 100
+              return `${completed}/${total} (${rate.toFixed(0)}%)`
+            }
+            return [
+              formatDate(day.date),
+              `Day ${day.day_number}`,
+              getActivityStatus(day.diet),
+              getActivityStatus(day.workout),
+              getActivityStatus(day.yoga),
+              getActivityStatus(day.meditation),
+            ]
+          }) || []
+
+        if (dailyData.length > 0) {
+          addText('Daily Activity Breakdown', 12, 'bold')
+          addTable(
+            ['Date', 'Day', 'Diet', 'Workout', 'Yoga', 'Meditation'],
+            dailyData,
+            [25, 15, 20, 20, 20, 20]
+          )
+        }
+
+        // Add recipes if provided
+        if (recipes.length > 0) {
           pdf.addPage()
+          yPosition = margin
 
-          let y = 40
-          const marginX = 40
-          const lineHeight = 14
-          const maxWidth = pdfWidth - marginX * 2
+          addText('Recipe Details', 16, 'bold')
 
-          pdf.setFontSize(16)
-          pdf.text('Recipe Details', marginX, y)
-          y += 20
+          recipes.forEach((recipe, index) => {
+            if (index > 0) checkPageBreak(30)
 
-          recipes.forEach((recipe: any, index: number) => {
-            if (index !== 0) {
-              pdf.addPage()
-              y = 40
+            addText(`${index + 1}. ${recipe.name || 'Untitled'}`, 12, 'bold')
+
+            if (recipe.description) {
+              addText(`Description: ${recipe.description}`, 10, 'normal')
             }
 
             const nutrition = recipe?.nutrition ?? {}
+            addText(
+              `Nutrition: Protein: ${nutrition.protein || '—'}g, Carbs: ${nutrition.carbs || '—'}g, Fat: ${nutrition.fat || '—'}g, Fiber: ${nutrition.fiber || '—'}g`,
+              10,
+              'normal'
+            )
 
-            pdf.setFontSize(14)
-            pdf.text(recipe?.name || 'Recipe', marginX, y)
-            y += 16
-
-            pdf.setFontSize(10)
-
-            const writeBlock = (label: string, value: any) => {
-              const text = `${label}: ${safeValue(value)}`
-              const lines = pdf.splitTextToSize(text, maxWidth)
-              pdf.text(lines, marginX, y)
-              y += lines.length * lineHeight + 4
-            }
-
-            writeBlock('Description', recipe?.description)
-            writeBlock('Preparation Notes', recipe?.preparation_notes)
-            writeBlock('Category', recipe?.meal_category)
-            writeBlock('Serving Unit', recipe?.serving_unit)
-            writeBlock('Calories', nutrition?.calories ?? recipe?.calories)
-
-            y += 6
-
-            pdf.setFontSize(12)
-            pdf.text('Nutrition', marginX, y)
-            y += 14
-
-            pdf.setFontSize(10)
-            writeBlock('Protein', nutrition?.protein)
-            writeBlock('Carbs', nutrition?.carbs)
-            writeBlock('Fat', nutrition?.fat)
-            writeBlock('Fiber', nutrition?.fiber)
-
-            y += 6
-
-            pdf.setFontSize(12)
-            pdf.text('Ingredients', marginX, y)
-            y += 14
-
-            pdf.setFontSize(10)
-
-            if (
-              Array.isArray(recipe?.ingredients) &&
-              recipe.ingredients.length > 0
-            ) {
+            if (recipe.ingredients && recipe.ingredients.length > 0) {
+              addText('Ingredients:', 11, 'bold')
               recipe.ingredients.forEach((ing: any) => {
-                const ingText = `• ${safeValue(ing?.name)} - ${safeValue(
-                  ing?.quantity
-                )} ${safeValue(ing?.unit)}`
-
-                const lines = pdf.splitTextToSize(ingText, maxWidth)
-
-                // page break if needed
-                if (y + lines.length * lineHeight > pdfHeight - 40) {
-                  pdf.addPage()
-                  y = 40
-                }
-
-                pdf.text(lines, marginX, y)
-                y += lines.length * lineHeight
+                addText(
+                  `• ${ing.name || '—'} - ${ing.quantity || '—'} ${ing.unit || ''}`,
+                  9,
+                  'normal'
+                )
               })
-            } else {
-              pdf.text('--', marginX, y)
-              y += lineHeight
             }
+
+            yPosition += 10
           })
         }
 
-        const rawName =
-          (
-            (report as any)?.user?.name ??
-            user?.name ??
-            'Report'
-          )?.toString?.() ?? 'Report'
-        const cleanedName =
-          rawName.trim().replace(/[\\/:*?"<>|]/g, '') || 'Report'
-        const underscoredName = cleanedName.replace(/\s+/g, '_')
-        pdf.save(`Report_${underscoredName}.pdf`)
+        // Save the PDF
+        pdf.save(`subscription-report-${subscriptionId}-${Date.now()}.pdf`)
+      } catch (error) {
+        console.error('Failed to generate PDF:', error)
       } finally {
         setExporting(false)
-        setSelectedRecipeIds([])
-        setSelectedRecipeDetails([])
       }
     },
-    [report, selectedRecipeDetails, user, waitForNextFrame]
+    [subscriptionId, report, user]
   )
 
   const closeRecipeModal = useCallback(() => {

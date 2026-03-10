@@ -1,5 +1,4 @@
 import moment from 'moment'
-
 import { AdminListResponse } from '../../common/types'
 import { getNestedProperty } from '../../utilities/parsers'
 
@@ -112,13 +111,31 @@ export const getInactiveUserColumns = ({
       field: 'name',
       renderCell: (row: any) => {
         const raw = getNestedProperty(row, 'name') as string | undefined
+        const userId = getNestedProperty(row, 'id')
         const displayValue =
           typeof raw === 'string' && raw.length > 0
-            ? raw.charAt(0).toUpperCase() + raw.slice(1)
+            ? raw.replace(
+                /\w\S*/g,
+                (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+              )
             : (raw ?? '')
 
         return {
-          cell: displayValue,
+          cell: (
+            <a
+              href={`/users/${userId}/details`}
+              onClick={(e) => {
+                e.preventDefault()
+                if (navigate) {
+                  navigate(`/users/${userId}/details`)
+                }
+              }}
+              className="text-blue-600 hover:text-blue-800 cursor-pointer"
+              title={`View details for ${displayValue}`}
+            >
+              {displayValue}
+            </a>
+          ),
           toolTip: displayValue,
         }
       },

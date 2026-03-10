@@ -22,6 +22,7 @@ import {
   // deleteAdmin,
 } from './api'
 import { getInactiveUserColumns } from './inactiveUserColumns'
+import Icons from '../../components/common/icons'
 
 export default function InactiveUsers() {
   const navigate = useNavigate()
@@ -81,7 +82,7 @@ export default function InactiveUsers() {
     setColumns(
       getInactiveUserColumns({
         onNameClick: (row: any) => {
-          navigate(`/admin/inactive-users/${row?.id}`)
+          navigate(`/users/${row?.id}/details`)
         },
       })
     )
@@ -287,35 +288,16 @@ export default function InactiveUsers() {
                 onRowsPerPage: onChangeRowsPerPage,
                 dropOptions: [10, 20, 30, 50, 100],
               }}
-              // actionProps={[
-              //   {
-              //     icon: <Icons name="eye" />,
-              //     action: (row) => {
-              //       navigate(`/admin/inactive-users/${row?.id}`)
-              //     },
-              //     title: 'View',
-              //     toolTip: 'View Details',
-              //   },
-              //   {
-              //     title: 'Activate',
-              //     action: (rowData) =>
-              //       handleDeleteModel(
-              //         rowData?.id,
-              //         rowData?.email,
-              //         rowData?.status,
-              //         !!rowData?.subscription
-              //       ),
-              //     icon: <Icons name="activate-icon" />,
-              //     toolTip: 'Activate User',
-              //     variant: 'success',
-              //   },
-              //   {
-              //     title: 'Delete',
-              //     action: (rowData) => handleOpenDeleteUser(rowData?.id),
-              //     icon: <Icons name="delete" />,
-              //     toolTip: 'Delete',
-              //   },
-              // ]}
+              actionProps={[
+                {
+                  icon: <Icons name="eye" />,
+                  action: (row) => {
+                    navigate(`/users/${row?.id}/details`)
+                  },
+                  title: 'View',
+                  toolTip: 'View Details',
+                },
+              ]}
               searchValue={pageParams?.search}
               onSearchChange={(val: string) =>
                 setPageParams({ ...pageParams, search: val })
