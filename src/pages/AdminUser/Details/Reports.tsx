@@ -1821,6 +1821,221 @@ export default function Reports({
           )
         }
 
+        // Detailed Diet Log
+        const detailedDietLog = report?.detailed_diet_log
+        if (
+          detailedDietLog &&
+          Array.isArray(detailedDietLog) &&
+          detailedDietLog.length > 0
+        ) {
+          pdf.addPage()
+          yPosition = margin
+          addText('Detailed Diet Log', 14, 'bold')
+          yPosition += 5
+
+          detailedDietLog.forEach((dayLog: any, dayIndex: number) => {
+            // Calculate day totals
+            let totalAssigned = 0
+            let totalConsumed = 0
+            let totalOutside = 0
+            const allMeals: {
+              name: string
+              consumed: number
+              assigned: number
+              outside: number
+              items: {
+                name: string
+                consumed: boolean
+                status: string
+                calories: number
+                assignedQty: number
+                consumedQty: number
+                servingUnit: string
+                requirement: string
+              }[]
+              outsideItems: {
+                name: string
+                calories: number
+                quantity: string
+              }[]
+            }[] = []
+
+            dayLog?.meal_slots?.forEach((mealSlot: any) => {
+              const assignedItems = mealSlot?.assigned_items || []
+              const outsideItems = mealSlot?.outside_consumed_items || []
+
+              const mealAssigned = assignedItems.length
+              const mealConsumed = assignedItems.filter(
+                (item: any) => item?.consumed
+              ).length
+              const mealOutside = outsideItems.length
+
+              totalAssigned += mealAssigned
+              totalConsumed += mealConsumed
+              totalOutside += mealOutside
+
+              // Collect item details
+              const itemDetails = assignedItems.map((item: any) => ({
+                name: item?.meal_name || 'Unknown Item',
+                consumed: item?.consumed || false,
+                status: item?.status || 'not_recorded',
+                calories:
+                  item?.consumed_calories || item?.calories_per_serving || 0,
+                assignedQty: item?.assigned_quantity || 0,
+                consumedQty: item?.consumed_quantity || 0,
+                servingUnit: item?.serving_unit || '',
+                requirement: item?.requirement || '',
+              }))
+
+              const outsideItemDetails = outsideItems.map((item: any) => ({
+                name: item?.meal_name || 'Unknown Item',
+                calories:
+                  item?.consumed_calories || item?.calories_per_serving || 0,
+                quantity:
+                  `${item?.quantity || item?.consumed_quantity || 1} ${item?.serving_unit || ''}`.trim(),
+              }))
+
+              allMeals.push({
+                name: mealSlot?.meal_time || 'Meal',
+                consumed: mealConsumed,
+                assigned: mealAssigned,
+                outside: mealOutside,
+                items: itemDetails,
+                outsideItems: outsideItemDetails,
+              })
+            })
+
+            // Get day status
+            const dayCompletionRate =
+              totalAssigned > 0 ? (totalConsumed / totalAssigned) * 100 : 0
+            const getDayStatus = () => {
+              if (totalAssigned === 0 && totalOutside === 0) return 'No Data'
+              if (dayCompletionRate >= 80) return 'Excellent'
+              if (dayCompletionRate >= 50) return 'Good'
+              if (dayCompletionRate > 0) return 'Poor'
+              return 'Not Started'
+            }
+
+            // Calculate required height for this day block
+            const totalItems = allMeals.reduce(
+              (sum, meal) => sum + meal.items.length + meal.outsideItems.length,
+              0
+            )
+            const dayBlockHeight =
+              20 + allMeals.length * 10 + totalItems * 5 + 20
+            checkPageBreak(dayBlockHeight)
+
+            // Day header with background
+            pdf.setFillColor(230, 235, 250)
+            pdf.rect(margin, yPosition - 4, contentWidth, 10, 'F')
+            pdf.setFont('helvetica', 'bold')
+            pdf.setFontSize(10)
+            pdf.text(
+              `Day ${dayLog?.day_number} - ${formatDate(dayLog?.date)}`,
+              margin + 2,
+              yPosition + 2
+            )
+
+            // Status on the right
+            const statusText = getDayStatus()
+            const statusWidth = pdf.getTextWidth(statusText)
+            pdf.text(
+              statusText,
+              margin + contentWidth - statusWidth - 2,
+              yPosition + 2
+            )
+            yPosition += 14
+
+            // Meals list with item details grouped by status
+            allMeals.forEach((meal) => {
+              // Check page break before each meal
+              const mealHeight =
+                12 + meal.items.length * 5 + meal.outsideItems.length * 5 + 20
+              checkPageBreak(mealHeight)
+
+              // Meal header
+              pdf.setFont('helvetica', 'bold')
+              pdf.setFontSize(9)
+              const mealHeader = `${meal.name} (${meal.consumed}/${meal.assigned})`
+              const outsideLabel =
+                meal.outside > 0 ? ` +${meal.outside} outside` : ''
+              pdf.text(mealHeader + outsideLabel, margin + 3, yPosition)
+              yPosition += 7
+
+              // Separate items by status
+
+              pdf.setFontSize(8)
+              pdf.setFont('helvetica', 'normal')
+
+              // Show all items with their status
+              meal.items.forEach((item) => {
+                const reqLabel =
+                  item.requirement === 'mandatory'
+                    ? '(M)'
+                    : item.requirement === 'optional'
+                      ? '(O)'
+                      : ''
+                const statusLabel = item.consumed ? 'Consumed' : 'Not Recorded'
+                const itemText = `    - ${item.name} ${reqLabel} | ${item.assignedQty} ${item.servingUnit} | ${item.calories} kcal  - ${statusLabel}`
+
+                const maxWidth = contentWidth - 15
+                let displayText = itemText
+                while (
+                  pdf.getTextWidth(displayText) > maxWidth &&
+                  displayText.length > 20
+                ) {
+                  displayText = displayText.slice(0, -4) + '...'
+                }
+
+                pdf.text(displayText, margin + 8, yPosition)
+                yPosition += 5
+              })
+
+              // Outside items section
+              if (meal.outsideItems.length > 0) {
+                pdf.setFont('helvetica', 'bold')
+                pdf.text('  Outside Items:', margin + 5, yPosition)
+                yPosition += 5
+                pdf.setFont('helvetica', 'normal')
+
+                meal.outsideItems.forEach((item) => {
+                  const itemText = `    - ${item.name} | ${item.quantity} | ${item.calories} kcal`
+
+                  const maxWidth = contentWidth - 15
+                  let displayText = itemText
+                  while (
+                    pdf.getTextWidth(displayText) > maxWidth &&
+                    displayText.length > 20
+                  ) {
+                    displayText = displayText.slice(0, -4) + '...'
+                  }
+
+                  pdf.text(displayText, margin + 10, yPosition)
+                  yPosition += 5
+                })
+              }
+
+              yPosition += 3
+            })
+
+            // Summary row
+            pdf.setFont('helvetica', 'bold')
+            pdf.setFontSize(9)
+            const summaryText = `Total: ${totalConsumed}/${totalAssigned} items completed`
+            const outsideSummary =
+              totalOutside > 0 ? ` | Outside: ${totalOutside} items` : ''
+            pdf.text(summaryText + outsideSummary, margin + 3, yPosition)
+            yPosition += 8
+
+            // Add separator line between days
+            if (dayIndex < detailedDietLog.length - 1) {
+              pdf.setDrawColor(180, 180, 200)
+              pdf.line(margin, yPosition, margin + contentWidth, yPosition)
+              yPosition += 8
+            }
+          })
+        }
+
         // Add recipes if provided
         if (recipes.length > 0) {
           pdf.addPage()
@@ -3768,196 +3983,239 @@ export default function Reports({
           </div>
 
           {/* Detailed Diet Log */}
-          {report?.detailed_diet_log &&
-            Array.isArray(report.detailed_diet_log) &&
-            report.detailed_diet_log.length > 0 && (
-              <div className="mb-6">
-                <h4 className="font-semibold mb-2 text-gray-700">
-                  🍽️ Detailed Diet Log
-                </h4>
+          <div className="mb-6">
+            <h4 className="font-semibold mb-2 text-gray-700">
+              🍽️ Detailed Diet Log
+            </h4>
+            {(() => {
+              console.log('PDF - report object:', report)
+              console.log(
+                'PDF - detailed_diet_log from report:',
+                report?.detailed_diet_log
+              )
+              console.log(
+                'PDF - detailed_diet_log length:',
+                report?.detailed_diet_log?.length
+              )
+
+              const detailedDietLog = report?.detailed_diet_log
+
+              if (
+                !detailedDietLog ||
+                !Array.isArray(detailedDietLog) ||
+                detailedDietLog.length === 0
+              ) {
+                console.log('PDF - No detailed diet log data available')
+                return (
+                  <div className="text-center text-gray-500 py-4">
+                    No detailed diet log data available
+                  </div>
+                )
+              }
+
+              console.log(
+                'PDF - Rendering detailed diet log with',
+                detailedDietLog.length,
+                'days'
+              )
+
+              return (
                 <table className="w-full border border-collapse text-sm">
                   <thead>
                     <tr className="bg-gray-100">
-                      <th className="border px-2 py-1 text-left">Date</th>
-                      <th className="border px-2 py-1 text-left">Day</th>
-                      <th className="border px-2 py-1 text-left">All Meals</th>
-                      <th className="border px-2 py-1 text-left">
+                      <th className="border px-4 py-2 w-[110px] text-left">
+                        Date
+                      </th>
+                      <th className="border px-4 py-2 w-[90px] text-left">
+                        Day
+                      </th>
+                      <th className="border px-3 py-2 w-[420px] text-left">
+                        Meals Summary
+                      </th>
+                      <th className="border px-6 py-2 w-[140px] text-left">
                         Total Consumption
                       </th>
-                      <th className="border px-2 py-1 text-left">Day Status</th>
+                      <th className="border px-6 py-2 w-[140px] text-left">
+                        Day Status
+                      </th>
                     </tr>
-                  </thead>
+                  </thead>{' '}
                   <tbody>
-                    {report.detailed_diet_log.map(
-                      (dayLog: any, dayIndex: number) => {
-                        // Calculate day totals
-                        let totalAssigned = 0
-                        let totalConsumed = 0
-                        let totalOutside = 0
-                        const allMeals: string[] = []
+                    {detailedDietLog?.map?.((dayLog: any, dayIndex: number) => {
+                      // Calculate day totals
+                      let totalAssigned = 0
+                      let totalConsumed = 0
+                      let totalOutside = 0
+                      const allMeals: string[] = []
 
-                        dayLog?.meal_slots?.forEach((mealSlot: any) => {
-                          const assignedItems = mealSlot?.assigned_items || []
-                          const outsideItems =
-                            mealSlot?.outside_consumed_items || []
+                      dayLog?.meal_slots?.forEach((mealSlot: any) => {
+                        const assignedItems = mealSlot?.assigned_items || []
+                        const outsideItems =
+                          mealSlot?.outside_consumed_items || []
 
-                          const mealAssigned = assignedItems.length
-                          const mealConsumed = assignedItems.filter(
-                            (item: any) => item?.consumed
-                          ).length
-                          const mealOutside = outsideItems.length
+                        const mealAssigned = assignedItems.length
+                        const mealConsumed = assignedItems.filter(
+                          (item: any) => item?.consumed
+                        ).length
+                        const mealOutside = outsideItems.length
 
-                          totalAssigned += mealAssigned
-                          totalConsumed += mealConsumed
-                          totalOutside += mealOutside
+                        totalAssigned += mealAssigned
+                        totalConsumed += mealConsumed
+                        totalOutside += mealOutside
 
-                          // Format meal details
-                          const mealTime = mealSlot?.meal_time || 'Meal'
-                          const mealItems = []
+                        // Format meal details
+                        const mealTime = mealSlot?.meal_time || 'Meal'
+                        const mealItems = []
 
-                          // Mandatory items with individual status
-                          const mandatoryItems = assignedItems.filter(
-                            (item: any) => item?.requirement === 'mandatory'
-                          )
-                          if (mandatoryItems.length > 0) {
-                            const mandatoryWithStatus = mandatoryItems.map(
-                              (item: any) => {
-                                const status = item?.consumed
-                                  ? 'Completed'
-                                  : item?.status === 'not_recorded'
-                                    ? 'Not recorded'
-                                    : 'Missed'
-                                return `${item?.meal_name || 'Unknown Item'} (${status})`
-                              }
-                            )
-                            mealItems.push(mandatoryWithStatus.join(', '))
-                          }
-
-                          // Optional items with individual status
-                          const optionalItems = assignedItems.filter(
-                            (item: any) => item?.requirement === 'optional'
-                          )
-                          if (optionalItems.length > 0) {
-                            const optionalWithStatus = optionalItems.map(
-                              (item: any) => {
-                                const status = item?.consumed
-                                  ? 'Completed'
-                                  : item?.status === 'not_recorded'
-                                    ? 'Not taken'
-                                    : 'Not taken'
-                                return `🔵 ${item?.meal_name || 'Unknown Item'} (${status})`
-                              }
-                            )
-                            mealItems.push(optionalWithStatus.join(', '))
-                          }
-
-                          // Other items with individual status
-                          const otherItems = assignedItems.filter(
-                            (item: any) =>
-                              !item?.requirement ||
-                              (item?.requirement !== 'mandatory' &&
-                                item?.requirement !== 'optional')
-                          )
-                          if (otherItems.length > 0) {
-                            const otherWithStatus = otherItems.map(
-                              (item: any) => {
-                                const status = item?.consumed
-                                  ? 'Completed'
-                                  : item?.status === 'not_recorded'
-                                    ? 'Not recorded'
-                                    : 'Not recorded'
-                                return `${item?.meal_name || 'Unknown Item'} (${status})`
-                              }
-                            )
-                            mealItems.push(otherWithStatus.join(', '))
-                          }
-
-                          // Outside items with status
-                          if (outsideItems.length > 0) {
-                            const outsideWithStatus = outsideItems.map(
-                              (item: any) => {
-                                return `${item?.meal_name || 'Unknown Item'} (Outside)`
-                              }
-                            )
-                            mealItems.push(outsideWithStatus.join(', '))
-                          }
-
-                          const mealSummary =
-                            mealItems.length > 0 ? mealItems.join(' | ') : '—'
-                          const consumptionSummary = `${mealConsumed}/${mealAssigned}${mealOutside > 0 ? ` + ${mealOutside}` : ''}`
-
-                          allMeals.push(
-                            `${mealTime}: ${mealSummary} (${consumptionSummary})`
-                          )
-                        })
-
-                        // Get day status
-                        const dayCompletionRate =
-                          totalAssigned > 0
-                            ? (totalConsumed / totalAssigned) * 100
-                            : 0
-                        const getDayStatus = () => {
-                          if (totalAssigned === 0 && totalOutside === 0)
-                            return '—'
-                          if (dayCompletionRate >= 80) return 'Excellent'
-                          if (dayCompletionRate >= 50) return 'Good'
-                          if (dayCompletionRate > 0) return 'Poor'
-                          return 'Not started'
-                        }
-
-                        // Get total consumption summary
-                        const getTotalConsumption = () => {
-                          if (totalAssigned === 0 && totalOutside === 0)
-                            return '—'
-                          if (totalAssigned === 0)
-                            return `${totalOutside} outside`
-                          if (totalOutside === 0)
-                            return `${totalConsumed}/${totalAssigned}`
-                          return `${totalConsumed}/${totalAssigned} + ${totalOutside}`
-                        }
-
-                        return (
-                          <tr key={dayLog?.date || dayIndex}>
-                            <td className="border px-2 py-1">
-                              {moment(dayLog?.date).format('DD-MM-YYYY')}
-                            </td>
-                            <td className="border px-2 py-1">
-                              Day {dayLog?.day_number}
-                              {dayLog?.is_frozen && (
-                                <span className="ml-1 text-xs text-blue-600">
-                                  ❄️
-                                </span>
-                              )}
-                            </td>
-                            <td className="border px-2 py-1">
-                              <div
-                                className="max-w-md"
-                                title={allMeals.join('\n')}
-                              >
-                                {allMeals.map((meal, index) => (
-                                  <div
-                                    key={index}
-                                    className="text-xs mb-1 border-b border-gray-200 pb-1 last:border-b-0 last:pb-0"
-                                  >
-                                    {meal}
-                                  </div>
-                                ))}
-                              </div>
-                            </td>
-                            <td className="border px-2 py-1">
-                              {getTotalConsumption()}
-                            </td>
-                            <td className="border px-2 py-1">
-                              {getDayStatus()}
-                            </td>
-                          </tr>
+                        // Mandatory items with individual status
+                        const mandatoryItems = assignedItems.filter(
+                          (item: any) => item?.requirement === 'mandatory'
                         )
+                        if (mandatoryItems.length > 0) {
+                          const mandatoryWithStatus = mandatoryItems.map(
+                            (item: any) => {
+                              const status = item?.consumed
+                                ? '✅ Completed'
+                                : item?.status === 'not_recorded'
+                                  ? '⭕ Not recorded'
+                                  : '❌ Missed'
+                              return `🔴 ${item?.meal_name || 'Unknown Item'} (${status})`
+                            }
+                          )
+                          mealItems.push(mandatoryWithStatus.join(', '))
+                        }
+
+                        // Optional items with individual status
+                        const optionalItems = assignedItems.filter(
+                          (item: any) => item?.requirement === 'optional'
+                        )
+                        if (optionalItems.length > 0) {
+                          const optionalWithStatus = optionalItems.map(
+                            (item: any) => {
+                              const status = item?.consumed
+                                ? '✅ Completed'
+                                : item?.status === 'not_recorded'
+                                  ? '⭕ Not taken'
+                                  : '⭕ Not taken'
+                              return `🔵 ${item?.meal_name || 'Unknown Item'} (${status})`
+                            }
+                          )
+                          mealItems.push(optionalWithStatus.join(', '))
+                        }
+
+                        // Other items with individual status
+                        const otherItems = assignedItems.filter(
+                          (item: any) =>
+                            !item?.requirement ||
+                            (item?.requirement !== 'mandatory' &&
+                              item?.requirement !== 'optional')
+                        )
+                        if (otherItems.length > 0) {
+                          const otherWithStatus = otherItems.map(
+                            (item: any) => {
+                              const status = item?.consumed
+                                ? '✅ Completed'
+                                : item?.status === 'not_recorded'
+                                  ? '⭕ Not recorded'
+                                  : '⭕ Not recorded'
+                              return `⚪ ${item?.meal_name || 'Unknown Item'} (${status})`
+                            }
+                          )
+                          mealItems.push(otherWithStatus.join(', '))
+                        }
+
+                        // Outside items with status
+                        if (outsideItems.length > 0) {
+                          const outsideWithStatus = outsideItems.map(
+                            (item: any) => {
+                              return `🍕 ${item?.meal_name || 'Unknown Item'} (✅ Outside)`
+                            }
+                          )
+                          mealItems.push(outsideWithStatus.join(', '))
+                        }
+
+                        const mealSummary =
+                          mealItems.length > 0 ? mealItems.join(' | ') : '—'
+                        const consumptionSummary = `${mealConsumed}/${mealAssigned}${mealOutside > 0 ? ` + 🍕${mealOutside}` : ''}`
+
+                        allMeals.push(
+                          `${mealTime}: ${mealSummary} (${consumptionSummary})`
+                        )
+                      })
+
+                      // Get day status
+                      const dayCompletionRate =
+                        totalAssigned > 0
+                          ? (totalConsumed / totalAssigned) * 100
+                          : 0
+                      const getDayStatus = () => {
+                        if (totalAssigned === 0 && totalOutside === 0)
+                          return '—'
+                        if (dayCompletionRate >= 80) return '✅ Excellent'
+                        if (dayCompletionRate >= 50) return '⚠️ Good'
+                        if (dayCompletionRate > 0) return '❌ Poor'
+                        return '❌ Not started'
                       }
-                    )}
+
+                      // Get total consumption summary
+                      const getTotalConsumption = () => {
+                        if (totalAssigned === 0 && totalOutside === 0)
+                          return '—'
+                        if (totalAssigned === 0)
+                          return `🍕 ${totalOutside} outside`
+                        if (totalOutside === 0)
+                          return `${totalConsumed}/${totalAssigned}`
+                        return `${totalConsumed}/${totalAssigned} + 🍕${totalOutside}`
+                      }
+
+                      console.log(`PDF - Day ${dayIndex + 1}:`, {
+                        date: dayLog?.date,
+                        totalMeals: dayLog?.meal_slots?.length,
+                        totalAssigned,
+                        totalConsumed,
+                        totalOutside,
+                      })
+
+                      return (
+                        <tr key={dayLog?.date || dayIndex}>
+                          <td className="border px-2 py-1">
+                            {moment(dayLog?.date).format('DD-MM-YYYY')}
+                          </td>
+                          <td className="border px-2 py-1">
+                            Day {dayLog?.day_number}
+                            {dayLog?.is_frozen && (
+                              <span className="ml-1 text-xs text-blue-600">
+                                ❄️
+                              </span>
+                            )}
+                          </td>
+                          <td className="border px-2 py-1">
+                            <div
+                              className="max-w-md"
+                              title={allMeals.join('\n')}
+                            >
+                              {allMeals.map((meal, index) => (
+                                <div
+                                  key={index}
+                                  className="text-xs mb-1 border-b border-gray-200 pb-1 last:border-b-0 last:pb-0"
+                                >
+                                  {meal}
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="border px-2 py-1">
+                            {getTotalConsumption()}
+                          </td>
+                          <td className="border px-2 py-1">{getDayStatus()}</td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
-              </div>
-            )}
+              )
+            })()}
+          </div>
         </div>
       </div>
       <div

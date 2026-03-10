@@ -126,8 +126,8 @@ export const getInactiveUserColumns = ({
               href={`/users/${userId}/details`}
               onClick={(e) => {
                 e.preventDefault()
-                if (navigate) {
-                  navigate(`/users/${userId}/details`)
+                if (onNameClick) {
+                  onNameClick(row)
                 }
               }}
               className="text-blue-600 hover:text-blue-800 cursor-pointer"
