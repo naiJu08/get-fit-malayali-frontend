@@ -295,7 +295,7 @@ export default function MainRoutes() {
       <Route
         element={
           <UserRoute slug_key="ADMIN_USER">
-            <AdminUser />
+            <UserDetails />
           </UserRoute>
         }
         path="/users/nutritionist/:id/clients"

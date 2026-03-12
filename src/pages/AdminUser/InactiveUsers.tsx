@@ -23,6 +23,8 @@ import {
 } from './api'
 import { getInactiveUserColumns } from './inactiveUserColumns'
 import Icons from '../../components/common/icons'
+import * as XLSX from 'xlsx'
+import { saveAs } from 'file-saver'
 
 export default function InactiveUsers() {
   const navigate = useNavigate()
@@ -131,7 +133,38 @@ export default function InactiveUsers() {
     setActivePlanWarningOpen(false)
     setPendingStatusChange(null)
   }
+  const handleDownloadExcel = () => {
+    if (!data?.items || data.items.length === 0) {
+      enqueueSnackbar('No data available to export', { variant: 'warning' })
+      return
+    }
 
+    const exportData = data.items.map((item: any) => ({
+      Name: item.name || '',
+      Email: item.email || '',
+      Phone: item.phone || '',
+      'Days Inactive': item.days_inactive || 0,
+      'Last Activity': item.last_activity_date || 'Never',
+      'Subscription Plan': item.subscription?.plan_name || '—',
+      'Last Login': item.last_login || 'Never',
+    }))
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData)
+    const workbook = XLSX.utils.book_new()
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Inactive Users')
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: 'xlsx',
+      type: 'array',
+    })
+
+    const fileData = new Blob([excelBuffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8',
+    })
+
+    saveAs(fileData, 'InactiveUsers.xlsx')
+  }
   const handleDeleteAdmin = (override?: { id: string; status: string }) => {
     const targetId = override?.id ?? deleteItem
     const targetStatus = override?.status ?? status
@@ -261,7 +294,15 @@ export default function InactiveUsers() {
                 </div>
               </div>
             </div> */}
-
+            <div className="flex justify-end mb-3">
+              <button
+                onClick={handleDownloadExcel}
+                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+              >
+                <Icons name="download" />
+                Download Excel
+              </button>
+            </div>
             <SmartTable
               data={data?.items ?? []}
               dataRowKey="id"

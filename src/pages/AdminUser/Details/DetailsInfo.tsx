@@ -14,14 +14,14 @@ function mapGender(g: any) {
   if (g === 2 || g === '2') return 'Other'
   return capitalizeWord(g)
 }
-function mapRole(g: any) {
-  if (g === 1 || g === '1') return 'Admin'
-  if (g === 2 || g === '2') return 'Nutritionist'
-  if (g === 3 || g === '3') return 'User'
-  const s = String(g || '').toLowerCase()
-  if (s === 'superadmin' || s === 'super admin') return 'Super Admin'
-  return capitalizeWord(g)
-}
+// function mapRole(g: any) {
+//   if (g === 1 || g === '1') return 'Admin'
+//   if (g === 2 || g === '2') return 'Nutritionist'
+//   if (g === 3 || g === '3') return 'User'
+//   const s = String(g || '').toLowerCase()
+//   if (s === 'superadmin' || s === 'super admin') return 'Super Admin'
+//   return capitalizeWord(g)
+// }
 function mapStatus(s: any) {
   if (s === 0 || s === '0') return 'Active'
   if (s === 1 || s === '1') return 'Suspended'
@@ -86,10 +86,10 @@ export default function DetailsInfo({
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <DetailItem label="Name" value={capitalizeWord(user?.name)} />
+            {/* <DetailItem label="Name" value={capitalizeWord(user?.name)} />
             <DetailItem label="Email" value={user?.email || user?.username} />
             <DetailItem label="Phone" value={user?.phone} />
-            <DetailItem label="Role" value={mapRole(user?.role)} />
+            <DetailItem label="Role" value={mapRole(user?.role)} /> */}
             <DetailItem label="Gender" value={mapGender(user?.gender)} />
             <DetailItem
               label="Date of Birth"

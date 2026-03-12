@@ -3852,9 +3852,11 @@ export default function Subscriptions({
         }
       />
 
-      <DialogModal
-        isOpen={dayDetailOpen}
-        onClose={() => setDayDetailOpen(false)}
+      <CustomDrawer
+        open={dayDetailOpen}
+        handleClose={() => setDayDetailOpen(false)}
+        className="w-screen max-w-[1000px]"
+        unmountOnClose
         title={
           dayDetail
             ? `Plan Day ${safeStr(dayDetail?.day_number)} • ${moment(dayDetail?.date).format('MMM D, YYYY')}`
@@ -3862,54 +3864,51 @@ export default function Subscriptions({
               ? `Day Details • ${moment(selectedDate).format('MMM D, YYYY')}`
               : 'Day Details'
         }
-        onSubmit={() => setDayDetailOpen(false)}
+        handleSubmit={() => setDayDetailOpen(false)}
         actionLabel="Close"
         actionLoader={false}
-        small={false}
-        body={
-          <div className="flex flex-col gap-4">
-            {dayDetailLoading && (
-              <div className="text-xs text-gray-500">
-                Loading day details...
-              </div>
-            )}
-            {!dayDetailLoading && !dayDetail && (
-              <div className="text-xs text-gray-500">No details available.</div>
-            )}
-            {!dayDetailLoading && dayDetail && (
-              <DayDetailTabsSection
-                dayDetail={dayDetail}
-                dayDetailTab={dayDetailTab}
-                onChangeTab={(tabId) => setDayDetailTab(tabId as DayDetailTab)}
-                isNutritionist={isNutritionist}
-                subscriptionId={overview?.subscription?.id}
-                refreshDayDetail={refreshDayDetail}
-                onEditWorkoutPlan={() => {
-                  setDragIndex(null)
-                  setReviewOpen(false)
-                  setAssignOpen(true)
-                  setWpSearch('')
-                  setWpPage(1)
-                }}
-                onEditYogaPlan={() => {
-                  setYogaDragIndex(null)
-                  setYogaReviewOpen(false)
-                  setYogaAssignOpen(true)
-                  setYogaCategoryFilter('')
-                }}
-                onEditMeditationPlan={() => {
-                  setMedDragIndex(null)
-                  setMedReviewOpen(false)
-                  setMedAssignOpen(true)
-                  setMedSearch('')
-                  setMedPage(1)
-                  refetchMeditationsList?.()
-                }}
-              />
-            )}
-          </div>
-        }
-      />
+        disableSubmit={false}
+      >
+        <div className="flex flex-col gap-4">
+          {dayDetailLoading && (
+            <div className="text-xs text-gray-500">Loading day details...</div>
+          )}
+          {!dayDetailLoading && !dayDetail && (
+            <div className="text-xs text-gray-500">No details available.</div>
+          )}
+          {!dayDetailLoading && dayDetail && (
+            <DayDetailTabsSection
+              dayDetail={dayDetail}
+              dayDetailTab={dayDetailTab}
+              onChangeTab={(tabId) => setDayDetailTab(tabId as DayDetailTab)}
+              isNutritionist={isNutritionist}
+              subscriptionId={overview?.subscription?.id}
+              refreshDayDetail={refreshDayDetail}
+              onEditWorkoutPlan={() => {
+                setDragIndex(null)
+                setReviewOpen(false)
+                setAssignOpen(true)
+                setWpSearch('')
+                setWpPage(1)
+              }}
+              onEditYogaPlan={() => {
+                setYogaDragIndex(null)
+                setYogaReviewOpen(false)
+                setYogaAssignOpen(true)
+                setYogaCategoryFilter('')
+              }}
+              onEditMeditationPlan={() => {
+                setMedDragIndex(null)
+                setMedReviewOpen(false)
+                setMedAssignOpen(true)
+                setMedSearch('')
+                setMedPage(1)
+                refetchMeditationsList?.()
+              }}
+            />
+          )}
+        </div>
+      </CustomDrawer>
     </>
   )
 }

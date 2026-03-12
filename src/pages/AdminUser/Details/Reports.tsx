@@ -1119,9 +1119,7 @@ const OverallAnalysisCard = ({
       {/* Summary */}
       {summary && (
         <div className="px-5 pb-3">
-          <p className="text-sm text-gray-700 leading-relaxed">
-            {toTitleCase(summary)}
-          </p>
+          <p className="text-sm text-gray-700 leading-relaxed">{summary}</p>
         </div>
       )}
 
@@ -1549,7 +1547,12 @@ export default function Reports({
 
         // Title
         addText('Subscription Report', 18, 'bold')
-        addText('Generated on ' + new Date().toLocaleDateString(), 10, 'normal')
+        addText(
+          'Generated on ' +
+            new Date().toLocaleDateString('en-GB').replace(/\//g, '-'),
+          10,
+          'normal'
+        )
         yPosition += 10
 
         // Subscription Details
@@ -1590,6 +1593,7 @@ export default function Reports({
             )
           }
           if (analysis.highlights && analysis.highlights.length > 0) {
+            yPosition += 10
             addText('Highlights:', 12, 'bold')
             analysis.highlights.forEach((highlight: string) => {
               addText(`• ${highlight}`, 10, 'normal')
@@ -1599,6 +1603,7 @@ export default function Reports({
             analysis.areas_for_improvement &&
             analysis.areas_for_improvement.length > 0
           ) {
+            yPosition += 10
             addText('Areas for Improvement:', 12, 'bold')
             analysis.areas_for_improvement.forEach((area: string) => {
               addText(`• ${area}`, 10, 'normal')
@@ -1619,6 +1624,10 @@ export default function Reports({
             String(report.diet_summary?.total_calories_consumed ?? 0),
           ],
           [
+            'Outside Items Calories',
+            String(report.diet_summary?.total_calories_consumed_outside || 0),
+          ],
+          [
             'Adherence',
             `${Number(report.diet_summary?.calorie_adherence_percentage ?? 0).toFixed(1)}%`,
           ],
@@ -1629,6 +1638,10 @@ export default function Reports({
           [
             'Items Completed',
             String(report.diet_summary?.total_items_completed ?? 0),
+          ],
+          [
+            'Outside Items Completions',
+            String(report.diet_summary?.total_items_completed_outside ?? 0),
           ],
         ]
         addTable(['Metric', 'Value'], dietData, [60, 60])
@@ -1782,8 +1795,6 @@ export default function Reports({
             report?.meditation_summary?.completion_rate
               ? `${Number(report.meditation_summary.completion_rate).toFixed(1)}%`
               : '—',
-            'Meditation - Total Duration',
-            `${report?.meditation_summary?.total_duration_seconds ?? 0}s`,
           ],
         ]
         addTable(
@@ -2820,7 +2831,12 @@ export default function Reports({
                                           </div>
                                           {mealSlot?.meal_name && (
                                             <div className="text-xs text-gray-500">
-                                              {mealSlot.meal_name}
+                                              {mealSlot.meal_name.replace(
+                                                /\w\S*/g,
+                                                (w: string) =>
+                                                  w.charAt(0).toUpperCase() +
+                                                  w.slice(1).toLowerCase()
+                                              )}
                                             </div>
                                           )}
                                         </div>

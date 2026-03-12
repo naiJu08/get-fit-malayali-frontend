@@ -942,79 +942,79 @@ export function BodyMeasurementsCard({ data }: Props) {
 }
 
 // ── User Behavior Card ────────────────────────────────────────────────────────
-export function UserBehaviorCard({ data }: Props) {
-  const ub = data?.user_behavior
-  const pat = ub?.user_activity_patterns
-  const drop = ub?.drop_off_points
-  const pref = ub?.preferred_workout_times
-  return (
-    <Card title="User Behaviour" icon="🧠">
-      {pat && (
-        <div className="space-y-2 mb-3">
-          {[
-            { label: 'Most Active Day', value: pat.most_active_day },
-            { label: 'Least Active Day', value: pat.least_active_day },
-            {
-              label: 'Peak Hour',
-              value:
-                pat.peak_activity_hour !== undefined
-                  ? `${pat.peak_activity_hour}:00`
-                  : '--',
-            },
-            { label: 'Avg Sessions/User', value: pat.avg_sessions_per_user },
-          ].map((r, i) => (
-            <div
-              key={i}
-              className="flex justify-between text-xs py-1 border-b border-gray-50"
-            >
-              <span className="text-gray-500">{r.label}</span>
-              <span className="font-semibold text-gray-800 capitalize">
-                {r.value ?? '--'}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-      {pref && (
-        <div className="mb-3">
-          <div className="text-[10px] uppercase font-semibold text-gray-400 mb-1">
-            Preferred Workout Times
-          </div>
-          <VBarChart
-            height={60}
-            color="#667eea"
-            data={[
-              { label: '🌅 AM', value: pref.morning ?? 0 },
-              { label: '☀️ PM', value: pref.afternoon ?? 0 },
-              { label: '🌆 Eve', value: pref.evening ?? 0 },
-            ]}
-          />
-        </div>
-      )}
-      {drop && (
-        <div className="flex gap-2">
-          <div className="flex-1 rounded-xl text-center p-2 bg-red-50 border border-red-100">
-            <div className="text-sm font-bold text-red-600">
-              {fmtPct(drop.week_2_dropoff)}
-            </div>
-            <div className="text-[10px] text-gray-500">Week 2 Drop-off</div>
-          </div>
-          <div className="flex-1 rounded-xl text-center p-2 bg-orange-50 border border-orange-100">
-            <div className="text-sm font-bold text-orange-600">
-              {fmtPct(drop.month_1_dropoff)}
-            </div>
-            <div className="text-[10px] text-gray-500">Month 1 Drop-off</div>
-          </div>
-        </div>
-      )}
-      {!pat && !pref && !drop && (
-        <p className="text-sm text-gray-400 text-center py-4">
-          No behaviour data
-        </p>
-      )}
-    </Card>
-  )
-}
+// export function UserBehaviorCard({ data }: Props) {
+//   const ub = data?.user_behavior
+//   const pat = ub?.user_activity_patterns
+//   const drop = ub?.drop_off_points
+//   const pref = ub?.preferred_workout_times
+//   return (
+//     <Card title="User Behaviour" icon="🧠">
+//       {pat && (
+//         <div className="space-y-2 mb-3">
+//           {[
+//             { label: 'Most Active Day', value: pat.most_active_day },
+//             { label: 'Least Active Day', value: pat.least_active_day },
+//             {
+//               label: 'Peak Hour',
+//               value:
+//                 pat.peak_activity_hour !== undefined
+//                   ? `${pat.peak_activity_hour}:00`
+//                   : '--',
+//             },
+//             { label: 'Avg Sessions/User', value: pat.avg_sessions_per_user },
+//           ].map((r, i) => (
+//             <div
+//               key={i}
+//               className="flex justify-between text-xs py-1 border-b border-gray-50"
+//             >
+//               <span className="text-gray-500">{r.label}</span>
+//               <span className="font-semibold text-gray-800 capitalize">
+//                 {r.value ?? '--'}
+//               </span>
+//             </div>
+//           ))}
+//         </div>
+//       )}
+//       {pref && (
+//         <div className="mb-3">
+//           <div className="text-[10px] uppercase font-semibold text-gray-400 mb-1">
+//             Preferred Workout Times
+//           </div>
+//           <VBarChart
+//             height={60}
+//             color="#667eea"
+//             data={[
+//               { label: '🌅 AM', value: pref.morning ?? 0 },
+//               { label: '☀️ PM', value: pref.afternoon ?? 0 },
+//               { label: '🌆 Eve', value: pref.evening ?? 0 },
+//             ]}
+//           />
+//         </div>
+//       )}
+//       {drop && (
+//         <div className="flex gap-2">
+//           <div className="flex-1 rounded-xl text-center p-2 bg-red-50 border border-red-100">
+//             <div className="text-sm font-bold text-red-600">
+//               {fmtPct(drop.week_2_dropoff)}
+//             </div>
+//             <div className="text-[10px] text-gray-500">Week 2 Drop-off</div>
+//           </div>
+//           <div className="flex-1 rounded-xl text-center p-2 bg-orange-50 border border-orange-100">
+//             <div className="text-sm font-bold text-orange-600">
+//               {fmtPct(drop.month_1_dropoff)}
+//             </div>
+//             <div className="text-[10px] text-gray-500">Month 1 Drop-off</div>
+//           </div>
+//         </div>
+//       )}
+//       {!pat && !pref && !drop && (
+//         <p className="text-sm text-gray-400 text-center py-4">
+//           No behaviour data
+//         </p>
+//       )}
+//     </Card>
+//   )
+// }
 
 // ── Active Users (Engagement Summary) ─────────────────────────────────────────
 export function ActiveUsersCard({ data }: Props) {
@@ -1568,12 +1568,12 @@ export function ActivityCard({ data }: Props) {
   const a = data?.activity
   const hints = a?.hints ?? {}
   const items = [
-    {
-      label: 'Progress Logs',
-      value: a?.progress_logs,
-      color: '#667eea',
-      hint: hints.progress_logs,
-    },
+    // {
+    //   label: 'Progress Logs',
+    //   value: a?.progress_logs,
+    //   color: '#667eea',
+    //   hint: hints.progress_logs,
+    // },
     {
       label: 'Body Measurements',
       value: a?.body_measurements,

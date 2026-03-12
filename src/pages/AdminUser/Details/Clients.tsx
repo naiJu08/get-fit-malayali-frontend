@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Button from '../../../components/common/buttons/Button'
 import Icons from '../../../components/common/icons'
 import SmartTable from '../../../components/common/table/SmartTable'
@@ -29,6 +29,7 @@ const formatTitleCase = (value?: string | null) => {
 
 export default function Clients({ user }: { user: any }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [clientsPage, setClientsPage] = useState(1)
   const [clientsPageSize, setClientsPageSize] = useState(10)
   const isNutritionistSuspended = (() => {
@@ -130,7 +131,14 @@ export default function Clients({ user }: { user: any }) {
   const handleViewClient = (row: any) => {
     const userId = row?.user_id ?? row?.user?.id ?? row?.user?.user_id
     if (!userId) return
-    navigate(`/users/${userId}/details`)
+
+    // Determine the correct base path based on current location
+    const isNutritionistContext = location.pathname.startsWith(
+      '/users/nutritionist'
+    )
+    const basePath = isNutritionistContext ? '/users/nutritionist' : '/users'
+
+    navigate(`${basePath}/${userId}/details`)
   }
 
   const handleUnassignClient = async (row: any) => {

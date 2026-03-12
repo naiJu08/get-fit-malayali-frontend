@@ -147,7 +147,7 @@ export default function UserDetails() {
   return (
     <>
       <div className="p-4">
-        <div className="flex items-center justify-between mb-4">
+        {/* <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() =>
@@ -164,6 +164,55 @@ export default function UserDetails() {
             <h1 className="text-xl font-semibold">
               {isNutritionist ? 'Nutritionist Details' : 'User Details'}
             </h1>
+          </div>
+        </div> */}
+
+        {/* User Information Breadcrumb */}
+        {/* User Header */}
+        <div className="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+          <div>
+            {/* Name row */}
+            <div className="flex items-center">
+              <button
+                onClick={() =>
+                  navigate(
+                    pathBase === '/users/nutritionist'
+                      ? '/users/nutritionist'
+                      : '/users'
+                  )
+                }
+                className="rounded-lg hover:bg-gray-100 transition"
+                aria-label="Back"
+              >
+                <Icons name="left-arrow-icon" />
+              </button>
+
+              <h1 className="text-xl font-semibold text-gray-900">
+                {user?.name || 'User'}
+              </h1>
+            </div>
+
+            {/* User meta info */}
+            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm ml-3">
+              {user?.email && (
+                <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-green-50 text-green-700">
+                  <span className="font-medium">Email:</span>
+                  <span>{user.email}</span>
+                </div>
+              )}
+
+              {user?.phone && (
+                <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-purple-50 text-purple-700">
+                  <span className="font-medium">Phone:</span>
+                  <span>{user.phone}</span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 capitalize">
+                <span className="font-medium">Role:</span>
+                <span>{isNutritionist ? 'Nutritionist' : 'User'}</span>
+              </div>
+            </div>
           </div>
         </div>
 
