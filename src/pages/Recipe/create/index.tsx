@@ -6,7 +6,7 @@ import {
   Controller,
 } from 'react-hook-form'
 import { useEffect } from 'react'
-import { DialogModal, TextField } from '../../../components/common'
+import { DialogModal, TextArea, TextField } from '../../../components/common'
 import FormBuilder from '../../../components/app/formBuilder'
 import { recipeFormSchema, RecipeSchema } from './schema'
 import { useCreateRecipe, useUpdateRecipe } from '../api'
@@ -132,12 +132,6 @@ export default function CreateRecipe({
     name: 'ingredients',
   })
 
-  // Watch macro fields for calories section
-  const protein = methods.watch('protein')
-  const carbs = methods.watch('carbs')
-  const fat = methods.watch('fat')
-  const fiber = methods.watch('fiber')
-
   // Meal categories & serving units (reused from Meals)
   const { data: mealCategoriesData } = useMealCategories()
   const rawMealCategories =
@@ -226,12 +220,34 @@ export default function CreateRecipe({
     fd.append('recipe[meal_category_id]', String(resolvedMealCategoryId))
     fd.append('recipe[serving_unit]', (values as any)?.serving_unit ?? '')
     fd.append('recipe[default_serving_quantity]', '')
-    // Nutrition fields
-    fd.append('recipe[calories]', String((values as any)?.calories ?? ''))
-    fd.append('recipe[protein]', String((values as any)?.protein ?? ''))
-    fd.append('recipe[carbs]', String((values as any)?.carbs ?? ''))
-    fd.append('recipe[fat]', String((values as any)?.fat ?? ''))
-    fd.append('recipe[fiber]', String((values as any)?.fiber ?? ''))
+    // Nutrition fields - calories always included (null if empty), others only if they have values
+    const calories = (values as any)?.calories
+    const protein = (values as any)?.protein
+    const carbs = (values as any)?.carbs
+    const fat = (values as any)?.fat
+    const fiber = (values as any)?.fiber
+
+    // Calories always included (null if empty)
+    fd.append(
+      'recipe[calories]',
+      calories !== '' && calories !== undefined && calories !== null
+        ? String(calories)
+        : 'null'
+    )
+
+    // Other nutrition fields only if they have values
+    if (protein !== '' && protein !== undefined && protein !== null) {
+      fd.append('recipe[protein]', String(protein))
+    }
+    if (carbs !== '' && carbs !== undefined && carbs !== null) {
+      fd.append('recipe[carbs]', String(carbs))
+    }
+    if (fat !== '' && fat !== undefined && fat !== null) {
+      fd.append('recipe[fat]', String(fat))
+    }
+    if (fiber !== '' && fiber !== undefined && fiber !== null) {
+      fd.append('recipe[fiber]', String(fiber))
+    }
     // Ingredients
     const ingredients: any[] = (values as any)?.ingredients ?? []
     ingredients.forEach((ing: any, index: number) => {
@@ -275,33 +291,7 @@ export default function CreateRecipe({
       })
     }
   }
-  useEffect(() => {
-    const toNumber = (v: any) => {
-      const n = Number(v)
-      return Number.isNaN(n) ? 0 : n
-    }
-
-    const isEmpty = (value: any) =>
-      value === undefined || value === null || value === ''
-    const macros = [protein, carbs, fat, fiber]
-    const allEmpty = macros.every(isEmpty)
-
-    if (allEmpty) {
-      methods.setValue('calories', '' as any, {
-        shouldValidate: false,
-        shouldDirty: false,
-      })
-      return
-    }
-
-    const total =
-      toNumber(protein) + toNumber(carbs) + toNumber(fat) + toNumber(fiber)
-
-    methods.setValue('calories', total as any, {
-      shouldValidate: true,
-      shouldDirty: true,
-    })
-  }, [protein, carbs, fat, fiber, methods])
+  // Auto-calculation removed - Total Calories is now manually editable
 
   const formFields = [
     {
@@ -377,14 +367,6 @@ export default function CreateRecipe({
       placeholder: 'Enter total calories',
       required: false,
       allowPositiveOnly: true,
-      disabled: true,
-    },
-    {
-      name: 'preparation_notes',
-      label: 'Preparation Notes',
-      type: 'textarea',
-      placeholder: 'Enter preparation notes (optional)',
-      required: true,
     },
     {
       name: 'description',
@@ -447,10 +429,7 @@ export default function CreateRecipe({
 
             {/* Full-width textareas */}
             <FormBuilder
-              data={formFields.filter(
-                (f) =>
-                  f.name === 'preparation_notes' || f.name === 'description'
-              )}
+              data={formFields.filter((f) => f.name === 'description')}
               edit={true}
               spacing={false}
             />
@@ -528,8 +507,19 @@ export default function CreateRecipe({
                             onChange={(e) => {
                               const val = e.target.value
 
-                              // Allow decimals and empty
-                              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                              // More flexible validation - allow typing partial inputs
+                              const isValid =
+                                val === '' || // empty
+                                /^\d+$/.test(val) || // whole numbers
+                                /^\d+\.$/.test(val) || // decimal with trailing dot
+                                /^\d+\.\d+$/.test(val) || // complete decimals
+                                /^\d+\/$/.test(val) || // fraction with trailing slash
+                                /^\d+\/\d+$/.test(val) || // complete fractions
+                                /^\d+\s\/$/.test(val) || // fraction with space and trailing slash
+                                /^\d+\s\/\s\d+$/.test(val) || // fractions with spaces
+                                /^\d+\s$/.test(val) // number with trailing space
+
+                              if (isValid) {
                                 field.onChange(val)
                               }
                             }}
@@ -568,13 +558,34 @@ export default function CreateRecipe({
                   type="button"
                   className="inline-flex items-center justify-center rounded-full bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                   onClick={() =>
-                    appendIngredient({ name: '', quantity: 0, unit: '' })
+                    appendIngredient({ name: '', quantity: '', unit: '' })
                   }
                   aria-label="Add ingredient row"
                 >
                   +
                 </button>
               </div>
+            </div>
+
+            {/* Preparation Notes section */}
+            <div className="mt-4 border-t pt-4">
+              <h3 className="text-sm font-semibold mb-2">Preparation Notes</h3>
+              <Controller
+                name="preparation_notes"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <TextArea
+                    id="preparation_notes"
+                    name="preparation_notes"
+                    placeholder="Enter preparation notes"
+                    value={value}
+                    onChange={onChange}
+                    required={true}
+                    rows={4}
+                    errors={errors}
+                  />
+                )}
+              />
             </div>
           </FormProvider>
         </div>

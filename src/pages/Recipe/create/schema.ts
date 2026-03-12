@@ -72,9 +72,24 @@ export const recipeFormSchema = z.object({
         quantity: z
           .string()
           .min(1, 'Required')
-          .refine((val) => !Number.isNaN(Number(val)), 'Must be a number')
-          .refine((val) => Number(val) > 0, 'Required')
-          .transform((val) => Number(val)),
+          .refine((val) => {
+            // Allow numbers, decimals, and fractions
+            const trimmed = val.trim()
+            return (
+              !Number.isNaN(Number(trimmed)) || // valid number/decimal
+              /^\d+\/\d+$/.test(trimmed) || // valid fraction like 1/2
+              /^\d+\s\/\s\d+$/.test(trimmed) // valid fraction with spaces like 1 / 2
+            )
+          }, 'Must be a number or fraction (e.g., 1.5, 1/2, 1 / 2)')
+          .refine((val) => {
+            const trimmed = val.trim()
+            if (/^\d+\/\d+$/.test(trimmed) || /^\d+\s\/\s\d+$/.test(trimmed)) {
+              // For fractions, ensure denominator is not zero
+              const parts = trimmed.replace(/\s+/g, '').split('/')
+              return parts.length === 2 && Number(parts[1]) > 0
+            }
+            return Number(trimmed) > 0
+          }, 'Must be greater than 0'),
         unit: z.string().min(1, 'Required'),
       })
     )

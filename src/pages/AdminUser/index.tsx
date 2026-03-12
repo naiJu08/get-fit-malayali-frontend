@@ -32,7 +32,7 @@ import { getColumns } from './columns'
 import CreateAdmin from './create'
 import { useAuthStore } from '../../store/authStore'
 
-type StatusFilterValue = 'all' | 'active' | 'suspended'
+type StatusFilterValue = 'all' | 'active' | 'deactivated'
 
 export default function AdminUser() {
   const navigate = useNavigate()
@@ -190,7 +190,7 @@ export default function AdminUser() {
       const currentStatus = (
         nextFilters?.status as string | undefined
       )?.toLowerCase?.()
-      if (currentStatus === 'active' || currentStatus === 'suspended') {
+      if (currentStatus === 'active' || currentStatus === 'deactivated') {
         setStatusFilter(currentStatus)
       } else {
         setStatusFilter('all')
@@ -474,7 +474,7 @@ export default function AdminUser() {
                     >
                       <option value="all">All</option>
                       <option value="active">Active</option>
-                      <option value="deactivated">Inactive</option>
+                      <option value="deactivated">Deactivated</option>
                     </select>
                   </div>
                 }

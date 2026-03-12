@@ -4,6 +4,7 @@ import Icons from '../../components/common/icons'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import { getRecipeDetails } from './api'
 import CreateRecipe from './create'
+import jsPDF from 'jspdf'
 
 const toTitleCase = (value: any) => {
   if (value === null || value === undefined) return '--'
@@ -24,6 +25,73 @@ const RecipeDetail: React.FC = () => {
   const refreshRecipe = useCallback(() => {
     setReloadKey((key) => key + 1)
   }, [])
+
+  const recipe = data?.recipe || data || {}
+
+  const downloadPDF = useCallback(() => {
+    const doc = new jsPDF()
+
+    // Title
+    doc.setFontSize(20)
+    doc.text('Recipe Details', 20, 20)
+
+    // Recipe Name
+    doc.setFontSize(16)
+    doc.text(`Name: ${toTitleCase(recipe?.name)}`, 20, 40)
+
+    // Basic Information
+    doc.setFontSize(12)
+    let yPosition = 60
+    const lineHeight = 10
+
+    const addLine = (label: string, value: string) => {
+      doc.text(`${label}: ${value}`, 20, yPosition)
+      yPosition += lineHeight
+    }
+
+    addLine('Category', toTitleCase(recipe?.meal_category))
+    addLine('Serving Unit', toTitleCase(recipe?.serving_unit))
+    addLine(
+      'Total Calories',
+      String(recipe?.nutrition?.calories ?? recipe?.calories ?? '--')
+    )
+    addLine('Description', recipe?.description || '--')
+    addLine('Preparation Notes', recipe?.preparation_notes || '--')
+    // Nutrition Information
+    yPosition += 5
+    doc.setFontSize(14)
+    doc.text('Nutrition Information', 20, yPosition)
+    yPosition += lineHeight
+
+    doc.setFontSize(12)
+    addLine('Protein', safeStr(recipe?.nutrition?.protein))
+    addLine('Carbs', safeStr(recipe?.nutrition?.carbs))
+    addLine('Fat', safeStr(recipe?.nutrition?.fat))
+    addLine('Fiber', safeStr(recipe?.nutrition?.fiber))
+
+    // Ingredients
+    if (Array.isArray(recipe?.ingredients) && recipe.ingredients.length > 0) {
+      yPosition += 5
+      doc.setFontSize(14)
+      doc.text('Ingredients', 20, yPosition)
+      yPosition += lineHeight
+
+      doc.setFontSize(12)
+      recipe.ingredients.forEach((ing: any) => {
+        if (yPosition > 270) {
+          // Add new page if needed
+          doc.addPage()
+          yPosition = 20
+        }
+        const ingredientLine = `${toTitleCase(ing?.name)} - ${safeStr(ing?.quantity)} ${safeStr(ing?.unit)}`
+        doc.text(ingredientLine, 20, yPosition)
+        yPosition += lineHeight
+      })
+    }
+
+    // Save the PDF
+    doc.save(`${recipe?.name || 'recipe'}-details.pdf`)
+  }, [recipe])
 
   useEffect(() => {
     let mounted = true
@@ -51,8 +119,6 @@ const RecipeDetail: React.FC = () => {
     }
   }, [id, reloadKey])
 
-  const recipe = data?.recipe || data || {}
-
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-4">
@@ -62,16 +128,28 @@ const RecipeDetail: React.FC = () => {
           </button>
           <h1 className="text-xl font-semibold">Recipe Details</h1>
         </div>
-        {recipe?.id && (
-          <button
-            type="button"
-            className="inline-flex items-center rounded-lg bg-primaryGreen text-white px-4 py-2 text-sm font-medium hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"
-            onClick={() => setEditDrawerOpen(true)}
-          >
-            <Icons name="edit" />
-            <span className="ml-2">Edit Recipe</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {recipe?.id && (
+            <button
+              type="button"
+              className="inline-flex items-center rounded-lg bg-white border border-primaryGreen text-primaryGreen px-4 py-2 text-sm font-medium"
+              onClick={downloadPDF}
+            >
+              <Icons name="download" />
+              <span className="ml-2">Download PDF</span>
+            </button>
+          )}
+          {recipe?.id && (
+            <button
+              type="button"
+              className="inline-flex items-center rounded-lg bg-primaryGreen text-white px-4 py-2 text-sm font-medium hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"
+              onClick={() => setEditDrawerOpen(true)}
+            >
+              <Icons name="edit" />
+              <span className="ml-2">Edit Recipe</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {loading && (
@@ -88,23 +166,20 @@ const RecipeDetail: React.FC = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <DetailItem label="Name" value={toTitleCase(recipe?.name)} />
-            <DetailItem label="Description" value={recipe?.description} />
-            <DetailItem
-              label="Preparation Notes"
-              value={recipe?.preparation_notes}
-            />
             <DetailItem
               label="Category"
               value={toTitleCase(recipe?.meal_category)}
             />
             <DetailItem
-              label="Serving Unit"
-              value={toTitleCase(recipe?.serving_unit)}
-            />
-            <DetailItem
               label=" Total Calories"
               value={recipe?.nutrition?.calories ?? recipe?.calories}
             />
+            <DetailItem
+              label="Serving Unit"
+              value={toTitleCase(recipe?.serving_unit)}
+            />
+
+            <DetailItem label="Description" value={recipe?.description} />
 
             <div className="border rounded-lg p-3 bg-white">
               <div className="text-xs text-gray-500 mb-2">Image</div>
@@ -177,6 +252,12 @@ const RecipeDetail: React.FC = () => {
             ) : (
               <div className="text-sm">--</div>
             )}
+          </div>
+
+          {/* Preparation Notes */}
+          <div className="mt-4 border rounded-lg p-3 bg-white">
+            <div className="text-xs text-gray-500 mb-2">Preparation Notes</div>
+            <div className="text-sm">{safeStr(recipe?.preparation_notes)}</div>
           </div>
         </>
       )}

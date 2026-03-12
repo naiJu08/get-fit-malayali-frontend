@@ -13,7 +13,7 @@ import {
   HealthCard,
   VitalsCard,
   BodyMeasurementsCard,
-  UserBehaviorCard,
+  // UserBehaviorCard,
   ActiveUsersCard,
   ContentPerformanceCard,
   StreaksCard,
@@ -154,7 +154,7 @@ export default function DashboardView({
             <CompletionCard data={data} />
             <div className="db-grid-2">
               <ActiveUsersCard data={data} />
-              <UserBehaviorCard data={data} />
+              {/* <UserBehaviorCard data={data} /> */}
             </div>
           </div>
         )
@@ -163,7 +163,7 @@ export default function DashboardView({
           <div className="db-grid-3">
             <ActivityCard data={data} />
             <FreezesCard data={data} />
-            <StreaksCard data={data} />
+            {/* <StreaksCard data={data} /> */}
           </div>
         )
       default:
