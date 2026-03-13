@@ -8,11 +8,10 @@ import {
   // type ChangeEvent,
   type FC,
 } from 'react'
-import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import Icons from '../../../components/common/icons'
 import { Tab, TabContainer } from '../../../components/common/tab'
-import DialogModal from '../../../components/common/modal/DialogModal'
+import CustomDrawer from '../../../components/common/drawer'
 import { useTemplateList } from '../../DietTemplate/api'
 import { useSnackbarManager } from '../../../components/common/snackbar'
 import { getErrorMessage } from '../../../utilities/parsers'
@@ -60,6 +59,9 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   const [templateSearch, setTemplateSearch] = useState('')
   const [templatePage, setTemplatePage] = useState(1)
   const [templatePerPage, setTemplatePerPage] = useState(10)
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
+    null
+  )
   const [expandedDietItems, setExpandedDietItems] = useState<
     Record<string, boolean>
   >({})
@@ -196,6 +198,25 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     return parsed.startOf('day').isSameOrAfter(moment().startOf('day'))
   }, [dayDetail?.date, dayDetail?.day_date, dayDetail?.dayDate, isNutritionist])
 
+  const isToday = useMemo(() => {
+    const dateSource =
+      dayDetail?.date ?? dayDetail?.day_date ?? dayDetail?.dayDate ?? null
+    if (!dateSource) return false
+    const parsed = moment(dateSource)
+    if (!parsed.isValid()) return false
+    return parsed.startOf('day').isSame(moment().startOf('day'))
+  }, [dayDetail?.date, dayDetail?.day_date, dayDetail?.dayDate])
+
+  const isCompleted = useMemo(() => {
+    const status = String(dayDetail?.status || '').toLowerCase()
+    return status === 'completed' || status === 'over'
+  }, [dayDetail?.status])
+
+  const showAssignTemplateButton = useMemo(() => {
+    // Show button if it's today and not completed, or if no template is assigned yet
+    return (isToday && !isCompleted) || !templateId
+  }, [isToday, isCompleted, templateId])
+
   const tabsData = useMemo(() => {
     const baseTabs = [
       { label: 'Diet', id: 'diet' },
@@ -242,6 +263,16 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     </span>
                   </div>
                 </div>
+                {showAssignTemplateButton && (
+                  <button
+                    type="button"
+                    onClick={() => setAssignTemplateOpen(true)}
+                    className="inline-flex items-center px-3 py-1.5 bg-primaryGreen text-white text-xs font-medium rounded-lg hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"
+                  >
+                    <Icons name="plus" className="w-3 h-3 mr-1 mb-1" />
+                    {templateId ? 'Update Template' : 'Assign Template'}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1249,33 +1280,140 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
       </TabContainer>
 
       {(() => {
-        const modal = (
-          <AssignTemplateModal
-            isOpen={assignTemplateOpen}
-            onClose={handleAssignTemplateClose}
-            templates={templateListData?.diet_plan_templates ?? []}
-            meta={templateListData?.meta}
-            search={templateSearch}
-            onSearchChange={(value) => {
-              setTemplatePage(1)
-              setTemplateSearch(value)
+        return (
+          <CustomDrawer
+            open={assignTemplateOpen}
+            handleClose={handleAssignTemplateClose}
+            className="w-screen max-w-[1000px]"
+            unmountOnClose
+            title="Assign Diet Template"
+            handleSubmit={() => {
+              if (selectedTemplateId) {
+                handleAssignTemplate(selectedTemplateId)
+              }
             }}
-            page={templatePage}
-            onChangePage={setTemplatePage}
-            perPage={templatePerPage}
-            onChangePerPage={(value) => {
-              setTemplatePage(1)
-              setTemplatePerPage(value)
-            }}
-            isLoading={templateListLoading}
-            onAssign={handleAssignTemplate}
-            isAssigning={assignTemplateLoading}
-          />
+            disableSubmit={!selectedTemplateId || assignTemplateLoading}
+            actionLoader={assignTemplateLoading}
+            actionLabel="Assign Template"
+          >
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-xs text-gray-500">
+                  Showing {templateListData?.diet_plan_templates?.length ?? 0}{' '}
+                  of {templateListData?.meta?.total_count ?? 0} templates
+                </span>
+              </div>
+              <div className="border rounded-lg divide-y">
+                {templateListLoading ? (
+                  <div className="p-6 text-center text-sm text-gray-500">
+                    Loading templates...
+                  </div>
+                ) : !templateListData?.diet_plan_templates ||
+                  templateListData.diet_plan_templates.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-gray-500">
+                    No diet templates found.
+                  </div>
+                ) : (
+                  templateListData.diet_plan_templates.map((template: any) => (
+                    <div
+                      key={template?.id ?? template?.name}
+                      className={`flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between cursor-pointer hover:bg-gray-50 ${
+                        selectedTemplateId === template?.id
+                          ? 'bg-blue-50 border-l-4 border-blue-500'
+                          : ''
+                      }`}
+                      onClick={() => setSelectedTemplateId(template?.id)}
+                    >
+                      <div className="space-y-1 w-full sm:w-[55%] md:w-[60%] lg:w-[75%]">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {toTitleCase(template?.name) || 'Untitled Template'}
+                        </p>
+                        {template?.description && (
+                          <p className="text-xs text-gray-600">
+                            {template.description}
+                          </p>
+                        )}
+                        <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-gray-500">
+                          {template?.duration_days ? (
+                            <span>Duration: {template.duration_days} days</span>
+                          ) : null}
+                          {template?.total_meals ? (
+                            <span>Meals: {template.total_meals}</span>
+                          ) : null}
+                          {template?.calories ? (
+                            <span>Calories: {template.calories}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 text-right">
+                        <span className="text-[11px] font-medium text-gray-500">
+                          #{template?.id ?? '—'}
+                        </span>
+                        <div className="w-4 h-4 rounded-full border-2 border-gray-300 flex items-center justify-center">
+                          {selectedTemplateId === template?.id && (
+                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="flex flex-col gap-2 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  Page {templatePage} of{' '}
+                  {Math.ceil(
+                    (templateListData?.meta?.total_count ?? 0) / templatePerPage
+                  )}
+                </span>
+                <div className="flex gap-2">
+                  <label className="flex items-center gap-2 text-xs text-gray-600">
+                    <span>Rows per page</span>
+                    <select
+                      className="border rounded px-2 py-1 text-xs"
+                      value={templatePerPage}
+                      onChange={(event) => {
+                        const value = Number(event.target.value)
+                        setTemplatePage(1)
+                        setTemplatePerPage(Math.max(1, value))
+                      }}
+                    >
+                      {[10, 20, 30, 50, 100].map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setTemplatePage(Math.max(1, templatePage - 1))
+                    }
+                    disabled={templatePage <= 1}
+                    className="rounded border border-gray-300 px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTemplatePage(templatePage + 1)}
+                    disabled={
+                      templatePage >=
+                      Math.ceil(
+                        (templateListData?.meta?.total_count ?? 0) /
+                          templatePerPage
+                      )
+                    }
+                    className="rounded border border-gray-300 px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </div>
+          </CustomDrawer>
         )
-        if (typeof document === 'undefined') {
-          return modal
-        }
-        return createPortal(modal, document.body)
       })()}
     </>
   )
@@ -1301,200 +1439,4 @@ const formatTitleCase = (value?: string | null) => {
       return lower.charAt(0).toUpperCase() + lower.slice(1)
     })
     .join(' ')
-}
-
-interface AssignTemplateModalProps {
-  isOpen: boolean
-  onClose: () => void
-  templates: any[]
-  meta?: Record<string, any>
-  search: string
-  onSearchChange: (value: string) => void
-  page: number
-  onChangePage: (page: number) => void
-  perPage: number
-  onChangePerPage: (value: number) => void
-  isLoading: boolean
-  onAssign: (templateId: number) => Promise<void>
-  isAssigning: boolean
-}
-
-const AssignTemplateModal: FC<AssignTemplateModalProps> = ({
-  isOpen,
-  onClose,
-  templates,
-  meta,
-  // search,
-  // onSearchChange,
-  page,
-  onChangePage,
-  perPage,
-  onChangePerPage,
-  isLoading,
-  onAssign,
-  isAssigning,
-}) => {
-  const templateList = Array.isArray(templates) ? templates : []
-  const totalTemplates = Number(meta?.total_count ?? templateList.length)
-  const normalizedPerPage = Math.max(
-    1,
-    Number(meta?.per_page ?? meta?.per_page_count ?? perPage ?? 10)
-  )
-  const totalPages = Math.max(1, Math.ceil(totalTemplates / normalizedPerPage))
-  const currentPage = Math.max(1, Number(meta?.current_page ?? page ?? 1))
-  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
-    null
-  )
-
-  // const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
-  //   onSearchChange(event.target.value)
-  // }
-
-  const handlePrev = () => {
-    if (currentPage > 1) {
-      onChangePage(currentPage - 1)
-    }
-  }
-
-  const handleNext = () => {
-    if (currentPage < totalPages) {
-      onChangePage(currentPage + 1)
-    }
-  }
-
-  const handleAssignClick = async (templateId?: number) => {
-    if (!templateId) return
-    setSelectedTemplateId(templateId)
-    try {
-      await onAssign(templateId)
-    } finally {
-      setSelectedTemplateId(null)
-    }
-  }
-
-  return (
-    <DialogModal
-      isOpen={isOpen}
-      onClose={() => onClose()}
-      small={false}
-      className="max-w-[1100px] w-[92vw]"
-      headborder
-      backdropCancel
-      title="Assign Diet Template"
-      subTitle="Browse the available diet templates and pick one to assign."
-      body={
-        <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* <input
-              type="search"
-              value={search}
-              onChange={handleSearchChange}
-              placeholder="Search template title"
-              className="flex-1 min-w-[220px] rounded border border-gray-200 px-3 py-2 text-sm focus:border-primary focus:outline-none"
-            /> */}
-            <span className="text-xs text-gray-500">
-              Showing {templateList.length} of {totalTemplates} templates
-            </span>
-          </div>
-          <div className="border rounded-lg divide-y">
-            {isLoading ? (
-              <div className="p-6 text-center text-sm text-gray-500">
-                Loading templates...
-              </div>
-            ) : templateList.length === 0 ? (
-              <div className="p-6 text-center text-sm text-gray-500">
-                No diet templates found.
-              </div>
-            ) : (
-              templateList.map((template) => (
-                <div
-                  key={template?.id ?? template?.name}
-                  className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="space-y-1 w-full sm:w-[55%] md:w-[60%] lg:w-[75%]">
-                    <p className="text-sm font-semibold text-gray-900">
-                      {toTitleCase(template?.name) || 'Untitled Template'}
-                    </p>
-                    {template?.description && (
-                      <p className="text-xs text-gray-600">
-                        {template.description}
-                      </p>
-                    )}
-                    <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-gray-500">
-                      {template?.duration_days ? (
-                        <span>Duration: {template.duration_days} days</span>
-                      ) : null}
-                      {template?.total_meals ? (
-                        <span>Meals: {template.total_meals}</span>
-                      ) : null}
-                      {template?.calories ? (
-                        <span>Calories: {template.calories}</span>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2 text-right">
-                    <span className="text-[11px] font-medium text-gray-500">
-                      #{template?.id ?? '—'}
-                    </span>
-                    <button
-                      type="button"
-                      className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
-                      disabled={
-                        isAssigning && selectedTemplateId !== template?.id
-                      }
-                      onClick={() => handleAssignClick(template?.id)}
-                    >
-                      {isAssigning && selectedTemplateId === template?.id
-                        ? 'Assigning...'
-                        : 'Assign Template'}
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="flex flex-col gap-2 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
-            <span>
-              Page {currentPage} of {totalPages}
-            </span>
-            <div className="flex gap-2">
-              <label className="flex items-center gap-2 text-xs text-gray-600">
-                <span>Rows per page</span>
-                <select
-                  className="border rounded px-2 py-1 text-xs"
-                  value={normalizedPerPage}
-                  onChange={(event) => {
-                    const value = Number(event.target.value)
-                    onChangePerPage(Math.max(1, value))
-                  }}
-                >
-                  {[10, 20, 30, 50, 100].map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                type="button"
-                onClick={handlePrev}
-                disabled={currentPage <= 1}
-                className="rounded border border-gray-300 px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                disabled={currentPage >= totalPages}
-                className="rounded border border-gray-300 px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        </div>
-      }
-    />
-  )
 }
