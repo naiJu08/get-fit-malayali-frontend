@@ -220,20 +220,17 @@ export default function CreateRecipe({
     fd.append('recipe[meal_category_id]', String(resolvedMealCategoryId))
     fd.append('recipe[serving_unit]', (values as any)?.serving_unit ?? '')
     fd.append('recipe[default_serving_quantity]', '')
-    // Nutrition fields - calories always included (null if empty), others only if they have values
+    // Nutrition fields - only append if they have values
     const calories = (values as any)?.calories
     const protein = (values as any)?.protein
     const carbs = (values as any)?.carbs
     const fat = (values as any)?.fat
     const fiber = (values as any)?.fiber
 
-    // Calories always included (null if empty)
-    fd.append(
-      'recipe[calories]',
-      calories !== '' && calories !== undefined && calories !== null
-        ? String(calories)
-        : 'null'
-    )
+    // Only append calories if it has a value
+    if (calories !== '' && calories !== undefined && calories !== null) {
+      fd.append('recipe[calories]', String(calories))
+    }
 
     // Other nutrition fields only if they have values
     if (protein !== '' && protein !== undefined && protein !== null) {
