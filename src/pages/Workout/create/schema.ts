@@ -62,47 +62,50 @@ const requiredSelectId = (fieldLabel: string) =>
 //   //   }),
 
 // })
-export const formSchema = z.object({
-  name: z
-    .string({ invalid_type_error: 'Required.' })
-    .min(1, { message: 'Required.' })
-    .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
+export const formSchema = z
+  .object({
+    name: z
+      .string({ invalid_type_error: 'Required.' })
+      .min(1, { message: 'Required.' })
+      .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
 
-  description: z
-    .string({ invalid_type_error: 'Required.' })
-    .min(1, { message: 'Required.' }),
+    description: z
+      .string({ invalid_type_error: 'Required.' })
+      .min(1, { message: 'Required.' }),
 
-  intensity_level: z
-    .string({ invalid_type_error: 'Required.' })
-    .min(1, { message: 'Required.' }),
+    intensity_level: z
+      .string({ invalid_type_error: 'Required.' })
+      .min(1, { message: 'Required.' }),
 
-  category: z
-    .string({ invalid_type_error: 'Required.' })
-    .min(1, { message: 'Required.' }),
-  category_id: requiredSelectId('Category'),
+    category: z
+      .string({ invalid_type_error: 'Required.' })
+      .min(1, { message: 'Required.' }),
+    category_id: requiredSelectId('Category'),
 
-  subcategory: z
-    .string({ invalid_type_error: 'Required.' })
-    .min(1, { message: 'Required.' }),
-  subcategory_id: requiredSelectId('Subcategory'),
+    subcategory: z.string().optional(),
+    subcategory_id: z.coerce.number().optional(),
 
-  video_url: z.string().optional(), // added support for existing video
+    video_url: z.string().optional(), // added support for existing video
 
-  video_file: z
-    .any()
-    .optional()
-    .refine(
-      (val) =>
-        val === undefined ||
-        val === null ||
-        val === '' ||
-        typeof val === 'string' ||
-        val instanceof File,
-      { message: 'Video is required.' }
-    ),
+    video_file: z
+      .any()
+      .optional()
+      .refine(
+        (val) =>
+          val === undefined ||
+          val === null ||
+          val === '' ||
+          typeof val === 'string' ||
+          val instanceof File,
+        { message: 'Video is required.' }
+      ),
 
-  thumbnail: z.any().optional(),
-})
+    thumbnail: z.any().optional(),
+  })
+  .superRefine(() => {
+    // Only validate subcategory if we have the context of available subcategories
+    // This will be handled in the component level validation
+  })
 // .refine(
 //   (data) => {
 //     const baseFilled =

@@ -30,64 +30,278 @@ const RecipeDetail: React.FC = () => {
 
   const downloadPDF = useCallback(() => {
     const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    const margin = 20
+    const contentWidth = pageWidth - 2 * margin
+    let yPosition = margin
 
-    // Title
-    doc.setFontSize(20)
-    doc.text('Recipe Details', 20, 20)
+    // Helper functions
+    const addSection = (title: string) => {
+      if (yPosition > 240) {
+        doc.addPage()
+        yPosition = margin
+      }
 
-    // Recipe Name
-    doc.setFontSize(16)
-    doc.text(`Name: ${toTitleCase(recipe?.name)}`, 20, 40)
+      // Section header with underline
+      doc.setFontSize(16)
+      doc.setFont('helvetica', 'bold')
+      doc.text(title, margin, yPosition)
 
-    // Basic Information
-    doc.setFontSize(12)
-    let yPosition = 60
-    const lineHeight = 10
+      // Draw underline
+      doc.setLineWidth(0.5)
+      doc.line(margin, yPosition + 2, pageWidth - margin, yPosition + 2)
 
-    const addLine = (label: string, value: string) => {
-      doc.text(`${label}: ${value}`, 20, yPosition)
-      yPosition += lineHeight
+      yPosition += 12
+      doc.setFont('helvetica', 'normal')
     }
 
-    addLine('Category', toTitleCase(recipe?.meal_category))
-    addLine('Serving Unit', toTitleCase(recipe?.serving_unit))
-    addLine(
-      'Total Calories',
-      String(recipe?.nutrition?.calories ?? recipe?.calories ?? '--')
-    )
-    addLine('Description', recipe?.description || '--')
-    addLine('Preparation Notes', recipe?.preparation_notes || '--')
-    // Nutrition Information
+    const addField = (label: string, value: string, indent = 0) => {
+      if (yPosition > 270) {
+        doc.addPage()
+        yPosition = margin
+      }
+
+      doc.setFontSize(11)
+      let valueText: string[]
+
+      if (label) {
+        doc.setFont('helvetica', 'bold')
+        doc.text(`${label}:`, margin + indent, yPosition)
+
+        doc.setFont('helvetica', 'normal')
+        valueText = doc.splitTextToSize(value, contentWidth - indent - 30)
+        doc.text(valueText, margin + indent + 30, yPosition)
+      } else {
+        // No label - start text from left margin
+        doc.setFont('helvetica', 'normal')
+        valueText = doc.splitTextToSize(value, contentWidth - indent)
+        doc.text(valueText, margin + indent, yPosition)
+      }
+
+      yPosition += Math.max(8, valueText.length * 5)
+    }
+
+    const addTableRow = (columns: string[], isIngredientsTable = false) => {
+      if (yPosition > 260) {
+        doc.addPage()
+        yPosition = margin
+      }
+
+      doc.setFontSize(10)
+      let columnWidths: number[]
+
+      if (isIngredientsTable && columns.length === 3) {
+        // Ingredients table: wider name column (50%), narrower quantity (25%), unit (25%)
+        columnWidths = [
+          contentWidth * 0.5,
+          contentWidth * 0.25,
+          contentWidth * 0.25,
+        ]
+      } else {
+        // Default: equal width columns
+        columnWidths = columns.map(() => contentWidth / columns.length)
+      }
+
+      columns.forEach((text, index) => {
+        const x =
+          margin + columnWidths.slice(0, index).reduce((a, b) => a + b, 0)
+        doc.text(text, x, yPosition)
+      })
+
+      yPosition += 7
+    }
+
+    // Add border to entire page
+    doc.setDrawColor(200, 200, 200)
+    doc.rect(10, 10, pageWidth - 20, pageHeight - 20)
+
+    // Header Section
+    doc.setFillColor(240, 240, 240)
+    doc.rect(10, margin - 10, pageWidth - 20, 30, 'F')
+
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(50, 50, 50)
+    doc.text('Recipe Details', margin, yPosition)
+
+    doc.setFontSize(18)
+    doc.setTextColor(100, 100, 100)
+    doc.text(toTitleCase(recipe?.name), margin, yPosition + 10)
+
+    yPosition += 35
+    doc.setTextColor(0, 0, 0)
+
+    // Basic Information Section
+    addSection('Basic Information')
+
+    const basicInfo = [
+      ['Category', toTitleCase(recipe?.meal_category)],
+      ['Serving Unit', toTitleCase(recipe?.serving_unit)],
+      ['Serving Quantity', safeStr(recipe?.quantity)],
+      ['Serving Count', safeStr(recipe?.serving_people_count)],
+      ['Size', safeStr(recipe?.size)],
+      [
+        'Total Calories',
+        String(recipe?.nutrition?.calories ?? recipe?.calories ?? '--'),
+      ],
+    ]
+
+    basicInfo.forEach(([label, value]) => {
+      addField(label, value)
+    })
+
+    // Description Section
+    if (recipe?.description) {
+      addSection('Description')
+      addField('', recipe?.description)
+    }
+
+    // Nutrition Information Section
+    addSection('Nutrition Information')
+
+    // Create nutrition table
+    const nutritionData = [
+      ['Nutrient', 'Amount'],
+      ['Protein', safeStr(recipe?.nutrition?.protein)],
+      ['Carbohydrates', safeStr(recipe?.nutrition?.carbs)],
+      ['Fat', safeStr(recipe?.nutrition?.fat)],
+      ['Fiber', safeStr(recipe?.nutrition?.fiber)],
+      [
+        'Total Calories',
+        String(recipe?.nutrition?.calories ?? recipe?.calories ?? '--'),
+      ],
+    ]
+
+    // Table header
+    doc.setFillColor(240, 240, 240)
+    doc.rect(margin, yPosition - 5, contentWidth, 8, 'F')
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'bold')
+    nutritionData[0].forEach((header, index) => {
+      const x = margin + index * (contentWidth / 2)
+      doc.text(header, x, yPosition)
+    })
+    yPosition += 8
+
+    // Table rows
+    doc.setFontSize(11)
+    doc.setFont('helvetica', 'normal')
+    for (let i = 1; i < nutritionData.length; i++) {
+      if (i % 2 === 0) {
+        doc.setFillColor(250, 250, 250)
+        doc.rect(margin, yPosition - 5, contentWidth, 7, 'F')
+      }
+      nutritionData[i].forEach((data, index) => {
+        const x = margin + index * (contentWidth / 2)
+        doc.text(data, x, yPosition)
+      })
+      yPosition += 7
+    }
     yPosition += 5
-    doc.setFontSize(14)
-    doc.text('Nutrition Information', 20, yPosition)
-    yPosition += lineHeight
 
-    doc.setFontSize(12)
-    addLine('Protein', safeStr(recipe?.nutrition?.protein))
-    addLine('Carbs', safeStr(recipe?.nutrition?.carbs))
-    addLine('Fat', safeStr(recipe?.nutrition?.fat))
-    addLine('Fiber', safeStr(recipe?.nutrition?.fiber))
-
-    // Ingredients
+    // Ingredients Section
     if (Array.isArray(recipe?.ingredients) && recipe.ingredients.length > 0) {
-      yPosition += 5
-      doc.setFontSize(14)
-      doc.text('Ingredients', 20, yPosition)
-      yPosition += lineHeight
+      addSection('Ingredients')
 
-      doc.setFontSize(12)
+      // Table header
+      doc.setFillColor(240, 240, 240)
+      doc.rect(margin, yPosition - 5, contentWidth, 8, 'F')
+      doc.setFont('helvetica', 'bold')
+      addTableRow(['Ingredient Name', 'Quantity', 'Unit'], true)
+
+      // Table rows
+      doc.setFont('helvetica', 'normal')
+      let rowIndex = 0
       recipe.ingredients.forEach((ing: any) => {
-        if (yPosition > 270) {
-          // Add new page if needed
+        if (yPosition > 260) {
           doc.addPage()
-          yPosition = 20
+          yPosition = margin
+          // Reset rowIndex for new page to maintain alternating pattern
+          rowIndex = 0
         }
-        const ingredientLine = `${toTitleCase(ing?.name)} - ${safeStr(ing?.quantity)} ${safeStr(ing?.unit)}`
-        doc.text(ingredientLine, 20, yPosition)
-        yPosition += lineHeight
+
+        if (rowIndex % 2 === 0) {
+          doc.setFillColor(250, 250, 250)
+          doc.rect(margin, yPosition - 5, contentWidth, 7, 'F')
+        }
+        addTableRow(
+          [toTitleCase(ing?.name), safeStr(ing?.quantity), safeStr(ing?.unit)],
+          true
+        )
+        rowIndex++
+      })
+      yPosition += 5
+    }
+
+    // Preparation Notes Section
+    if (recipe?.preparation_notes) {
+      addSection('Preparation Notes')
+
+      // Remove HTML tags and format text
+      const plainText = recipe?.preparation_notes
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+
+      const notes = doc.splitTextToSize(plainText, contentWidth - 10)
+      doc.setFontSize(11)
+      notes.forEach((line: string) => {
+        if (yPosition > 270) {
+          doc.addPage()
+          yPosition = margin
+        }
+        doc.text(line, margin + 10, yPosition)
+        yPosition += 6
       })
     }
+
+    // Additional Information Section
+    if (recipe?.additional_info) {
+      addSection('Additional Information')
+
+      const additionalText = recipe?.additional_info
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+
+      const additionalInfo = doc.splitTextToSize(
+        additionalText,
+        contentWidth - 10
+      )
+      doc.setFontSize(11)
+      additionalInfo.forEach((line: string) => {
+        if (yPosition > 270) {
+          doc.addPage()
+          yPosition = margin
+        }
+        doc.text(line, margin + 10, yPosition)
+        yPosition += 6
+      })
+    }
+
+    // Footer
+    const footerY = pageHeight - 20
+    doc.setFontSize(9)
+    doc.setTextColor(150, 150, 150)
+    doc.text(
+      `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+      margin,
+      footerY
+    )
+    doc.text(
+      `Get Fit Malayali - Recipe Details`,
+      pageWidth - margin - 60,
+      footerY
+    )
 
     // Save the PDF
     doc.save(`${recipe?.name || 'recipe'}-details.pdf`)
@@ -178,6 +392,15 @@ const RecipeDetail: React.FC = () => {
               label="Serving Unit"
               value={toTitleCase(recipe?.serving_unit)}
             />
+            <DetailItem
+              label="Serving Quantity"
+              value={recipe?.quantity?.toString() ?? ''}
+            />
+            <DetailItem
+              label="Serving Count"
+              value={recipe?.serving_people_count?.toString() ?? ''}
+            />
+            <DetailItem label="Size" value={recipe?.size ?? ''} />
 
             <DetailItem label="Description" value={recipe?.description} />
 
@@ -202,6 +425,10 @@ const RecipeDetail: React.FC = () => {
               <div className="text-xs text-gray-500 mb-2">Nutrition</div>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
+                  <span className="text-gray-500">Total calories: </span>
+                  {safeStr(recipe?.nutrition?.calories)}
+                </div>
+                <div>
                   <span className="text-gray-500">Protein: </span>
                   {safeStr(recipe?.nutrition?.protein)}
                 </div>
@@ -220,7 +447,19 @@ const RecipeDetail: React.FC = () => {
               </div>
             </div>
           </div>
-
+          <div className="mt-4 border rounded-lg p-3 bg-white">
+            <div className="text-xs text-gray-500 mb-2">
+              Additional Information
+            </div>
+            <div
+              className="text-sm"
+              dangerouslySetInnerHTML={{
+                __html:
+                  recipe?.additional_info?.replace(/\n/g, '<br>') ||
+                  'No additional information',
+              }}
+            />
+          </div>
           {/* Ingredients */}
           <div className="mt-4 border rounded-lg p-3 bg-white">
             <div className="text-xs text-gray-500 mb-2">Ingredients</div>
@@ -257,7 +496,13 @@ const RecipeDetail: React.FC = () => {
           {/* Preparation Notes */}
           <div className="mt-4 border rounded-lg p-3 bg-white">
             <div className="text-xs text-gray-500 mb-2">Preparation Notes</div>
-            <div className="text-sm">{safeStr(recipe?.preparation_notes)}</div>
+            <div
+              className="text-sm prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{
+                __html:
+                  capitalizeFirstLetters(recipe?.preparation_notes) || '--',
+              }}
+            />
           </div>
         </>
       )}
@@ -298,6 +543,37 @@ function DetailItem({ label, value }: { label: string; value: any }) {
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
+}
+
+function capitalizeFirstLetters(html: string): string {
+  if (!html || html === '--') return html
+
+  // Create a temporary DOM element to parse HTML
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = html
+
+  // Process all text nodes
+  const walker = document.createTreeWalker(tempDiv, NodeFilter.SHOW_TEXT)
+
+  const textNodes: Text[] = []
+  let node: Text | null = null
+
+  // Collect all text nodes
+  while ((node = walker.nextNode() as Text)) {
+    if (node.textContent && node.textContent.trim()) {
+      textNodes.push(node)
+    }
+  }
+
+  // Process each text node - capitalize only first letter of the line
+  textNodes.forEach((textNode) => {
+    const text = textNode.textContent || ''
+    // Capitalize only the first letter of the text (first letter of the line)
+    const capitalizedText = text.replace(/^\w/, (char) => char.toUpperCase())
+    textNode.textContent = capitalizedText
+  })
+
+  return tempDiv.innerHTML
 }
 
 export default RecipeDetail

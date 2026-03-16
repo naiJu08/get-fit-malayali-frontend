@@ -129,6 +129,7 @@ export interface TextFieldProps {
   digitsOnly?: boolean
   errorFlag?: boolean
   toLowercase?: boolean
+  list?: string
 }
 
 export interface AspectRatioSpec {

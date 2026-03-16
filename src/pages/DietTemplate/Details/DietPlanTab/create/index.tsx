@@ -110,7 +110,9 @@ const DietPlanForm = ({
 }: Props) => {
   const { enqueueSnackbar } = useSnackbarManager()
   const [initialDayName, setInitialDayName] = useState('')
-  const { data: detailData } = useDietPlanDetail(edit ? rowData?.id : undefined)
+  const { data: detailData, refetch: refetchDetail } = useDietPlanDetail(
+    edit ? rowData?.id : undefined
+  )
 
   // Check if this is creating a meal for a specific day (prefilled day info)
   const isCreatingForSpecificDay =
@@ -378,10 +380,27 @@ const DietPlanForm = ({
   useEffect(() => {
     if (!isOpen) return
 
+    // In edit mode, always refetch the detail data to get the latest updates
+    if (edit && rowData?.id) {
+      console.log('Refetching detail data on modal open...')
+      refetchDetail()
+    }
+
     const source: any =
       edit && detailData
         ? ((detailData as any).diet_plan ?? detailData)
         : rowData || {}
+
+    console.log(
+      'Form opening - edit:',
+      edit,
+      'detailData:',
+      detailData,
+      'rowData:',
+      rowData,
+      'source:',
+      source
+    )
 
     // Store initial day name for resetting after "Add New"
     const dayName =
@@ -466,7 +485,16 @@ const DietPlanForm = ({
         },
       ])
     }
-  }, [isOpen, planId, edit, rowData, detailData, reset, replaceMeals])
+  }, [
+    isOpen,
+    planId,
+    edit,
+    rowData,
+    detailData,
+    reset,
+    replaceMeals,
+    refetchDetail,
+  ])
 
   const onSubmit = (values: DietPlanSchema, keepOpen = false) => {
     // Check for empty meal items and show snackbar error if found
@@ -534,10 +562,13 @@ const DietPlanForm = ({
       updateMutate(
         { id: rowData.id, payload },
         {
-          onSuccess: () => {
+          onSuccess: async () => {
+            console.log('Update success, refetching detail data...')
             enqueueSnackbar('Diet plan updated successfully', {
               variant: 'success',
             })
+            await refetchDetail()
+            console.log('Detail data refetched')
             handleClose()
           },
         }

@@ -62,6 +62,13 @@ export default function Recipe() {
     setCreateOpen(true)
   }
 
+  const openDuplicate = (row: any) => {
+    setRowData(row)
+    setEdit(false) // Set edit to false for duplicate mode
+    setFormKey(`duplicate-${row?.id ?? 'x'}-${Date.now()}`)
+    setCreateOpen(true)
+  }
+
   const { data, isFetching } = useRecipes(searchParams)
   const deleteRecipeMutation = useDeleteRecipe()
 
@@ -199,6 +206,12 @@ export default function Recipe() {
               action: (row: any) => openEdit(row),
               title: 'Edit',
               toolTip: 'Edit',
+            },
+            {
+              icon: <Icons name="duplicate-icon" />,
+              action: (row: any) => openDuplicate(row),
+              title: 'Duplicate',
+              toolTip: 'Duplicate',
             },
             {
               icon: <Icons name="delete" />,

@@ -66,6 +66,7 @@ export const useUpdateDietPlan = () => {
   return useMutation(updateDietPlan, {
     onSuccess: () => {
       qc.invalidateQueries(['diet_plans_list'])
+      qc.invalidateQueries(['diet_plan_detail'])
     },
   })
 }

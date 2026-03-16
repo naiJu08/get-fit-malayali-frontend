@@ -1807,8 +1807,9 @@ export default function Reports({
         const dailyData =
           report.daily_breakdown?.map((day: any) => {
             const getActivityStatus = (activity: any) => {
-              const total = (activity.assigned || 0) + (activity.upcoming || 0)
-              const completed = activity.completed || 0
+              if (!activity) return '—'
+              const total = activity.assigned || 0
+              const completed = activity.assigned_completion || 0
               if (total === 0) return '—'
               const rate = (completed / total) * 100
               return `${completed}/${total} (${rate.toFixed(0)}%)`
@@ -3965,9 +3966,9 @@ export default function Reports({
               <tbody>
                 {report.daily_breakdown?.map((day: any) => {
                   const getActivityStatus = (activity: any) => {
-                    const total =
-                      (activity.assigned || 0) + (activity.upcoming || 0)
-                    const completed = activity.completed || 0
+                    if (!activity) return '—'
+                    const total = activity.assigned || 0
+                    const completed = activity.assigned_completion || 0
                     if (total === 0) return '—'
                     const rate = (completed / total) * 100
                     return `${completed}/${total} (${rate.toFixed(0)}%)`

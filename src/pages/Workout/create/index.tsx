@@ -347,9 +347,11 @@ export default function CreateAdmin({
         shouldValidate: true,
         shouldDirty: true,
       })
+      // Clear subcategory error when category changes
+      clearErrors('subcategory_id')
       categoryChangeRef.current = selectedCategoryId
     }
-  }, [methods, selectedCategoryId])
+  }, [methods, selectedCategoryId, clearErrors])
 
   const formBuilderProps = useMemo(
     () => [
@@ -578,6 +580,15 @@ export default function CreateAdmin({
   //   }
   // }
   const onSubmit = (details: any) => {
+    // Validate subcategory requirement
+    if (subcategoryOptions.length > 0 && !details?.subcategory_id) {
+      setError('subcategory_id', {
+        type: 'manual',
+        message: 'Subcategory is required.',
+      })
+      return
+    }
+
     const hasNewVideoFile = details?.video_file instanceof File
     const hasExistingVideoUrl =
       typeof details?.video_file === 'string' && details.video_file !== ''

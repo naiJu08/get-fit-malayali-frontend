@@ -248,6 +248,7 @@ export default function CreateAdmin({
         intensity_level: rowData?.intensity_level ?? '',
         category: matchedCategory?.name ?? '',
         video_file: getFileName(rowData?.video_url) ?? '',
+        video_url: rowData?.video_url ?? '',
         thumbnail: getFileName(rowData?.thumbnail_url) ?? '',
       } as any)
     }

@@ -38,6 +38,19 @@ const optionalNumberFromText = z.preprocess(
     .optional()
 )
 
+const optionalTextOrNumber = z.preprocess(
+  (val) => {
+    if (typeof val === 'number') return val
+    if (typeof val === 'string') {
+      const trimmed = val.trim()
+      if (!trimmed.length) return undefined
+      return trimmed
+    }
+    return val
+  },
+  z.union([z.string().optional(), z.number().nonnegative().optional()])
+)
+
 const numberFromSelect = z.preprocess((val) => {
   if (val && typeof val === 'object' && 'id' in (val as any)) {
     return (val as any).id
@@ -56,7 +69,10 @@ export const recipeFormSchema = z.object({
     (val) => typeof val === 'number' && !Number.isNaN(val),
     'Required'
   ),
+  quantity: optionalTextOrNumber,
   serving_unit: z.string().min(1, 'Required'),
+  serving_people_count: optionalTextOrNumber,
+  size: optionalTextOrNumber,
 
   // Nutrition fields
   calories: optionalNumberFromText,
@@ -71,8 +87,9 @@ export const recipeFormSchema = z.object({
         name: z.string().min(1, 'Required'),
         quantity: z
           .string()
-          .min(1, 'Required')
+          .optional()
           .refine((val) => {
+            if (!val || val.trim() === '') return true // Allow empty
             // Allow numbers, decimals, and fractions
             const trimmed = val.trim()
             return (
@@ -82,6 +99,7 @@ export const recipeFormSchema = z.object({
             )
           }, 'Must be a number or fraction (e.g., 1.5, 1/2, 1 / 2)')
           .refine((val) => {
+            if (!val || val.trim() === '') return true // Allow empty
             const trimmed = val.trim()
             if (/^\d+\/\d+$/.test(trimmed) || /^\d+\s\/\s\d+$/.test(trimmed)) {
               // For fractions, ensure denominator is not zero
@@ -90,10 +108,20 @@ export const recipeFormSchema = z.object({
             }
             return Number(trimmed) > 0
           }, 'Must be greater than 0'),
-        unit: z.string().min(1, 'Required'),
+        unit: z.string().optional(),
+        details: z.string().optional(),
+        size: z.string().optional(),
       })
     )
     .min(1, 'At least one ingredient is required'),
+
+  additional_info: z
+    .array(
+      z.object({
+        info: z.string().optional(),
+      })
+    )
+    .optional(),
 
   image: z
     .union([z.string().url('Invalid URL'), z.instanceof(File), z.literal('')])

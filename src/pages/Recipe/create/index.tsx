@@ -7,6 +7,7 @@ import {
 } from 'react-hook-form'
 import { useEffect } from 'react'
 import { DialogModal, TextArea, TextField } from '../../../components/common'
+import TextEditor from '../../../components/common/TextEditer'
 import FormBuilder from '../../../components/app/formBuilder'
 import { recipeFormSchema, RecipeSchema } from './schema'
 import { useCreateRecipe, useUpdateRecipe } from '../api'
@@ -54,6 +55,11 @@ export default function CreateRecipe({
         meal_category: toTitleCase(rowData?.meal_category),
         meal_category_id: coerceId(rowData?.meal_category_id),
         serving_unit: toTitleCase(rowData?.serving_unit) ?? '',
+        serving_people_count: coerceNumberOrEmpty(
+          rowData?.serving_people_count
+        ),
+        quantity: coerceNumberOrEmpty(rowData?.quantity),
+        size: coerceNumberOrEmpty(rowData?.size),
         calories: coerceNumberOrEmpty(
           rowData?.nutrition?.calories ?? rowData?.calories
         ),
@@ -69,9 +75,132 @@ export default function CreateRecipe({
                   ? ''
                   : String(ing.quantity),
               unit: toTitleCase(ing?.unit) ?? '',
+              details: ing?.details ?? '',
+              size: ing?.size ?? '',
             }))
           : [],
-        image: rowData?.image_url ?? '',
+        additional_info: (() => {
+          const existingInfo = rowData?.additional_info
+
+          // If additional_info is null, undefined, or empty string, return empty array
+          if (
+            !existingInfo ||
+            (typeof existingInfo === 'string' && existingInfo.trim() === '')
+          ) {
+            return [{ info: '' }]
+          }
+
+          // Handle different data formats
+          if (Array.isArray(existingInfo)) {
+            // Filter out empty info items
+            const filteredInfo = existingInfo.filter((info: any) => {
+              const infoValue =
+                info?.info ?? (typeof info === 'string' ? info : '')
+              return infoValue && infoValue.trim() !== ''
+            })
+
+            // If no valid info, return empty array
+            if (filteredInfo.length === 0) {
+              return [{ info: '' }]
+            }
+
+            return filteredInfo.map((info: any) => ({
+              info: info?.info ?? (typeof info === 'string' ? info : ''),
+            }))
+          } else if (typeof existingInfo === 'string') {
+            // Parse string with <br> tags or newlines into array
+            const lines = existingInfo
+              .split(/<br\s*\/?>|\n/)
+              .map((line: string) => line.trim())
+              .filter((line: string) => line.length > 0)
+
+            return lines.length > 0
+              ? lines.map((line: string) => ({ info: line }))
+              : [{ info: '' }]
+          }
+
+          return [{ info: '' }]
+        })(),
+        image: rowData?.image_url ?? '', // Pre-fill image for edit
+      } as any
+    }
+
+    // Handle duplicate mode (edit=false but rowData exists)
+    if (!edit && rowData) {
+      return {
+        name: toTitleCase(rowData?.name) ?? '',
+        description: toTitleCase(rowData?.description) ?? '',
+        preparation_notes: toTitleCase(rowData?.preparation_notes) ?? '',
+        meal_category: toTitleCase(rowData?.meal_category),
+        meal_category_id: coerceId(rowData?.meal_category_id),
+        serving_unit: toTitleCase(rowData?.serving_unit) ?? '',
+        serving_people_count: coerceNumberOrEmpty(
+          rowData?.serving_people_count
+        ),
+        quantity: coerceNumberOrEmpty(rowData?.quantity),
+        size: coerceNumberOrEmpty(rowData?.size),
+        calories: coerceNumberOrEmpty(
+          rowData?.nutrition?.calories ?? rowData?.calories
+        ),
+        protein: coerceNumberOrEmpty(rowData?.nutrition?.protein),
+        carbs: coerceNumberOrEmpty(rowData?.nutrition?.carbs),
+        fat: coerceNumberOrEmpty(rowData?.nutrition?.fat),
+        fiber: coerceNumberOrEmpty(rowData?.nutrition?.fiber),
+        ingredients: Array.isArray(rowData?.ingredients)
+          ? rowData.ingredients.map((ing: any) => ({
+              name: toTitleCase(ing?.name) ?? '',
+              quantity:
+                ing?.quantity === undefined || ing?.quantity === null
+                  ? ''
+                  : String(ing.quantity),
+              unit: toTitleCase(ing?.unit) ?? '',
+              details: ing?.details ?? '',
+              size: ing?.size ?? '',
+            }))
+          : [],
+        additional_info: (() => {
+          const existingInfo = rowData?.additional_info
+
+          // If additional_info is null, undefined, or empty string, return empty array
+          if (
+            !existingInfo ||
+            (typeof existingInfo === 'string' && existingInfo.trim() === '')
+          ) {
+            return [{ info: '' }]
+          }
+
+          // Handle different data formats
+          if (Array.isArray(existingInfo)) {
+            // Filter out empty info items
+            const filteredInfo = existingInfo.filter((info: any) => {
+              const infoValue =
+                info?.info ?? (typeof info === 'string' ? info : '')
+              return infoValue && infoValue.trim() !== ''
+            })
+
+            // If no valid info, return empty array
+            if (filteredInfo.length === 0) {
+              return [{ info: '' }]
+            }
+
+            return filteredInfo.map((info: any) => ({
+              info: info?.info ?? (typeof info === 'string' ? info : ''),
+            }))
+          } else if (typeof existingInfo === 'string') {
+            // Parse string with <br> tags or newlines into array
+            const lines = existingInfo
+              .split(/<br\s*\/?>|\n/)
+              .map((line: string) => line.trim())
+              .filter((line: string) => line.length > 0)
+
+            return lines.length > 0
+              ? lines.map((line: string) => ({ info: line }))
+              : [{ info: '' }]
+          }
+
+          return [{ info: '' }]
+        })(),
+        image: rowData?.image_url ?? '', // Pre-fill image for duplicate
       } as any
     }
     // create defaults
@@ -82,6 +211,9 @@ export default function CreateRecipe({
       meal_category: '',
       meal_category_id: undefined as any,
       serving_unit: '',
+      serving_people_count: '' as any,
+      quantity: '' as any,
+      size: '' as any,
       calories: '' as any,
       protein: '' as any,
       carbs: '' as any,
@@ -92,8 +224,11 @@ export default function CreateRecipe({
           name: '',
           quantity: '' as any,
           unit: '',
+          details: '',
+          size: '',
         },
       ],
+      additional_info: [{ info: '' }],
       image: '',
     } as any
   }
@@ -130,6 +265,15 @@ export default function CreateRecipe({
   } = useFieldArray({
     control,
     name: 'ingredients',
+  })
+
+  const {
+    fields: additionalInfoFields,
+    append: appendAdditionalInfo,
+    remove: removeAdditionalInfo,
+  } = useFieldArray({
+    control,
+    name: 'additional_info',
   })
 
   // Meal categories & serving units (reused from Meals)
@@ -193,7 +337,12 @@ export default function CreateRecipe({
       rowData?.id
     ) // Build multipart form data to support image file upload
     const fd = new FormData()
-    fd.append('recipe[name]', (values as any)?.name ?? '')
+
+    // Capitalize first letter of recipe name
+    const recipeName = (values as any)?.name ?? ''
+    const capitalizedName =
+      recipeName.charAt(0).toUpperCase() + recipeName.slice(1)
+    fd.append('recipe[name]', capitalizedName)
     fd.append('recipe[description]', (values as any)?.description ?? '')
     fd.append(
       'recipe[preparation_notes]',
@@ -219,7 +368,12 @@ export default function CreateRecipe({
     }
     fd.append('recipe[meal_category_id]', String(resolvedMealCategoryId))
     fd.append('recipe[serving_unit]', (values as any)?.serving_unit ?? '')
-    fd.append('recipe[default_serving_quantity]', '')
+    fd.append(
+      'recipe[serving_people_count]',
+      (values as any)?.serving_people_count ?? ''
+    )
+    fd.append('recipe[quantity]', (values as any)?.quantity ?? '')
+    fd.append('recipe[size]', (values as any)?.size ?? '')
     // Nutrition fields - only append if they have values
     const calories = (values as any)?.calories
     const protein = (values as any)?.protein
@@ -258,7 +412,25 @@ export default function CreateRecipe({
       if (ing?.unit) {
         fd.append(`${prefix}[unit]`, ing.unit)
       }
+      if (ing?.size) {
+        fd.append(`${prefix}[size]`, ing.size)
+      }
+      if (ing?.details && ing.details.trim() !== '') {
+        fd.append(`${prefix}[details]`, ing.details.trim())
+      }
     })
+
+    // Additional Info - append each info as separate lines with HTML breaks
+    const additionalInfo: any[] = (values as any)?.additional_info ?? []
+    if (additionalInfo.length > 0) {
+      const infoText = additionalInfo
+        .filter((info: any) => info?.info && info.info.trim() !== '')
+        .map((info: any) => info.info.trim())
+        .join('<br>')
+      fd.append('recipe[additional_info]', infoText || '')
+    } else {
+      fd.append('recipe[additional_info]', '')
+    }
 
     const imageVal: any = (values as any)?.image
     if (imageVal && typeof imageVal !== 'string') {
@@ -322,6 +494,52 @@ export default function CreateRecipe({
       data: servingUnitOptions,
     },
     {
+      name: 'quantity',
+      label: 'Serving Quantity',
+      type: 'text',
+      placeholder: 'Enter serving quantity',
+      required: false,
+    },
+    {
+      name: 'serving_people_count',
+      label: 'Serving Count',
+      type: 'text',
+      placeholder: 'Enter serving count',
+      required: false,
+    },
+    {
+      name: 'size',
+      label: 'Size',
+      type: 'text',
+      placeholder: 'Enter size',
+      required: false,
+    },
+    {
+      name: 'image',
+      label: 'Image',
+      id: 'image',
+      type: 'file_upload',
+      placeholder: 'Upload recipe image',
+      required: true,
+      accept: 'image/*',
+      supportedExtensions: [
+        'image/png',
+        'image/jpeg',
+        'image/jpg',
+        'image/webp',
+      ],
+      acceptedFiles: 'PNG, JPG, JPEG, WEBP',
+      fileSize: 5,
+    },
+    {
+      name: 'calories',
+      label: 'Total Calories',
+      type: 'text',
+      placeholder: 'Enter total calories',
+      required: false,
+      allowPositiveOnly: true,
+    },
+    {
       name: 'protein',
       label: 'Protein',
       type: 'text',
@@ -357,38 +575,28 @@ export default function CreateRecipe({
       required: false,
       allowPositiveOnly: true,
     },
-    {
-      name: 'calories',
-      label: 'Total Calories',
-      type: 'text',
-      placeholder: 'Enter total calories',
-      required: false,
-      allowPositiveOnly: true,
-    },
-    {
-      name: 'description',
-      label: 'Description',
-      type: 'textarea',
-      placeholder: 'Enter description',
-      required: false,
-    },
 
     {
-      name: 'image',
-      label: 'Image',
-      id: 'image',
-      type: 'file_upload',
-      placeholder: 'Upload recipe image',
-      required: true,
-      accept: 'image/*',
-      supportedExtensions: [
-        'image/png',
-        'image/jpeg',
-        'image/jpg',
-        'image/webp',
-      ],
-      acceptedFiles: 'PNG, JPG, JPEG, WEBP',
-      fileSize: 5,
+      name: 'preparation_notes',
+      label: 'Preparation Notes',
+      type: 'custom',
+      render: () => (
+        <div className="border-t pt-4">
+          <h3 className="text-sm font-semibold mb-2">Preparation Notes</h3>
+          <Controller
+            name="preparation_notes"
+            control={control}
+            render={({ field: { onChange, value } }) => (
+              <TextEditor
+                value={value || ''}
+                onChange={onChange}
+                placeholder="Enter preparation notes"
+                label=""
+              />
+            )}
+          />
+        </div>
+      ),
     },
   ]
 
@@ -396,7 +604,9 @@ export default function CreateRecipe({
     <DialogModal
       isOpen={isDrawerOpen}
       onClose={handleClose}
-      title={edit ? 'Edit Recipe' : 'Create Recipe'}
+      title={
+        edit ? 'Edit Recipe' : rowData ? 'Duplicate Recipe' : 'Create Recipe'
+      }
       actionLabel={edit ? 'Save' : 'Save'}
       onSubmit={handleSubmit(onSubmit)}
       secondaryAction={handleClose}
@@ -404,7 +614,7 @@ export default function CreateRecipe({
       small={false}
       body={
         // Make the create recipe content scrollable while keeping header/footer fixed
-        <div className="flex flex-col gap-4 max-h-[70vh] overflow-y-auto pr-1">
+        <div className="flex flex-col gap-4 overflow-y-auto pr-1">
           <FormProvider {...methods}>
             {/* Main fields in 2-column grid (excluding macros and full-width textareas) */}
             <FormBuilder
@@ -416,13 +626,29 @@ export default function CreateRecipe({
                     'fat',
                     'fiber',
                     'calories',
-                    'preparation_notes',
                     'description',
                   ].includes(f.name)
               )}
               edit={true}
               spacing
             />
+
+            {/* Preparation Notes section */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold mb-2">Preparation Notes</h3>
+              <Controller
+                name="preparation_notes"
+                control={control}
+                render={({ field: { onChange, value } }) => (
+                  <TextEditor
+                    value={value || ''}
+                    onChange={onChange}
+                    placeholder="Enter preparation notes"
+                    label=""
+                  />
+                )}
+              />
+            </div>
 
             {/* Full-width textareas */}
             <FormBuilder
@@ -432,7 +658,7 @@ export default function CreateRecipe({
             />
             {/* Calories / macros section */}
             <div className="mt-4 border-t pt-4">
-              <h3 className="text-sm font-semibold mb-2">Calories</h3>
+              <h3 className="text-sm font-semibold mb-2">Nutritional Value</h3>
               <FormBuilder
                 data={formFields.filter((f) =>
                   ['protein', 'carbs', 'fat', 'fiber', 'calories'].includes(
@@ -444,7 +670,59 @@ export default function CreateRecipe({
               />
             </div>
 
+            {/* Additional Info section */}
             <div className="mt-4 border-t pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold">Additional Info</h3>
+              </div>
+
+              {additionalInfoFields.map((field, index) => (
+                <div key={field.id} className="text-[11px]">
+                  <div className="flex items-center justify-between mb-2 mr-2">
+                    <span className="font-medium"></span>
+                    {additionalInfoFields.length > 1 && (
+                      <button
+                        type="button"
+                        className="text-[10px] text-red-500"
+                        onClick={() => removeAdditionalInfo(index)}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="w-full">
+                    <Controller
+                      name={`additional_info.${index}.info` as const}
+                      control={control}
+                      render={({ field: { onChange, value } }) => (
+                        <TextField
+                          id={`additional_info.${index}.info`}
+                          name={`additional_info.${index}.info`}
+                          placeholder="Enter additional information"
+                          value={value ?? ''}
+                          onChange={onChange}
+                          errors={errors}
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-full bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                  onClick={() => appendAdditionalInfo({ info: '' })}
+                  aria-label="Add more info"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold">Ingredients</h3>
               </div>
@@ -467,24 +745,27 @@ export default function CreateRecipe({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
-                    <div className="md:col-span-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 items-end">
+                    <div>
                       <Controller
                         name={`ingredients.${index}.name` as const}
                         control={control}
                         render={({ field: { onChange, value } }) => (
-                          <TextField
-                            id={`ingredients.${index}.name`}
-                            name={`ingredients.${index}.name`}
-                            label="Name"
-                            type="text"
-                            placeholder="Ingredient name"
-                            maxLength={100}
-                            value={value ?? ''}
-                            onChange={onChange as any}
-                            required
-                            errors={errors}
-                          />
+                          <>
+                            <TextField
+                              id={`ingredients.${index}.name`}
+                              name={`ingredients.${index}.name`}
+                              label="Name"
+                              type="text"
+                              placeholder="Ingredient name"
+                              maxLength={100}
+                              value={value ?? ''}
+                              onChange={onChange}
+                              required
+                              errors={errors}
+                              autoComplete={true}
+                            />
+                          </>
                         )}
                       />
                     </div>
@@ -520,7 +801,6 @@ export default function CreateRecipe({
                                 field.onChange(val)
                               }
                             }}
-                            required
                             errors={errors}
                           />
                         )}
@@ -540,22 +820,44 @@ export default function CreateRecipe({
                             placeholder="e.g. grams"
                             value={value ?? ''}
                             onChange={onChange as any}
-                            required
                             errors={errors}
                           />
                         )}
                       />
                     </div>
                   </div>
+                  <div className="mt-2">
+                    <Controller
+                      name={`ingredients.${index}.details` as const}
+                      control={control}
+                      render={({ field: { onChange, value } }) => (
+                        <TextArea
+                          id={`ingredients.${index}.details`}
+                          name={`ingredients.${index}.details`}
+                          placeholder="Enter specifications (e.g., organic, fresh, diced)"
+                          value={value ?? ''}
+                          onChange={onChange}
+                          rows={2}
+                          errors={errors}
+                        />
+                      )}
+                    />
+                  </div>
                 </div>
               ))}
 
-              <div className="mt-2 flex justify-end">
+              <div className="mt-6   flex justify-end">
                 <button
                   type="button"
                   className="inline-flex items-center justify-center rounded-full bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                   onClick={() =>
-                    appendIngredient({ name: '', quantity: '', unit: '' })
+                    appendIngredient({
+                      name: '',
+                      quantity: '',
+                      unit: '',
+                      details: '',
+                      size: '',
+                    })
                   }
                   aria-label="Add ingredient row"
                 >
@@ -564,21 +866,20 @@ export default function CreateRecipe({
               </div>
             </div>
 
-            {/* Preparation Notes section */}
+            {/* Description section */}
             <div className="mt-4 border-t pt-4">
-              <h3 className="text-sm font-semibold mb-2">Preparation Notes</h3>
+              <h3 className="text-sm font-semibold mb-2">Description</h3>
               <Controller
-                name="preparation_notes"
+                name="description"
                 control={control}
                 render={({ field: { onChange, value } }) => (
                   <TextArea
-                    id="preparation_notes"
-                    name="preparation_notes"
-                    placeholder="Enter preparation notes"
-                    value={value}
+                    id="description"
+                    name="description"
+                    value={value || ''}
                     onChange={onChange}
-                    required={true}
-                    rows={4}
+                    placeholder="Enter description"
+                    rows={3}
                     errors={errors}
                   />
                 )}

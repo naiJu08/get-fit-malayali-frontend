@@ -2104,6 +2104,25 @@ export default function Subscriptions({
       return
     }
 
+    // Validation based on freeze mode
+    if (freezeMode === 'freeze') {
+      const { reason, start_date, end_date } = freezeForm
+      if (!reason || !start_date || !end_date) {
+        enqueueSnackbar('Please fill reason, start date and end date', {
+          variant: 'warning',
+        })
+        return
+      }
+    } else {
+      const unfreezeDates = resolveUnfreezeDates()
+      if (!unfreezeDates.length) {
+        enqueueSnackbar('Select at least one date to unfreeze', {
+          variant: 'warning',
+        })
+        return
+      }
+    }
+
     try {
       setLoader(true)
       if (freezeMode === 'freeze') {
@@ -2141,17 +2160,11 @@ export default function Subscriptions({
         onRefresh(fresh)
       } catch {}
       closeFreezeDialog()
-    } catch (error: any) {
-      const resp = error?.response?.data
-      const messageFromResponse =
-        resp?.message ||
-        resp?.error ||
-        (Array.isArray(resp?.errors) ? resp.errors.join(', ') : null) ||
-        resp?.detail ||
-        error?.message
-      enqueueSnackbar(messageFromResponse || 'Failed to update subscription', {
-        variant: 'error',
-      })
+    } catch (err: any) {
+      enqueueSnackbar(
+        err?.response?.data?.error?.message || err?.response?.data?.message,
+        { variant: 'error' }
+      )
     } finally {
       setLoader(false)
     }
@@ -3864,8 +3877,7 @@ export default function Subscriptions({
               ? `Day Details • ${moment(selectedDate).format('MMM D, YYYY')}`
               : 'Day Details'
         }
-        handleSubmit={() => setDayDetailOpen(false)}
-        actionLabel="Close"
+        actionLabel={undefined}
         actionLoader={false}
         disableSubmit={false}
       >
