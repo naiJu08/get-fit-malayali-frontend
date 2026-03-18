@@ -1185,7 +1185,10 @@ const OverallAnalysisCard = ({
           <div className="flex items-start gap-1.5">
             <span className="text-indigo-400 text-sm flex-shrink-0">💬</span>
             <p className="text-[12px] text-indigo-800 italic leading-relaxed">
-              {toTitleCase(coachNote)}
+              {coachNote
+                ? coachNote.charAt(0).toUpperCase() +
+                  coachNote.slice(1).toLowerCase()
+                : ''}
             </p>
           </div>
         </div>
@@ -1763,18 +1766,24 @@ export default function Reports({
             String(report?.workout_summary?.total_completed_days ?? 0),
           ],
           [
+            'Workout - Days Upcoming',
+            String(report?.workout_summary?.total_upcoming_days ?? 0),
             'Workout - Adherence',
             report?.workout_summary?.adherence_percentage
               ? `${Number(report.workout_summary.adherence_percentage).toFixed(1)}%`
               : '—',
-            'Workout - Exercises Completed',
-            `${report?.workout_summary?.total_exercises_completed ?? 0}/${report?.workout_summary?.total_exercises_assigned ?? 0}`,
           ],
           [
+            'Workout - Exercises Completed',
+            `${report?.workout_summary?.total_exercises_completed ?? 0}/${report?.workout_summary?.total_exercises_assigned ?? 0}`,
             'Yoga - Days Assigned',
             String(report?.yoga_summary?.total_assigned_days ?? 0),
+          ],
+          [
             'Yoga - Days Completed',
             String(report?.yoga_summary?.total_completed_days ?? 0),
+            'Yoga - Days Upcoming',
+            String(report?.yoga_summary?.total_upcoming_days ?? 0),
           ],
           [
             'Yoga - Adherence',
@@ -1785,16 +1794,24 @@ export default function Reports({
             `${report?.yoga_summary?.total_exercises_completed ?? 0}/${report?.yoga_summary?.total_exercises_assigned ?? 0}`,
           ],
           [
-            'Meditation - Sessions Assigned',
+            'Meditation - Days Assigned',
             String(report?.meditation_summary?.total_sessions_assigned ?? 0),
-            'Meditation - Sessions Completed',
-            String(report?.meditation_summary?.total_sessions_completed ?? 0),
+            'Meditation - Days Completed',
+            String(report?.meditation_summary?.total_completed_days ?? 0),
           ],
           [
-            'Meditation - Completion Rate',
+            'Meditation - Days Upcoming',
+            String(report?.meditation_summary?.total_upcoming_days ?? 0),
+            'Meditation - Adherence',
             report?.meditation_summary?.completion_rate
               ? `${Number(report.meditation_summary.completion_rate).toFixed(1)}%`
               : '—',
+          ],
+          [
+            'Meditation - Exercises Completed',
+            `${report?.meditation_summary?.total_sessions_completed ?? 0}/${report?.meditation_summary?.total_assigned_days ?? 0}`,
+            '',
+            '',
           ],
         ]
         addTable(
@@ -1808,19 +1825,22 @@ export default function Reports({
           report.daily_breakdown?.map((day: any) => {
             const getActivityStatus = (activity: any) => {
               if (!activity) return '—'
+
               const total = activity.assigned || 0
-              const completed = activity.assigned_completion || 0
-              if (total === 0) return '—'
-              const rate = (completed / total) * 100
+              const completed =
+                activity.assigned_completion ?? activity.completed ?? 0
+
+              const rate = total === 0 ? 0 : (completed / total) * 100
+
               return `${completed}/${total} (${rate.toFixed(0)}%)`
             }
             return [
               formatDate(day.date),
               `Day ${day.day_number}`,
               getActivityStatus(day.diet),
-              getActivityStatus(day.workout),
-              getActivityStatus(day.yoga),
-              getActivityStatus(day.meditation),
+              getActivityStatus(day.workout ?? day.workout_summary),
+              getActivityStatus(day.yoga ?? day.yoga_summary),
+              getActivityStatus(day.meditation ?? day.meditation_summary),
             ]
           }) || []
 

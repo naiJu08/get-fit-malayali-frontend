@@ -289,21 +289,24 @@ export default function CreateRecipe({
   }))
 
   useEffect(() => {
-    if (!edit) return
-    const currentId = methods.getValues('meal_category_id')
-    if (currentId != null && currentId !== undefined) return
-    const currentName = methods.getValues('meal_category')
-    if (!currentName) return
-    const matchingOption = mealCategoryOptions.find(
-      (option: any) => option?.name?.toLowerCase() === currentName.toLowerCase()
-    )
-    if (matchingOption?.id != null) {
-      methods.setValue('meal_category_id', matchingOption.id, {
-        shouldDirty: false,
-        shouldValidate: true,
-      })
+    // Set meal_category_id from meal_category name for both edit and duplicate modes
+    if ((edit || (!edit && rowData)) && mealCategoryOptions.length > 0) {
+      const currentId = methods.getValues('meal_category_id')
+      if (currentId != null && currentId !== undefined) return
+      const currentName = methods.getValues('meal_category')
+      if (!currentName) return
+      const matchingOption = mealCategoryOptions.find(
+        (option: any) =>
+          option?.name?.toLowerCase() === currentName.toLowerCase()
+      )
+      if (matchingOption?.id != null) {
+        methods.setValue('meal_category_id', matchingOption.id, {
+          shouldDirty: false,
+          shouldValidate: true,
+        })
+      }
     }
-  }, [edit, mealCategoryOptions, methods])
+  }, [edit, mealCategoryOptions, methods, rowData])
 
   const selectedMealCategoryId = methods.watch('meal_category_id') as
     | number
@@ -318,13 +321,14 @@ export default function CreateRecipe({
   )
 
   useEffect(() => {
-    if (!edit) {
+    // Only clear serving unit for create mode (not edit or duplicate)
+    if (!edit && !rowData) {
       methods.setValue('serving_unit', '' as any, {
         shouldValidate: false,
         shouldDirty: false,
       })
     }
-  }, [selectedMealCategoryId, edit, methods])
+  }, [selectedMealCategoryId, edit, rowData, methods])
 
   console.log(methods.formState.errors)
   const onSubmit = (values: RecipeSchema) => {
@@ -404,7 +408,10 @@ export default function CreateRecipe({
     ingredients.forEach((ing: any, index: number) => {
       const prefix = `recipe[recipe_ingredients_attributes][${index}]`
       if (ing?.name) {
-        fd.append(`${prefix}[name]`, ing.name)
+        // Capitalize first letter of ingredient name
+        const capitalizedName =
+          ing.name.charAt(0).toUpperCase() + ing.name.slice(1).toLowerCase()
+        fd.append(`${prefix}[name]`, capitalizedName)
       }
       if (ing?.quantity != null && ing?.quantity !== '') {
         fd.append(`${prefix}[quantity]`, String(ing.quantity))
@@ -506,6 +513,7 @@ export default function CreateRecipe({
       type: 'text',
       placeholder: 'Enter serving count',
       required: false,
+      allowPositiveOnly: true,
     },
     {
       name: 'size',
@@ -580,19 +588,28 @@ export default function CreateRecipe({
       name: 'preparation_notes',
       label: 'Preparation Notes',
       type: 'custom',
+      required: true,
       render: () => (
         <div className="border-t pt-4">
-          <h3 className="text-sm font-semibold mb-2">Preparation Notes</h3>
+          <h3 className="text-sm font-semibold mb-2">
+            Preparation Notes <span className="text-red-500">*</span>
+          </h3>
           <Controller
             name="preparation_notes"
             control={control}
-            render={({ field: { onChange, value } }) => (
-              <TextEditor
-                value={value || ''}
-                onChange={onChange}
-                placeholder="Enter preparation notes"
-                label=""
-              />
+            rules={{ required: 'Preparation notes are required' }}
+            render={({ field: { onChange, value }, fieldState: { error } }) => (
+              <div>
+                <TextEditor
+                  value={value || ''}
+                  onChange={onChange}
+                  placeholder="Enter preparation notes"
+                  label=""
+                />
+                {error && (
+                  <p className="mt-1 text-xs text-red-500">{error.message}</p>
+                )}
+              </div>
             )}
           />
         </div>
@@ -635,17 +652,30 @@ export default function CreateRecipe({
 
             {/* Preparation Notes section */}
             <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold mb-2">Preparation Notes</h3>
+              <h3 className="text-sm font-semibold mb-2">
+                Preparation Notes <span className="text-red-500">*</span>
+              </h3>
               <Controller
                 name="preparation_notes"
                 control={control}
-                render={({ field: { onChange, value } }) => (
-                  <TextEditor
-                    value={value || ''}
-                    onChange={onChange}
-                    placeholder="Enter preparation notes"
-                    label=""
-                  />
+                rules={{ required: 'Preparation notes are required' }}
+                render={({
+                  field: { onChange, value },
+                  fieldState: { error },
+                }) => (
+                  <div>
+                    <TextEditor
+                      value={value || ''}
+                      onChange={onChange}
+                      placeholder="Enter preparation notes"
+                      label=""
+                    />
+                    {error && (
+                      <p className="mt-1 text-xs text-red-700">
+                        {error.message}
+                      </p>
+                    )}
+                  </div>
                 )}
               />
             </div>

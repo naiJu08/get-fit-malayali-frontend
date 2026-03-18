@@ -125,12 +125,7 @@ export const recipeFormSchema = z.object({
 
   image: z
     .union([z.string().url('Invalid URL'), z.instanceof(File), z.literal('')])
-    .refine(
-      (val) =>
-        (typeof val === 'string' && val.trim().length > 0) ||
-        val instanceof File,
-      'Required'
-    ),
+    .optional(),
 })
 
 export type RecipeSchema = z.infer<typeof recipeFormSchema>
