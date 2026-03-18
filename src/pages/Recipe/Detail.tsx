@@ -70,8 +70,8 @@ const RecipeDetail: React.FC = () => {
         doc.text(`${label}:`, margin + indent, yPosition)
 
         doc.setFont('helvetica', 'normal')
-        valueText = doc.splitTextToSize(value, contentWidth - indent - 30)
-        doc.text(valueText, margin + indent + 30, yPosition)
+        valueText = doc.splitTextToSize(value, contentWidth - indent - 50)
+        doc.text(valueText, margin + indent + 50, yPosition)
       } else {
         // No label - start text from left margin
         doc.setFont('helvetica', 'normal')
@@ -133,6 +133,7 @@ const RecipeDetail: React.FC = () => {
     doc.setTextColor(0, 0, 0)
 
     // Basic Information Section
+    yPosition += 1 // Add consistent top spacing
     addSection('Basic Information')
 
     const basicInfo = [
@@ -153,11 +154,13 @@ const RecipeDetail: React.FC = () => {
 
     // Description Section
     if (recipe?.description) {
+      yPosition += 10 // Add consistent top spacing
       addSection('Description')
       addField('', recipe?.description)
     }
 
     // Nutrition Information Section
+    yPosition += 10 // Add consistent top spacing
     addSection('Nutrition Information')
 
     // Create nutrition table
@@ -202,13 +205,17 @@ const RecipeDetail: React.FC = () => {
 
     // Ingredients Section
     if (Array.isArray(recipe?.ingredients) && recipe.ingredients.length > 0) {
+      yPosition += 10 // Add consistent top spacing
       addSection('Ingredients')
 
       // Table header
       doc.setFillColor(240, 240, 240)
       doc.rect(margin, yPosition - 5, contentWidth, 8, 'F')
       doc.setFont('helvetica', 'bold')
-      addTableRow(['Ingredient Name', 'Quantity', 'Unit'], true)
+      addTableRow(
+        ['Ingredient Name', 'Quantity', 'Unit', 'Specifications'],
+        true
+      )
 
       // Table rows
       doc.setFont('helvetica', 'normal')
@@ -226,7 +233,12 @@ const RecipeDetail: React.FC = () => {
           doc.rect(margin, yPosition - 5, contentWidth, 7, 'F')
         }
         addTableRow(
-          [toTitleCase(ing?.name), safeStr(ing?.quantity), safeStr(ing?.unit)],
+          [
+            toTitleCase(ing?.name),
+            safeStr(ing?.quantity),
+            safeStr(ing?.unit),
+            safeStr(ing?.details),
+          ],
           true
         )
         rowIndex++
@@ -235,33 +247,119 @@ const RecipeDetail: React.FC = () => {
     }
 
     // Preparation Notes Section
+    // Preparation Notes Section
+    // Preparation Notes Section
     if (recipe?.preparation_notes) {
+      yPosition += 10
       addSection('Preparation Notes')
 
-      // Remove HTML tags and format text
-      const plainText = recipe?.preparation_notes
-        .replace(/<[^>]*>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
+      const tempDiv = document.createElement('div')
+      tempDiv.innerHTML = recipe.preparation_notes
 
-      const notes = doc.splitTextToSize(plainText, contentWidth - 10)
-      doc.setFontSize(11)
-      notes.forEach((line: string) => {
+      const renderElement = (
+        el: HTMLElement,
+        indent = 0,
+        isOrdered = false,
+        orderIndex = 1
+      ) => {
         if (yPosition > 270) {
           doc.addPage()
           yPosition = margin
         }
-        doc.text(line, margin + 10, yPosition)
-        yPosition += 6
-      })
+
+        const tag = el.tagName.toLowerCase()
+
+        // HEADINGS & PARAGRAPHS
+        if (tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'p') {
+          let fontSize = 11
+          let fontStyle: 'normal' | 'bold' = 'normal'
+
+          if (tag === 'h1') {
+            fontSize = 16
+            fontStyle = 'bold'
+          } else if (tag === 'h2') {
+            fontSize = 14
+            fontStyle = 'bold'
+          } else if (tag === 'h3') {
+            fontSize = 12
+            fontStyle = 'bold'
+          }
+
+          doc.setFontSize(fontSize)
+          doc.setFont('helvetica', fontStyle)
+
+          const lines: string[] = doc.splitTextToSize(
+            el.textContent || '',
+            contentWidth - indent - 10
+          )
+
+          lines.forEach((line: string) => {
+            if (yPosition > 270) {
+              doc.addPage()
+              yPosition = margin
+            }
+            doc.text(line, margin + indent + 5, yPosition)
+            yPosition += 6
+          })
+
+          yPosition += 4
+        }
+
+        // UNORDERED LIST
+        else if (tag === 'ul') {
+          Array.from(el.children).forEach((li) => {
+            renderElement(li as HTMLElement, indent + 5, false)
+          })
+        }
+
+        // ORDERED LIST
+        else if (tag === 'ol') {
+          Array.from(el.children).forEach((li, index) => {
+            renderElement(li as HTMLElement, indent + 5, true, index + 1)
+          })
+        }
+
+        // LIST ITEM
+        else if (tag === 'li') {
+          doc.setFontSize(11)
+          doc.setFont('helvetica', 'normal')
+
+          // ✅ FIXED HERE
+          const prefix = isOrdered ? `${orderIndex}. ` : '• '
+
+          const cleanText = (el.textContent || '')
+            .replace(/\u00A0/g, ' ') // remove &nbsp;
+            .replace(/\s+/g, ' ') // collapse multiple spaces
+            .trim()
+
+          const text = prefix + cleanText
+
+          const lines: string[] = doc.splitTextToSize(
+            text,
+            contentWidth - indent - 10
+          )
+
+          lines.forEach((line: string) => {
+            if (yPosition > 270) {
+              doc.addPage()
+              yPosition = margin
+            }
+            doc.text(line, margin + indent + 5, yPosition)
+            yPosition += 6
+          })
+
+          yPosition += 2
+        }
+      }
+
+      Array.from(tempDiv.children).forEach((el) =>
+        renderElement(el as HTMLElement)
+      )
     }
 
     // Additional Information Section
     if (recipe?.additional_info) {
+      yPosition += 10 // Add consistent top spacing
       addSection('Additional Information')
 
       const additionalText = recipe?.additional_info
@@ -472,6 +570,7 @@ const RecipeDetail: React.FC = () => {
                       <th className="py-1 pr-4">Name</th>
                       <th className="py-1 pr-4">Quantity</th>
                       <th className="py-1 pr-4">Unit</th>
+                      <th className="py-1 pr-4">Specifications</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -483,6 +582,7 @@ const RecipeDetail: React.FC = () => {
                         <td className="py-1 pr-4">{toTitleCase(ing?.name)}</td>
                         <td className="py-1 pr-4">{safeStr(ing?.quantity)}</td>
                         <td className="py-1 pr-4">{safeStr(ing?.unit)}</td>
+                        <td className="py-1 pr-4">{safeStr(ing?.details)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -497,7 +597,16 @@ const RecipeDetail: React.FC = () => {
           <div className="mt-4 border rounded-lg p-3 bg-white">
             <div className="text-xs text-gray-500 mb-2">Preparation Notes</div>
             <div
-              className="text-sm prose prose-sm max-w-none"
+              className="
+    max-w-none
+    [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-4
+    [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mb-3
+    [&_h3]:text-lg [&_h3]:font-medium [&_h3]:mb-2
+    [&_p]:mb-2
+    [&_ul]:list-disc [&_ul]:ml-5
+    [&_ol]:list-decimal [&_ol]:ml-5
+    [&_li]:mb-1
+  "
               dangerouslySetInnerHTML={{
                 __html:
                   capitalizeFirstLetters(recipe?.preparation_notes) || '--',

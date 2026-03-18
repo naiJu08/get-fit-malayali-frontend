@@ -3771,7 +3771,9 @@ export default function Subscriptions({
           ) : (
             <div className="flex flex-col gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-sm text-gray-600">Reason</label>
+                <label className="text-sm text-gray-600">
+                  Reason <span className="text-red-500">*</span>
+                </label>
                 <input
                   className="textfield"
                   name="reason"
@@ -3787,7 +3789,9 @@ export default function Subscriptions({
               </div>
               <div className="grid grid-cols-2 gap-1">
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm text-gray-600">Start date</label>
+                  <label className="text-sm text-gray-600">
+                    Start date <span className="text-red-500">*</span>
+                  </label>
                   <div className="relative">
                     <input
                       type="date"
@@ -3822,7 +3826,9 @@ export default function Subscriptions({
                   </div>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-sm text-gray-600">End date</label>
+                  <label className="text-sm text-gray-600">
+                    End date <span className="text-red-500">*</span>
+                  </label>
                   <div className="relative">
                     <input
                       type="date"

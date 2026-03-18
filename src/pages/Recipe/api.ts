@@ -37,10 +37,15 @@ export const useCreateRecipe = () => {
       queryClient.invalidateQueries({ queryKey: ['recipes_list'] })
     },
     onError: (error: any) => {
-      enqueueSnackbar(
-        error?.response?.data?.message || 'Failed to create recipe',
-        { variant: 'error' }
-      )
+      const apiErrors = error?.response?.data?.errors
+      const apiMessage = error?.response?.data?.message
+      const normalizedMessage = Array.isArray(apiErrors)
+        ? getErrorMessage(apiErrors)
+        : getErrorMessage(apiMessage || error?.message)
+
+      enqueueSnackbar(normalizedMessage || 'Failed to create recipe', {
+        variant: 'error',
+      })
     },
   })
 }
@@ -61,10 +66,15 @@ export const useUpdateRecipe = () => {
         queryClient.invalidateQueries({ queryKey: ['recipes_list'] })
       },
       onError: (error: any) => {
-        enqueueSnackbar(
-          error?.response?.data?.message || 'Failed to update recipe',
-          { variant: 'error' }
-        )
+        const apiErrors = error?.response?.data?.errors
+        const apiMessage = error?.response?.data?.message
+        const normalizedMessage = Array.isArray(apiErrors)
+          ? getErrorMessage(apiErrors)
+          : getErrorMessage(apiMessage || error?.message)
+
+        enqueueSnackbar(normalizedMessage || 'Failed to update recipe', {
+          variant: 'error',
+        })
       },
     }
   )
