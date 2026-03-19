@@ -528,7 +528,7 @@ export default function CreateRecipe({
       id: 'image',
       type: 'file_upload',
       placeholder: 'Upload recipe image',
-      required: true,
+      required: false,
       accept: 'image/*',
       supportedExtensions: [
         'image/png',

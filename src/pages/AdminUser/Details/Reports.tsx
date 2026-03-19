@@ -1458,6 +1458,8 @@ export default function Reports({
     async (recipes: any[] = []) => {
       setExporting(true)
       try {
+        console.log('Starting PDF generation...')
+
         // Create PDF instance
         const pdf = new jsPDF('p', 'mm', 'a4')
         const pageWidth = pdf.internal.pageSize.getWidth()
@@ -1465,6 +1467,11 @@ export default function Reports({
         const margin = 15
         const contentWidth = pageWidth - 2 * margin
         let yPosition = margin
+
+        console.log('PDF instance created, dimensions:', {
+          pageWidth,
+          pageHeight,
+        })
 
         // Helper function to add new page if needed
         const checkPageBreak = (requiredHeight: number) => {
@@ -1758,6 +1765,7 @@ export default function Reports({
 
         // Activity Performance
         addText('Activity Performance Analysis', 14, 'bold')
+        console.log('Creating activity data table...')
         const activityData = [
           [
             'Workout - Days Assigned',
@@ -1776,26 +1784,32 @@ export default function Reports({
           [
             'Workout - Exercises Completed',
             `${report?.workout_summary?.total_exercises_completed ?? 0}/${report?.workout_summary?.total_exercises_assigned ?? 0}`,
+            'Workout - Days Skipped',
+            String(report?.workout_summary?.total_fully_skipped_days ?? 0),
+          ],
+          [
             'Yoga - Days Assigned',
             String(report?.yoga_summary?.total_assigned_days ?? 0),
-          ],
-          [
             'Yoga - Days Completed',
             String(report?.yoga_summary?.total_completed_days ?? 0),
-            'Yoga - Days Upcoming',
-            String(report?.yoga_summary?.total_upcoming_days ?? 0),
           ],
           [
+            'Yoga - Days Upcoming',
+            String(report?.yoga_summary?.total_upcoming_days ?? 0),
             'Yoga - Adherence',
             report?.yoga_summary?.adherence_percentage
               ? `${Number(report.yoga_summary.adherence_percentage).toFixed(1)}%`
               : '—',
+          ],
+          [
             'Yoga - Exercises Completed',
             `${report?.yoga_summary?.total_exercises_completed ?? 0}/${report?.yoga_summary?.total_exercises_assigned ?? 0}`,
+            'Yoga - Days Skipped',
+            String(report?.yoga_summary?.total_fully_skipped_days ?? 0),
           ],
           [
             'Meditation - Days Assigned',
-            String(report?.meditation_summary?.total_sessions_assigned ?? 0),
+            String(report?.meditation_summary?.total_assigned_days ?? 0),
             'Meditation - Days Completed',
             String(report?.meditation_summary?.total_completed_days ?? 0),
           ],
@@ -1808,17 +1822,26 @@ export default function Reports({
               : '—',
           ],
           [
-            'Meditation - Exercises Completed',
-            `${report?.meditation_summary?.total_sessions_completed ?? 0}/${report?.meditation_summary?.total_assigned_days ?? 0}`,
-            '',
-            '',
+            'Meditation - Sessions Completed',
+            `${report?.meditation_summary?.total_sessions_completed ?? 0}/${report?.meditation_summary?.total_sessions_assigned ?? 0}`,
+            'Meditation - Days Skipped',
+            String(report?.meditation_summary?.total_fully_skipped_days ?? 0),
           ],
         ]
-        addTable(
-          ['Activity Metric', 'Value', 'Activity Metric', 'Value'],
-          activityData,
-          [55, 35, 55, 35]
-        )
+        console.log('Activity data created:', activityData.length, 'rows')
+        console.log('Sample row data:', activityData[0])
+
+        try {
+          addTable(
+            ['Activity Metric', 'Value', 'Activity Metric', 'Value'],
+            activityData,
+            [55, 35, 55, 35]
+          )
+          console.log('Activity table added successfully')
+        } catch (tableError) {
+          console.error('Error adding activity table:', tableError)
+          throw tableError
+        }
 
         // Daily Activity Breakdown
         const dailyData =
@@ -2107,9 +2130,16 @@ export default function Reports({
         }
 
         // Save the PDF
-        pdf.save(`subscription-report-${subscriptionId}-${Date.now()}.pdf`)
+        try {
+          pdf.save(`subscription-report-${subscriptionId}-${Date.now()}.pdf`)
+          console.log('PDF generated successfully')
+        } catch (saveError) {
+          console.error('Failed to save PDF:', saveError)
+          alert('Failed to download PDF. Please try again.')
+        }
       } catch (error) {
         console.error('Failed to generate PDF:', error)
+        alert('Failed to generate PDF. Please check the console for details.')
       } finally {
         setExporting(false)
       }

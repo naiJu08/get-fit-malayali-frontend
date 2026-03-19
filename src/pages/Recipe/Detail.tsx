@@ -82,34 +82,56 @@ const RecipeDetail: React.FC = () => {
       yPosition += Math.max(8, valueText.length * 5)
     }
 
-    const addTableRow = (columns: string[], isIngredientsTable = false) => {
+    const addTableRow = (
+      columns: string[],
+      isIngredientsTable = false,
+      isStriped = false
+    ) => {
       if (yPosition > 260) {
         doc.addPage()
         yPosition = margin
       }
 
       doc.setFontSize(10)
+
       let columnWidths: number[]
 
-      if (isIngredientsTable && columns.length === 3) {
-        // Ingredients table: wider name column (50%), narrower quantity (25%), unit (25%)
+      if (isIngredientsTable && columns.length === 4) {
         columnWidths = [
-          contentWidth * 0.5,
           contentWidth * 0.25,
-          contentWidth * 0.25,
+          contentWidth * 0.15,
+          contentWidth * 0.15,
+          contentWidth * 0.45,
         ]
       } else {
-        // Default: equal width columns
         columnWidths = columns.map(() => contentWidth / columns.length)
       }
 
-      columns.forEach((text, index) => {
+      // Split text
+      const splitColumns = columns.map((text, index) =>
+        doc.splitTextToSize(text || '--', columnWidths[index] - 5)
+      )
+
+      const maxLines = Math.max(...splitColumns.map((col) => col.length))
+      const rowHeight = maxLines * 5 + 2 // 🔥 dynamic height
+
+      // ✅ Draw background BEFORE text
+      if (isStriped) {
+        doc.setFillColor(250, 250, 250)
+        doc.rect(margin, yPosition - 4, contentWidth, rowHeight, 'F')
+      }
+
+      // Draw text
+      splitColumns.forEach((lines, index) => {
         const x =
           margin + columnWidths.slice(0, index).reduce((a, b) => a + b, 0)
-        doc.text(text, x, yPosition)
+
+        lines.forEach((line: string, i: number) => {
+          doc.text(line, x, yPosition + i * 5)
+        })
       })
 
-      yPosition += 7
+      yPosition += rowHeight
     }
 
     // Add border to entire page
@@ -219,19 +241,7 @@ const RecipeDetail: React.FC = () => {
 
       // Table rows
       doc.setFont('helvetica', 'normal')
-      let rowIndex = 0
-      recipe.ingredients.forEach((ing: any) => {
-        if (yPosition > 260) {
-          doc.addPage()
-          yPosition = margin
-          // Reset rowIndex for new page to maintain alternating pattern
-          rowIndex = 0
-        }
-
-        if (rowIndex % 2 === 0) {
-          doc.setFillColor(250, 250, 250)
-          doc.rect(margin, yPosition - 5, contentWidth, 7, 'F')
-        }
+      recipe.ingredients.forEach((ing: any, index: number) => {
         addTableRow(
           [
             toTitleCase(ing?.name),
@@ -239,9 +249,9 @@ const RecipeDetail: React.FC = () => {
             safeStr(ing?.unit),
             safeStr(ing?.details),
           ],
-          true
+          true,
+          index % 2 === 0 // alternate row color
         )
-        rowIndex++
       })
       yPosition += 5
     }
@@ -256,104 +266,108 @@ const RecipeDetail: React.FC = () => {
       const tempDiv = document.createElement('div')
       tempDiv.innerHTML = recipe.preparation_notes
 
-      const renderElement = (
-        el: HTMLElement,
+      const renderStyledText = (
+        node: any,
         indent = 0,
-        isOrdered = false,
-        orderIndex = 1
+        styles = {
+          bold: false,
+          italic: false,
+          underline: false,
+          align: 'left' as 'left' | 'center' | 'right',
+        }
       ) => {
         if (yPosition > 270) {
           doc.addPage()
           yPosition = margin
         }
 
-        const tag = el.tagName.toLowerCase()
+        // TEXT NODE
+        if (node.nodeType === 3) {
+          const text = node.textContent?.trim()
+          if (!text) return
 
-        // HEADINGS & PARAGRAPHS
-        if (tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'p') {
-          let fontSize = 11
-          let fontStyle: 'normal' | 'bold' = 'normal'
+          doc.setFont(
+            'helvetica',
+            styles.bold && styles.italic
+              ? 'bolditalic'
+              : styles.bold
+                ? 'bold'
+                : styles.italic
+                  ? 'italic'
+                  : 'normal'
+          )
 
-          if (tag === 'h1') {
-            fontSize = 16
-            fontStyle = 'bold'
-          } else if (tag === 'h2') {
-            fontSize = 14
-            fontStyle = 'bold'
-          } else if (tag === 'h3') {
-            fontSize = 12
-            fontStyle = 'bold'
+          const lines = doc.splitTextToSize(text, contentWidth - indent - 10)
+
+          lines.forEach((line: string) => {
+            let x = margin + indent + 5
+
+            // ✅ Alignment
+            if (styles.align === 'center') {
+              x = pageWidth / 2
+              doc.text(line, x, yPosition, { align: 'center' })
+            } else if (styles.align === 'right') {
+              x = pageWidth - margin
+              doc.text(line, x, yPosition, { align: 'right' })
+            } else {
+              doc.text(line, x, yPosition)
+            }
+
+            // ✅ Underline
+            if (styles.underline) {
+              const textWidth = doc.getTextWidth(line)
+              doc.line(x, yPosition + 1, x + textWidth, yPosition + 1)
+            }
+
+            yPosition += 6
+          })
+        }
+
+        // ELEMENT NODE
+        if (node.nodeType === 1) {
+          const tag = node.tagName.toLowerCase()
+
+          const newStyles = { ...styles }
+
+          // ✅ STYLE MAPPING
+          if (tag === 'b' || tag === 'strong') newStyles.bold = true
+          if (tag === 'i' || tag === 'em') newStyles.italic = true
+          if (tag === 'u') newStyles.underline = true
+
+          // ✅ ALIGNMENT
+          const align = node.style?.textAlign
+          if (align === 'center' || align === 'right') {
+            newStyles.align = align
           }
 
-          doc.setFontSize(fontSize)
-          doc.setFont('helvetica', fontStyle)
+          // HEADINGS
+          if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
+            doc.setFontSize(tag === 'h1' ? 16 : tag === 'h2' ? 14 : 12)
+            newStyles.bold = true
+          } else {
+            doc.setFontSize(11)
+          }
 
-          const lines: string[] = doc.splitTextToSize(
-            el.textContent || '',
-            contentWidth - indent - 10
+          // LIST ITEMS
+          if (tag === 'li') {
+            const bullet = '• '
+            doc.text(bullet, margin + indent, yPosition)
+            indent += 5
+          }
+
+          // RECURSION
+          Array.from(node.childNodes).forEach((child: any) =>
+            renderStyledText(child, indent, newStyles)
           )
 
-          lines.forEach((line: string) => {
-            if (yPosition > 270) {
-              doc.addPage()
-              yPosition = margin
-            }
-            doc.text(line, margin + indent + 5, yPosition)
-            yPosition += 6
-          })
-
-          yPosition += 4
-        }
-
-        // UNORDERED LIST
-        else if (tag === 'ul') {
-          Array.from(el.children).forEach((li) => {
-            renderElement(li as HTMLElement, indent + 5, false)
-          })
-        }
-
-        // ORDERED LIST
-        else if (tag === 'ol') {
-          Array.from(el.children).forEach((li, index) => {
-            renderElement(li as HTMLElement, indent + 5, true, index + 1)
-          })
-        }
-
-        // LIST ITEM
-        else if (tag === 'li') {
-          doc.setFontSize(11)
-          doc.setFont('helvetica', 'normal')
-
-          // ✅ FIXED HERE
-          const prefix = isOrdered ? `${orderIndex}. ` : '• '
-
-          const cleanText = (el.textContent || '')
-            .replace(/\u00A0/g, ' ') // remove &nbsp;
-            .replace(/\s+/g, ' ') // collapse multiple spaces
-            .trim()
-
-          const text = prefix + cleanText
-
-          const lines: string[] = doc.splitTextToSize(
-            text,
-            contentWidth - indent - 10
-          )
-
-          lines.forEach((line: string) => {
-            if (yPosition > 270) {
-              doc.addPage()
-              yPosition = margin
-            }
-            doc.text(line, margin + indent + 5, yPosition)
-            yPosition += 6
-          })
-
-          yPosition += 2
+          if (tag === 'p' || tag === 'li') {
+            yPosition += 4
+          }
         }
       }
 
-      Array.from(tempDiv.children).forEach((el) =>
-        renderElement(el as HTMLElement)
+      Array.from(tempDiv.childNodes).forEach((node) =>
+        renderStyledText(node as any)
       )
     }
 
