@@ -342,8 +342,38 @@ const RecipeDetail: React.FC = () => {
 
           // HEADINGS
           if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
+            // Add spacing before heading
+            yPosition += 8
+
             doc.setFontSize(tag === 'h1' ? 16 : tag === 'h2' ? 14 : 12)
             newStyles.bold = true
+
+            // Render heading text
+            const text = node.textContent?.trim()
+            if (text) {
+              doc.setFont('helvetica', 'bold')
+              const lines = doc.splitTextToSize(
+                text,
+                contentWidth - indent - 10
+              )
+              lines.forEach((line: string) => {
+                let x = margin + indent + 5
+                if (styles.align === 'center') {
+                  x = pageWidth / 2
+                  doc.text(line, x, yPosition, { align: 'center' })
+                } else if (styles.align === 'right') {
+                  x = pageWidth - margin
+                  doc.text(line, x, yPosition, { align: 'right' })
+                } else {
+                  doc.text(line, x, yPosition)
+                }
+                yPosition += 6
+              })
+            }
+
+            // Add spacing after heading
+            yPosition += 6
+            return // Skip recursion for headings since we handled the text directly
           } else {
             doc.setFontSize(11)
           }

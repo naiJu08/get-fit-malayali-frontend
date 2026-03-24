@@ -650,36 +650,6 @@ export default function CreateRecipe({
               spacing
             />
 
-            {/* Preparation Notes section */}
-            <div className="border-t pt-4">
-              <h3 className="text-sm font-semibold mb-2">
-                Preparation Notes <span className="text-red-500">*</span>
-              </h3>
-              <Controller
-                name="preparation_notes"
-                control={control}
-                rules={{ required: 'Preparation notes are required' }}
-                render={({
-                  field: { onChange, value },
-                  fieldState: { error },
-                }) => (
-                  <div>
-                    <TextEditor
-                      value={value || ''}
-                      onChange={onChange}
-                      placeholder="Enter preparation notes"
-                      label=""
-                    />
-                    {error && (
-                      <p className="mt-1 text-xs text-red-700">
-                        {error.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-              />
-            </div>
-
             {/* Full-width textareas */}
             <FormBuilder
               data={formFields.filter((f) => f.name === 'description')}
@@ -894,6 +864,36 @@ export default function CreateRecipe({
                   +
                 </button>
               </div>
+            </div>
+
+            {/* Preparation Notes section */}
+            <div className="border-t pt-4">
+              <h3 className="text-sm font-semibold mb-2">
+                Preparation Notes <span className="text-red-500">*</span>
+              </h3>
+              <Controller
+                name="preparation_notes"
+                control={control}
+                rules={{ required: 'Preparation notes are required' }}
+                render={({
+                  field: { onChange, value },
+                  fieldState: { error },
+                }) => (
+                  <div>
+                    <TextEditor
+                      value={value || ''}
+                      onChange={onChange}
+                      placeholder="Enter preparation notes"
+                      label=""
+                    />
+                    {error && (
+                      <p className="mt-1 text-xs text-red-700">
+                        {error.message}
+                      </p>
+                    )}
+                  </div>
+                )}
+              />
             </div>
 
             {/* Description section */}

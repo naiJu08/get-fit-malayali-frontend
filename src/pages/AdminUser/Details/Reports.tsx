@@ -1823,7 +1823,7 @@ export default function Reports({
           ],
           [
             'Meditation - Sessions Completed',
-            `${report?.meditation_summary?.total_sessions_completed ?? 0}/${report?.meditation_summary?.total_sessions_assigned ?? 0}`,
+            `${report?.meditation_summary?.total_sessions_completed ?? 0}/${report?.meditation_summary?.total_exercises_assigned ?? 0}`,
             'Meditation - Days Skipped',
             String(report?.meditation_summary?.total_fully_skipped_days ?? 0),
           ],
