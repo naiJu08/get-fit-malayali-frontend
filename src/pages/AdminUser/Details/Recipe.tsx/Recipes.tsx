@@ -373,33 +373,35 @@ function AssignRecipesDrawer({
             {meta?.total_pages ?? '--'}
           </div>
 
-          {/* CENTER — Prev / Next */}
-          <div className="flex justify-center items-center gap-3 md:flex-1">
-            <Button
-              label="Prev"
-              outlined
-              disabled={(meta?.current_page ?? params.page) <= 1}
-              onClick={() =>
-                onChangeParams((prev: AssignParams) => ({
-                  ...prev,
-                  page: Math.max(1, (meta?.current_page ?? prev.page) - 1),
-                }))
-              }
-            />
-            <Button
-              label="Next"
-              disabled={
-                meta?.total_pages
-                  ? (meta?.current_page ?? params.page) >= meta.total_pages
-                  : recipeList.length === 0
-              }
-              onClick={() =>
-                onChangeParams((prev: AssignParams) => ({
-                  ...prev,
-                  page: (meta?.current_page ?? prev.page) + 1,
-                }))
-              }
-            />
+          {/* CENTER — Page Numbers */}
+          <div className="flex justify-center items-center gap-2 md:flex-1 flex-wrap">
+            {Array.from({
+              length: Number(meta?.total_pages ?? 0) || 1,
+            }).map((_, index) => {
+              const pageNumber = index + 1
+              const current = meta?.current_page ?? params.page
+              const isActive = current === pageNumber
+
+              return (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  onClick={() =>
+                    onChangeParams((prev: AssignParams) => ({
+                      ...prev,
+                      page: pageNumber,
+                    }))
+                  }
+                  className={`min-w-[32px] px-2 py-1 rounded text-xs border transition-colors ${
+                    isActive
+                      ? 'bg-gray-200 text-blue-600 border-primary font-semibold'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-100'
+                  }`}
+                >
+                  {pageNumber}
+                </button>
+              )
+            })}
           </div>
 
           {/* RIGHT — Rows Per Page */}
