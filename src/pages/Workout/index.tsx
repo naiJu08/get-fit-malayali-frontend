@@ -107,10 +107,25 @@ export default function WorkoutMain() {
       setWorkoutToDelete(null)
       refetch()
     } catch (err: any) {
-      enqueueSnackbar(
-        err?.response?.data?.message || 'Failed to delete workout',
-        { variant: 'error' }
-      )
+      // Extract error message from response
+      let errorMessage = 'Failed to delete workout'
+
+      if (err?.response?.data?.errors) {
+        // If response has errors array, use the first error
+        errorMessage = err.response.data.errors[0]
+      } else if (err?.response?.data?.message) {
+        // If response has message field
+        errorMessage = err.response.data.message
+      } else if (err?.message) {
+        // Fallback to error message
+        errorMessage = err.message
+      }
+
+      enqueueSnackbar(errorMessage, { variant: 'error' })
+
+      // Close the delete modal after showing error
+      setDeleteWorkoutModal(false)
+      setWorkoutToDelete(null)
     } finally {
       setDeletingWorkout(false)
     }

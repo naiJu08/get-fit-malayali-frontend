@@ -12,6 +12,7 @@ import Icons from '../../../components/common/icons'
 import ReminderSettings from '../../AdminUser/Details/ReminderSettings'
 import AdditionalInfoTab from './AdditionalInfoTab'
 import Reports from '../../AdminUser/Details/Reports'
+import DietHistory from '../../AdminUser/Details/DietHistory'
 
 export default function SubscriptionDetailsMain() {
   const { id } = useParams()
@@ -66,6 +67,7 @@ export default function SubscriptionDetailsMain() {
     { id: 'vitals', label: 'Vitals' },
     { id: 'additional-information', label: 'Nutritional assessment' },
     { id: 'reminders', label: 'Reminder settings' },
+    { id: 'diet-history', label: 'Diet history' },
     { id: 'reports', label: 'Reports' },
   ] as const
 
@@ -519,6 +521,12 @@ export default function SubscriptionDetailsMain() {
         <Tab id="reminders">
           {activeTab === 'reminders' ? (
             <ReminderSettings userId={subscription?.user_id} />
+          ) : null}
+        </Tab>
+
+        <Tab id="diet-history">
+          {activeTab === 'diet-history' ? (
+            <DietHistory subscriptionId={subscription?.id} />
           ) : null}
         </Tab>
 

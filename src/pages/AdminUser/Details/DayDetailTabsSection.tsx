@@ -117,12 +117,20 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
           reloadPage()
         },
         onError: (error: any) => {
-          enqueueSnackbar(
-            getErrorMessage(error?.response?.data?.detail || error),
-            {
-              variant: 'error',
-            }
-          )
+          const resp = error?.response?.data
+          const rawMessage =
+            (Array.isArray(resp?.errors) && resp.errors[0]) ||
+            resp?.detail ||
+            error
+
+          const message =
+            typeof rawMessage === 'string'
+              ? rawMessage
+              : getErrorMessage(rawMessage)
+
+          enqueueSnackbar(message, {
+            variant: 'error',
+          })
         },
       }
     )

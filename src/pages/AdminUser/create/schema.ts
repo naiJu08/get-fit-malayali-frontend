@@ -108,21 +108,27 @@ export const formSchema = z
     ),
     weight: z.preprocess(
       (val: unknown) => {
-        if (typeof val === 'number') return val
-        if (typeof val === 'string') {
-          if (!val.trim()) return undefined
-          if (/^[0-9]+(\.[0-9]+)?$/.test(val.trim())) return parseFloat(val)
-          return NaN
-        }
-        return val as any
+        // Keep numbers as strings so the inner schema always sees a string
+        if (typeof val === 'number') return String(val)
+        return val
       },
       z
-        .number({ invalid_type_error: 'Required.' })
-        .min(10, { message: 'Weight should contain at least 2 digits.' })
-        .max(999, { message: 'Weight should not exceed 3 digits.' })
-        .refine((v: number) => !Number.isNaN(v), {
-          message: 'Enter a valid number',
+        .string({ invalid_type_error: 'Required.' })
+        // Allow only digits with an optional single decimal point while typing
+        .refine((val: string) => /^\d*\.?\d*$/.test(val.trim()), {
+          message: 'Enter a valid number (e.g., 75.5)',
         })
+        // When value is non-empty, enforce numeric range 10–999
+        .refine(
+          (val: string) => {
+            if (!val.trim()) return false
+            const num = parseFloat(val)
+            return !Number.isNaN(num) && num >= 10 && num <= 999
+          },
+          {
+            message: 'Weight should be between 10 and 999.',
+          }
+        )
     ),
     lifestyle: z.string().optional(),
     goal: z.string().optional(),

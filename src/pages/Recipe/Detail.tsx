@@ -257,148 +257,192 @@ const RecipeDetail: React.FC = () => {
     }
 
     // Preparation Notes Section
-    // Preparation Notes Section
-    // Preparation Notes Section
     if (recipe?.preparation_notes) {
       yPosition += 10
       addSection('Preparation Notes')
 
-      const tempDiv = document.createElement('div')
-      tempDiv.innerHTML = recipe.preparation_notes
-
-      const renderStyledText = (
-        node: any,
-        indent = 0,
-        styles = {
-          bold: false,
-          italic: false,
-          underline: false,
-          align: 'left' as 'left' | 'center' | 'right',
-        }
-      ) => {
-        if (yPosition > 270) {
-          doc.addPage()
-          yPosition = margin
-        }
-
-        // TEXT NODE
-        if (node.nodeType === 3) {
-          const text = node.textContent?.trim()
-          if (!text) return
-
-          doc.setFont(
-            'helvetica',
-            styles.bold && styles.italic
-              ? 'bolditalic'
-              : styles.bold
-                ? 'bold'
-                : styles.italic
-                  ? 'italic'
-                  : 'normal'
-          )
-
-          const lines = doc.splitTextToSize(text, contentWidth - indent - 10)
-
-          lines.forEach((line: string) => {
-            let x = margin + indent + 5
-
-            // ✅ Alignment
-            if (styles.align === 'center') {
-              x = pageWidth / 2
-              doc.text(line, x, yPosition, { align: 'center' })
-            } else if (styles.align === 'right') {
-              x = pageWidth - margin
-              doc.text(line, x, yPosition, { align: 'right' })
-            } else {
-              doc.text(line, x, yPosition)
-            }
-
-            // ✅ Underline
-            if (styles.underline) {
-              const textWidth = doc.getTextWidth(line)
-              doc.line(x, yPosition + 1, x + textWidth, yPosition + 1)
-            }
-
-            yPosition += 6
-          })
-        }
-
-        // ELEMENT NODE
-        if (node.nodeType === 1) {
-          const tag = node.tagName.toLowerCase()
-
-          const newStyles = { ...styles }
-
-          // ✅ STYLE MAPPING
-          if (tag === 'b' || tag === 'strong') newStyles.bold = true
-          if (tag === 'i' || tag === 'em') newStyles.italic = true
-          if (tag === 'u') newStyles.underline = true
-
-          // ✅ ALIGNMENT
-          const align = node.style?.textAlign
-          if (align === 'center' || align === 'right') {
-            newStyles.align = align
+      // Parse HTML content and render with formatting
+      const renderStyledHTML = (html: string, indent = 0) => {
+        // Create a comprehensive HTML parser
+        const parseHTML = (html: string): any[] => {
+          const result: any[] = []
+          let currentText = ''
+          const currentStyles = {
+            bold: false,
+            italic: false,
+            underline: false,
+            fontSize: 11,
+            isHeading: false,
+            uppercase: false,
+            customFontSize: null as number | null,
           }
+          let i = 0
 
-          // HEADINGS
-          if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
-            // Add spacing before heading
-            yPosition += 8
+          while (i < html.length) {
+            if (html[i] === '<') {
+              // Save any pending text
+              if (currentText.trim()) {
+                result.push({
+                  type: 'text',
+                  content: currentText.trim(),
+                  styles: { ...currentStyles },
+                })
+                currentText = ''
+              }
 
-            doc.setFontSize(tag === 'h1' ? 16 : tag === 'h2' ? 14 : 12)
-            newStyles.bold = true
+              // Parse tag
+              const tagEnd = html.indexOf('>', i)
+              if (tagEnd === -1) break
 
-            // Render heading text
-            const text = node.textContent?.trim()
-            if (text) {
-              doc.setFont('helvetica', 'bold')
-              const lines = doc.splitTextToSize(
-                text,
-                contentWidth - indent - 10
-              )
-              lines.forEach((line: string) => {
-                let x = margin + indent + 5
-                if (styles.align === 'center') {
-                  x = pageWidth / 2
-                  doc.text(line, x, yPosition, { align: 'center' })
-                } else if (styles.align === 'right') {
-                  x = pageWidth - margin
-                  doc.text(line, x, yPosition, { align: 'right' })
-                } else {
-                  doc.text(line, x, yPosition)
+              const tagWithAttributes = html.substring(i + 1, tagEnd)
+              const tag = tagWithAttributes.split(' ')[0].toLowerCase()
+
+              // Parse font-size from style attribute
+              let fontSize = null
+              if (tagWithAttributes.includes('style=')) {
+                const styleMatch = tagWithAttributes.match(
+                  /style=["']([^"']*)["']/
+                )
+                if (styleMatch) {
+                  const fontSizeMatch =
+                    styleMatch[1].match(/font-size:\s*(\d+)px/)
+                  if (fontSizeMatch) {
+                    fontSize = parseInt(fontSizeMatch[1])
+                  }
                 }
-                yPosition += 6
-              })
+              }
+
+              if (tag.startsWith('/')) {
+                // Closing tag
+                const tagName = tag.substring(1)
+                if (tagName === 'b' || tagName === 'strong')
+                  currentStyles.bold = false
+                if (tagName === 'i' || tagName === 'em')
+                  currentStyles.italic = false
+                if (tagName === 'u') currentStyles.underline = false
+                if (tagName === 'uppercase') currentStyles.uppercase = false
+                if (tagName === 'span' && tag.includes('uppercase'))
+                  currentStyles.uppercase = false
+                if (tagName === 'span') currentStyles.customFontSize = null // Reset custom font size
+                if (tagName === 'h1' || tagName === 'h2' || tagName === 'h3') {
+                  currentStyles.isHeading = false
+                  currentStyles.fontSize = 11
+                  currentStyles.bold = false
+                }
+                if (tagName === 'p') {
+                  result.push({ type: 'paragraph-break' })
+                }
+              } else {
+                // Opening tag
+                if (tag === 'b' || tag === 'strong') currentStyles.bold = true
+                if (tag === 'i' || tag === 'em') currentStyles.italic = true
+                if (tag === 'u') currentStyles.underline = true
+                if (tag === 'uppercase') currentStyles.uppercase = true
+                if (tag.startsWith('span') && tag.includes('uppercase'))
+                  currentStyles.uppercase = true
+                if (tag === 'span' && fontSize !== null)
+                  currentStyles.customFontSize = fontSize
+                if (tag === 'h1') {
+                  currentStyles.isHeading = true
+                  currentStyles.fontSize = 16
+                  currentStyles.bold = true
+                }
+                if (tag === 'h2') {
+                  currentStyles.isHeading = true
+                  currentStyles.fontSize = 14
+                  currentStyles.bold = true
+                }
+                if (tag === 'h3') {
+                  currentStyles.isHeading = true
+                  currentStyles.fontSize = 12
+                  currentStyles.bold = true
+                }
+                if (tag === 'p') {
+                  result.push({ type: 'paragraph-start' })
+                }
+              }
+
+              i = tagEnd + 1
+            } else {
+              currentText += html[i]
+              i++
+            }
+          }
+
+          // Save any remaining text
+          if (currentText.trim()) {
+            result.push({
+              type: 'text',
+              content: currentText.trim(),
+              styles: { ...currentStyles },
+            })
+          }
+
+          return result
+        }
+
+        const parsedContent = parseHTML(html)
+
+        parsedContent.forEach((item) => {
+          if (yPosition > 270) {
+            doc.addPage()
+            yPosition = margin
+          }
+
+          if (item.type === 'paragraph-start') {
+            yPosition += 4 // Add spacing before paragraph
+          } else if (item.type === 'paragraph-break') {
+            yPosition += 6 // Add spacing after paragraph
+          } else if (item.type === 'text') {
+            // Set font size - use custom font size if available, otherwise use default
+            const fontSizeToUse =
+              item.styles.customFontSize !== null
+                ? item.styles.customFontSize
+                : item.styles.fontSize
+            doc.setFontSize(fontSizeToUse)
+
+            doc.setFont(
+              'helvetica',
+              item.styles.bold && item.styles.italic
+                ? 'bolditalic'
+                : item.styles.bold
+                  ? 'bold'
+                  : item.styles.italic
+                    ? 'italic'
+                    : 'normal'
+            )
+
+            // Apply uppercase transformation if needed
+            let displayText = item.content
+            if (item.styles.uppercase) {
+              displayText = displayText.toUpperCase()
             }
 
-            // Add spacing after heading
-            yPosition += 6
-            return // Skip recursion for headings since we handled the text directly
-          } else {
-            doc.setFontSize(11)
-          }
+            const lines = doc.splitTextToSize(
+              displayText,
+              contentWidth - indent - 10
+            )
 
-          // LIST ITEMS
-          if (tag === 'li') {
-            const bullet = '• '
-            doc.text(bullet, margin + indent, yPosition)
-            indent += 5
-          }
+            lines.forEach((line: string) => {
+              const x = margin + indent + 5
+              doc.text(line, x, yPosition)
 
-          // RECURSION
-          Array.from(node.childNodes).forEach((child: any) =>
-            renderStyledText(child, indent, newStyles)
-          )
+              // Draw underline if needed
+              if (item.styles.underline) {
+                const textWidth = doc.getTextWidth(line)
+                doc.line(x, yPosition + 1, x + textWidth, yPosition + 1)
+              }
 
-          if (tag === 'p' || tag === 'li') {
-            yPosition += 4
+              // Adjust line spacing based on font size
+              const lineSpacing =
+                fontSizeToUse > 14 ? 8 : fontSizeToUse > 12 ? 7 : 6
+              yPosition += item.styles.isHeading ? lineSpacing + 2 : lineSpacing
+            })
           }
-        }
+        })
       }
 
-      Array.from(tempDiv.childNodes).forEach((node) =>
-        renderStyledText(node as any)
-      )
+      renderStyledHTML(recipe.preparation_notes)
     }
 
     // Additional Information Section
