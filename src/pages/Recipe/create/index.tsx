@@ -656,72 +656,6 @@ export default function CreateRecipe({
               edit={true}
               spacing={false}
             />
-            {/* Calories / macros section */}
-            <div className="mt-4 border-t pt-4">
-              <h3 className="text-sm font-semibold mb-2">Nutritional Value</h3>
-              <FormBuilder
-                data={formFields.filter((f) =>
-                  ['protein', 'carbs', 'fat', 'fiber', 'calories'].includes(
-                    f.name
-                  )
-                )}
-                edit={true}
-                spacing
-              />
-            </div>
-
-            {/* Additional Info section */}
-            <div className="mt-4 border-t pt-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-sm font-semibold">Additional Info</h3>
-              </div>
-
-              {additionalInfoFields.map((field, index) => (
-                <div key={field.id} className="text-[11px]">
-                  <div className="flex items-center justify-between mb-2 mr-2">
-                    <span className="font-medium"></span>
-                    {additionalInfoFields.length > 1 && (
-                      <button
-                        type="button"
-                        className="text-[10px] text-red-500"
-                        onClick={() => removeAdditionalInfo(index)}
-                      >
-                        Remove
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="w-full">
-                    <Controller
-                      name={`additional_info.${index}.info` as const}
-                      control={control}
-                      render={({ field: { onChange, value } }) => (
-                        <TextField
-                          id={`additional_info.${index}.info`}
-                          name={`additional_info.${index}.info`}
-                          placeholder="Enter additional information"
-                          value={value ?? ''}
-                          onChange={onChange}
-                          errors={errors}
-                        />
-                      )}
-                    />
-                  </div>
-                </div>
-              ))}
-
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-full bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                  onClick={() => appendAdditionalInfo({ info: '' })}
-                  aria-label="Add more info"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-
             <div className="border-t pt-4">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-sm font-semibold">Ingredients</h3>
@@ -894,6 +828,71 @@ export default function CreateRecipe({
                   </div>
                 )}
               />
+            </div>
+            {/* Calories / macros section */}
+            <div className="mt-4 border-t pt-4">
+              <h3 className="text-sm font-semibold mb-2">Nutritional Value</h3>
+              <FormBuilder
+                data={formFields.filter((f) =>
+                  ['protein', 'carbs', 'fat', 'fiber', 'calories'].includes(
+                    f.name
+                  )
+                )}
+                edit={true}
+                spacing
+              />
+            </div>
+
+            {/* Additional Info section */}
+            <div className="mt-4 border-t pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold">Additional Info</h3>
+              </div>
+
+              {additionalInfoFields.map((field, index) => (
+                <div key={field.id} className="text-[11px]">
+                  <div className="flex items-center justify-between mb-2 mr-2">
+                    <span className="font-medium"></span>
+                    {additionalInfoFields.length > 1 && (
+                      <button
+                        type="button"
+                        className="text-[10px] text-red-500"
+                        onClick={() => removeAdditionalInfo(index)}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="w-full">
+                    <Controller
+                      name={`additional_info.${index}.info` as const}
+                      control={control}
+                      render={({ field: { onChange, value } }) => (
+                        <TextField
+                          id={`additional_info.${index}.info`}
+                          name={`additional_info.${index}.info`}
+                          placeholder="Enter additional information"
+                          value={value ?? ''}
+                          onChange={onChange}
+                          errors={errors}
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-full bg-blue-500 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                  onClick={() => appendAdditionalInfo({ info: '' })}
+                  aria-label="Add more info"
+                >
+                  +
+                </button>
+              </div>
             </div>
 
             {/* Description section */}

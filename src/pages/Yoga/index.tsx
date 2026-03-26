@@ -1,6 +1,7 @@
 import SmartTable from '../../components/common/table/SmartTable'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useSnackbar } from 'notistack'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -24,6 +25,7 @@ import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal
 
 export default function YogaMain() {
   const navigate = useNavigate()
+  const { enqueueSnackbar } = useSnackbar()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const [createOpen, setCreateOpen] = useState(false)
   const [viewMode, setViewMode] = useState(false)
@@ -148,6 +150,29 @@ export default function YogaMain() {
       setDeleteYogaModal(false)
       setDeleteYogaId('')
       refetch()
+    } catch (error: any) {
+      console.error('Delete yoga error:', error)
+
+      // Extract error message from response
+      let errorMessage = 'Failed to delete yoga'
+
+      if (error?.response?.data?.errors) {
+        // If response has errors array, use the first error
+        errorMessage = error.response.data.errors[0]
+      } else if (error?.response?.data?.message) {
+        // If response has message field
+        errorMessage = error.response.data.message
+      } else if (error?.message) {
+        // Fallback to error message
+        errorMessage = error.message
+      }
+
+      // Show the error message to user
+      enqueueSnackbar(errorMessage, { variant: 'error' })
+
+      // Close the delete modal after showing error
+      setDeleteYogaModal(false)
+      setDeleteYogaId('')
     } finally {
       setLoader(false)
     }

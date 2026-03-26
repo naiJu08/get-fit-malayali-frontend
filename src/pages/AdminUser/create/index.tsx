@@ -445,7 +445,7 @@ export default function CreateAdmin({
             ...textField('weight', 'Weight (kg)', 'Enter weight in kg', true),
             type: 'text',
             allowPositiveOnly: true,
-            maxLength: 3,
+            maxLength: 5,
           },
           {
             name: 'lifestyle',
