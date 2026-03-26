@@ -15,6 +15,7 @@ import ReminderSettings from './Details/ReminderSettings'
 import AdditionalInfo from './Details/AdditionalInfo'
 import RecipesTab from './Details/Recipe.tsx/Recipes'
 import SubscriptionHistory from './Details/SubscriptionHistory'
+import DietHistory from './Details/DietHistory'
 import { useAuthStore } from '../../store/authStore'
 import CreateAdmin from './create'
 
@@ -122,7 +123,10 @@ export default function UserDetails() {
     () => [
       { id: 'details', label: 'Details' },
       ...(isNutritionist
-        ? [{ id: 'clients', label: 'Clients' }]
+        ? [
+            { id: 'clients', label: 'Clients' },
+            { id: 'diet-history', label: 'Diet history' },
+          ]
         : [
             { id: 'subscriptions', label: 'Subscriptions' },
             { id: 'body', label: 'Body measurements' },
@@ -132,6 +136,7 @@ export default function UserDetails() {
             { id: 'recipes', label: 'Recipes' },
             { id: 'additional-info', label: 'Nutritional assessment' },
             { id: 'subscription-history', label: 'Subscription history' },
+            { id: 'diet-history', label: 'Diet history' },
             ...(loginRole !== 'nutritionist'
               ? [{ id: 'reports', label: 'Reports' }]
               : []),
@@ -276,6 +281,9 @@ export default function UserDetails() {
               <SubscriptionHistory />
             </Tab>
           )}
+          <Tab id="diet-history">
+            <DietHistory subscriptionId={subscriptionId} />
+          </Tab>
           {!isNutritionist && loginRole !== 'nutritionist' && (
             <Tab id="reports">
               <Reports user={user} subscriptionId={subscriptionId} />
