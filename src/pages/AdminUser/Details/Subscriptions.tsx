@@ -1882,10 +1882,280 @@ export default function Subscriptions({
     resetFreezeForm()
   }
 
+  // const handleDownloadDietTemplate = async () => {
+  //   const templateId = overview?.subscription?.diet_plan_template_id
+
+  //   if (!templateId) {
+  //     enqueueSnackbar('No diet template assigned to this subscription', {
+  //       variant: 'error',
+  //     })
+  //     return
+  //   }
+  //   setDownloadingTemplate(true)
+  //   try {
+  //     // Use the diet plans API with template ID filter
+  //     const dietPlansApiUrl = `${apiUrl.DIET_PLAN}?page=1&per_page=1000&diet_plan_template_id=${templateId}`
+  //     const response = await getData(dietPlansApiUrl)
+  //     const dietPlansData = response?.diet_plans || response?.items || response || []
+
+  //     if (!dietPlansData || dietPlansData.length === 0) {
+  //       enqueueSnackbar('No diet plans found for this template', {
+  //         variant: 'error',
+  //       })
+  //       return
+  //     }
+
+  //     // Fetch logo
+  //     let base64Logo: string | null = null;
+  //     try {
+  //       const logoUrl = '/gfm-logo.png';
+  //       const logoResponse = await fetch(logoUrl);
+  //       const blob = await logoResponse.blob();
+  //       base64Logo = await new Promise<string>((resolve, reject) => {
+  //         const reader = new FileReader();
+  //         reader.onloadend = () => resolve(reader.result as string);
+  //         reader.onerror = reject;
+  //         reader.readAsDataURL(blob);
+  //       });
+  //     } catch (err) {
+  //       console.warn('Could not load logo for PDF', err);
+  //     }
+
+  //     // Create PDF
+  //     const pdf = new jsPDF('p', 'mm', 'a4')
+  //     const pageWidth = pdf.internal.pageSize.getWidth()
+  //     const pageHeight = pdf.internal.pageSize.getHeight()
+  //     const marginX = 35 // Left side offset past the sidebar
+  //     const rightMargin = 15
+  //     const contentWidth = pageWidth - marginX - rightMargin
+
+  //     const drawBackground = () => {
+  //       const sidebarW = 22;
+  //       const topbarH = 7;
+  //       const curveR = 12;
+  //       const topCornerR = 14;
+
+  //       // Light blue sidebar and top bar
+  //       pdf.setFillColor(152, 192, 230) // Light blue
+  //       pdf.rect(0, 0, sidebarW, pageHeight, 'F') // Sidebar
+  //       pdf.rect(0, 0, pageWidth, topbarH, 'F') // Top bar
+
+  //       // Curve filler and carver to make a smooth inner concave corner
+  //       pdf.rect(sidebarW, topbarH, curveR, curveR, 'F') // Filler
+  //       pdf.setFillColor(255, 255, 255)
+  //       pdf.circle(sidebarW + curveR, topbarH + curveR, curveR, 'F') // Carver
+
+  //       // Top-left white curving corner
+  //       pdf.setFillColor(255, 255, 255)
+  //       pdf.circle(0, 0, topCornerR, 'F')
+
+  //       // Add logo inside a white circle with dark blue border
+  //       const logoCenterX = sidebarW / 2;
+  //       const logoCenterY = 25;
+  //       const logoCircleR = 9; // smaller circle
+
+  //       pdf.setFillColor(255, 255, 255)
+  //       pdf.setDrawColor(22, 60, 92) // Dark blue border
+  //       pdf.setLineWidth(0.6)
+  //       pdf.circle(logoCenterX, logoCenterY, logoCircleR, 'FD')
+
+  //       if (base64Logo) {
+  //         const logoSize = 14; // smaller logo
+  //         pdf.addImage(base64Logo, 'PNG', logoCenterX - logoSize / 2, logoCenterY - logoSize / 2, logoSize, logoSize)
+  //       }
+
+  //       // Bottom colored bars
+  //       const barWidth = pageWidth / 4
+  //       pdf.setFillColor(44, 193, 203) // turquoise-ish
+  //       pdf.rect(0, pageHeight - 4, barWidth, 4, 'F')
+  //       pdf.setFillColor(231, 61, 142) // pink
+  //       pdf.rect(barWidth, pageHeight - 4, barWidth, 4, 'F')
+  //       pdf.setFillColor(29, 137, 219) // blue
+  //       pdf.rect(barWidth * 2, pageHeight - 4, barWidth, 4, 'F')
+  //       pdf.setFillColor(22, 60, 92) // dark blue
+  //       pdf.rect(barWidth * 3, pageHeight - 4, barWidth, 4, 'F')
+  //     }
+
+  //     drawBackground()
+
+  //     let yPosition = 25
+
+  //     // Helper function to add text with proper line height
+  //     const addText = (
+  //       text: string,
+  //       fontSize = 10,
+  //       fontStyle = 'normal',
+  //       xOffset = 0
+  //     ) => {
+  //       pdf.setFont('helvetica', fontStyle as any)
+  //       pdf.setFontSize(fontSize)
+  //       pdf.text(text, marginX + xOffset, yPosition)
+  //       yPosition += fontSize * 0.5 + 2
+  //     }
+
+  //     // Helper function to check page break
+  //     const checkPageBreak = (requiredHeight: number) => {
+  //       if (
+  //         yPosition + requiredHeight >
+  //         pageHeight - 20
+  //       ) {
+  //         pdf.addPage()
+  //         drawBackground()
+  //         yPosition = 20
+  //       }
+  //     }
+
+  //     // Title
+  //     pdf.setTextColor(0, 0, 0)
+  //     pdf.setFont('helvetica', 'bold')
+  //     pdf.setFontSize(18)
+  //     pdf.text('Diet Template Details', marginX, yPosition)
+  //     yPosition += 10
+
+  //     // Template basic info
+  //     const templateName =
+  //       dietPlansData[0]?.diet_plan_template_name || 'Unknown Template'
+  //     addText(`Template Name: ${templateName}`, 14, 'bold')
+  //     addText(`Total Meals: ${dietPlansData.length}`, 10, 'normal')
+  //     yPosition += 8
+
+  //     // Group diet plans by day_number
+  //     const groupedByDay = dietPlansData.reduce((acc: any, plan: any) => {
+  //       const dayNum = plan.day_number || 1
+  //       if (!acc[dayNum]) {
+  //         acc[dayNum] = []
+  //       }
+  //       acc[dayNum].push(plan)
+  //       return acc
+  //     }, {})
+
+  //     // Sort days numerically
+  //     const sortedDays = Object.keys(groupedByDay).sort(
+  //       (a, b) => Number(a) - Number(b)
+  //     )
+
+  //     sortedDays.forEach((dayNum) => {
+  //       checkPageBreak(25)
+
+  //       // Day header with background
+  //       pdf.setFillColor(52, 73, 94)
+  //       pdf.rect(marginX, yPosition - 4, contentWidth, 8, 'F')
+  //       pdf.setTextColor(255, 255, 255)
+  //       pdf.setFont('helvetica', 'bold')
+  //       pdf.setFontSize(11)
+  //       pdf.text(`Option- ${dayNum}`, marginX + 3, yPosition)
+  //       pdf.setTextColor(0, 0, 0)
+  //       yPosition += 8
+
+  //       const dayPlans = groupedByDay[dayNum]
+
+  //       // Sort by sequence_number
+  //       dayPlans.sort(
+  //         (a: any, b: any) =>
+  //           (a.sequence_number || 0) - (b.sequence_number || 0)
+  //       )
+
+  //       dayPlans.forEach((dietPlan: any) => {
+  //         checkPageBreak(20)
+
+  //         // Meal header with light background
+  //         pdf.setFillColor(241, 245, 249)
+  //         pdf.rect(marginX + 3, yPosition - 3, contentWidth - 6, 7, 'F')
+  //         pdf.setFont('helvetica', 'bold')
+  //         pdf.setFontSize(10)
+  //         pdf.text(
+  //           `${dietPlan.meal_time || 'Meal'} - ${dietPlan.effective_total_calories || 0} kcal`,
+  //           marginX + 5,
+  //           yPosition
+  //         )
+  //         yPosition += 8
+
+  //         if (dietPlan.items && Array.isArray(dietPlan.items)) {
+  //           dietPlan.items.forEach((item: any) => {
+  //             checkPageBreak(15)
+
+  //             const reqLabel =
+  //               item.requirement === 'mandatory'
+  //                 ? '(Mandatory)'
+  //                 : item.requirement === 'optional'
+  //                   ? '(Optional)'
+  //                   : ''
+  //             const servingInfo = item.serving_unit
+  //               ? `${item.quantity} ${item.serving_unit}`
+  //               : `${item.quantity} units`
+  //             const caloriesInfo = item.per_serving?.calories || 0
+
+  //             // Item name
+  //             pdf.setFont('helvetica', 'bold')
+  //             pdf.setFontSize(9)
+  //             pdf.text(
+  //               `• ${item.meal_name || 'Unknown Item'} ${reqLabel}`,
+  //               marginX + 8,
+  //               yPosition
+  //             )
+  //             yPosition += 5
+
+  //             // Item details
+  //             pdf.setFont('helvetica', 'normal')
+  //             pdf.setFontSize(8)
+  //             pdf.setTextColor(100, 100, 100)
+  //             pdf.text(
+  //               `Quantity: ${servingInfo}  |  Calories: ${caloriesInfo} kcal`,
+  //               marginX + 12,
+  //               yPosition
+  //             )
+  //             yPosition += 4
+
+  //             // Calorie breakdown
+  //             if (item.per_serving) {
+  //               const protein = item.per_serving.protein || 0
+  //               const carbs = item.per_serving.carbs || 0
+  //               const fat = item.per_serving.fat || 0
+  //               const fiber = item.per_serving.fiber || 0
+
+  //               pdf.text(
+  //                 `Protein: ${protein}g  |  Carbs: ${carbs}g  |  Fat: ${fat}g  |  Fiber: ${fiber}g`,
+  //                 marginX + 12,
+  //                 yPosition
+  //               )
+  //               yPosition += 6
+  //             } else {
+  //               yPosition += 2
+  //             }
+  //             pdf.setTextColor(0, 0, 0)
+  //           })
+  //         }
+  //         yPosition += 2
+  //       })
+  //       yPosition += 5
+  //     })
+
+  //     // Add timestamp
+  //     yPosition = pageHeight - 12
+  //     pdf.setFont('helvetica', 'normal')
+  //     pdf.setFontSize(8)
+  //     pdf.text(
+  //       `Downloaded on: ${moment().format('MMM D, YYYY h:mm A')}`,
+  //       marginX,
+  //       yPosition
+  //     )
+
+  //     // Save PDF
+  //     pdf.save(`diet_template_${templateId}.pdf`)
+
+  //     enqueueSnackbar('Diet template PDF downloaded successfully', {
+  //       variant: 'success',
+  //     })
+  //   } catch (err) {
+  //     console.error('Failed to download diet template:', err)
+  //     enqueueSnackbar('Failed to download diet template', { variant: 'error' })
+  //   } finally {
+  //     setDownloadingTemplate(false)
+  //   }
+  // }
+
   const handleDownloadDietTemplate = async () => {
     const templateId = overview?.subscription?.diet_plan_template_id
-    console.log('Template ID from subscription:', templateId)
-    console.log('Full subscription data:', overview?.subscription)
 
     if (!templateId) {
       enqueueSnackbar('No diet template assigned to this subscription', {
@@ -1897,10 +2167,9 @@ export default function Subscriptions({
     try {
       // Use the diet plans API with template ID filter
       const dietPlansApiUrl = `${apiUrl.DIET_PLAN}?page=1&per_page=1000&diet_plan_template_id=${templateId}`
-      console.log('Fetching diet plans from:', dietPlansApiUrl)
       const response = await getData(dietPlansApiUrl)
-      const dietPlansData = response?.diet_plans || response || []
-      console.log('Diet plans received:', dietPlansData)
+      const dietPlansData =
+        response?.diet_plans || response?.items || response || []
 
       if (!dietPlansData || dietPlansData.length === 0) {
         enqueueSnackbar('No diet plans found for this template', {
@@ -1909,52 +2178,237 @@ export default function Subscriptions({
         return
       }
 
+      // Fetch logo
+      let base64Logo: string | null = null
+      try {
+        const logoUrl = '/gfm-logo.png'
+        const logoResponse = await fetch(logoUrl)
+        const blob = await logoResponse.blob()
+        base64Logo = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => resolve(reader.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+      } catch (err) {
+        console.warn('Could not load logo for PDF', err)
+      }
+
       // Create PDF
       const pdf = new jsPDF('p', 'mm', 'a4')
       const pageWidth = pdf.internal.pageSize.getWidth()
-      const margin = 15
-      const contentWidth = pageWidth - 2 * margin
-      let yPosition = margin
+      const pageHeight = pdf.internal.pageSize.getHeight()
 
-      // Helper function to add text with proper line height
+      // DRASCTICALLY REDUCED Layout variables
+      const gap = 10
+      const sidebarW = 20 // Very thin sidebar
+      const marginX = gap + sidebarW + 10 // Text margin pulled much further left
+      const rightMargin = 15
+      const contentWidth = pageWidth - marginX - rightMargin
+
+      const drawBackground = () => {
+        const topbarH = 10 // Thinner top bar
+        const curveR = 10 // Tighter inner curve
+        const topCornerR = 15 // Slightly smaller top-left cutout
+        const barHeight = 5
+
+        // Gradient color variables defined early for reuse
+        const rStart = 138,
+          gStart = 185,
+          bStart = 235
+        const rEnd = 240,
+          gEnd = 248,
+          bEnd = 255
+
+        // 1. Top bar
+        pdf.setFillColor(rStart, gStart, bStart)
+        pdf.rect(gap, gap, pageWidth - gap, topbarH, 'F')
+
+        // 2. Sidebar with Gradient
+        for (let i = gap + topbarH; i < pageHeight - barHeight; i += 1.5) {
+          const ratio =
+            (i - (gap + topbarH)) / (pageHeight - barHeight - (gap + topbarH))
+          const r = rStart + (rEnd - rStart) * ratio
+          const g = gStart + (gEnd - gStart) * ratio
+          const b = bStart + (bEnd - bStart) * ratio
+          pdf.setFillColor(Math.round(r), Math.round(g), Math.round(b))
+          pdf.rect(gap, i, sidebarW, 2, 'F')
+        }
+
+        // Fill top area of sidebar
+        pdf.setFillColor(rStart, gStart, bStart)
+        pdf.rect(gap, gap, sidebarW, topbarH, 'F')
+
+        // 3. Inner concave curve (where top bar and sidebar meet)
+        pdf.setFillColor(rStart, gStart, bStart)
+        pdf.rect(gap + sidebarW, gap + topbarH, curveR, curveR, 'F')
+        pdf.setFillColor(255, 255, 255)
+        pdf.circle(gap + sidebarW + curveR, gap + topbarH + curveR, curveR, 'F')
+
+        // 4. Top-left white carving corner (the circular cutout)
+        pdf.setFillColor(255, 255, 255)
+        pdf.circle(gap, gap, topCornerR, 'F')
+
+        // ----------------------------------------------------------------------
+        // --- Smooth Fillets for the sharp intersections of the cutout ---
+        // ----------------------------------------------------------------------
+        const filletR = 4 // Tighter fillet for a smaller cutout
+        const dist = Math.sqrt(
+          Math.pow(topCornerR + filletR, 2) - Math.pow(filletR, 2)
+        )
+
+        // A. Top Edge Intersection Fillet
+        const cx1 = gap + dist
+        const cy1 = gap + filletR
+        const t1x = gap + topCornerR * (dist / (topCornerR + filletR))
+        const t1y = gap + topCornerR * (filletR / (topCornerR + filletR))
+
+        pdf.setFillColor(255, 255, 255)
+        pdf.triangle(
+          gap + topCornerR - 1,
+          gap - 1,
+          cx1,
+          gap - 1,
+          t1x - 0.5,
+          t1y + 0.5,
+          'F'
+        )
+        pdf.setFillColor(rStart, gStart, bStart)
+        pdf.circle(cx1, cy1, filletR, 'F')
+
+        // B. Left Edge Intersection Fillet
+        const cx2 = gap + filletR
+        const cy2 = gap + dist
+        const t2x = gap + topCornerR * (filletR / (topCornerR + filletR))
+        const t2y = gap + topCornerR * (dist / (topCornerR + filletR))
+
+        pdf.setFillColor(255, 255, 255)
+        pdf.triangle(
+          gap - 1,
+          gap + topCornerR - 1,
+          gap - 1,
+          cy2,
+          t2x + 0.5,
+          t2y - 0.5,
+          'F'
+        )
+
+        const gradRatio =
+          (cy2 - (gap + topbarH)) / (pageHeight - barHeight - (gap + topbarH))
+        const filletRColor = Math.round(
+          rStart + (rEnd - rStart) * Math.max(0, gradRatio)
+        )
+        const filletGColor = Math.round(
+          gStart + (gEnd - gStart) * Math.max(0, gradRatio)
+        )
+        const filletBColor = Math.round(
+          bStart + (bEnd - bStart) * Math.max(0, gradRatio)
+        )
+
+        pdf.setFillColor(filletRColor, filletGColor, filletBColor)
+        pdf.circle(cx2, cy2, filletR, 'F')
+        // ----------------------------------------------------------------------
+
+        // 5. Outer Corner Rounding (Bottom-Left only)
+        const carveOuterCorner = (
+          x: number,
+          y: number,
+          r: number,
+          corner: string
+        ) => {
+          pdf.setFillColor(255, 255, 255)
+          const step = 0.1
+          for (let i = 0; i <= r; i += step) {
+            const cut = r - Math.sqrt(r * r - i * i)
+            if (corner === 'bottom-left') {
+              pdf.rect(x, y - r + i, cut, step * 1.5, 'F')
+            }
+          }
+        }
+
+        const outerCornerRadius = 8
+        carveOuterCorner(
+          gap,
+          pageHeight - barHeight,
+          outerCornerRadius,
+          'bottom-left'
+        )
+
+        // 6. Logo container and placement (MUCH SMALLER)
+        const logoCenterX = gap + sidebarW / 2
+        const logoCenterY = gap + 16
+        const logoCircleR = 10 // Drastically smaller white circle
+
+        pdf.setFillColor(255, 255, 255)
+        pdf.setDrawColor(22, 60, 92)
+        pdf.setLineWidth(0.8)
+        pdf.circle(logoCenterX, logoCenterY, logoCircleR, 'FD')
+
+        if (base64Logo) {
+          const logoSize = 11 // Tiny logo
+          pdf.addImage(
+            base64Logo,
+            'PNG',
+            logoCenterX - logoSize / 2,
+            logoCenterY - logoSize / 2,
+            logoSize,
+            logoSize
+          )
+        }
+
+        // 7. Bottom colored bars
+        const barWidth = pageWidth / 4
+
+        pdf.setFillColor(44, 193, 203) // Turquoise
+        pdf.rect(0, pageHeight - barHeight, barWidth, barHeight, 'F')
+
+        pdf.setFillColor(231, 61, 142) // Pink
+        pdf.rect(barWidth, pageHeight - barHeight, barWidth, barHeight, 'F')
+
+        pdf.setFillColor(29, 137, 219) // Blue
+        pdf.rect(barWidth * 2, pageHeight - barHeight, barWidth, barHeight, 'F')
+
+        pdf.setFillColor(22, 60, 92) // Dark Blue
+        pdf.rect(barWidth * 3, pageHeight - barHeight, barWidth, barHeight, 'F')
+      }
+
+      drawBackground()
+
+      let yPosition = gap + 25 // Adjusted starting height for text
+
+      // Helper function to add text
       const addText = (
         text: string,
         fontSize = 10,
         fontStyle = 'normal',
         xOffset = 0
       ) => {
-        pdf.setFont('helvetica', fontStyle)
+        pdf.setFont('helvetica', fontStyle as any)
         pdf.setFontSize(fontSize)
-        pdf.text(text, margin + xOffset, yPosition)
+        pdf.text(text, marginX + xOffset, yPosition)
         yPosition += fontSize * 0.5 + 2
       }
 
       // Helper function to check page break
       const checkPageBreak = (requiredHeight: number) => {
-        if (
-          yPosition + requiredHeight >
-          pdf.internal.pageSize.getHeight() - margin
-        ) {
+        if (yPosition + requiredHeight > pageHeight - 20) {
           pdf.addPage()
-          yPosition = margin
+          drawBackground()
+          yPosition = gap + 25
         }
       }
 
-      // Add title with background
-      pdf.setFillColor(41, 128, 185)
-      pdf.rect(0, 0, pageWidth, 25, 'F')
-      pdf.setTextColor(255, 255, 255)
+      // Title
+      pdf.setTextColor(0, 0, 0)
       pdf.setFont('helvetica', 'bold')
       pdf.setFontSize(18)
-      pdf.text('Diet Template Details', margin, 16)
-      pdf.setTextColor(0, 0, 0)
-      yPosition = 35
+      pdf.text('Diet Template Details', marginX, yPosition)
+      yPosition += 10
 
       // Template basic info
       const templateName =
         dietPlansData[0]?.diet_plan_template_name || 'Unknown Template'
       addText(`Template Name: ${templateName}`, 14, 'bold')
-      // addText(`Template ID: ${templateId}`, 10, 'normal')
       addText(`Total Meals: ${dietPlansData.length}`, 10, 'normal')
       yPosition += 8
 
@@ -1973,22 +2427,16 @@ export default function Subscriptions({
         (a, b) => Number(a) - Number(b)
       )
 
-      // Diet plan details grouped by day
-      // pdf.setFillColor(236, 240, 241)
-      // pdf.rect(margin, yPosition - 4, contentWidth, 8, 'F')
-      // addText('Diet Plan Details', 12, 'bold')
-      yPosition += 4
-
       sortedDays.forEach((dayNum) => {
         checkPageBreak(25)
 
         // Day header with background
         pdf.setFillColor(52, 73, 94)
-        pdf.rect(margin, yPosition - 4, contentWidth, 8, 'F')
+        pdf.rect(marginX, yPosition - 4, contentWidth, 8, 'F')
         pdf.setTextColor(255, 255, 255)
         pdf.setFont('helvetica', 'bold')
         pdf.setFontSize(11)
-        pdf.text(`Option- ${dayNum}`, margin + 3, yPosition)
+        pdf.text(`Option- ${dayNum}`, marginX + 3, yPosition)
         pdf.setTextColor(0, 0, 0)
         yPosition += 8
 
@@ -2005,12 +2453,12 @@ export default function Subscriptions({
 
           // Meal header with light background
           pdf.setFillColor(241, 245, 249)
-          pdf.rect(margin + 3, yPosition - 3, contentWidth - 6, 7, 'F')
+          pdf.rect(marginX + 3, yPosition - 3, contentWidth - 6, 7, 'F')
           pdf.setFont('helvetica', 'bold')
           pdf.setFontSize(10)
           pdf.text(
             `${dietPlan.meal_time || 'Meal'} - ${dietPlan.effective_total_calories || 0} kcal`,
-            margin + 5,
+            marginX + 5,
             yPosition
           )
           yPosition += 8
@@ -2035,7 +2483,7 @@ export default function Subscriptions({
               pdf.setFontSize(9)
               pdf.text(
                 `• ${item.meal_name || 'Unknown Item'} ${reqLabel}`,
-                margin + 8,
+                marginX + 8,
                 yPosition
               )
               yPosition += 5
@@ -2046,7 +2494,7 @@ export default function Subscriptions({
               pdf.setTextColor(100, 100, 100)
               pdf.text(
                 `Quantity: ${servingInfo}  |  Calories: ${caloriesInfo} kcal`,
-                margin + 12,
+                marginX + 12,
                 yPosition
               )
               yPosition += 4
@@ -2060,7 +2508,7 @@ export default function Subscriptions({
 
                 pdf.text(
                   `Protein: ${protein}g  |  Carbs: ${carbs}g  |  Fat: ${fat}g  |  Fiber: ${fiber}g`,
-                  margin + 12,
+                  marginX + 12,
                   yPosition
                 )
                 yPosition += 6
@@ -2076,11 +2524,13 @@ export default function Subscriptions({
       })
 
       // Add timestamp
-      yPosition = pdf.internal.pageSize.getHeight() - 30
-      addText(
+      yPosition = pageHeight - 12
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8)
+      pdf.text(
         `Downloaded on: ${moment().format('MMM D, YYYY h:mm A')}`,
-        8,
-        'normal'
+        marginX,
+        yPosition
       )
 
       // Save PDF
