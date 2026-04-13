@@ -65,7 +65,7 @@ export default function DietTemplateDetails() {
   return (
     <>
       <div className="p-4">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/diet-template')}
@@ -73,7 +73,6 @@ export default function DietTemplateDetails() {
             >
               <Icons name="left-arrow-icon" />
             </button>
-            <h1 className="text-xl font-semibold">Diet Template Details</h1>
           </div>
         </div>
 

@@ -1,0 +1,403 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/components/common/icons/WeightIcon.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../../index.html">All files</a> / <a href="index.html">src/components/common/icons</a> WeightIcon.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">50% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>1/2</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">100% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/0</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">50% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>1/2</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line medium'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { IconProps } from '../../../common/types'
+&nbsp;
+const WeightIcon: React.FC&lt;IconProps&gt; = <span class="fstat-no" title="function not covered" >()</span> =&gt; {
+<span class="cstat-no" title="statement not covered" >  return (</span>
+    &lt;svg
+      version="1.1"
+      xmlns="http://www.w3.org/2000/svg"
+      width="128"
+      height="128"
+      viewBox="0 0 512 512"
+    &gt;
+      &lt;path
+        d="M0 0 C168.96 0 337.92 0 512 0 C512 168.96 512 337.92 512 512 C343.04 512 174.08 512 0 512 C0 343.04 0 174.08 0 0 Z "
+        fill="#B3D3DE"
+        transform="translate(0,0)"
+      /&gt;
+      &lt;path
+        d="M0 0 C15.84 0 31.68 0 48 0 C48.495 8.415 48.495 8.415 49 17 C49.58846773 21.0131984 50.21091616 24.86562393 51.0625 28.8125 C51.27801514 29.8223999 51.49353027 30.8322998 51.71557617 31.87280273 C57.78198281 58.59812337 71.76377081 82.65139421 91 102 C91.69947754 102.70552002 91.69947754 102.70552002 92.41308594 103.42529297 C104.53239364 115.47389777 118.56416023 123.85978117 134 131 C134.99257812 131.47179687 135.98515625 131.94359375 137.0078125 132.4296875 C142.99611772 135.11525056 149.11304073 136.98892379 155.4375 138.6875 C156.18813721 138.89012451 156.93877441 139.09274902 157.7121582 139.30151367 C168.77292655 142.13557692 179.71752584 143.36991598 191.125 143.3125 C192.29716064 143.30758545 193.46932129 143.3026709 194.67700195 143.29760742 C210.51013007 143.0864124 225.13720696 140.3932977 240 135 C240.63921387 134.76909668 241.27842773 134.53819336 241.93701172 134.30029297 C255.45623212 129.3342577 267.59615047 122.82988648 279 114 C279.83144531 113.37351562 280.66289062 112.74703125 281.51953125 112.1015625 C308.65379279 91.16331344 326.22795685 60.44119285 333.25 27.125 C333.41338867 26.37178467 333.57677734 25.61856934 333.74511719 24.8425293 C335.3844988 16.48570288 335.48655809 8.72851255 336 0 C351.84 0 367.68 0 384 0 C384 99.99 384 199.98 384 303 C257.28 303 130.56 303 0 303 C0 203.01 0 103.02 0 0 Z "
+        fill="#4D6892"
+        transform="translate(64,145)"
+      /&gt;
+      &lt;path
+        d="M0 0 C84.48 0 168.96 0 256 0 C256 168.96 256 337.92 256 512 C171.52 512 87.04 512 0 512 C0 490.88 0 469.76 0 448 C63.36 448 126.72 448 192 448 C192 348.01 192 248.02 192 145 C176.16 145 160.32 145 144 145 C144 150.61 144 156.22 144 162 C143.42422739 165.97435961 142.81346119 169.63397458 141.875 173.5 C141.6483667 174.47356445 141.4217334 175.44712891 141.18823242 176.45019531 C136.31486149 196.68856822 128.11915637 215.67221367 115 232 C114.31550781 232.88558594 113.63101563 233.77117187 112.92578125 234.68359375 C96.35651451 255.65546637 75.82876441 270.1566437 51 280 C50.06542969 280.38027344 49.13085938 280.76054687 48.16796875 281.15234375 C40.94679045 283.95411864 33.60306915 285.58333111 26 287 C24.90300781 287.20753906 23.80601562 287.41507812 22.67578125 287.62890625 C14.84142336 288.98030936 8.15224278 289 0 289 C0 267.88 0 246.76 0 225 C5.28 224.34 10.56 223.68 16 223 C36.67640323 218.31755754 55.77637755 206.72981826 67.265625 188.53515625 C79.12035064 168.78894733 83.26205987 147.31779041 78.10546875 124.73046875 C72.46370393 105.69200444 61.35456617 89.46293017 45 78 C44.37738281 77.55011719 43.75476563 77.10023437 43.11328125 76.63671875 C34.68062294 70.9265539 24.56229744 68.18743248 15 65 C15 91.07 15 117.14 15 144 C5.1 144 -4.8 144 -15 144 C-15.02255131 133.71695071 -15.04091525 123.43391772 -15.05181217 113.15084934 C-15.05704093 108.3765172 -15.06413844 103.60220279 -15.07543945 98.82788086 C-15.0862686 94.22433738 -15.09227689 89.62081101 -15.09487724 85.01725578 C-15.09673144 83.25690377 -15.10035196 81.49655274 -15.10573006 79.73620796 C-15.11294086 77.27927723 -15.11399093 74.82241805 -15.11352539 72.36547852 C-15.11712067 71.63036545 -15.12071594 70.89525238 -15.12442017 70.13786316 C-15.11405216 65.11405216 -15.11405216 65.11405216 -14 64 C-9.38 64 -4.76 64 0 64 C0 42.88 0 21.76 0 0 Z "
+        fill="#91B0C5"
+        transform="translate(256,0)"
+      /&gt;
+      &lt;path
+        d="M0 0 C15.84 0 31.68 0 48 0 C48.495 8.415 48.495 8.415 49 17 C49.58846773 21.0131984 50.21091616 24.86562393 51.0625 28.8125 C51.27801514 29.8223999 51.49353027 30.8322998 51.71557617 31.87280273 C57.78198281 58.59812337 71.76377081 82.65139421 91 102 C91.69947754 102.70552002 91.69947754 102.70552002 92.41308594 103.42529297 C104.53239364 115.47389777 118.56416023 123.85978117 134 131 C134.99257812 131.47179687 135.98515625 131.94359375 137.0078125 132.4296875 C154.41105708 140.23448521 173.14980216 142.6535573 192 144 C192 196.47 192 248.94 192 303 C128.64 303 65.28 303 0 303 C0 203.01 0 103.02 0 0 Z "
+        fill="#6F8CAB"
+        transform="translate(64,145)"
+      /&gt;
+      &lt;path
+        d="M0 0 C0 26.07 0 52.14 0 79 C9.9 79 19.8 79 30 79 C30 52.93 30 26.86 30 0 C52.2888442 5.57221105 69.71889519 15.73641554 83 35 C93.85703003 53.13349902 99.51254178 74.37345061 94.82177734 95.36474609 C89.14176809 117.78526201 76.69452901 136.58647869 57 149 C37.30564835 160.20682772 14.95277198 163.59441768 -7.12915039 157.9050293 C-28.21741338 151.7748691 -44.62908982 137.39347994 -56 119 C-66.63357606 99.21046639 -69.00464991 76.74105914 -62.73632812 55.21826172 C-55.57316855 33.63853099 -40.10553365 16.49484068 -20 6.25 C-7.12078652 0 -7.12078652 0 0 0 Z "
+        fill="#FDFDFD"
+        transform="translate(241,65)"
+      /&gt;
+      &lt;path
+        d="M0 0 C21.4737213 4.29474426 38.48668362 15.85005462 51 34 C61.85703003 52.13349902 67.51254178 73.37345061 62.82177734 94.36474609 C57.14176809 116.78526201 44.69452901 135.58647869 25 148 C11.51971559 155.67078946 -1.36934165 159 -17 159 C-17 132.6 -17 106.2 -17 79 C-11.39 79 -5.78 79 0 79 C0 52.93 0 26.86 0 0 Z "
+        fill="#D5F9F9"
+        transform="translate(273,66)"
+      /&gt;
+      &lt;path
+        d="M0 0 C81.84 0 163.68 0 248 0 C248 29.7 248 59.4 248 90 C247.67 90 247.34 90 247 90 C246.90203125 89.17757812 246.8040625 88.35515625 246.703125 87.5078125 C244.4872595 70.96523041 237.18242602 56.65728559 224 46 C207.42561175 34.5493588 191.70893271 32.28408458 171.9942894 32.59180641 C168.35108581 32.64569387 164.70928312 32.66297033 161.06570435 32.670578 C150.71949234 32.69742699 140.37426198 32.77969045 130.02880859 32.90698242 C123.66880326 32.9827054 117.31008109 33.0092055 110.94964981 33.00626183 C108.54399514 33.01501957 106.13832683 33.0424364 103.73311996 33.08967018 C88.5529473 33.38405816 79.29551281 32.43533243 68 22 C65.2671556 20.23728235 62.46206985 18.71834599 59.5625 17.25 C58.85279053 16.88495361 58.14308105 16.51990723 57.41186523 16.14379883 C38.88695315 6.77926295 20.55026625 2.84612321 0 1 C0 0.67 0 0.34 0 0 Z "
+        fill="#F6F6F6"
+        transform="translate(264,0)"
+      /&gt;
+      &lt;path
+        d="M0 0 C80.19 0 160.38 0 243 0 C243 0.33 243 0.66 243 1 C241.29070312 1.22042969 241.29070312 1.22042969 239.546875 1.4453125 C213.4876761 5.03478754 189.87700802 13.796949 169 30 C165.84590342 32.10273105 165.11064207 32.25092532 161.51272583 32.25828552 C160.59341782 32.26511353 159.6741098 32.27194153 158.72694397 32.27897644 C157.72022141 32.27642349 156.71349884 32.27387054 155.67626953 32.27124023 C154.08296562 32.27908035 154.08296562 32.27908035 152.45747375 32.28707886 C150.1461345 32.29733362 147.83477205 32.30310182 145.5234108 32.30496025 C141.85655194 32.30861996 138.18996452 32.3253399 134.52316284 32.34571838 C124.09557161 32.4011425 113.66793893 32.43170099 103.24023438 32.45629883 C96.86299081 32.47224935 90.48593643 32.50255668 84.10879135 32.54106331 C81.68572894 32.55265812 79.26263254 32.55864317 76.83954239 32.55874443 C53.59957593 32.5600667 35.39181843 34.84448829 18.328125 51.83984375 C16 54 16 54 14 54 C13.62681641 55.01900391 13.62681641 55.01900391 13.24609375 56.05859375 C12.04988447 58.88224762 10.64034674 61.49946398 9.13085938 64.16577148 C5.13646573 71.25728068 2.44506452 77.91667031 1 86 C0.67 86 0.34 86 0 86 C0 57.62 0 29.24 0 0 Z "
+        fill="#F6F6F7"
+        transform="translate(0,0)"
+      /&gt;
+      &lt;path
+        d="M0 0 C1.15628906 -0.00128906 2.31257812 -0.00257812 3.50390625 -0.00390625 C4.72207031 -0.00003906 5.94023437 0.00382812 7.1953125 0.0078125 C8.40574219 0.00394531 9.61617188 0.00007813 10.86328125 -0.00390625 C12.60158203 -0.00197266 12.60158203 -0.00197266 14.375 0 C15.44218262 0.00112793 16.50936523 0.00225586 17.60888672 0.00341797 C20.3203125 0.1328125 20.3203125 0.1328125 23.3203125 1.1328125 C23.3203125 27.2028125 23.3203125 53.2728125 23.3203125 80.1328125 C13.4203125 80.1328125 3.5203125 80.1328125 -6.6796875 80.1328125 C-6.70223881 69.84976321 -6.72060275 59.56673022 -6.73149967 49.28366184 C-6.73672843 44.5093297 -6.74382594 39.73501529 -6.75512695 34.96069336 C-6.7659561 30.35714988 -6.77196439 25.75362351 -6.77456474 21.15006828 C-6.77641894 19.38971627 -6.78003946 17.62936524 -6.78541756 15.86902046 C-6.79262836 13.41208973 -6.79367843 10.95523055 -6.79321289 8.49829102 C-6.79680817 7.76317795 -6.80040344 7.02806488 -6.80410767 6.27067566 C-6.79106547 -0.04891545 -6.17584677 0.00654122 0 0 Z "
+        fill="#C43E45"
+        transform="translate(247.6796875,63.8671875)"
+      /&gt;
+      &lt;path
+        d="M0 0 C0 25.74 0 51.48 0 78 C-4.29 78 -8.58 78 -13 78 C-13.0231834 68.69872355 -13.04094569 59.39745708 -13.05181217 50.09615803 C-13.05702786 45.77706697 -13.06410168 41.45799569 -13.07543945 37.13891602 C-13.08631499 32.96977227 -13.09228674 28.80064754 -13.09487724 24.63149071 C-13.09672307 23.04190967 -13.1003275 21.45232966 -13.10573006 19.86275673 C-13.11300241 17.63414902 -13.11398833 15.40561964 -13.11352539 13.17700195 C-13.115746 11.90903275 -13.11796661 10.64106354 -13.12025452 9.33467102 C-13.01509568 6.41860495 -12.67981337 3.82933934 -12 1 C-9 0 -9 0 0 0 Z "
+        fill="#FC3A32"
+        transform="translate(255,65)"
+      /&gt;
+      &lt;path
+        d="M0 0 C0.33 0 0.66 0 1 0 C1 19.47 1 38.94 1 59 C-17.48 59 -35.96 59 -55 59 C-55 58.67 -55 58.34 -55 58 C-53.99582031 57.79246094 -52.99164063 57.58492188 -51.95703125 57.37109375 C-34.29829463 53.49324995 -19.63067695 45.1972991 -9.5625 29.68359375 C-3.83471357 19.84612056 -0.98334234 11.30843686 0 0 Z "
+        fill="#F4F6F7"
+        transform="translate(511,453)"
+      /&gt;
+      &lt;path
+        d="M0 0 C0.33 0 0.66 0 1 0 C1.1959375 0.99257813 1.391875 1.98515625 1.59375 3.0078125 C5.40187504 20.83575752 14.01651637 34.72281582 29.22265625 45.21484375 C37.84140559 50.75460247 45.90023564 53.20998413 56 55 C56 55.33 56 55.66 56 56 C37.52 56 19.04 56 0 56 C0 37.52 0 19.04 0 0 Z "
+        fill="#F4F6F7"
+        transform="translate(0,456)"
+      /&gt;
+      &lt;path
+        d="M0 0 C4.62 0 9.24 0 14 0 C14 26.4 14 52.8 14 80 C9.05 80 4.1 80 -1 80 C-1.02255131 69.71695071 -1.04091525 59.43391772 -1.05181217 49.15084934 C-1.05704093 44.3765172 -1.06413844 39.60220279 -1.07543945 34.82788086 C-1.0862686 30.22433738 -1.09227689 25.62081101 -1.09487724 21.01725578 C-1.09673144 19.25690377 -1.10035196 17.49655274 -1.10573006 15.73620796 C-1.11294086 13.27927723 -1.11399093 10.82241805 -1.11352539 8.36547852 C-1.11712067 7.63036545 -1.12071594 6.89525238 -1.12442017 6.13786316 C-1.11405216 1.11405216 -1.11405216 1.11405216 0 0 Z M1 2 C0.01189956 6.11241022 -0.12092213 9.95346357 -0.11352539 14.17700195 C-0.11367142 14.87998917 -0.11381744 15.58297638 -0.1139679 16.30726624 C-0.11327441 18.61763659 -0.10550857 20.92792508 -0.09765625 23.23828125 C-0.09579006 24.84539241 -0.09436711 26.45250415 -0.09336853 28.05961609 C-0.08955915 32.27968937 -0.07974239 36.49972797 -0.06866455 40.7197876 C-0.05841643 45.02998384 -0.05386363 49.3401857 -0.04882812 53.65039062 C-0.03811867 62.10027629 -0.02106127 70.55013383 0 79 C4.29 79 8.58 79 13 79 C13 53.26 13 27.52 13 1 C4.89597867 0.52565835 4.89597867 0.52565835 1 2 Z "
+        fill="#EF3F3B"
+        transform="translate(242,64)"
+      /&gt;
+      &lt;path
+        d="M0 0 C2.05078125 0.03255208 4.1015625 0.06510417 6.15234375 0.09765625 C3.50495459 1.55828475 2.25786041 2.09765625 -0.84765625 2.09765625 C-0.84765625 27.83765625 -0.84765625 53.57765625 -0.84765625 80.09765625 C-1.50765625 80.09765625 -2.16765625 80.09765625 -2.84765625 80.09765625 C-2.87078001 69.81461087 -2.8885715 59.53157163 -2.89946842 49.24850559 C-2.90469718 44.47417345 -2.91179469 39.69985904 -2.9230957 34.92553711 C-2.93392485 30.32199363 -2.93993314 25.71846726 -2.94253349 21.11491203 C-2.94438769 19.35456002 -2.94800821 17.59420899 -2.95338631 15.83386421 C-2.96059711 13.37693348 -2.96164718 10.9200743 -2.96118164 8.46313477 C-2.96477692 7.7280217 -2.96837219 6.99290863 -2.97207642 6.23551941 C-2.95953054 0.15642339 -2.95953054 0.15642339 0 0 Z "
+        fill="#CE524C"
+        transform="translate(243.84765625,63.90234375)"
+      /&gt;
+      &lt;path
+        d="M0 0 C10.89 0 21.78 0 33 0 C32.01 0.99 31.02 1.98 30 3 C30 3.66 30 4.32 30 5 C29.34257812 4.87882813 28.68515625 4.75765625 28.0078125 4.6328125 C18.7140266 2.99569574 9.38067159 1.97975903 0 1 C0 0.67 0 0.34 0 0 Z "
+        fill="#E8F0F4"
+        transform="translate(264,0)"
+      /&gt;
+      &lt;path
+        d="M0 0 C0.33 0 0.66 0 1 0 C1 5.94 1 11.88 1 18 C0.67 18 0.34 18 0 18 C-0.66 12.72 -1.32 7.44 -2 2 C-1.34 2 -0.68 2 0 2 C0 1.34 0 0.68 0 0 Z "
+        fill="#E9F0F8"
+        transform="translate(511,72)"
+      /&gt;
+      &lt;path
+        d="M0 0 C0.33 0 0.66 0 1 0 C1 4.95 1 9.9 1 15 C0.01 15 -0.98 15 -2 15 C-1.34 10.05 -0.68 5.1 0 0 Z "
+        fill="#DFEBF5"
+        transform="translate(511,453)"
+      /&gt;
+      &lt;path
+        d="M0 0 C0.66 0.33 1.32 0.66 2 1 C-0.475 4.465 -0.475 4.465 -3 8 C-3.66 7.67 -4.32 7.34 -5 7 C-2.25 1.125 -2.25 1.125 0 0 Z "
+        fill="#9DB4C3"
+        transform="translate(502,479)"
+      /&gt;
+    &lt;/svg&gt;
+  )
+}
+&nbsp;
+export default WeightIcon
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-04-10T09:11:41.435Z
+            </div>
+        <script src="../../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../../sorter.js"></script>
+        <script src="../../../../block-navigation.js"></script>
+    </body>
+</html>
+    

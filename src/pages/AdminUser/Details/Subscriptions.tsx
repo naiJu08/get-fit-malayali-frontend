@@ -2178,8 +2178,9 @@ export default function Subscriptions({
         return
       }
 
-      // Fetch logo
+      // Fetch logo and plate
       let base64Logo: string | null = null
+      let base64Plate: string | null = null
       try {
         const logoUrl = '/gfm-logo.png'
         const logoResponse = await fetch(logoUrl)
@@ -2190,8 +2191,45 @@ export default function Subscriptions({
           reader.onerror = reject
           reader.readAsDataURL(blob)
         })
+
+        const plateUrl = '/diet_plate.jpg'
+        const plateResponse = await fetch(plateUrl)
+        if (plateResponse.ok) {
+          const pb = await plateResponse.blob()
+          const pBase = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onloadend = () => resolve(reader.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(pb)
+          })
+
+          base64Plate = await new Promise<string>((resolve) => {
+            const img = new Image()
+            img.onload = () => {
+              const canvas = document.createElement('canvas')
+              const size = Math.min(img.width, img.height)
+              canvas.width = size
+              canvas.height = size
+              const ctx = canvas.getContext('2d')
+              if (ctx) {
+                ctx.beginPath()
+                ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
+                ctx.closePath()
+                ctx.clip()
+                const dx = (size - img.width) / 2
+                const dy = (size - img.height) / 2
+                ctx.drawImage(img, dx, dy, img.width, img.height)
+                resolve(canvas.toDataURL('image/png'))
+              } else {
+                resolve(pBase)
+              }
+            }
+            img.onerror = () => resolve(pBase)
+            img.src = pBase
+          })
+        }
       } catch (err) {
-        console.warn('Could not load logo for PDF', err)
+        console.warn('Could not load images for PDF', err)
       }
 
       // Create PDF
@@ -2200,15 +2238,15 @@ export default function Subscriptions({
       const pageHeight = pdf.internal.pageSize.getHeight()
 
       // DRASCTICALLY REDUCED Layout variables
-      const gap = 10
+      const gap = 3
       const sidebarW = 20 // Very thin sidebar
-      const marginX = gap + sidebarW + 10 // Text margin pulled much further left
+      const marginX = gap + sidebarW + 5 // Reduced left margin
       const rightMargin = 15
       const contentWidth = pageWidth - marginX - rightMargin
 
       const drawBackground = () => {
-        const topbarH = 10 // Thinner top bar
-        const curveR = 10 // Tighter inner curve
+        const topbarH = 6 // Thinner top bar
+        const curveR = 6 // Tighter inner curve
         const topCornerR = 15 // Slightly smaller top-left cutout
         const barHeight = 5
 
@@ -2336,8 +2374,8 @@ export default function Subscriptions({
 
         // 6. Logo container and placement (MUCH SMALLER)
         const logoCenterX = gap + sidebarW / 2
-        const logoCenterY = gap + 16
-        const logoCircleR = 10 // Drastically smaller white circle
+        const logoCenterY = gap + 28
+        const logoCircleR = 7 // Drastically smaller white circle
 
         pdf.setFillColor(255, 255, 255)
         pdf.setDrawColor(22, 60, 92)
@@ -2345,7 +2383,7 @@ export default function Subscriptions({
         pdf.circle(logoCenterX, logoCenterY, logoCircleR, 'FD')
 
         if (base64Logo) {
-          const logoSize = 11 // Tiny logo
+          const logoSize = 9 // Tiny logo
           pdf.addImage(
             base64Logo,
             'PNG',
@@ -2355,21 +2393,6 @@ export default function Subscriptions({
             logoSize
           )
         }
-
-        // 7. Bottom colored bars
-        const barWidth = pageWidth / 4
-
-        pdf.setFillColor(44, 193, 203) // Turquoise
-        pdf.rect(0, pageHeight - barHeight, barWidth, barHeight, 'F')
-
-        pdf.setFillColor(231, 61, 142) // Pink
-        pdf.rect(barWidth, pageHeight - barHeight, barWidth, barHeight, 'F')
-
-        pdf.setFillColor(29, 137, 219) // Blue
-        pdf.rect(barWidth * 2, pageHeight - barHeight, barWidth, barHeight, 'F')
-
-        pdf.setFillColor(22, 60, 92) // Dark Blue
-        pdf.rect(barWidth * 3, pageHeight - barHeight, barWidth, barHeight, 'F')
       }
 
       drawBackground()
@@ -2377,17 +2400,17 @@ export default function Subscriptions({
       let yPosition = gap + 25 // Adjusted starting height for text
 
       // Helper function to add text
-      const addText = (
-        text: string,
-        fontSize = 10,
-        fontStyle = 'normal',
-        xOffset = 0
-      ) => {
-        pdf.setFont('helvetica', fontStyle as any)
-        pdf.setFontSize(fontSize)
-        pdf.text(text, marginX + xOffset, yPosition)
-        yPosition += fontSize * 0.5 + 2
-      }
+      // const addText = (
+      //   text: string,
+      //   fontSize = 10,
+      //   fontStyle = 'normal',
+      //   xOffset = 0
+      // ) => {
+      //   pdf.setFont('helvetica', fontStyle as any)
+      //   pdf.setFontSize(fontSize)
+      //   pdf.text(text, marginX + xOffset, yPosition)
+      //   yPosition += fontSize * 0.5 + 2
+      // }
 
       // Helper function to check page break
       const checkPageBreak = (requiredHeight: number) => {
@@ -2398,19 +2421,70 @@ export default function Subscriptions({
         }
       }
 
-      // Title
-      pdf.setTextColor(0, 0, 0)
-      pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(18)
-      pdf.text('Diet Template Details', marginX, yPosition)
-      yPosition += 10
+      // Data for header
+      const clientName = (
+        user?.display_name ||
+        user?.name ||
+        'N/A'
+      ).toUpperCase()
+      const clientAge = user?.date_of_birth
+        ? moment().diff(moment(user.date_of_birth), 'years')
+        : 'N/A'
+      let clientBmi = 'N/A'
+      if (user?.weight && user?.height) {
+        const heightInMeters = user.height / 100
+        clientBmi = (user.weight / (heightInMeters * heightInMeters)).toFixed(1)
+      }
+      const planName = (
+        overview?.subscription?.plan_name ||
+        user?.subscribed_plan?.plan?.name ||
+        'N/A'
+      ).toUpperCase()
+      const templateName = (
+        dietPlansData[0]?.diet_plan_template_name || 'N/A'
+      ).toUpperCase()
 
-      // Template basic info
-      const templateName =
-        dietPlansData[0]?.diet_plan_template_name || 'Unknown Template'
-      addText(`Template Name: ${templateName}`, 14, 'bold')
-      addText(`Total Meals: ${dietPlansData.length}`, 10, 'normal')
-      yPosition += 8
+      // Header Section (drawn row by row)
+      let headerY = gap + 15
+      const headerLineHeight = 7
+
+      pdf.setFont('times', 'bold')
+      pdf.setFontSize(10)
+      pdf.setTextColor(24, 60, 92) // Dark Blue
+
+      const headerRows = [
+        `NAME: ${clientName}`,
+        `AGE: ${clientAge}`,
+        `BMI: ${clientBmi}`,
+        `PLAN: ${planName}`,
+        `DIET PLAN: ${templateName}`,
+      ]
+
+      headerRows.forEach((row) => {
+        pdf.text(row, marginX, headerY)
+        headerY += headerLineHeight
+      })
+
+      // Add plate image at the right of the header section
+      if (base64Plate) {
+        const plateSize = 35 // Increased size
+        pdf.addImage(
+          base64Plate,
+          'PNG', // Using PNG because canvas converted it to preserved transparency
+          pageWidth - rightMargin - plateSize,
+          gap + 10, // Positioned within header section
+          plateSize,
+          plateSize
+        )
+      }
+
+      // pdf.setDrawColor(200, 200, 200)
+      // pdf.setLineWidth(0.1)
+      // pdf.line(marginX, headerY + 8, pageWidth - rightMargin, headerY + 8) // Line moved down
+
+      // Title (Shifted down below header)
+      yPosition = headerY + 10
+      yPosition += 2
 
       // Group diet plans by day_number
       const groupedByDay = dietPlansData.reduce((acc: any, plan: any) => {
@@ -2430,13 +2504,33 @@ export default function Subscriptions({
       sortedDays.forEach((dayNum) => {
         checkPageBreak(25)
 
-        // Day header with background
-        pdf.setFillColor(52, 73, 94)
-        pdf.rect(marginX, yPosition - 4, contentWidth, 8, 'F')
-        pdf.setTextColor(255, 255, 255)
-        pdf.setFont('helvetica', 'bold')
+        // Day header with background matching sidebar gradient at option position
+        // Calculate sidebar color at this y position
+        const rStart = 138,
+          gStart = 185,
+          bStart = 235
+        const rEnd = 240,
+          gEnd = 248,
+          bEnd = 255
+        const topbarH = 6
+        const barHeight = 5
+        const ratio =
+          (yPosition - (gap + topbarH)) /
+          (pageHeight - barHeight - (gap + topbarH))
+        const r = rStart + (rEnd - rStart) * ratio
+        const g = gStart + (gEnd - gStart) * ratio
+        const b = bStart + (bEnd - bStart) * ratio
+
+        pdf.setFillColor(Math.round(r), Math.round(g), Math.round(b)) // Sidebar gradient color at this position
+        pdf.rect(gap, yPosition - 4, contentWidth + sidebarW + gap, 8, 'F') // Extend to merge with sidebar
+        pdf.setTextColor(22, 60, 92) // Dark text for contrast against light background
+        pdf.setFont('times', 'bold')
         pdf.setFontSize(11)
-        pdf.text(`Option- ${dayNum}`, marginX + 3, yPosition)
+        const optionText = `Option- ${dayNum}`
+        const optionBarTop = yPosition - 4
+        const optionBarHeight = 8
+        const optionTextY = optionBarTop + optionBarHeight / 2 + 1
+        pdf.text(optionText, marginX, optionTextY)
         pdf.setTextColor(0, 0, 0)
         yPosition += 8
 
@@ -2451,10 +2545,8 @@ export default function Subscriptions({
         dayPlans.forEach((dietPlan: any) => {
           checkPageBreak(20)
 
-          // Meal header with light background
-          pdf.setFillColor(241, 245, 249)
-          pdf.rect(marginX + 3, yPosition - 3, contentWidth - 6, 7, 'F')
-          pdf.setFont('helvetica', 'bold')
+          // Meal header without background
+          pdf.setFont('times', 'bold')
           pdf.setFontSize(10)
           pdf.text(
             `${dietPlan.meal_time || 'Meal'} - ${dietPlan.effective_total_calories || 0} kcal`,
