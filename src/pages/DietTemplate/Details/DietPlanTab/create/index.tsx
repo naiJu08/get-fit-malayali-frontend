@@ -178,10 +178,11 @@ const DietPlanForm = ({
   const selectedDayNumber = watch('day_number')
   const searchParams = {
     page: 1,
-    per_page: 999,
+    per_page: 998,
     search: '',
     ordering: '',
     meal_time: selectedMealTime || undefined,
+    status: 'active',
   }
 
   const { data: mealsData, refetch: refetchMeals } = useMeals(

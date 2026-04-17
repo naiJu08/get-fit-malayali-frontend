@@ -26,6 +26,7 @@ type DetailTileProps = {
   setGroupNameCode?: any
   permissions?: any
   checkPermission?: boolean
+  bulkChangeButton?: React.ReactNode
 }
 
 const ListingHeader: React.FC<DetailTileProps> = ({
@@ -37,6 +38,7 @@ const ListingHeader: React.FC<DetailTileProps> = ({
   groupValue,
   setGroupNameCode,
   checkPermission,
+  bulkChangeButton,
 }) => {
   return (
     <div className="px-5 py-3 flex justify-between flex-wrap gap-3 items-center bg-white border-b border-formBorder">
@@ -68,6 +70,7 @@ const ListingHeader: React.FC<DetailTileProps> = ({
         )}
       </div>
       <div className="flex gap-2">
+        {bulkChangeButton}
         <div>
           {/* {checkPermission?.('export') && (
             <>
