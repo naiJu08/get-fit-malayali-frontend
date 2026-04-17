@@ -93,6 +93,9 @@ const MealDetail: React.FC = () => {
               <DetailItem label="Name" value={toTitleCase(meal?.name)} />
               <DetailItem label="Meal Time" value={meal?.meal_time} />
               <DetailItem label="Meal Category" value={meal?.meal_category} />
+              <StatusDetailItem label="Status" value={meal?.status} />
+              <DetailItem label="Source" value={meal?.source} />
+
               <DetailItem label="Serving Unit" value={meal?.serving_unit} />
               {/* <DetailItem
                 label="Default Serving Quantity"
@@ -154,6 +157,31 @@ function DetailItem({ label, value }: { label: string; value: any }) {
         ) : (
           safeStr(value)
         )}
+      </div>
+    </div>
+  )
+}
+
+function StatusDetailItem({ label, value }: { label: string; value: any }) {
+  const isActive =
+    (typeof value === 'boolean' && value === true) ||
+    (typeof value === 'number' && value === 1) ||
+    (typeof value === 'string' &&
+      (value === '1' ||
+        value.toLowerCase() === 'true' ||
+        value.toLowerCase() === 'active'))
+
+  return (
+    <div className="border rounded-lg p-3 bg-white">
+      <div className="text-xs text-gray-500 mb-1">{label}</div>
+      <div className="text-sm">
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+            isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+          }`}
+        >
+          {isActive ? 'Active' : 'Inactive'}
+        </span>
       </div>
     </div>
   )

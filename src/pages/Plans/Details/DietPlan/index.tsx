@@ -196,7 +196,6 @@ export default function DietPlanIndex({
 
   const openEdit = (row: any) => {
     setEditMode(true)
-    console.log('EDIT ROW', row)
 
     setFormValues({
       id: row?.id,

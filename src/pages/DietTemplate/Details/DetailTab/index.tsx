@@ -59,11 +59,11 @@ export default function DetailTab({
             <div className="">
               <div className="border rounded-lg p-3 bg-white ">
                 <div className="text-xs text-gray-500 mb-2">Thumbnail</div>
-                <div className="relative w-80">
+                <div className="relative w-64">
                   <img
                     src={t}
                     alt="Diet template thumbnail"
-                    className="w-[12rem] h-[12rem] object-cover rounded"
+                    className="w-[7.25rem] h-[7.25rem] object-cover rounded"
                     onError={(e) => {
                       ;(e.currentTarget as HTMLImageElement).style.display =
                         'none'
