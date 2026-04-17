@@ -178,7 +178,7 @@ const DietPlanForm = ({
   const selectedDayNumber = watch('day_number')
   const searchParams = {
     page: 1,
-    per_page: 998,
+    per_page: 999,
     search: '',
     ordering: '',
     meal_time: selectedMealTime || undefined,
