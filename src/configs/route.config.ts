@@ -69,7 +69,7 @@ const DASHBOARD: RouterMenuProps = {
   icon: 'dashboard-icon',
   label: 'Dashboard',
   key: 'dashboard',
-  permission_slugs: ['superadmin', 'nutritionist'],
+  permission_slugs: ['superadmin', 'nutritionist', 'user'],
   // permission_slugs: [
   //   domainTypes['EMPLOYEE'],
   //   domainTypes['ORGANISATION'],
