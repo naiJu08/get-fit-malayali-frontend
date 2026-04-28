@@ -4,6 +4,7 @@ import {
   postData,
   updateData,
   deleteData,
+  patchData,
 } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import { QueryParams } from '../../common/types'
@@ -133,4 +134,44 @@ export const useServingUnits = (mealCategoryId?: number) => {
       enabled: mealCategoryId != null,
     }
   )
+}
+
+export const bulkStatusChange = (payload: {
+  ids: number[]
+  status: string
+}) => {
+  console.log('Bulk PATCH status change API call:', {
+    url: apiUrl.MEALS_STATUS_CHANGE,
+    payload,
+  })
+  return patchData(apiUrl.MEALS_STATUS_CHANGE, payload)
+}
+
+export const useBulkStatusChange = () => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
+
+  return useMutation(bulkStatusChange, {
+    onSuccess: () => {
+      enqueueSnackbar('Status changed successfully', { variant: 'success' })
+      queryClient.invalidateQueries({ queryKey: ['meals_list'] })
+    },
+    onError: (error: any) => {
+      console.error('Bulk status change error:', error)
+      console.error('Error response:', error?.response)
+      console.error('Error data:', error?.response?.data)
+
+      const errorData = error?.response?.data
+      if (Array.isArray(errorData?.errors)) {
+        // Show the first error message from the array
+        console.log('Error messages:', errorData.errors)
+        enqueueSnackbar(errorData.errors[0], { variant: 'error' })
+      } else {
+        console.log('Single error message:', errorData?.message)
+        enqueueSnackbar(errorData?.message || 'Failed to change status', {
+          variant: 'error',
+        })
+      }
+    },
+  })
 }

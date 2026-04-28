@@ -182,6 +182,7 @@ const DietPlanForm = ({
     search: '',
     ordering: '',
     meal_time: selectedMealTime || undefined,
+    status: 'active',
   }
 
   const { data: mealsData, refetch: refetchMeals } = useMeals(

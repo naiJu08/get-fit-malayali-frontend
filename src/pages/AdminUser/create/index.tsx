@@ -419,6 +419,7 @@ export default function CreateAdmin({
       label: 'Date of Birth',
       type: 'date',
       required: true,
+      maxDate: new Date(), // Disable future dates, only allow today and past dates
     },
     // {
     //   name: 'status',

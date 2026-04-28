@@ -189,6 +189,7 @@ export interface QueryParams {
   type?: string
   currentDomain?: string
   parent_id?: string | number
+  status?: string
 }
 export interface SearchParams {
   search?: string
