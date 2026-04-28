@@ -2,3 +2,7 @@
 node_modules
 # Previously ignoring domainManageStore.ts caused build failures
 # /src/store/domainManageStore.ts
+
+# Coverage reports
+coverage/
+*.lcov
