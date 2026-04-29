@@ -31,6 +31,18 @@ type Props = {
   editViewIndicator?: boolean
 }
 
+export const getFileName = (path?: string) => {
+  if (!path) return ''
+
+  const fileName = path.split('/').pop() || ''
+  return decodeURIComponent(fileName).replace(/%/g, '')
+}
+
+export const capitalizeWords = (val?: string) => {
+  if (!val) return ''
+  return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
+}
+
 export default function CreateAdmin({
   isDrawerOpen,
   handleClose,
@@ -76,12 +88,6 @@ export default function CreateAdmin({
     const seconds = parseInt(parts[1] || '0', 10)
     if (Number.isNaN(minutes) || Number.isNaN(seconds)) return null
     return Math.max(0, (minutes * 60 + seconds) * 1000)
-  }
-  const getFileName = (path?: string) => {
-    if (!path) return ''
-
-    const fileName = path.split('/').pop() || ''
-    return decodeURIComponent(fileName).replace(/%/g, '')
   }
   const onSuccess = () => {
     handleSubmission()
@@ -174,10 +180,6 @@ export default function CreateAdmin({
     setVideoDurationMs(null)
     handleRefresh?.()
     handleClearAndClose()
-  }
-  const capitalizeWords = (val?: string) => {
-    if (!val) return ''
-    return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
   }
   useEffect(() => {
     if (isDrawerOpen && edit && !viewMode && rowData) {

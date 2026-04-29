@@ -60,7 +60,8 @@ describe('Categories API', () => {
       ;(require('@tanstack/react-query').useMutation as jest.Mock) =
         mockUseMutation
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;(
+      ;// eslint-disable-next-line @typescript-eslint/no-var-requires
+      (
         require('../../../components/common/snackbar')
           .useSnackbarManager as jest.Mock
       ).mockReturnValue({
@@ -87,7 +88,8 @@ describe('Categories API', () => {
       ;(require('@tanstack/react-query').useMutation as jest.Mock) =
         mockUseMutation
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;(
+      ;// eslint-disable-next-line @typescript-eslint/no-var-requires
+      (
         require('../../../components/common/snackbar')
           .useSnackbarManager as jest.Mock
       ).mockReturnValue({
@@ -116,7 +118,8 @@ describe('Categories API', () => {
       ;(require('@tanstack/react-query').useMutation as jest.Mock) =
         mockUseMutation
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;(
+      ;// eslint-disable-next-line @typescript-eslint/no-var-requires
+      (
         require('../../../components/common/snackbar')
           .useSnackbarManager as jest.Mock
       ).mockReturnValue({
@@ -143,7 +146,8 @@ describe('Categories API', () => {
       ;(require('@tanstack/react-query').useMutation as jest.Mock) =
         mockUseMutation
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;(
+      ;// eslint-disable-next-line @typescript-eslint/no-var-requires
+      (
         require('../../../components/common/snackbar')
           .useSnackbarManager as jest.Mock
       ).mockReturnValue({
@@ -239,8 +243,8 @@ describe('Categories API', () => {
         .fn()
         .mockRejectedValue(new Error('Network Error'))
       ;(apiHelpers.getData as jest.Mock) = mockGetData
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;(
+      ;// eslint-disable-next-line @typescript-eslint/no-var-requires
+      (
         require('../../../utilities/parsers').parseQueryParams as jest.Mock
       ).mockReturnValue('?parent_id=123&page=1')
 
