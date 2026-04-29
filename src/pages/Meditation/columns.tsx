@@ -17,6 +17,8 @@ const truncateText = (value?: string, limit = 40) => {
   return `${trimmed.slice(0, limit).trim()}…`
 }
 
+export { truncateText }
+
 export const getColumns = ({
   onNameClick,
   disableNameLink = false,
