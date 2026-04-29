@@ -68,6 +68,13 @@
     "test": "react-scripts test",
     "test:coverage": "react-scripts test --coverage --watchAll=false",
     "test:coverage:watch": "react-scripts test --coverage",
+    "test:meditation": "react-scripts test --testPathPattern=Meditation --testPathIgnorePatterns=coverage.config.js --watchAll=false",
+    "test:meditation:watch": "react-scripts test --testPathPattern=Meditation --testPathIgnorePatterns=coverage.config.js",
+    "test:meditation:coverage": "react-scripts test --testPathPattern=Meditation --testPathIgnorePatterns=coverage.config.js --coverage --watchAll=false",
+    "test:meditation:ci": "react-scripts test --testPathPattern=Meditation --testPathIgnorePatterns=coverage.config.js --coverage --watchAll=false --ci",
+    "test:meditation:all": "react-scripts test --testPathPattern=Meditation --testPathIgnorePatterns=coverage.config.js --coverage",
+     "test:meditation:custom": "jest --config=jest.config.js --coverage",
+    "test:meditation:custom:watch": "jest --config=jest.config.js --coverage --watch",
     "lint": "eslint \"./src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint --fix \"./src/**/*.{js,jsx,ts,tsx}\"",
     "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,json,css,scss,md}'",
@@ -81,12 +88,27 @@
     ]
   },
   "jest": {
-    "transformIgnorePatterns": [
-      "node_modules/(?!(axios|react-datepicker)/)"
-    ],
-    "moduleNameMapper": {
-      "\\.(css|less|scss|sass)$": "identity-obj-proxy"
+     "transformIgnorePatterns": [
+    "node_modules/(?!(axios|react-datepicker)/)"
+  ],
+  "moduleNameMapper": {
+    "\\.(css|less|scss|sass)$": "identity-obj-proxy"
+  },
+  "collectCoverageFrom": [
+    "src/pages/Meditation/**/*.{ts,tsx}",
+    "!src/pages/Meditation/**/*.d.ts",
+    "!src/pages/Meditation/__tests__/**",
+    "!src/pages/Meditation/index.tsx"
+  ],
+  "coverageThreshold": {
+    "global": {
+      "branches": 70,
+      "functions": 70,
+      "lines": 70,
+      "statements": 70
     }
+  },
+  "coverageReporters": ["text", "html", "lcov", "json-summary"]
   },
   "prettier": {
     "semi": false,
