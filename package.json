@@ -75,6 +75,8 @@
     "test:meditation:all": "react-scripts test --testPathPattern=Meditation --testPathIgnorePatterns=coverage.config.js --coverage",
      "test:meditation:custom": "jest --config=jest.config.js --coverage",
     "test:meditation:custom:watch": "jest --config=jest.config.js --coverage --watch",
+    "test:yoga": "react-scripts test --testPathPattern=Yoga/__tests__",
+    "test:yoga:coverage": "react-scripts test --coverage --testPathPattern=Yoga/__tests__",
     "lint": "eslint \"./src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint --fix \"./src/**/*.{js,jsx,ts,tsx}\"",
     "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,json,css,scss,md}'",
