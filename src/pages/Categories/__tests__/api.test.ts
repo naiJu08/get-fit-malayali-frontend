@@ -39,8 +39,9 @@ describe('Categories API', () => {
   describe('useCategoriesList', () => {
     test('should call useQuery with correct parameters', () => {
       const mockUseQuery = jest.fn()
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;(require('@tanstack/react-query').useQuery as jest.Mock) = mockUseQuery
+      jest.mock('@tanstack/react-query', () => ({
+        useQuery: jest.fn().mockReturnValue(mockUseQuery),
+      }))
 
       const input = { page: 1, limit: 10 }
       useCategoriesList(input)
@@ -56,17 +57,14 @@ describe('Categories API', () => {
     test('should call useMutation with correct parameters', () => {
       const mockUseMutation = jest.fn()
       const mockEnqueueSnackbar = jest.fn()
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;(require('@tanstack/react-query').useMutation as jest.Mock) =
-        mockUseMutation
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;// eslint-disable-next-line @typescript-eslint/no-var-requires
-      (
-        require('../../../components/common/snackbar')
-          .useSnackbarManager as jest.Mock
-      ).mockReturnValue({
-        enqueueSnackbar: mockEnqueueSnackbar,
-      })
+      jest.mock('@tanstack/react-query', () => ({
+        useMutation: jest.fn().mockReturnValue(mockUseMutation),
+      }))
+      jest.mock('../../../components/common/snackbar', () => ({
+        useSnackbarManager: jest.fn().mockReturnValue({
+          enqueueSnackbar: mockEnqueueSnackbar,
+        }),
+      }))
 
       const onSuccess = jest.fn()
       const successMessage = 'Test Success'
@@ -84,17 +82,14 @@ describe('Categories API', () => {
     test('should call onSuccess callback when mutation succeeds', () => {
       const mockUseMutation = jest.fn()
       const mockEnqueueSnackbar = jest.fn()
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;(require('@tanstack/react-query').useMutation as jest.Mock) =
-        mockUseMutation
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;// eslint-disable-next-line @typescript-eslint/no-var-requires
-      (
-        require('../../../components/common/snackbar')
-          .useSnackbarManager as jest.Mock
-      ).mockReturnValue({
-        enqueueSnackbar: mockEnqueueSnackbar,
-      })
+      jest.mock('@tanstack/react-query', () => ({
+        useMutation: jest.fn().mockReturnValue(mockUseMutation),
+      }))
+      jest.mock('../../../components/common/snackbar', () => ({
+        useSnackbarManager: jest.fn().mockReturnValue({
+          enqueueSnackbar: mockEnqueueSnackbar,
+        }),
+      }))
 
       const onSuccess = jest.fn()
       const successMessage = 'Test Success'
@@ -114,17 +109,14 @@ describe('Categories API', () => {
     test('should call useMutation with correct parameters', () => {
       const mockUseMutation = jest.fn()
       const mockEnqueueSnackbar = jest.fn()
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;(require('@tanstack/react-query').useMutation as jest.Mock) =
-        mockUseMutation
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;// eslint-disable-next-line @typescript-eslint/no-var-requires
-      (
-        require('../../../components/common/snackbar')
-          .useSnackbarManager as jest.Mock
-      ).mockReturnValue({
-        enqueueSnackbar: mockEnqueueSnackbar,
-      })
+      jest.mock('@tanstack/react-query', () => ({
+        useMutation: jest.fn().mockReturnValue(mockUseMutation),
+      }))
+      jest.mock('../../../components/common/snackbar', () => ({
+        useSnackbarManager: jest.fn().mockReturnValue({
+          enqueueSnackbar: mockEnqueueSnackbar,
+        }),
+      }))
 
       const onSuccess = jest.fn()
       const successMessage = 'Test Update Success'
@@ -142,17 +134,14 @@ describe('Categories API', () => {
     test('should call onSuccess callback when update succeeds', () => {
       const mockUseMutation = jest.fn()
       const mockEnqueueSnackbar = jest.fn()
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;(require('@tanstack/react-query').useMutation as jest.Mock) =
-        mockUseMutation
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ;// eslint-disable-next-line @typescript-eslint/no-var-requires
-      (
-        require('../../../components/common/snackbar')
-          .useSnackbarManager as jest.Mock
-      ).mockReturnValue({
-        enqueueSnackbar: mockEnqueueSnackbar,
-      })
+      jest.mock('@tanstack/react-query', () => ({
+        useMutation: jest.fn().mockReturnValue(mockUseMutation),
+      }))
+      jest.mock('../../../components/common/snackbar', () => ({
+        useSnackbarManager: jest.fn().mockReturnValue({
+          enqueueSnackbar: mockEnqueueSnackbar,
+        }),
+      }))
 
       const onSuccess = jest.fn()
       const successMessage = 'Test Update Success'
@@ -243,10 +232,9 @@ describe('Categories API', () => {
         .fn()
         .mockRejectedValue(new Error('Network Error'))
       ;(apiHelpers.getData as jest.Mock) = mockGetData
-      ;// eslint-disable-next-line @typescript-eslint/no-var-requires
-      (
-        require('../../../utilities/parsers').parseQueryParams as jest.Mock
-      ).mockReturnValue('?parent_id=123&page=1')
+      jest.mock('../../../utilities/parsers', () => ({
+        parseQueryParams: jest.fn().mockReturnValue('?parent_id=123&page=1'),
+      }))
 
       await expect(getSubCategories('123')).rejects.toThrow('Network Error')
     })
