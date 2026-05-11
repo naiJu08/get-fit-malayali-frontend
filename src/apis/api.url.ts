@@ -33,6 +33,7 @@ const SUBSCRIPTION_CALENDAR = '/admin/users'
 const USER_REMINDERS = '/user_reminders'
 const SUBSCRIPTION_HISTORY = '/subscriptions/user_history'
 const USER_MEAL_TIMINGS = '/user_meal_timings'
+const MEAL_TIMINGS = '/meal_timings'
 
 const ADMIN_DASHBOARD = 'admin/dashboard'
 const YOGA = '/yogas'
@@ -80,6 +81,7 @@ const apiUrl: { [key: string]: string } = {
   USER_REMINDERS,
   SUBSCRIPTION_HISTORY,
   USER_MEAL_TIMINGS,
+  MEAL_TIMINGS,
   ADMIN_DASHBOARD,
   YOGA,
   MEDITATION,

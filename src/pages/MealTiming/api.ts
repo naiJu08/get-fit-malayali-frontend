@@ -5,6 +5,7 @@ import { getData, postData, deleteData, updateData } from '../../apis/api.helper
 import { QueryParams } from '../../common/types'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { getErrorMessage, parseQueryParams } from '../../utilities/parsers'
+import apiUrl from '../../apis/api.url'
 
 // Disable non-login APIs for this build
 export const DISABLE_NONLOGIN_APIS = false
@@ -14,7 +15,7 @@ const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
 }
 
 const fetchData = async (input: QueryParams) => {
-  const url = buildUrlWithParams('/meal_timings', {
+  const url = buildUrlWithParams(apiUrl.MEAL_TIMINGS, {
     ...input,
   })
   const response = await getData(url)
@@ -26,19 +27,19 @@ export const useMealTimingList = (input: QueryParams) => {
 }
 
 export const getMealTimingDetails = (id: string) => {
-  return getData(`/meal_timings/${id}`)
+  return getData(`${apiUrl.MEAL_TIMINGS}/${id}`)
 }
 
 export const createMealTiming = (data: any) => {
-  return postData('/meal_timings', data)
+  return postData(apiUrl.MEAL_TIMINGS, data)
 }
 
 export const updateMealTiming = (id: string, data: any) => {
-  return updateData(`/meal_timings/${id}`, data)
+  return updateData(`${apiUrl.MEAL_TIMINGS}/${id}`, data)
 }
 
 export const deleteMealTiming = (id: string) => {
-  return deleteData(`/meal_timings/${id}`)
+  return deleteData(`${apiUrl.MEAL_TIMINGS}/${id}`)
 }
 
 // User meal timings (used in some edit flows)
@@ -54,7 +55,7 @@ export const updateUserMealTiming = (
     }
   }
 ) => {
-  const url = `https://api-getfitmalayali.inovace.in/api/v1/user_meal_timings?user_id=${userId}`
+  const url = `${apiUrl.USER_MEAL_TIMINGS}?user_id=${userId}`
   return postData(url, payload)
 }
 
