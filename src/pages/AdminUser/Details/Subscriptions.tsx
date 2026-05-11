@@ -2242,7 +2242,27 @@ export default function Subscriptions({
       const sidebarW = 20 // Very thin sidebar
       const marginX = gap + sidebarW + 5 // Reduced left margin
       const rightMargin = 15
-      const contentWidth = pageWidth - marginX - rightMargin
+      const genderValue =
+        user?.gender ?? user?.gender_id ?? user?.profile?.gender
+      const genderText = String(genderValue ?? '')
+        .trim()
+        .toLowerCase()
+      const isFemale =
+        genderValue === 1 ||
+        genderValue === '1' ||
+        genderText === 'female' ||
+        genderText === 'f'
+      const pdfPalette = isFemale
+        ? {
+            start: [244, 149, 185] as const,
+            end: [255, 238, 246] as const,
+            dark: [153, 27, 77] as const,
+          }
+        : {
+            start: [138, 185, 235] as const,
+            end: [240, 248, 255] as const,
+            dark: [22, 60, 92] as const,
+          }
 
       const drawBackground = () => {
         const topbarH = 6 // Thinner top bar
@@ -2251,12 +2271,8 @@ export default function Subscriptions({
         const barHeight = 5
 
         // Gradient color variables defined early for reuse
-        const rStart = 138,
-          gStart = 185,
-          bStart = 235
-        const rEnd = 240,
-          gEnd = 248,
-          bEnd = 255
+        const [rStart, gStart, bStart] = pdfPalette.start
+        const [rEnd, gEnd, bEnd] = pdfPalette.end
 
         // 1. Top bar
         pdf.setFillColor(rStart, gStart, bStart)
@@ -2378,7 +2394,11 @@ export default function Subscriptions({
         const logoCircleR = 7 // Drastically smaller white circle
 
         pdf.setFillColor(255, 255, 255)
-        pdf.setDrawColor(22, 60, 92)
+        pdf.setDrawColor(
+          pdfPalette.dark[0],
+          pdfPalette.dark[1],
+          pdfPalette.dark[2]
+        )
         pdf.setLineWidth(0.8)
         pdf.circle(logoCenterX, logoCenterY, logoCircleR, 'FD')
 
@@ -2450,7 +2470,11 @@ export default function Subscriptions({
 
       pdf.setFont('times', 'bold')
       pdf.setFontSize(10)
-      pdf.setTextColor(24, 60, 92) // Dark Blue
+      pdf.setTextColor(
+        pdfPalette.dark[0],
+        pdfPalette.dark[1],
+        pdfPalette.dark[2]
+      )
 
       const headerRows = [
         `NAME: ${clientName}`,
@@ -2506,12 +2530,8 @@ export default function Subscriptions({
 
         // Day header with background matching sidebar gradient at option position
         // Calculate sidebar color at this y position
-        const rStart = 138,
-          gStart = 185,
-          bStart = 235
-        const rEnd = 240,
-          gEnd = 248,
-          bEnd = 255
+        const [rStart, gStart, bStart] = pdfPalette.start
+        const [rEnd, gEnd, bEnd] = pdfPalette.end
         const topbarH = 6
         const barHeight = 5
         const ratio =
@@ -2522,13 +2542,19 @@ export default function Subscriptions({
         const b = bStart + (bEnd - bStart) * ratio
 
         pdf.setFillColor(Math.round(r), Math.round(g), Math.round(b)) // Sidebar gradient color at this position
-        pdf.rect(gap, yPosition - 4, contentWidth + sidebarW + gap, 8, 'F') // Extend to merge with sidebar
-        pdf.setTextColor(22, 60, 92) // Dark text for contrast against light background
+        const optionBarX = gap + sidebarW
+        const optionBarTop = yPosition - 4
+        const optionBarHeight = 8
+        const optionBarWidth = pageWidth - rightMargin - optionBarX
+        pdf.rect(optionBarX, optionBarTop, optionBarWidth, optionBarHeight, 'F')
+        pdf.setTextColor(
+          pdfPalette.dark[0],
+          pdfPalette.dark[1],
+          pdfPalette.dark[2]
+        ) // Dark text for contrast against light background
         pdf.setFont('times', 'bold')
         pdf.setFontSize(11)
         const optionText = `Option- ${dayNum}`
-        const optionBarTop = yPosition - 4
-        const optionBarHeight = 8
         const optionTextY = optionBarTop + optionBarHeight / 2 + 1
         pdf.text(optionText, marginX, optionTextY)
         pdf.setTextColor(0, 0, 0)
