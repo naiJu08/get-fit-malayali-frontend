@@ -111,11 +111,11 @@ const CustomDatePicker = (props: Props) => {
             onChange={(date) => handleDatePickerChange(date)}
             placeholderText={placeholder}
             className={` w-full textfield ${errorFlag && 'textfield-error'}`}
-            dateFormat={showTimeSelectOnly ? 'HH:mm' : 'dd-MM-yyyy'}
+            dateFormat={showTimeSelectOnly ? 'hh:mm aa' : 'dd-MM-yyyy'}
             showTimeSelect={showTimeSelect}
             showTimeSelectOnly={showTimeSelectOnly}
             timeIntervals={15}
-            timeFormat="HH:mm"
+            timeFormat="hh:mm aa"
             timeCaption="Time"
             selectsRange={selectRange}
             customInput={<input value={value} />}

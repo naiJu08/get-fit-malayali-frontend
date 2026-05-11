@@ -224,6 +224,27 @@ const NOTIFICATIONS: RouterMenuProps = {
   permission_slugs: ['superadmin'],
   isSidebarMenu: true,
 }
+const MEAL_TIMING: RouterMenuProps = {
+  id: 32,
+  path: '/mealtiming',
+  parent_id: null,
+  label: 'Meal Timing',
+  key: 'mealtiming',
+  icon: 'notification',
+  permission_slugs: ['superadmin'],
+  isSidebarMenu: true,
+}
+
+const MEAL_TIMING_DETAILS: RouterMenuProps = {
+  id: 33,
+  path: '/mealtiming/:id',
+  parent_id: 32,
+  isDetails: true,
+  icon: 'user',
+  label: 'Meal Timing Details',
+  key: 'mealtiming-details',
+  permission_slugs: [],
+}
 
 const WORKOUT_DETAILS: RouterMenuProps = {
   id: 28,
@@ -505,4 +526,6 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   MEDITATIONPLAN,
   DIET_TEMPLATE_DETAILS,
   DIET_TEMPLATE_DIET_PLAN,
+  MEAL_TIMING,
+  MEAL_TIMING_DETAILS,
 }

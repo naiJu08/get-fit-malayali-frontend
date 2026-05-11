@@ -50,11 +50,6 @@ window.addEventListener('navigate', (event) => {
   const path = customEvent.detail.path
   window.location.href = path
 })
-const navigateToHome = () => {
-  const event = new CustomEvent('navigate', { detail: { path: '/' } })
-  window.dispatchEvent(event)
-  // window.location.href = '/'
-}
 const handleSession = () => {
   const event = new CustomEvent('session-expired', { detail: { path: '/' } })
   window.dispatchEvent(event)
@@ -102,11 +97,8 @@ serverApi.interceptors.response.use(
       if (err.response.status && err.response.status === 404) {
         const errorObject: any = err.response.data
         showError(errorObject?.error?.message ?? 'Page not found')
-        setTimeout(() => {
-          navigateToHome()
-        }, 1000)
-
-        return
+        // Do not navigate away on API 404s; allow callers to handle the error.
+        return Promise.reject(err)
       }
       if (err.response.status && err.response.status === 401) {
         const refreshToken = useAuthStore.getState().refreshToken

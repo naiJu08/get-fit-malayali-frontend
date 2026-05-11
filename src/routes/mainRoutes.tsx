@@ -14,6 +14,8 @@ import SubscriptionDetailsMain from '../pages/Subscriptions/Details'
 import PaymentHistory from '../pages/PaymentHistory'
 import YogaPlanDetails from '../pages/Plans/Details/YogaPlan/details'
 import DietTemplateDetails from '../pages/DietTemplate/Details'
+import MealTimingMain from '../pages/MealTiming'
+import MealTimingDetails from '../pages/MealTiming/Details'
 //
 // Users sample page is no longer used for the Users route; using AdminUser instead
 
@@ -102,6 +104,8 @@ const routes: any = [
   { slug: 'PLAN_DETAILS_DIET', component: <PlanDetails /> },
   { slug: 'PAYMENT_HISTORY', component: <PaymentHistory /> },
   { slug: 'REMINDER_SETTINGS', component: <UserDetails /> },
+  { slug: 'MEAL_TIMING', component: <MealTimingMain /> },
+  { slug: 'MEAL_TIMING_DETAILS', component: <MealTimingDetails /> },
 
   {
     isAuthRoute: true,
