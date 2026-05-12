@@ -12,8 +12,444 @@ import { getData } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import { useAdminUser, DISABLE_NONLOGIN_APIS } from './api'
 import { getColumns } from './columns'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import Icons from '../../components/common/icons'
+import { getAdminDetails } from '../AdminUser/api'
+import moment from 'moment'
+const generateInvoice = async (row: any) => {
+  // Dynamically import jspdf and html2canvas
+  const { default: jsPDF } = await import('jspdf')
+  const { default: html2canvas } = await import('html2canvas')
+
+  // Fetch complete user details
+  let userDetails = {
+    name: row?.user_name || 'N/A',
+    userId: row?.user_id || 'N/A',
+    email: 'N/A',
+    phone: 'N/A',
+    dateOfBirth: 'N/A',
+    gender: 'N/A',
+    address: 'N/A',
+    state: 'N/A',
+    ethnicity: 'N/A',
+  }
+
+  try {
+    if (row?.user_id) {
+      const userResponse = await getAdminDetails(String(row.user_id))
+      const user = userResponse?.user || userResponse
+      if (user) {
+        userDetails = {
+          name: user?.name || user?.display_name || row?.user_name || 'N/A',
+          userId: user?.id || row?.user_id || 'N/A',
+          email: user?.email || user?.username || 'N/A',
+          phone: user?.phone || 'N/A',
+          dateOfBirth: user?.date_of_birth
+            ? moment(user.date_of_birth).format('YYYY-MM-DD')
+            : 'N/A',
+          gender: user?.gender,
+          address: user?.address || 'N/A',
+          state: user?.state || 'N/A',
+          ethnicity: user?.ethnicity || 'N/A',
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to fetch user details for invoice:', error)
+    // Continue with basic user details if API call fails
+  }
+
+  const invoiceData = {
+    invoiceNumber: `INV-${row?.id || Date.now()}`,
+    invoiceDate: moment().format('YYYY-MM-DD'),
+    subscriptionDetails: {
+      planName: row?.plan_name || 'N/A',
+      startDate: row?.start_date
+        ? moment(row.start_date).format('YYYY-MM-DD')
+        : 'N/A',
+      endDate: row?.end_date
+        ? moment(row.end_date).format('YYYY-MM-DD')
+        : 'N/A',
+      fees: row?.plan_fees || '0',
+      status: row?.status || 'N/A',
+    },
+    userDetails,
+    company: {
+      name: 'Get Fit Malayali',
+      logo: window.location.origin + '/logo-hori-removebg-preview.png',
+      address: 'Kerala, India',
+      email: 'support@getfitmalayali.com',
+      phone: '+91 98765 43210',
+    },
+    totals: {
+      subtotal: row?.plan_fees || '0',
+      tax: '0',
+      total: row?.plan_fees || '0',
+    },
+  }
+
+  const invoiceHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Invoice ${invoiceData.invoiceNumber}</title>
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background: white;
+          padding: 20px;
+          color: #333;
+        }
+        
+        .invoice-container {
+          max-width: 800px;
+          margin: 0 auto;
+          background: white;
+          border: 1px solid #ddd;
+          overflow: hidden;
+        }
+        
+        .invoice-header {
+          background: #1e3c72;
+          color: white;
+          padding: 30px;
+          position: relative;
+        }
+        
+        .header-content {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        
+        .company-info {
+          flex: 1;
+        }
+        
+        .company-logo {
+          font-size: 28px;
+          font-weight: bold;
+          margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        
+        .company-logo img {
+          height: 40px;
+          vertical-align: middle;
+        }
+        
+        .company-address {
+          font-size: 14px;
+          opacity: 0.9;
+        }
+        
+        .invoice-info {
+          text-align: right;
+        }
+        
+        .invoice-title {
+          font-size: 36px;
+          font-weight: bold;
+          margin-bottom: 10px;
+          text-transform: uppercase;
+          letter-spacing: 2px;
+        }
+        
+        .invoice-meta {
+          display: flex;
+          flex-direction: column;
+          gap: 5px;
+          font-size: 14px;
+        }
+        
+        .content-section {
+          padding: 30px;
+        }
+        
+        .addresses-section {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 40px;
+          margin-bottom: 30px;
+        }
+        
+        .address-box {
+          background: #f8f9fa;
+          padding: 20px;
+          border-radius: 8px;
+          border-left: 4px solid #1e3c72;
+        }
+        
+        .address-title {
+          font-size: 16px;
+          font-weight: bold;
+          color: #1e3c72;
+          margin-bottom: 15px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+        
+        .address-item {
+          margin-bottom: 8px;
+          font-size: 14px;
+        }
+        
+        .address-label {
+          font-weight: 600;
+          color: #555;
+          display: inline-block;
+          min-width: 80px;
+        }
+        
+        .items-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 30px 0;
+          background: white;
+          border: 1px solid #ddd;
+        }
+        
+        .items-table th {
+          background: #1e3c72;
+          color: white;
+          padding: 15px;
+          text-align: left;
+          font-weight: 600;
+          text-transform: uppercase;
+          font-size: 12px;
+          letter-spacing: 1px;
+        }
+        
+        .items-table td {
+          padding: 15px;
+          border-bottom: 1px solid #eee;
+          font-size: 14px;
+        }
+        
+        .items-table tr:last-child td {
+          border-bottom: none;
+        }
+        
+        .summary-section {
+          background: #f8f9fa;
+          padding: 25px;
+          border-radius: 8px;
+          margin-top: 30px;
+        }
+        
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 10px;
+          font-size: 14px;
+        }
+        
+        .summary-row.total {
+          font-size: 18px;
+          font-weight: bold;
+          color: #1e3c72;
+          padding-top: 10px;
+          border-top: 2px solid #1e3c72;
+        }
+        
+        .footer {
+          background: #f8f9fa;
+          padding: 20px 30px;
+          text-align: center;
+          font-size: 12px;
+          color: #666;
+          border-top: 1px solid #eee;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="invoice-container" id="invoice-content">
+        <div class="invoice-header">
+          <div class="header-content">
+            <div class="company-info">
+              <div class="company-logo">
+                <img src="${invoiceData.company.logo}" alt="Get Fit Malayali" onerror="this.style.display='none'"/>
+              </div>
+              <div class="company-address">
+                ${invoiceData.company.address}<br>
+                ${invoiceData.company.email}<br>
+                ${invoiceData.company.phone}
+              </div>
+            </div>
+            <div class="invoice-info">
+              <div class="invoice-title">Invoice</div>
+              <div class="invoice-meta">
+                <div><strong>Invoice #:</strong> ${invoiceData.invoiceNumber}</div>
+                <div><strong>Date:</strong> ${invoiceData.invoiceDate}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="content-section">
+          <div class="addresses-section">
+            <div class="address-box">
+              <div class="address-title">Bill To</div>
+              <div class="address-item">
+                <span class="address-label">Name:</span> ${invoiceData.userDetails.name}
+              </div>
+              <div class="address-item">
+                <span class="address-label">Email:</span> ${invoiceData.userDetails.email}
+              </div>
+              <div class="address-item">
+                <span class="address-label">Phone:</span> ${invoiceData.userDetails.phone}
+              </div>
+              <div class="address-item">
+                <span class="address-label">State:</span> ${invoiceData.userDetails.state}
+              </div>
+              <div class="address-item">
+                <span class="address-label">Nationality:</span> ${invoiceData.userDetails.ethnicity}
+              </div>
+            </div>
+            
+            <div class="address-box">
+              <div class="address-title">Subscription Details</div>
+              <div class="address-item">
+                <span class="address-label">Plan:</span> ${invoiceData.subscriptionDetails.planName}
+              </div>
+              <div class="address-item">
+                <span class="address-label">Start Date:</span> ${invoiceData.subscriptionDetails.startDate}
+              </div>
+              <div class="address-item">
+                <span class="address-label">End Date:</span> ${invoiceData.subscriptionDetails.endDate}
+              </div>
+            </div>
+          </div>
+          
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th>Item & Description</th>
+                <th>Period</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <strong>${invoiceData.subscriptionDetails.planName}</strong><br>
+                  <small>Subscription Plan</small>
+                </td>
+                <td>${invoiceData.subscriptionDetails.startDate} to ${invoiceData.subscriptionDetails.endDate}</td>
+                <td><strong>₹${invoiceData.totals.subtotal}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div class="summary-section">
+            <div class="summary-row">
+              <span>Sub Total:</span>
+              <span>₹${invoiceData.totals.subtotal}</span>
+            </div>
+            <div class="summary-row">
+              <span>Tax:</span>
+              <span>₹${invoiceData.totals.tax}</span>
+            </div>
+            <div class="summary-row total">
+              <span>Total Amount:</span>
+              <span>₹${invoiceData.totals.total}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="footer">
+          <p>This is a computer-generated invoice and is valid without signature.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `
+
+  // Create a temporary container to render the HTML
+  const tempContainer = document.createElement('div')
+  tempContainer.style.position = 'absolute'
+  tempContainer.style.left = '-9999px'
+  tempContainer.style.top = '0'
+  tempContainer.innerHTML = invoiceHtml
+  document.body.appendChild(tempContainer)
+
+  try {
+    // Wait for images to load
+    const images = tempContainer.querySelectorAll('img')
+    await Promise.all(
+      Array.from(images).map((img) => {
+        return new Promise((resolve) => {
+          if (img.complete) {
+            resolve(null)
+          } else {
+            img.onload = resolve
+            img.onerror = resolve
+          }
+        })
+      })
+    )
+
+    // Generate PDF
+    const canvas = await html2canvas(
+      tempContainer.querySelector('#invoice-content') as HTMLElement,
+      {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+      }
+    )
+
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF('p', 'mm', 'a4')
+
+    const imgWidth = 210
+    const pageHeight = 295
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    let heightLeft = imgHeight
+    let position = 0
+
+    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+    heightLeft -= pageHeight
+
+    while (heightLeft >= 0) {
+      position = heightLeft - imgHeight
+      pdf.addPage()
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+    }
+
+    pdf.save(`invoice-${invoiceData.invoiceNumber}.pdf`)
+  } catch (error) {
+    console.error('Error generating PDF:', error)
+    // Fallback to HTML download if PDF generation fails
+    const blob = new Blob([invoiceHtml], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `invoice-${invoiceData.invoiceNumber}.html`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  } finally {
+    // Clean up temporary container
+    document.body.removeChild(tempContainer)
+  }
+}
+
 export default function Subscriptions() {
+  const navigate = useNavigate()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const [planIdFilter, setPlanIdFilter] = useState<string>('')
   const [planLabel, setPlanLabel] = useState<string>('All Plans')
@@ -94,7 +530,7 @@ export default function Subscriptions() {
     })
   }
   useEffect(() => {
-    setColumns(getColumns())
+    setColumns(getColumns(navigate))
   }, [])
 
   const handleSeach = (key?: string) => {
@@ -228,9 +664,16 @@ export default function Subscriptions() {
                 onRowsPerPage: onChangeRowsPerPage,
                 dropOptions: [10, 20, 30, 50, 100],
               }}
-              actionProps={[]}
+              actionProps={[
+                {
+                  icon: <Icons name="download" />,
+                  action: (row: any) => generateInvoice(row),
+                  title: 'Download Invoice',
+                  toolTip: 'Download Invoice',
+                },
+              ]}
               columnToggle
-              externalActions={false}
+              externalActions={true}
             />
           </div>
 

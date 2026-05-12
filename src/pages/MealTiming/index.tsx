@@ -10,11 +10,7 @@ import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { useAuthStore } from '../../store/authStore'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
-import {
-  useMealTimingList,
-  deleteMealTiming,
-  updateMealTiming,
-} from './api'
+import { useMealTimingList, deleteMealTiming, updateMealTiming } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create/index'
 import { useNavigate } from 'react-router-dom'
@@ -31,8 +27,7 @@ export default function MealTimingMain() {
   const [deleteWorkoutModal, setDeleteWorkoutModal] = useState(false)
   const [deletingWorkout, setDeletingWorkout] = useState(false)
   const [workoutToDelete, setWorkoutToDelete] = useState<any>(null)
-    const navigate = useNavigate()
-  
+  const navigate = useNavigate()
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const { page, page_size, search, ordering, filters } = pageParams
@@ -128,11 +123,16 @@ export default function MealTimingMain() {
     setDeletingWorkout(true)
     try {
       await deleteMealTiming(workoutToDelete.id)
-      enqueueSnackbar('Meal timing deleted successfully', { variant: 'success' })
+      enqueueSnackbar('Meal timing deleted successfully', {
+        variant: 'success',
+      })
       refetch()
     } catch (error: any) {
       console.error('Delete error:', error)
-      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete meal timing'
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Failed to delete meal timing'
       enqueueSnackbar(errorMessage, { variant: 'error' })
     } finally {
       setDeletingWorkout(false)
@@ -162,21 +162,20 @@ export default function MealTimingMain() {
   const handleToggleStatus = async (row: any) => {
     try {
       const currentStatus = row?.status || 'inactive'
-      const newStatus = currentStatus.toLowerCase() === 'active' ? 'inactive' : 'active'
-      
+      const newStatus =
+        currentStatus.toLowerCase() === 'active' ? 'inactive' : 'active'
+
       await updateMealTiming(row.id, {
         ...row,
-        status: newStatus
+        status: newStatus,
       })
-      
+
       refetch()
     } catch (error) {
       console.error('Error toggling status:', error)
     }
   }
 
-
-  
   useEffect(() => {
     const cols = getColumns({
       onNameClick: onViewAction,
@@ -235,7 +234,6 @@ export default function MealTimingMain() {
           emptyTitle="No records to display"
           columns={columns}
           pagination={true}
-
           paginationProps={{
             onPagination: handlePagination,
             total: mealTimingData?.meta?.total_count ?? 0,
@@ -258,48 +256,46 @@ export default function MealTimingMain() {
             isNutritionist
               ? []
               : [
-                    {                  
-                        icon: <Icons name="eye" />,
-                        action: (row: any) => navigate(`/mealtiming/${row?.id}`),
-                        title: 'View',
-                        toolTip: 'View',
-                      },
-                      {
-                        icon: <Icons name="edit" />,
-                        action: (row: any) => handleEdit(row),
-                        title: 'Edit',
-                        toolTip: 'Edit',
-                      },
-                      {
-                        title: 'Activate',
-                        action: (row: any) => handleToggleStatus(row),
-                        icon: <Icons name="activate-icon" />,
-                        toolTip: 'Activate',
-                        variant: 'success',
-                        hide: (row: any) => {
-                          const v = row?.status
-                          const isActive =
-                            (typeof v === 'string' && v.toLowerCase() === 'active')
-                          return isActive
-                        },
-                      },
-                      {
-                        icon: <Icons name="table-delete" />,
-                        action: (row: any) => {
-                          setWorkoutToDelete(row)
-                          setDeleteWorkoutModal(true)
-                        },
-                        title: 'Delete',
-                        toolTip: 'Delete',
-                      },
-
-              ]
-              
+                  {
+                    icon: <Icons name="eye" />,
+                    action: (row: any) => navigate(`/mealtiming/${row?.id}`),
+                    title: 'View',
+                    toolTip: 'View',
+                  },
+                  {
+                    icon: <Icons name="edit" />,
+                    action: (row: any) => handleEdit(row),
+                    title: 'Edit',
+                    toolTip: 'Edit',
+                  },
+                  {
+                    title: 'Activate',
+                    action: (row: any) => handleToggleStatus(row),
+                    icon: <Icons name="activate-icon" />,
+                    toolTip: 'Activate',
+                    variant: 'success',
+                    hide: (row: any) => {
+                      const v = row?.status
+                      const isActive =
+                        typeof v === 'string' && v.toLowerCase() === 'active'
+                      return isActive
+                    },
+                  },
+                  {
+                    icon: <Icons name="table-delete" />,
+                    action: (row: any) => {
+                      setWorkoutToDelete(row)
+                      setDeleteWorkoutModal(true)
+                    },
+                    title: 'Delete',
+                    toolTip: 'Delete',
+                  },
+                ]
           }
-              columnToggle
-              externalActions={true}
-            />
-          </div>
+          columnToggle
+          externalActions={true}
+        />
+      </div>
 
       <CreateAdmin
         isDrawerOpen={createOpen}

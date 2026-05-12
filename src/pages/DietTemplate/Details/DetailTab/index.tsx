@@ -47,9 +47,9 @@ export default function DetailTab({
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <DetailItem label="Name" value={capitalizeFirst(template?.name)} />
-        <DetailItem label="Description" value={template?.description || '--'} />
+
         <DetailItem label="Duration (Days)" value={template?.duration_days} />
-        {(() => {
+        {/* {(() => {
           const raw = template?.thumbnail_url
           const t = typeof raw === 'string' ? raw.trim() : ''
           const isUrl = typeof t === 'string' && /^https?:\/\/\S+$/i.test(t)
@@ -83,7 +83,13 @@ export default function DetailTab({
               </div>
             </div>
           )
-        })()}
+        })()} */}
+        <div className="border rounded-lg p-3 bg-white md:col-span-2">
+          <div className="text-xs text-gray-500 mb-1">Guideline Content</div>
+          <div className="text-sm whitespace-pre-wrap">
+            {template?.description || '--'}
+          </div>
+        </div>
       </div>
     </div>
   )

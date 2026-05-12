@@ -36,7 +36,6 @@ export default function MealTimingCreate({
   rowData,
   setEdit,
 }: Props) {
-
   const hydratedRowRef = useRef<string | number | null>(null)
 
   /* ------------------- FORM ------------------- */
@@ -48,7 +47,7 @@ export default function MealTimingCreate({
     defaultValues: {
       name: '',
       time: '',
-sequence_number: undefined as unknown as number,
+      sequence_number: undefined as unknown as number,
       status: 'active',
     },
   })
@@ -71,7 +70,7 @@ sequence_number: undefined as unknown as number,
     methods.reset({
       name: '',
       time: '',
-  sequence_number: undefined as unknown as number,
+      sequence_number: undefined as unknown as number,
       status: 'active',
     })
     handleClose()
@@ -97,13 +96,16 @@ sequence_number: undefined as unknown as number,
     if (hydratedRowRef.current === hydrationKey) return
 
     const time24 = rowData?.time
-      ? moment(rowData.time, ['hh:mm A', 'h:mm A', 'HH:mm:ss', 'HH:mm']).format('HH:mm:ss')
+      ? moment(rowData.time, ['hh:mm A', 'h:mm A', 'HH:mm:ss', 'HH:mm']).format(
+          'HH:mm:ss'
+        )
       : ''
 
     methods.reset({
       name: toTitleCase(rowData?.name) ?? '',
       time: time24,
-      sequence_number: rowData?.sequence_number ?? (undefined as unknown as number),
+      sequence_number:
+        rowData?.sequence_number ?? (undefined as unknown as number),
       status: rowData?.status ?? 'active',
     })
 
@@ -149,9 +151,13 @@ sequence_number: undefined as unknown as number,
         rowData?.diet_plan_template?.id ??
         rowData?.subscription?.diet_plan_template_id
       const subscriptionId =
-        rowData?.subscription_id ?? rowData?.subscriptionId ?? rowData?.subscription?.id
+        rowData?.subscription_id ??
+        rowData?.subscriptionId ??
+        rowData?.subscription?.id
       const sequenceNumber =
-        rowData?.sequence_number ?? rowData?.sequenceNumber ?? data?.sequence_number
+        rowData?.sequence_number ??
+        rowData?.sequenceNumber ??
+        data?.sequence_number
 
       const canUpdateUserMealTiming =
         hasValue(userId) &&
@@ -265,9 +271,11 @@ sequence_number: undefined as unknown as number,
       isOpen={isDrawerOpen}
       onClose={handleClearAndClose}
       title={
-        edit ? 'Edit Meal Timing'
-        : viewMode ? 'Meal Timing Details'
-        : 'Create Meal Timing'
+        edit
+          ? 'Edit Meal Timing'
+          : viewMode
+            ? 'Meal Timing Details'
+            : 'Create Meal Timing'
       }
       small={false}
       tall={Boolean(edit)}

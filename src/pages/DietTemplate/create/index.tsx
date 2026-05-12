@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import moment from 'moment'
 // import moment from 'moment'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { DefaultValues, FormProvider, useForm } from 'react-hook-form'
 
 import InfoBox from '../../../components/app/alertBox/infoBox'
@@ -14,8 +15,23 @@ import { TemplateSchema, editFormSchema, formSchema } from './schema'
 
 const defaultFormValues: DefaultValues<TemplateSchema> = {
   name: '',
-  description: '',
-  duration_days: undefined,
+  description: `YOUR DIETARY & LIFESTYLE INSTRUCTIONS
+FOOD OPTION & PORTIONS
+•	Your plan is flexible! you can swap cereals ,fruits ,pulses ,or veggies as per yor preference.
+•	Stick to the portion sizes mentioned in your plan.
+•	Total visible fats (oil/ghee)should not exceed 16ml per day. A combination of oils may be used.
+•	Enjoy salads with every meal to boost your fiber intake .Have them before your main meal .
+•	Include any pulses ,lentils ,egg ,chicken ,fish ,curd ,yoghurt ,seeds , paneer ,tofu etc to meet protein requirements.
+	
+HYDRATION & DIGESTION
+•	Daily target 2 litres of water.sip slowly throughout the day instead of gulping.
+•	Allow atleast 2-3 hours of gap in between dinner & sleep for proper digestion and to improve the quality of sleep.
+•	Keep 2-3 hours gap in between meals to improve metabolism.
+
+SLEEP & CONSISTENCY
+•	Ensure 7-8 hours of sleep every night for proper hormonal balance & recovery.
+•	Never skip any meals-it may trigger cravings & lead to nutrient deficiencies.`,
+  duration_days: 7,
   thumbnail: undefined,
 }
 
@@ -51,6 +67,7 @@ export default function CreateAdmin({
   rowData,
   setEditViewIndicator,
 }: Props) {
+  const navigate = useNavigate()
   const titleCase = (value?: string | null) => {
     const str = value ?? ''
     if (!str) return ''
@@ -72,7 +89,7 @@ export default function CreateAdmin({
     ...(disabled ? { disabled: true } : {}),
   })
   const [deleteModal, setDeleteModal] = useState(false)
-  const [thumbnailPreview, setThumbnailPreview] = useState<any>(undefined)
+  // const [thumbnailPreview, setThumbnailPreview] = useState<any>(undefined)
   const decodeFileName = (input?: string) => {
     const raw = String(input ?? '')
     const fallback = raw.split('/').pop() || raw
@@ -86,16 +103,16 @@ export default function CreateAdmin({
     console.log('handle delete')
   }
 
-  const existingThumbnailFile = useMemo(() => {
-    if (!edit || !rowData?.thumbnail_url) return undefined
+  // const existingThumbnailFile = useMemo(() => {
+  //   if (!edit || !rowData?.thumbnail_url) return undefined
 
-    return thumbnailPreview !== undefined
-      ? thumbnailPreview
-      : {
-          name: decodeFileName(rowData.thumbnail_url),
-          link: rowData.thumbnail_url,
-        }
-  }, [edit, rowData?.thumbnail_url, thumbnailPreview])
+  //   return thumbnailPreview !== undefined
+  //     ? thumbnailPreview
+  //     : {
+  //         name: decodeFileName(rowData.thumbnail_url),
+  //         link: rowData.thumbnail_url,
+  //       }
+  // }, [edit, rowData?.thumbnail_url, thumbnailPreview])
 
   const methods = useForm<TemplateSchema>({
     resolver: zodResolver(edit ? editFormSchema : formSchema),
@@ -103,7 +120,7 @@ export default function CreateAdmin({
     reValidateMode: 'onChange',
     defaultValues: defaultFormValues,
   })
-  const { handleSubmit, setValue } = methods
+  const { handleSubmit } = methods
 
   const parseDurationDays = (value: unknown) => {
     if (value === null || value === undefined || value === '') return undefined
@@ -119,18 +136,21 @@ export default function CreateAdmin({
         ...defaultFormValues,
         name: titleCase(rowData?.name ?? ''),
         description: rowData?.description ?? '',
-        duration_days: parseDurationDays(rowData?.duration_days),
+        duration_days: parseDurationDays(rowData?.duration_days) || 7,
       })
       return
     }
 
-    methods.reset(defaultFormValues)
+    methods.reset({
+      ...defaultFormValues,
+      duration_days: 7,
+    })
   }, [edit, isDrawerOpen, methods, rowData, viewMode])
 
   useEffect(() => {
     if (isDrawerOpen) return
     methods.reset(defaultFormValues)
-    setThumbnailPreview(undefined)
+    // setThumbnailPreview(undefined)
   }, [isDrawerOpen, methods])
 
   const formBuilderProps = [
@@ -141,39 +161,41 @@ export default function CreateAdmin({
       maxLength: 3,
       allowPositiveOnly: true,
       inputMode: 'numeric',
+      disabled: true,
+      value: '7',
     },
     {
       name: 'description',
-      label: 'Description',
+      label: 'Guideline Content',
       id: 'description',
       maxLength: 2000,
       type: 'textarea',
-      placeholder: 'Enter description',
+      placeholder: 'Enter guideline content',
       required: true,
     },
-    {
-      name: 'thumbnail',
-      label: 'Thumbnail',
-      id: 'thumbnail',
-      type: 'file_upload',
-      placeholder: 'Upload thumbnail image',
-      required: false,
-      accept: 'image/*',
-      supportedExtensions: [
-        'image/png',
-        'image/jpeg',
-        'image/jpg',
-        'image/webp',
-      ],
-      acceptedFiles: 'PNG, JPG, JPEG, WEBP',
-      fileSize: 5,
-      selectedFiles: existingThumbnailFile,
-      handleDeleteFile: () => {
-        setThumbnailPreview('')
-        setValue('thumbnail', '')
-      },
-      subName: 'thumbnail',
-    },
+    // {
+    //   name: 'thumbnail',
+    //   label: 'Thumbnail',
+    //   id: 'thumbnail',
+    //   type: 'file_upload',
+    //   placeholder: 'Upload thumbnail image',
+    //   required: false,
+    //   accept: 'image/*',
+    //   supportedExtensions: [
+    //     'image/png',
+    //     'image/jpeg',
+    //     'image/jpg',
+    //     'image/webp',
+    //   ],
+    //   acceptedFiles: 'PNG, JPG, JPEG, WEBP',
+    //   fileSize: 5,
+    //   selectedFiles: existingThumbnailFile,
+    //   handleDeleteFile: () => {
+    //     setThumbnailPreview('')
+    //     setValue('thumbnail', '')
+    //   },
+    //   subName: 'thumbnail',
+    // },
   ]
 
   const handleClearAndClose = () => {
@@ -184,8 +206,13 @@ export default function CreateAdmin({
     handleRefresh?.()
     handleClearAndClose()
   }
-  const onSuccess = () => {
+  const onSuccess = (response: any) => {
     handleSubmission()
+    // Navigate to diet plan page after creating template
+    const templateId = response?.diet_plan_template?.id || response?.id
+    if (templateId && !edit) {
+      navigate(`/diet-template/${templateId}/diet-plan`)
+    }
   }
   const { mutate, isLoading: isCreating } = useCreateTemplate(onSuccess)
   const { mutate: updateMutation, isLoading: isUpdating } =
