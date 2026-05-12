@@ -357,6 +357,7 @@ export interface DialogModalProps {
   stylelabel?: string
   headborder?: boolean
   tall?: boolean
+  bodyOverflowVisible?: boolean
 }
 export interface TabItemProps {
   label: string

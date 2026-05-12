@@ -4469,6 +4469,7 @@ export default function Subscriptions({
               onChangeTab={(tabId) => setDayDetailTab(tabId as DayDetailTab)}
               isNutritionist={isNutritionist}
               subscriptionId={overview?.subscription?.id}
+              userId={id}
               refreshDayDetail={refreshDayDetail}
               onEditWorkoutPlan={() => {
                 setDragIndex(null)

@@ -8,6 +8,7 @@ import Icons from '../../../components/common/icons'
 import FileUpload from '../../common/fileUpload/index'
 import Checkbox from '../../common/inputs/Checkbox'
 import CustomDatePicker from '../../common/inputs/CustomDatePicker'
+import TimeSplitPicker from '../../common/inputs/TimeSplitPicker'
 import Radio from '../../common/inputs/Radio'
 import Textarea from '../../common/inputs/TextArea'
 import TextField from '../../common/inputs/TextField'
@@ -599,6 +600,27 @@ const FormBuilder: React.FC<Props> = (props) => {
                 />
               )
             }}
+          />
+        )
+      case 'time_split':
+        return (
+          <Controller
+            name={`${field.name}`}
+            control={control}
+            key={`${updatekey}${field.name}`}
+            render={({ field: { value } }) => (
+              <TimeSplitPicker
+                label={field.label}
+                name={field.name}
+                value={value}
+                required={field.required}
+                disabled={field?.disabled ?? isEditable()}
+                errors={!isEditable() ? errors : undefined}
+                onChange={(data) =>
+                  setValue(field.name, data.value, { shouldValidate: true })
+                }
+              />
+            )}
           />
         )
       case 'file_upload':
