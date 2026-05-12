@@ -101,7 +101,11 @@ const parseValueToParts = (value?: string) => {
   return { hour: String(hour12), minute: pad2(minute), period }
 }
 
-const build24HourValue = (hour: string, minute: string, period: 'AM' | 'PM') => {
+const build24HourValue = (
+  hour: string,
+  minute: string,
+  period: 'AM' | 'PM'
+) => {
   const hourNum = Number(hour)
   const minuteNum = Number(minute)
 
@@ -123,15 +127,7 @@ const build24HourValue = (hour: string, minute: string, period: 'AM' | 'PM') => 
 }
 
 const TimeSplitPicker = (props: Props) => {
-  const {
-    label,
-    errors,
-    onChange,
-    value,
-    disabled,
-    required,
-    name,
-  } = props
+  const { label, errors, onChange, value, disabled, required, name } = props
 
   const initialParts = useMemo(() => parseValueToParts(value), [value])
   const [hour, setHour] = useState(initialParts.hour)
@@ -143,9 +139,10 @@ const TimeSplitPicker = (props: Props) => {
   const hourButtonRef = useRef<HTMLButtonElement | null>(null)
   const minuteButtonRef = useRef<HTMLButtonElement | null>(null)
   const popupRef = useRef<HTMLDivElement | null>(null)
-  const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(
-    null
-  )
+  const [popupPos, setPopupPos] = useState<{
+    top: number
+    left: number
+  } | null>(null)
 
   useEffect(() => {
     const next = parseValueToParts(value)
@@ -190,7 +187,10 @@ const TimeSplitPicker = (props: Props) => {
       const popupH = 112
 
       let left = rect.left
-      left = Math.max(margin, Math.min(left, window.innerWidth - popupW - margin))
+      left = Math.max(
+        margin,
+        Math.min(left, window.innerWidth - popupW - margin)
+      )
 
       // Prefer below the icon; if not enough space, show above.
       const belowTop = rect.bottom + margin
@@ -210,7 +210,11 @@ const TimeSplitPicker = (props: Props) => {
     }
   }, [hourOpen, minuteOpen])
 
-  const emitChange = (nextHour: string, nextMinute: string, nextPeriod: 'AM' | 'PM') => {
+  const emitChange = (
+    nextHour: string,
+    nextMinute: string,
+    nextPeriod: 'AM' | 'PM'
+  ) => {
     const nextValue = build24HourValue(nextHour, nextMinute, nextPeriod)
     onChange({ value: nextValue, name })
   }
@@ -267,7 +271,8 @@ const TimeSplitPicker = (props: Props) => {
                 return
               }
               const nextNum = Number(nextRaw)
-              if (!Number.isFinite(nextNum) || nextNum < 1 || nextNum > 12) return
+              if (!Number.isFinite(nextNum) || nextNum < 1 || nextNum > 12)
+                return
               setHour(nextRaw)
               emitIfValid(nextRaw, minute, period)
             }}
@@ -304,7 +309,8 @@ const TimeSplitPicker = (props: Props) => {
                 return
               }
               const nextNum = Number(nextRaw)
-              if (!Number.isFinite(nextNum) || nextNum < 0 || nextNum > 59) return
+              if (!Number.isFinite(nextNum) || nextNum < 0 || nextNum > 59)
+                return
               setMinute(nextRaw)
               emitIfValid(hour, nextRaw, period)
             }}

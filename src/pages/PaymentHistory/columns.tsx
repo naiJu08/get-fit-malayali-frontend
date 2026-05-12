@@ -1,5 +1,4 @@
 import moment from 'moment'
-
 import { getNestedProperty } from '../../utilities/parsers'
 
 const defaultColumnProps = {
@@ -8,11 +7,11 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-export const getColumns = () => {
+export const getColumns = (navigate?: (path: string) => void) => {
   const createRenderCell =
-    (key: string, formatter?: (v: any) => any) => (row: any) => {
+    (key: string, formatter?: (v: any, row?: any) => any) => (row: any) => {
       const val = getNestedProperty(row, key)
-      const cell = formatter ? formatter(val) : val
+      const cell = formatter ? formatter(val, row) : val
       return { cell, toolTip: typeof cell === 'string' ? cell : '' }
     }
 
@@ -21,7 +20,17 @@ export const getColumns = () => {
     {
       title: 'Client',
       field: 'user_name',
-      renderCell: createRenderCell('user_name'),
+      renderCell: createRenderCell('user_name', (val, row) => (
+        <button
+          type="button"
+          className="text-blue-600 hover:underline"
+          onClick={() =>
+            navigate && navigate(`/users/${row?.user_id || val}/details`)
+          }
+        >
+          {val}
+        </button>
+      )),
       customCell: true,
       ...defaultColumnProps,
     },
@@ -53,21 +62,6 @@ export const getColumns = () => {
       customCell: true,
       ...defaultColumnProps,
     },
-
-    // {
-    //   title: 'Days Remaining',
-    //   field: 'days_remaining',
-    //   renderCell: createRenderCell('days_remaining'),
-    //   customCell: true,
-    //   ...defaultColumnProps,
-    // },
-    // {
-    //   title: 'Status',
-    //   field: 'status',
-    //   renderCell: createRenderCell('status', capitalize),
-    //   customCell: true,
-    //   ...defaultColumnProps,
-    // },
   ]
 
   return column

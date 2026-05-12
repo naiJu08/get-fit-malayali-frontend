@@ -488,7 +488,9 @@ export const useUpdateUserMealTiming = (onSuccess?: () => void) => {
     }) => updateUserMealTiming(userId, payload),
     {
       onSuccess: () => {
-        enqueueSnackbar('Meal time updated successfully', { variant: 'success' })
+        enqueueSnackbar('Meal time updated successfully', {
+          variant: 'success',
+        })
         onSuccess?.()
       },
       onError: (error: any) => {

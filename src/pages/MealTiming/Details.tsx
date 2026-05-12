@@ -92,7 +92,10 @@ export default function MealTimingDetails() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DetailItem label="Name" value={toTitleCase(mealTiming?.name)} />
               <DetailItem label="Time" value={mealTiming?.time} />
-              <DetailItem label="Sequence Number" value={mealTiming?.sequence_number} />
+              <DetailItem
+                label="Sequence Number"
+                value={mealTiming?.sequence_number}
+              />
               <StatusDetailItem label="Status" value={mealTiming?.status} />
             </div>
           </>
@@ -147,9 +150,7 @@ function StatusDetailItem({ label, value }: { label: string; value: any }) {
       <div className="text-sm">
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-            isActive
-              ? 'bg-green-100 text-green-700'
-              : 'bg-red-100 text-red-700'
+            isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
           }`}
         >
           {isActive ? 'Active' : 'Inactive'}

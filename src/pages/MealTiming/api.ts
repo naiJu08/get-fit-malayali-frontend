@@ -1,7 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useMutation } from '@tanstack/react-query'
 
-import { getData, postData, deleteData, updateData } from '../../apis/api.helpers'
+import {
+  getData,
+  postData,
+  deleteData,
+  updateData,
+} from '../../apis/api.helpers'
 import { QueryParams } from '../../common/types'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { getErrorMessage, parseQueryParams } from '../../utilities/parsers'
@@ -77,18 +82,24 @@ export const useUpdateUserMealTiming = (onSuccess?: () => void) => {
         onSuccess?.()
       },
       onError: (error: any) => {
-        enqueueSnackbar(getErrorMessage(error) || 'Failed to update meal timing', {
-          variant: 'error',
-        })
+        enqueueSnackbar(
+          getErrorMessage(error) || 'Failed to update meal timing',
+          {
+            variant: 'error',
+          }
+        )
       },
     }
   )
 }
 
 // Hook for creating meal timing with success callback
-export const useCreateMealTiming = (onSuccess?: () => void, successMessage?: string) => {
+export const useCreateMealTiming = (
+  onSuccess?: () => void,
+  successMessage?: string
+) => {
   const { enqueueSnackbar } = useSnackbarManager()
-  
+
   return useMutation(createMealTiming, {
     onSuccess: () => {
       enqueueSnackbar(successMessage || 'Meal timing created successfully', {
@@ -97,17 +108,23 @@ export const useCreateMealTiming = (onSuccess?: () => void, successMessage?: str
       onSuccess?.()
     },
     onError: (error: any) => {
-      enqueueSnackbar(getErrorMessage(error) || 'Failed to create meal timing', {
-        variant: 'error',
-      })
+      enqueueSnackbar(
+        getErrorMessage(error) || 'Failed to create meal timing',
+        {
+          variant: 'error',
+        }
+      )
     },
   })
 }
 
 // Hook for updating meal timing with success callback
-export const useUpdateMealTiming = (onSuccess?: () => void, successMessage?: string) => {
+export const useUpdateMealTiming = (
+  onSuccess?: () => void,
+  successMessage?: string
+) => {
   const { enqueueSnackbar } = useSnackbarManager()
-  
+
   return useMutation(
     ({ id, data }: { id: string; data: any }) => updateMealTiming(id, data),
     {
@@ -118,9 +135,12 @@ export const useUpdateMealTiming = (onSuccess?: () => void, successMessage?: str
         onSuccess?.()
       },
       onError: (error: any) => {
-        enqueueSnackbar(getErrorMessage(error) || 'Failed to update meal timing', {
-          variant: 'error',
-        })
+        enqueueSnackbar(
+          getErrorMessage(error) || 'Failed to update meal timing',
+          {
+            variant: 'error',
+          }
+        )
       },
     }
   )
@@ -129,7 +149,7 @@ export const useUpdateMealTiming = (onSuccess?: () => void, successMessage?: str
 // Hook for deleting meal timing with success callback
 export const useDeleteMealTiming = (onSuccess?: () => void) => {
   const { enqueueSnackbar } = useSnackbarManager()
-  
+
   return useMutation(deleteMealTiming, {
     onSuccess: () => {
       enqueueSnackbar('Meal timing deleted successfully', {
@@ -138,9 +158,12 @@ export const useDeleteMealTiming = (onSuccess?: () => void) => {
       onSuccess?.()
     },
     onError: (error: any) => {
-      enqueueSnackbar(getErrorMessage(error) || 'Failed to delete meal timing', {
-        variant: 'error',
-      })
+      enqueueSnackbar(
+        getErrorMessage(error) || 'Failed to delete meal timing',
+        {
+          variant: 'error',
+        }
+      )
     },
   })
 }
