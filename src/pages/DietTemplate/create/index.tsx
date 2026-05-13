@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import moment from 'moment'
 // import moment from 'moment'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DefaultValues, FormProvider, useForm } from 'react-hook-form'
 
@@ -11,6 +11,7 @@ import { DialogModal } from '../../../components/common'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
 import { humanizeDatetime } from '../../../utilities/format'
 import { useCreateTemplate, useUpdateTemplate } from '../api'
+import { useDietTemplateCategories } from '../../DietTemplateCategories/api'
 import { TemplateSchema, editFormSchema, formSchema } from './schema'
 
 const defaultFormValues: DefaultValues<TemplateSchema> = {
@@ -32,6 +33,8 @@ SLEEP & CONSISTENCY
 •	Ensure 7-8 hours of sleep every night for proper hormonal balance & recovery.
 •	Never skip any meals-it may trigger cravings & lead to nutrient deficiencies.`,
   duration_days: 7,
+  diet_template_category: '',
+  diet_template_category_id: undefined,
   thumbnail: undefined,
 }
 
@@ -120,12 +123,54 @@ export default function CreateAdmin({
     reValidateMode: 'onChange',
     defaultValues: defaultFormValues,
   })
-  const { handleSubmit } = methods
+  const { handleSubmit, getValues, setValue } = methods
+  const { data: dietTemplateCategoriesData } = useDietTemplateCategories({
+    page: 1,
+    per_page: 100,
+    status: 'active',
+  })
+  const dietTemplateCategoryOptions = useMemo(
+    () =>
+      Array.isArray(dietTemplateCategoriesData?.diet_template_categories)
+        ? dietTemplateCategoriesData.diet_template_categories.map(
+            (category: any) => ({
+              id: category.id,
+              name: category.name,
+            })
+          )
+        : [],
+    [dietTemplateCategoriesData?.diet_template_categories]
+  )
 
   const parseDurationDays = (value: unknown) => {
     if (value === null || value === undefined || value === '') return undefined
     const numeric = Number(value)
     return Number.isNaN(numeric) ? undefined : numeric
+  }
+  const getTemplateCategoryName = (templateData: any) => {
+    return (
+      templateData?.diet_template_category?.name ??
+      templateData?.diet_template_category_name ??
+      templateData?.diet_template_category ??
+      ''
+    )
+  }
+
+  const getTemplateCategoryId = (templateData: any) => {
+    const existingId =
+      templateData?.diet_template_category_id ??
+      templateData?.diet_template_category?.id
+    if (existingId) return existingId
+
+    const categoryName = String(getTemplateCategoryName(templateData))
+      .trim()
+      .toLowerCase()
+    return dietTemplateCategoryOptions.find(
+      (category: any) =>
+        String(category?.name ?? '')
+          .trim()
+          .toLowerCase() === categoryName
+    )?.id
   }
 
   useEffect(() => {
@@ -137,6 +182,8 @@ export default function CreateAdmin({
         name: titleCase(rowData?.name ?? ''),
         description: rowData?.description ?? '',
         duration_days: parseDurationDays(rowData?.duration_days) || 7,
+        diet_template_category: getTemplateCategoryName(rowData),
+        diet_template_category_id: getTemplateCategoryId(rowData),
       })
       return
     }
@@ -145,7 +192,21 @@ export default function CreateAdmin({
       ...defaultFormValues,
       duration_days: 7,
     })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [edit, isDrawerOpen, methods, rowData, viewMode])
+
+  useEffect(() => {
+    if (!isDrawerOpen || !edit || !rowData) return
+    if (getValues('diet_template_category_id')) return
+
+    const categoryId = getTemplateCategoryId(rowData)
+    if (categoryId) {
+      setValue('diet_template_category_id', categoryId, {
+        shouldValidate: true,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dietTemplateCategoryOptions, edit, isDrawerOpen, rowData])
 
   useEffect(() => {
     if (isDrawerOpen) return
@@ -163,6 +224,17 @@ export default function CreateAdmin({
       inputMode: 'numeric',
       disabled: true,
       value: '7',
+    },
+    {
+      name: 'diet_template_category',
+      label: 'Diet Template Category',
+      type: 'custom_search_select',
+      placeholder: 'Select diet template category',
+      required: true,
+      desc: 'name',
+      descId: 'id',
+      id: 'diet_template_category_id',
+      data: dietTemplateCategoryOptions,
     },
     {
       name: 'description',
@@ -222,6 +294,10 @@ export default function CreateAdmin({
     fd.append('diet_plan_template[name]', details?.name ?? '')
     fd.append('diet_plan_template[description]', details?.description ?? '')
     fd.append('diet_plan_template[duration_days]', details?.duration_days ?? '')
+    fd.append(
+      'diet_plan_template[diet_template_category_id]',
+      details?.diet_template_category_id ?? ''
+    )
     // Thumbnail handling - only append if changed
     const thumbVal = details?.thumbnail
     const originalThumbnailName = decodeFileName(rowData?.thumbnail_url)

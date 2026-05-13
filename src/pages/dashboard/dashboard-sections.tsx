@@ -33,25 +33,36 @@ export function KPIBanner({ data }: Props) {
 
   const cards = [
     {
-      title: 'Total Users',
-      value: fmt(data?.users?.total),
-      sub: `${fmt(data?.users?.by_status?.active)} active · ${fmt(data?.users?.by_role?.user)} members`,
+      title: 'Total Clients',
+      value: fmt(data?.clients?.total),
+      sub: `${fmt(data?.clients?.active)} active · ${fmt(data?.clients?.inactive)} inactive · ${fmt(data?.clients?.with_active_subscription)} with active subscription`,
       gradient: 'linear-gradient(135deg,#667eea,#764ba2)',
       icon: '👥',
-      badge: data?.users?.new_this_month
-        ? `+${data.users.new_this_month} this month`
+      badge: data?.clients?.total
+        ? `+${data.clients.total} this month`
         : undefined,
       onClick: () => navigate('/users'),
     },
     {
       title: 'Subscriptions',
       value: fmt(data?.subscriptions?.total),
-      sub: `${fmt(data?.subscriptions?.active_now)} active · ${fmt(data?.subscriptions?.paused_now)} paused`,
+      sub: `${fmt(data?.subscriptions?.active_now)} active · ${fmt(data?.subscriptions?.paused_now)} paused · ${fmt(data?.subscriptions?.expired_now)} expired`,
       gradient: 'linear-gradient(135deg,#06b6d4,#3b82f6)',
       icon: '📋',
       badge: data?.subscriptions?.new_this_month
         ? `+${data.subscriptions.new_this_month} this month`
         : undefined,
+      onClick: () => navigate('/subscriptions'),
+    },
+    {
+      title: 'Subscriptions Expire within 7 days',
+      value: fmt(data?.subscriptions?.expiring_soon_users),
+      // sub: `${fmt(data?.subscriptions?.active_now)} active · ${fmt(data?.subscriptions?.paused_now)} paused · ${fmt(data?.subscriptions?.expired_now)} expired`,
+      gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
+      icon: '📋',
+      // badge: data?.subscriptions?.new_this_month
+      //   ? `+${data.subscriptions.new_this_month} this month`
+      //   : undefined,
       onClick: () => navigate('/subscriptions'),
     },
 
