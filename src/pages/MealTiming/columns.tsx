@@ -164,10 +164,6 @@ export const getColumns = ({
       },
       customCell: true,
       link: !disableNameLink && !!onNameClick,
-      rowClick:
-        !disableNameLink && onNameClick
-          ? (row: any) => onNameClick && onNameClick(row)
-          : undefined,
       ...defaultColumnProps,
     },
     {

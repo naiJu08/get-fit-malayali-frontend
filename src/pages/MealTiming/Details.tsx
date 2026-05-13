@@ -50,6 +50,11 @@ export default function MealTimingDetails() {
   }, [loadMealTiming])
 
   const mealTiming = data?.meal_timing || {}
+  const sequenceNumber = mealTiming?.sequence_number
+  const shouldShowSequenceNumber =
+    sequenceNumber !== null &&
+    sequenceNumber !== undefined &&
+    !(typeof sequenceNumber === 'string' && sequenceNumber.trim() === '')
 
   // const openEditDrawer = () => setEditDrawerOpen(true)
   const closeEditDrawer = () => setEditDrawerOpen(false)
@@ -92,10 +97,9 @@ export default function MealTimingDetails() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DetailItem label="Name" value={toTitleCase(mealTiming?.name)} />
               <DetailItem label="Time" value={mealTiming?.time} />
-              <DetailItem
-                label="Sequence Number"
-                value={mealTiming?.sequence_number}
-              />
+              {shouldShowSequenceNumber && (
+                <DetailItem label="Sequence Number" value={sequenceNumber} />
+              )}
               <StatusDetailItem label="Status" value={mealTiming?.status} />
             </div>
           </>
@@ -115,6 +119,14 @@ export default function MealTimingDetails() {
 
 function DetailItem({ label, value }: { label: string; value: any }) {
   const isUrl = typeof value === 'string' && /^https?:\/\/\S+$/i.test(value)
+  const displayValue =
+    value === 0 || value === '0'
+      ? value
+      : value !== null &&
+          value !== undefined &&
+          !(typeof value === 'string' && value.trim() === '')
+        ? value
+        : '-'
   return (
     <div className="border rounded-lg p-3 bg-white">
       <div className="text-xs text-gray-500 mb-1">{label}</div>
@@ -129,7 +141,7 @@ function DetailItem({ label, value }: { label: string; value: any }) {
             {value}
           </a>
         ) : (
-          value || '-'
+          displayValue
         )}
       </div>
     </div>

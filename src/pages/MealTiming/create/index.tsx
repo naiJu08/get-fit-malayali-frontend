@@ -48,7 +48,7 @@ export default function MealTimingCreate({
       name: '',
       time: '',
       sequence_number: undefined as unknown as number,
-      status: 'active',
+      status: 'Active',
     },
   })
 
@@ -124,7 +124,7 @@ export default function MealTimingCreate({
         name: '',
         time: '',
         sequence_number: undefined as unknown as number,
-        status: 'active',
+        status: 'Active',
       })
     }
   }, [isDrawerOpen, edit])
