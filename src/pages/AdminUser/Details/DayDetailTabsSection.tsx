@@ -16,6 +16,7 @@ import { Tab, TabContainer } from '../../../components/common/tab'
 import CustomDrawer from '../../../components/common/drawer'
 import TimeSplitPicker from '../../../components/common/inputs/TimeSplitPicker'
 import { useTemplateList } from '../../DietTemplate/api'
+import { useDietTemplateCategories } from '../../DietTemplateCategories/api'
 import { useSnackbarManager } from '../../../components/common/snackbar'
 import { getErrorMessage } from '../../../utilities/parsers'
 import { assignDietPlanTemplate, useUpdateUserMealTiming } from '../api'
@@ -64,6 +65,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   const [mealTimeEditOpen, setMealTimeEditOpen] = useState(false)
   const [selectedMealTiming, setSelectedMealTiming] = useState<any>(null)
   const [templateSearch, setTemplateSearch] = useState('')
+  const [templateCategoryFilter, setTemplateCategoryFilter] = useState('')
   const [templatePage, setTemplatePage] = useState(1)
   const [templatePerPage, setTemplatePerPage] = useState(10)
   const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(
@@ -208,12 +210,23 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
       page: templatePage,
       per_page: templatePerPage,
       search: templateSearch || undefined,
+      diet_template_category_id: templateCategoryFilter || undefined,
     }),
-    [templatePage, templatePerPage, templateSearch]
+    [templateCategoryFilter, templatePage, templatePerPage, templateSearch]
   )
 
   const { data: templateListData, isFetching: templateListLoading } =
     useTemplateList(templateListParams)
+  const { data: dietTemplateCategoriesData } = useDietTemplateCategories({
+    page: 1,
+    per_page: 100,
+    status: 'active',
+  })
+  const dietTemplateCategoryOptions = Array.isArray(
+    dietTemplateCategoriesData?.diet_template_categories
+  )
+    ? dietTemplateCategoriesData.diet_template_categories
+    : []
 
   useEffect(() => {
     const totalPages = Number(templateListData?.meta?.total_pages ?? 0)
@@ -225,6 +238,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   const handleAssignTemplateClose = () => {
     setAssignTemplateOpen(false)
     setTemplateSearch('')
+    setTemplateCategoryFilter('')
     setTemplatePage(1)
   }
 
@@ -439,14 +453,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                               className="h-full bg-green-500 rounded-full transition-all duration-500"
                               style={{ width: `${progress}%` }}
                             />
-
-                            {/* Progress Ball */}
-                            <div
-                              className="absolute top-1/2 -translate-y-1/2 transition-all duration-500"
-                              style={{ left: `calc(${progress}% - 6px)` }}
-                            >
-                              <div className="w-3 h-3 bg-green-600 rounded-full shadow-sm border border-white" />
-                            </div>
                           </div>
                         )}
 
@@ -1411,6 +1417,23 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                   Showing {templateListData?.diet_plan_templates?.length ?? 0}{' '}
                   of {templateListData?.meta?.total_count ?? 0} templates
                 </span>
+                <label className="flex items-center gap-2 text-xs text-gray-600">
+                  <select
+                    className="w-56 border rounded px-2 py-1 text-xs"
+                    value={templateCategoryFilter}
+                    onChange={(event) => {
+                      setTemplatePage(1)
+                      setTemplateCategoryFilter(event.target.value)
+                    }}
+                  >
+                    <option value="">Diet Plan Category</option>
+                    {dietTemplateCategoryOptions.map((category: any) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
               <div className="border rounded-lg divide-y">
                 {templateListLoading ? (

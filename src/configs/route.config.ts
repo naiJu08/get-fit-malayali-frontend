@@ -173,6 +173,18 @@ const DIET_TEMPLATE_DIET_PLAN: RouterMenuProps = {
   key: 'diet-template-diet-plan',
   permission_slugs: [],
 }
+const DIET_TEMPLATE_CATEGORIES: RouterMenuProps = {
+  id: 49,
+  path: '/diet-plan-categories',
+  parent_id: null,
+  label: 'Diet Plan Categories',
+  key: 'diet-plan-categories',
+  icon: 'category-icon',
+  breadcrumb: ['DIET_TEMPLATE_CATEGORIES'],
+  permission_slugs: ['superadmin', 'nutritionist'],
+  slugOptions: ['DIET_TEMPLATE_CATEGORIES'],
+  isSidebarMenu: true,
+}
 const WORKOUT: RouterMenuProps = {
   id: 25,
   path: '/workout',
@@ -489,6 +501,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   CATEGORIES,
   CATEGORIES_DETAILS,
   DIET_TEMPLATE,
+  DIET_TEMPLATE_CATEGORIES,
   WORKOUT,
   YOGA,
   MEDITATION,

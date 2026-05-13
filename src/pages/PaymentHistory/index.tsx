@@ -61,14 +61,14 @@ const generateInvoice = async (row: any) => {
 
   const invoiceData = {
     invoiceNumber: `INV-${row?.id || Date.now()}`,
-    invoiceDate: moment().format('YYYY-MM-DD'),
+    invoiceDate: moment().format('DD-MM-YYYY'),
     subscriptionDetails: {
       planName: row?.plan_name || 'N/A',
       startDate: row?.start_date
-        ? moment(row.start_date).format('YYYY-MM-DD')
+        ? moment(row.start_date).format('DD-MM-YYYY')
         : 'N/A',
       endDate: row?.end_date
-        ? moment(row.end_date).format('YYYY-MM-DD')
+        ? moment(row.end_date).format('DD-MM-YYYY')
         : 'N/A',
       fees: row?.plan_fees || '0',
       status: row?.status || 'N/A',
@@ -117,8 +117,8 @@ const generateInvoice = async (row: any) => {
         }
         
         .invoice-header {
-          background: #1e3c72;
-          color: white;
+          background: #e0f2fe;
+          color: #0f172a;
           padding: 30px;
           position: relative;
         }
@@ -149,7 +149,7 @@ const generateInvoice = async (row: any) => {
         
         .company-address {
           font-size: 14px;
-          opacity: 0.9;
+          color: #475569;
         }
         
         .invoice-info {
@@ -186,13 +186,13 @@ const generateInvoice = async (row: any) => {
           background: #f8f9fa;
           padding: 20px;
           border-radius: 8px;
-          border-left: 4px solid #1e3c72;
+          border-left: 4px solid #38bdf8;
         }
         
         .address-title {
           font-size: 16px;
           font-weight: bold;
-          color: #1e3c72;
+          color: #0369a1;
           margin-bottom: 15px;
           text-transform: uppercase;
           letter-spacing: 1px;
@@ -219,8 +219,8 @@ const generateInvoice = async (row: any) => {
         }
         
         .items-table th {
-          background: #1e3c72;
-          color: white;
+          background: #bae6fd;
+          color: #0f172a;
           padding: 15px;
           text-align: left;
           font-weight: 600;
@@ -240,7 +240,7 @@ const generateInvoice = async (row: any) => {
         }
         
         .summary-section {
-          background: #f8f9fa;
+          background: #f0f9ff;
           padding: 25px;
           border-radius: 8px;
           margin-top: 30px;
@@ -257,9 +257,9 @@ const generateInvoice = async (row: any) => {
         .summary-row.total {
           font-size: 18px;
           font-weight: bold;
-          color: #1e3c72;
+          color: #0369a1;
           padding-top: 10px;
-          border-top: 2px solid #1e3c72;
+          border-top: 2px solid #38bdf8;
         }
         
         .footer {

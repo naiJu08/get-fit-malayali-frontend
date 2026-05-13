@@ -28,6 +28,7 @@ export type DashboardResponse = {
     by_status?: Record<string, number>
     active_now?: number
     expired_now?: number
+    expiring_soon_users?: number
     paused_now?: number
     new_this_month?: number
     subscribers_by_plan?: {
@@ -55,6 +56,13 @@ export type DashboardResponse = {
     yoga_included?: number
     meditation_included?: number
     hints?: Record<string, string>
+  }
+
+  clients?: {
+    total?: number
+    active?: number
+    inactive?: number
+    with_active_subscription?: number
   }
 
   workouts?: {

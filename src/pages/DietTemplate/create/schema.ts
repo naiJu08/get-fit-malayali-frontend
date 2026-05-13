@@ -18,6 +18,18 @@ const baseSchema = {
       invalid_type_error: 'Duration must be a number',
     })
     .positive('Duration must be greater than 0'),
+  diet_template_category: z.string().optional(),
+  diet_template_category_id: z.preprocess(
+    (val) => {
+      if (val && typeof val === 'object' && 'id' in (val as any)) {
+        return (val as any).id
+      }
+      return val
+    },
+    z.coerce
+      .number({ invalid_type_error: 'Diet template category is required' })
+      .positive('Diet template category is required')
+  ),
   thumbnail: z.any().optional(),
 }
 export const formSchema = z.object({
