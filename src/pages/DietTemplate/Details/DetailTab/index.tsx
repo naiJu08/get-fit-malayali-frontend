@@ -49,6 +49,10 @@ export default function DetailTab({
         <DetailItem label="Name" value={capitalizeFirst(template?.name)} />
 
         <DetailItem label="Duration (Days)" value={template?.duration_days} />
+        <DetailItem
+          label="Diet Template Category"
+          value={template?.diet_template_category_name}
+        />
         {/* {(() => {
           const raw = template?.thumbnail_url
           const t = typeof raw === 'string' ? raw.trim() : ''

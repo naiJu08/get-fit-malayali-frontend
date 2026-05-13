@@ -459,7 +459,7 @@ const DietPlanForm = ({
           : [
               {
                 meal_id: 0,
-                count: 0,
+                count: 1,
                 requirement: 'Optional',
                 protein: '',
                 carbs: '',
@@ -476,7 +476,7 @@ const DietPlanForm = ({
       replaceMeals([
         {
           meal_id: 0,
-          count: 0,
+          count: 1,
           requirement: 'Optional',
           protein: '',
           carbs: '',
@@ -603,7 +603,7 @@ const DietPlanForm = ({
               meals: [
                 {
                   meal_id: 0,
-                  count: 0,
+                  count: 1,
                   requirement: 'Optional',
                   protein: '',
                   carbs: '',
@@ -616,7 +616,7 @@ const DietPlanForm = ({
             replaceMeals([
               {
                 meal_id: 0,
-                count: 0,
+                count: 1,
                 requirement: 'Optional',
                 protein: '',
                 carbs: '',
@@ -892,9 +892,7 @@ const DietPlanForm = ({
                                   mealId === '' ? 0 : Number(mealId),
                                   { shouldValidate: true }
                                 )
-                                // Trigger validation for both meal_id and count to show errors
                                 trigger(`meals.${index}.meal_id`)
-                                trigger(`meals.${index}.count`)
                                 refetchMeals()
                               }}
                             />
@@ -1102,7 +1100,7 @@ const DietPlanForm = ({
                       onClick={() =>
                         appendMeal({
                           meal_id: 0,
-                          count: 0,
+                          count: 1,
                           requirement: 'Optional',
                           protein: '',
                           carbs: '',
