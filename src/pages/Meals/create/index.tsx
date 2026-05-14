@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FormProvider, useForm } from 'react-hook-form'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 
 import { DialogModal } from '../../../components/common'
 import FormBuilder from '../../../components/app/formBuilder'
@@ -12,6 +12,7 @@ import {
   useUpdateMeal,
 } from '../api'
 import { useQueryClient } from '@tanstack/react-query'
+import { useMealTimingList } from '../../MealTiming/api'
 
 type Props = {
   isDrawerOpen: boolean
@@ -59,6 +60,43 @@ export default function CreateMeal({
   const { mutate: updateMealMutate } = useUpdateMeal()
   const queryClient = useQueryClient()
   const { data: mealCategoriesData } = useMealCategories()
+
+  const mealTimingParams = useMemo(
+    () => ({
+      page: 1,
+      page_size: 1000,
+      search: '',
+      ordering: '',
+      status: 'active',
+    }),
+    []
+  )
+  const { data: mealTimingListData } = useMealTimingList(mealTimingParams as any)
+  const mealTimingOptions = useMemo(() => {
+    const items = (mealTimingListData as any)?.meal_timings ?? []
+    const fromApi = Array.isArray(items)
+      ? items
+          .map((mt: any) => {
+            const name = mt?.name
+            const id = mt?.id ?? name
+            if (!name) return null
+            return { id, name }
+          })
+          .filter(Boolean)
+      : []
+
+    return fromApi.length > 0
+      ? (fromApi as any[])
+      : [
+          { id: 'Morning drink', name: 'Morning drink' },
+          { id: 'Breakfast', name: 'Breakfast' },
+          { id: 'Mid day meal', name: 'Mid day meal' },
+          { id: 'Lunch', name: 'Lunch' },
+          { id: 'Evening snack', name: 'Evening snack' },
+          { id: 'Dinner', name: 'Dinner' },
+          { id: 'Bed time', name: 'Bed time' },
+        ]
+  }, [mealTimingListData])
 
   const rawMealCategories =
     (mealCategoriesData as any)?.meal_categories ?? (mealCategoriesData as any)
@@ -238,15 +276,7 @@ export default function CreateMeal({
       id: 'meal_time_value',
       desc: 'name',
       descId: 'id',
-      data: [
-        { id: 'Morning drink', name: 'Morning drink' },
-        { id: 'Breakfast', name: 'Breakfast' },
-        { id: 'Mid day meal', name: 'Mid day meal' },
-        { id: 'Lunch', name: 'Lunch' },
-        { id: 'Evening snack', name: 'Evening snack' },
-        { id: 'Dinner', name: 'Dinner' },
-        { id: 'Bed time', name: 'Bed time' },
-      ],
+      data: mealTimingOptions,
     },
     // Removed old macro fields (protein, carbs, fat, fiber) and total_calories in favor of per_serving_* fields
     {

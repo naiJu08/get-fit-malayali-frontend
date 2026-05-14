@@ -1615,6 +1615,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                   name="time"
                   value={value}
                   required
+                  hidePeriodIcon
                   disabled={isUpdatingMealTime}
                   errors={mealTimeForm.formState.errors as any}
                   onChange={(data) => onChange(data.value)}

@@ -15,6 +15,17 @@ import apiUrl from '../../apis/api.url'
 // Disable non-login APIs for this build
 export const DISABLE_NONLOGIN_APIS = false
 
+const getMealTimingApiErrorMessage = (error: any) => {
+  const data = error?.response?.data
+  const errors = data?.errors
+  if (Array.isArray(errors) && errors.length > 0) return errors.join(', ')
+  if (typeof errors === 'string' && errors.trim()) return errors
+  const message = data?.message
+  if (Array.isArray(message) && message.length > 0) return message.join(', ')
+  if (typeof message === 'string' && message.trim()) return message
+  return getErrorMessage(error)
+}
+
 const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
   return `${baseUrl}${parseQueryParams(params)}`
 }
@@ -22,6 +33,8 @@ const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
 const fetchData = async (input: QueryParams) => {
   const url = buildUrlWithParams(apiUrl.MEAL_TIMINGS, {
     ...input,
+    // Backend pagination uses `per_page` in many endpoints; keep supporting `page_size` from UI.
+    per_page: (input as any)?.per_page ?? (input as any)?.page_size,
   })
   const response = await getData(url)
   return response
@@ -83,7 +96,7 @@ export const useUpdateUserMealTiming = (onSuccess?: () => void) => {
       },
       onError: (error: any) => {
         enqueueSnackbar(
-          getErrorMessage(error) || 'Failed to update meal timing',
+          getMealTimingApiErrorMessage(error) || 'Failed to update meal timing',
           {
             variant: 'error',
           }
@@ -109,7 +122,7 @@ export const useCreateMealTiming = (
     },
     onError: (error: any) => {
       enqueueSnackbar(
-        getErrorMessage(error) || 'Failed to create meal timing',
+        getMealTimingApiErrorMessage(error) || 'Failed to create meal timing',
         {
           variant: 'error',
         }
@@ -136,7 +149,7 @@ export const useUpdateMealTiming = (
       },
       onError: (error: any) => {
         enqueueSnackbar(
-          getErrorMessage(error) || 'Failed to update meal timing',
+          getMealTimingApiErrorMessage(error) || 'Failed to update meal timing',
           {
             variant: 'error',
           }
@@ -159,7 +172,7 @@ export const useDeleteMealTiming = (onSuccess?: () => void) => {
     },
     onError: (error: any) => {
       enqueueSnackbar(
-        getErrorMessage(error) || 'Failed to delete meal timing',
+        getMealTimingApiErrorMessage(error) || 'Failed to delete meal timing',
         {
           variant: 'error',
         }
