@@ -615,6 +615,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                 value={value}
                 required={field.required}
                 disabled={field?.disabled ?? isEditable()}
+                hidePeriodIcon={field.hidePeriodIcon}
                 errors={!isEditable() ? errors : undefined}
                 onChange={(data) =>
                   setValue(field.name, data.value, { shouldValidate: true })

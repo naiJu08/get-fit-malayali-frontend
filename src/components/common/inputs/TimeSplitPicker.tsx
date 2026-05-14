@@ -12,6 +12,7 @@ type Props = {
   required?: boolean
   errors?: FieldErrors
   name: string
+  hidePeriodIcon?: boolean
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
@@ -43,7 +44,11 @@ const ClockFace = ({ options, value, onSelect, ariaLabel }: ClockFaceProps) => {
           const angle = (idx / options.length) * Math.PI * 2 - Math.PI / 2
           const x = center + radius * Math.cos(angle) - btn / 2
           const y = center + radius * Math.sin(angle) - btn / 2
-          const selected = String(value ?? '').padStart(2, '0') === opt
+          const selected =
+            value !== undefined &&
+            value !== null &&
+            String(value).trim() !== '' &&
+            String(value).padStart(2, '0') === opt
           return (
             <button
               key={opt}
@@ -127,12 +132,23 @@ const build24HourValue = (
 }
 
 const TimeSplitPicker = (props: Props) => {
-  const { label, errors, onChange, value, disabled, required, name } = props
+  const {
+    label,
+    errors,
+    onChange,
+    value,
+    disabled,
+    required,
+    name,
+    hidePeriodIcon,
+  } = props
 
   const initialParts = useMemo(() => parseValueToParts(value), [value])
   const [hour, setHour] = useState(initialParts.hour)
   const [minute, setMinute] = useState(initialParts.minute)
   const [period, setPeriod] = useState<'AM' | 'PM'>(initialParts.period)
+  const pendingPartialClearRef = useRef<null | 'hour' | 'minute'>(null)
+  const lastInteractedRef = useRef<null | 'hour' | 'minute' | 'period'>(null)
   const [hourOpen, setHourOpen] = useState(false)
   const [minuteOpen, setMinuteOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -145,6 +161,26 @@ const TimeSplitPicker = (props: Props) => {
   } | null>(null)
 
   useEffect(() => {
+    const isEmpty = !value || String(value).trim() === ''
+    if (isEmpty) {
+      const pending = pendingPartialClearRef.current
+      pendingPartialClearRef.current = null
+
+      if (pending === 'hour') {
+        setHour('')
+        return
+      }
+      if (pending === 'minute') {
+        setMinute('')
+        return
+      }
+
+      setHour('')
+      setMinute('')
+      setPeriod('AM')
+      return
+    }
+
     const next = parseValueToParts(value)
     setHour(next.hour)
     setMinute(next.minute)
@@ -225,8 +261,27 @@ const TimeSplitPicker = (props: Props) => {
     nextPeriod: 'AM' | 'PM'
   ) => {
     if (!isValidHour(nextHour) || !isValidMinute(nextMinute)) return
+    // Prevent the parent value from normalizing "4" -> "04" while the user is still typing.
+    if (String(nextMinute).length < 2) return
     emitChange(nextHour, nextMinute, nextPeriod)
   }
+
+  const hasError = Boolean(errors && errors[name])
+  const errorTarget = (() => {
+    if (!hasError) return null
+
+    // Only show the red underline on the sub-field the user interacted with.
+    const last = lastInteractedRef.current
+    if (last === 'hour') return 'hour'
+    if (last === 'minute') return 'minute'
+    if (last === 'period') return 'period'
+
+    // Fallback: if the form says "time" is invalid but we don't know which
+    // part the user touched, underline the first missing part.
+    if (!isValidHour(hour)) return 'hour'
+    if (!isValidMinute(minute)) return 'minute'
+    return 'hour'
+  })()
 
   const getErrors = (err: any) => {
     let errMsg = ''
@@ -263,10 +318,12 @@ const TimeSplitPicker = (props: Props) => {
             placeholder="HH"
             value={hour}
             onChange={(e) => {
+              lastInteractedRef.current = 'hour'
               const digits = e.target.value.replace(/\D/g, '')
               const nextRaw = digits.slice(-2)
               if (nextRaw === '') {
                 setHour('')
+                pendingPartialClearRef.current = 'hour'
                 onChange({ value: '', name })
                 return
               }
@@ -277,7 +334,7 @@ const TimeSplitPicker = (props: Props) => {
               emitIfValid(nextRaw, minute, period)
             }}
             onBlur={() => emitIfValid(hour, minute, period)}
-            className={`w-full textfield pr-10 ${errors?.[name] ? 'textfield-error' : ''}`}
+            className={`w-full textfield pr-10 ${errorTarget === 'hour' ? 'textfield-error' : ''}`}
           />
           <button
             type="button"
@@ -301,10 +358,12 @@ const TimeSplitPicker = (props: Props) => {
             placeholder="MM"
             value={minute}
             onChange={(e) => {
+              lastInteractedRef.current = 'minute'
               const digits = e.target.value.replace(/\D/g, '')
               const nextRaw = digits.slice(-2)
               if (nextRaw === '') {
                 setMinute('')
+                pendingPartialClearRef.current = 'minute'
                 onChange({ value: '', name })
                 return
               }
@@ -315,15 +374,9 @@ const TimeSplitPicker = (props: Props) => {
               emitIfValid(hour, nextRaw, period)
             }}
             onBlur={() => {
-              if (minute.length === 1) {
-                const padded = minute.padStart(2, '0')
-                setMinute(padded)
-                emitIfValid(hour, padded, period)
-                return
-              }
               emitIfValid(hour, minute, period)
             }}
-            className={`w-full textfield pr-10 ${errors?.[name] ? 'textfield-error' : ''}`}
+            className={`w-full textfield pr-10 ${errorTarget === 'minute' ? 'textfield-error' : ''}`}
           />
           <button
             type="button"
@@ -345,18 +398,21 @@ const TimeSplitPicker = (props: Props) => {
             disabled={disabled}
             value={period}
             onChange={(e) => {
+              lastInteractedRef.current = 'period'
               const next = (e.target.value || 'AM') as 'AM' | 'PM'
               setPeriod(next)
               emitIfValid(hour, minute, next)
             }}
-            className={`w-full textfield pr-10 ${errors?.[name] ? 'textfield-error' : ''}`}
+            className={`w-full textfield pr-10 ${errorTarget === 'period' ? 'textfield-error' : ''}`}
           >
             <option value="AM">AM</option>
             <option value="PM">PM</option>
           </select>
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#757575] pointer-events-none">
-            <Icons name="clock-icon" className="w-4 h-4 fill-[#757575]" />
-          </span>
+          {!hidePeriodIcon && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#757575] pointer-events-none">
+              <Icons name="clock-icon" className="w-4 h-4 fill-[#757575]" />
+            </span>
+          )}
         </div>
       </div>
 

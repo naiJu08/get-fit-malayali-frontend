@@ -1,10 +1,15 @@
 import moment from 'moment'
 import { useEffect, useMemo, useState } from 'react'
+import { Controller, FormProvider, useForm } from 'react-hook-form'
 import InfoBox from '../../../components/app/alertBox/infoBox'
+import { DialogModal } from '../../../components/common'
 import { Tab, TabContainer } from '../../../components/common/tab'
 import CustomDrawer from '../../../components/common/drawer'
+import TimeSplitPicker from '../../../components/common/inputs/TimeSplitPicker'
 import Icons from '../../../components/common/icons'
 import { getSubscriptionPlanOverview, getSubscriptionPlanDay } from '../api'
+import { useSnackbarManager } from '../../../components/common/snackbar'
+import { useUpdateUserMealTiming } from '../../AdminUser/api'
 
 type DayDetailTab = 'diet' | 'workout' | 'yoga' | 'meditation'
 
@@ -47,9 +52,13 @@ export default function SubscriptionUserSubscriptionsTab({
   const [dayDetailLoading, setDayDetailLoading] = useState(false)
   const [dayDetailTab, setDayDetailTab] = useState<DayDetailTab>('diet')
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [selectedMealTiming, setSelectedMealTiming] = useState<any>(null)
+  const [mealTimeEditOpen, setMealTimeEditOpen] = useState(false)
 
   const userId = subscription?.user_id
   const subscriptionId = subscription?.id
+
+  const { enqueueSnackbar } = useSnackbarManager()
 
   useEffect(() => {
     let mounted = true
@@ -105,6 +114,41 @@ export default function SubscriptionUserSubscriptionsTab({
       mounted = false
     }
   }, [userId, subscriptionId])
+  const mealTimeForm = useForm<{ time: string }>({
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+    defaultValues: { time: '' },
+  })
+
+  const templateId =
+    dayDetail?.subscription?.diet_plan_template_id ??
+    dayDetail?.diet_plan_template_id ??
+    dayDetail?.subscription?.diet_plan_template?.id ??
+    null
+
+  const refreshDayDetail = async () => {
+    if (!userId || !subscriptionId || !selectedDate) return
+    try {
+      setDayDetailLoading(true)
+      const res = await getSubscriptionPlanDay(
+        String(userId),
+        String(subscriptionId),
+        selectedDate
+      )
+      setDayDetail(res)
+    } catch (err) {
+      console.error('Failed to refresh subscription day detail', err)
+    } finally {
+      setDayDetailLoading(false)
+    }
+  }
+
+  const { mutate: updateUserMealTimingMutate, isLoading: isUpdatingMealTime } =
+    useUpdateUserMealTiming(async () => {
+      setMealTimeEditOpen(false)
+      setSelectedMealTiming(null)
+      await refreshDayDetail()
+    })
 
   const statusColor = (day: OverviewDay) => {
     if (day?.freeze)
@@ -206,6 +250,28 @@ export default function SubscriptionUserSubscriptionsTab({
     }
 
     return { title: monthStart.format('MMMM YYYY'), cells }
+  }
+
+  const openMealTimeEdit = (meal: any) => {
+    setSelectedMealTiming(meal)
+    const time24 = meal?.meal_time_time
+      ? moment(meal.meal_time_time, [
+          'hh:mm A',
+          'h:mm A',
+          'HH:mm:ss',
+          'HH:mm',
+        ]).format('HH:mm:ss')
+      : ''
+
+    mealTimeForm.reset({
+      time: time24,
+    })
+    setMealTimeEditOpen(true)
+  }
+
+  const closeMealTimeEdit = () => {
+    setMealTimeEditOpen(false)
+    setSelectedMealTiming(null)
   }
 
   const getDayCellClass = (cell: any) => {
@@ -694,9 +760,26 @@ export default function SubscriptionUserSubscriptionsTab({
                             {/* ---------- Meal Header ---------- */}
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <div className="text-lg font-semibold text-gray-800">
-                                  {d.meal_time}
+                                {/* <div className="text-lg font-semibold text-gray-800">
+                                  {d.meal_time} - {d.meal_time_time}
+                                </div> */}
+                                <div className="flex items-center gap-2">
+                                  <div className="text-lg font-semibold text-gray-800">
+                                    {d.meal_time} - {d.meal_time_time}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    className="p-0"
+                                    onClick={() => openMealTimeEdit(d)}
+                                    aria-label="Edit meal time"
+                                  >
+                                    <Icons
+                                      name="fab-edit"
+                                      className="w-4 h-4 text-[#60A5FA]"
+                                    />
+                                  </button>
                                 </div>
+
                                 {d?.meal_name && (
                                   <div className="text-sm text-gray-600 font-medium">
                                     {d?.meal_name
@@ -1687,6 +1770,99 @@ export default function SubscriptionUserSubscriptionsTab({
           )}
         </div>
       </CustomDrawer>
+
+      <DialogModal
+        isOpen={mealTimeEditOpen}
+        onClose={closeMealTimeEdit}
+        title="Edit Meal Timing"
+        actionLabel="Save"
+        actionLoader={isUpdatingMealTime}
+        onSubmit={mealTimeForm.handleSubmit((values) => {
+          const missing: string[] = []
+          if (!selectedMealTiming) missing.push('meal')
+          if (!userId) missing.push('user_id')
+          if (
+            subscriptionId === null ||
+            subscriptionId === undefined ||
+            subscriptionId === ''
+          ) {
+            missing.push('subscription_id')
+          }
+          if (
+            templateId === null ||
+            templateId === undefined ||
+            templateId === ''
+          ) {
+            missing.push('diet_plan_template_id')
+          }
+
+          if (missing.length) {
+            enqueueSnackbar(`Missing required details: ${missing.join(', ')}`, {
+              variant: 'error',
+            })
+            return
+          }
+
+          const time12 = values.time
+            ? moment(values.time, ['HH:mm:ss', 'HH:mm']).format('hh:mm A')
+            : ''
+
+          updateUserMealTimingMutate({
+            userId,
+            payload: {
+              user_meal_timing: {
+                meal_time: String(selectedMealTiming?.meal_time ?? '')
+                  .trim()
+                  .toUpperCase(),
+                time: time12,
+                diet_plan_template_id: templateId,
+                subscription_id: subscriptionId as any,
+                sequence_number: Number(
+                  selectedMealTiming?.sequence_number ?? 0
+                ),
+              },
+            },
+          })
+        })}
+        secondaryAction={closeMealTimeEdit}
+        secondaryActionLabel="Cancel"
+        small={false}
+        body={
+          <FormProvider {...mealTimeForm}>
+            <div className="space-y-4">
+              {/* <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Meal Time
+                </label>
+                <input
+                  value={String(selectedMealTiming?.meal_time_time ?? '--')}
+                  disabled
+                  readOnly
+                  className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"
+                />
+              </div> */}
+
+              <Controller
+                name="time"
+                control={mealTimeForm.control}
+                rules={{ required: 'Required.' }}
+                render={({ field: { value, onChange } }) => (
+                  <TimeSplitPicker
+                    label="Time"
+                    name="time"
+                    value={value}
+                    required
+                    hidePeriodIcon
+                    disabled={isUpdatingMealTime}
+                    errors={mealTimeForm.formState.errors as any}
+                    onChange={(data) => onChange(data.value)}
+                  />
+                )}
+              />
+            </div>
+          </FormProvider>
+        }
+      />
     </>
   )
 }

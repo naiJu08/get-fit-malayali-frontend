@@ -48,13 +48,26 @@ export default function MealTimingMain() {
     ...cleanedFilters,
   })
 
-  const handleSearch = (value?: string) => {
-    setPageParams({
-      ...pageParams,
-      search: value || '',
-      page: 1,
-    })
-  }
+  // Refetch when filters/pagination/sort/search change (same pattern as Meditation list)
+  useEffect(() => {
+    refetch()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, page_size, search, ordering, JSON.stringify(filters)])
+
+  // Keep page within server-reported total pages (if provided)
+  useEffect(() => {
+    const totalPages = (mealTimingData as any)?.meta?.total_pages
+    if (typeof totalPages === 'number' && totalPages > 0) {
+      if ((pageParams?.page ?? 1) > totalPages) {
+        setPageParams({ ...pageParams, page: totalPages })
+      } else if ((pageParams?.page ?? 1) < 1) {
+        setPageParams({ ...pageParams, page: 1 })
+      }
+    } else if ((pageParams?.page ?? 1) < 1) {
+      setPageParams({ ...pageParams, page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [(mealTimingData as any)?.meta?.total_pages])
 
   const handleColumnSort = (orderColumn: any, orderDirection: any) => {
     if (!orderColumn || !orderDirection) {
@@ -94,13 +107,6 @@ export default function MealTimingMain() {
     setEdit(false)
     setViewMode(false)
     setRowData(undefined)
-  }
-
-  const onViewAction = (row: any) => {
-    setRowData(row)
-    setEdit(false)
-    setViewMode(true)
-    setCreateOpen(true)
   }
 
   // const onEditAction = (row: any) => {
@@ -152,6 +158,15 @@ export default function MealTimingMain() {
     refetch()
   }
 
+  const totalCount =
+    (mealTimingData as any)?.meta?.total_count ??
+    (mealTimingData as any)?.count ??
+    (mealTimingData as any)?.meta?.total ??
+    (mealTimingData as any)?.meta?.totalCount ??
+    (mealTimingData as any)?.meta?.total_items ??
+    mealTimingData?.meal_timings?.length ??
+    0
+
   const handleEdit = (row: any) => {
     setRowData(row)
     setEdit(true)
@@ -178,20 +193,11 @@ export default function MealTimingMain() {
 
   useEffect(() => {
     const cols = getColumns({
-      onNameClick: onViewAction,
-      disableNameLink: isNutritionist,
+      onNameClick: (row: any) => navigate(`/mealtiming/${row?.id}`),
+      disableNameLink: false,
     })
     setColumns(cols)
-  }, [isNutritionist])
-
-  useEffect(() => {
-    if (searchDebounce) {
-      const timer = setTimeout(() => {
-        handleSearch(searchDebounce)
-      }, 300)
-      return () => clearTimeout(timer)
-    }
-  }, [searchDebounce, handleSearch])
+  }, [navigate])
 
   return (
     <>
@@ -236,7 +242,7 @@ export default function MealTimingMain() {
           pagination={true}
           paginationProps={{
             onPagination: handlePagination,
-            total: mealTimingData?.meta?.total_count ?? 0,
+            total: Number(totalCount ?? 0) || 0,
             currentPage:
               typeof mealTimingData?.meta?.current_page === 'number'
                 ? (mealTimingData?.meta?.current_page as number)
@@ -246,7 +252,7 @@ export default function MealTimingMain() {
             totalPages: Math.max(
               1,
               Math.ceil(
-                (Number(mealTimingData?.meta?.total_count ?? 0) || 0) /
+                (Number(totalCount ?? 0) || 0) /
                   Number(pageParams?.page_size ?? 10)
               )
             ),

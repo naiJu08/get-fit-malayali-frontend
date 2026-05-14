@@ -506,6 +506,7 @@ export interface FormBuilderProps {
   requiredWidth?: number
   requiredHeight?: number
   dimensionLabel?: string
+  hidePeriodIcon?: boolean
 }
 interface Content {
   cell: ReactNode | string

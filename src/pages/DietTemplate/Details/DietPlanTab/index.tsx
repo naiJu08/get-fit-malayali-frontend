@@ -362,7 +362,7 @@ function DietPlanContent({
         sortKey: 'serial',
       },
       {
-        title: 'Meal Time',
+        title: 'Meal ',
         field: 'meal_time',
         resizable: true,
         isVisible: true,
@@ -379,6 +379,13 @@ function DietPlanContent({
           ),
         }),
         sortKey: 'meal_time',
+      },
+      {
+        title: 'Meal Time',
+        field: 'meal_time_time',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
       },
       {
         title: 'Meal Name',
