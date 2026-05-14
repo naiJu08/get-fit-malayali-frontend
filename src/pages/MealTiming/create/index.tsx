@@ -71,7 +71,7 @@ export default function MealTimingCreate({
       name: '',
       time: '',
       sequence_number: undefined as unknown as number,
-      status: 'active',
+      status: 'Active',
     })
     handleClose()
   }
@@ -81,7 +81,7 @@ export default function MealTimingCreate({
       name: '',
       time: '',
       sequence_number: undefined as unknown as number,
-      status: 'active',
+      status: 'Active',
     })
     handleRefresh()
     handleClearAndClose()
@@ -106,7 +106,7 @@ export default function MealTimingCreate({
       time: time24,
       sequence_number:
         rowData?.sequence_number ?? (undefined as unknown as number),
-      status: rowData?.status ?? 'active',
+      status: toTitleCase(rowData?.status) || 'Active',
     })
 
     hydratedRowRef.current = hydrationKey
@@ -233,6 +233,7 @@ export default function MealTimingCreate({
         type: 'time_split',
         placeholder: 'Select time',
         required: true,
+        hidePeriodIcon: true,
         ...(viewMode && { disabled: true }),
       },
       {

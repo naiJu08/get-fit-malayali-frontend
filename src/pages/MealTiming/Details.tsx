@@ -56,7 +56,7 @@ export default function MealTimingDetails() {
     sequenceNumber !== undefined &&
     !(typeof sequenceNumber === 'string' && sequenceNumber.trim() === '')
 
-  // const openEditDrawer = () => setEditDrawerOpen(true)
+  const openEditDrawer = () => setEditDrawerOpen(true)
   const closeEditDrawer = () => setEditDrawerOpen(false)
   const handleRefresh = async () => {
     await loadMealTiming()
@@ -72,14 +72,14 @@ export default function MealTimingDetails() {
             </button>
             <h1 className="text-xl font-semibold">Meal Timing Details</h1>
           </div>
-          {/* <button
+          <button
             type="button"
             className="inline-flex items-center rounded-lg bg-primaryGreen text-white px-4 py-2 text-sm font-medium hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"
             onClick={openEditDrawer}
           >
             <Icons name="edit" />
             Edit Meal Timing
-          </button> */}
+          </button>
         </div>
 
         {loading && (

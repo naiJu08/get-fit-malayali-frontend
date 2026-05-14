@@ -97,12 +97,20 @@ export const getMealsColumns = (
       rowClick: onNameClick,
     },
     {
-      title: 'Meal Time',
+      title: 'Meal',
       field: 'meal_time',
       renderCell: createRenderCell('meal_time'),
       customCell: true,
       ...defaultColumnProps,
     },
+    {
+      title: 'Meal Time',
+      field: 'meal_time_time',
+      renderCell: createRenderCell('meal_time_time'),
+      customCell: true,
+      ...defaultColumnProps,
+    },
+
     {
       title: 'Meal Category',
       field: 'meal_category',

@@ -33,6 +33,8 @@ const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
 const fetchData = async (input: QueryParams) => {
   const url = buildUrlWithParams(apiUrl.MEAL_TIMINGS, {
     ...input,
+    // Backend pagination uses `per_page` in many endpoints; keep supporting `page_size` from UI.
+    per_page: (input as any)?.per_page ?? (input as any)?.page_size,
   })
   const response = await getData(url)
   return response

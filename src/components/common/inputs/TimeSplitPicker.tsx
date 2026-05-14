@@ -12,6 +12,7 @@ type Props = {
   required?: boolean
   errors?: FieldErrors
   name: string
+  hidePeriodIcon?: boolean
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0')
@@ -131,7 +132,16 @@ const build24HourValue = (
 }
 
 const TimeSplitPicker = (props: Props) => {
-  const { label, errors, onChange, value, disabled, required, name } = props
+  const {
+    label,
+    errors,
+    onChange,
+    value,
+    disabled,
+    required,
+    name,
+    hidePeriodIcon,
+  } = props
 
   const initialParts = useMemo(() => parseValueToParts(value), [value])
   const [hour, setHour] = useState(initialParts.hour)
@@ -398,9 +408,11 @@ const TimeSplitPicker = (props: Props) => {
             <option value="AM">AM</option>
             <option value="PM">PM</option>
           </select>
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#757575] pointer-events-none">
-            <Icons name="clock-icon" className="w-4 h-4 fill-[#757575]" />
-          </span>
+          {!hidePeriodIcon && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#757575] pointer-events-none">
+              <Icons name="clock-icon" className="w-4 h-4 fill-[#757575]" />
+            </span>
+          )}
         </div>
       </div>
 

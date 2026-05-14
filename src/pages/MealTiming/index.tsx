@@ -164,7 +164,8 @@ export default function MealTimingMain() {
     (mealTimingData as any)?.meta?.total ??
     (mealTimingData as any)?.meta?.totalCount ??
     (mealTimingData as any)?.meta?.total_items ??
-    (mealTimingData?.meal_timings?.length ?? 0)
+    mealTimingData?.meal_timings?.length ??
+    0
 
   const handleEdit = (row: any) => {
     setRowData(row)
