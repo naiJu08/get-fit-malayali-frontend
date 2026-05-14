@@ -71,7 +71,9 @@ export default function CreateMeal({
     }),
     []
   )
-  const { data: mealTimingListData } = useMealTimingList(mealTimingParams as any)
+  const { data: mealTimingListData } = useMealTimingList(
+    mealTimingParams as any
+  )
   const mealTimingOptions = useMemo(() => {
     const items = (mealTimingListData as any)?.meal_timings ?? []
     const fromApi = Array.isArray(items)

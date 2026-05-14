@@ -14,7 +14,10 @@ import FormBuilder from '../../../../../components/app/formBuilder'
 import ToggleSwitch from '../../../../../components/common/inputs/ToggleSwitch'
 import { useCreateDietPlan, useDietPlanDetail, useUpdateDietPlan } from '../api'
 import { useMeals } from '../../../../Meals/api'
-import { getMealTimingDetails, useMealTimingList } from '../../../../MealTiming/api'
+import {
+  getMealTimingDetails,
+  useMealTimingList,
+} from '../../../../MealTiming/api'
 import Button from '../../../../../components/common/buttons/Button'
 import { useSnackbarManager } from '../../../../../components/common/snackbar'
 
@@ -189,7 +192,9 @@ const DietPlanForm = ({
     }),
     []
   )
-  const { data: mealTimingListData } = useMealTimingList(mealTimingParams as any)
+  const { data: mealTimingListData } = useMealTimingList(
+    mealTimingParams as any
+  )
 
   const mealTimeOptions = useMemo(() => {
     const items = (mealTimingListData as any)?.meal_timings ?? []
@@ -864,24 +869,24 @@ const DietPlanForm = ({
             onClick={handleClose}
             outlined
           />
-           {!edit && (
-             <Button
-               disabled={creating || updating}
-               isLoading={creating}
-               label="Submit and Add New"
-               onClick={submitAndAddNew}
-               className="bg-blue-500"
-             />
-           )}
-           {edit && (
-             <Button
-               disabled={creating || updating}
-               isLoading={creating || updating}
-               label="Update"
-               onClick={submitAndClose}
-               primary
-             />
-           )}
+          {!edit && (
+            <Button
+              disabled={creating || updating}
+              isLoading={creating}
+              label="Submit and Add New"
+              onClick={submitAndAddNew}
+              className="bg-blue-500"
+            />
+          )}
+          {edit && (
+            <Button
+              disabled={creating || updating}
+              isLoading={creating || updating}
+              label="Update"
+              onClick={submitAndClose}
+              primary
+            />
+          )}
         </div>
       }
       body={

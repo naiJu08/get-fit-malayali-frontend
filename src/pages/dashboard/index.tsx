@@ -1,6 +1,12 @@
 import DashboardView from './dashboard'
-import { useAdminDashboard, useUserProfile, useDeleteAccount } from './api'
-import type { DashboardResponse } from './types'
+import NutritionistDashboardView from './nutritionist-dashboard'
+import {
+  useAdminDashboard,
+  useNutritionistDashboard,
+  useUserProfile,
+  useDeleteAccount,
+} from './api'
+import type { DashboardResponse, NutritionistDashboardResponse } from './types'
 import { useAuthStore } from '../../store/authStore'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -11,6 +17,7 @@ export default function DashboardPage() {
 
   // Check if role is specifically "user"
   const isUserRole = roleName === 'user'
+  const isNutritionistRole = roleName === 'nutritionist'
 
   // API hooks now handle conditional logic internally based on auth store role
   const {
@@ -25,6 +32,12 @@ export default function DashboardPage() {
     isError: isAdminError,
     refetch: refetchAdmin,
   } = useAdminDashboard()
+  const {
+    data: nutritionistData,
+    isLoading: isNutritionistLoading,
+    isError: isNutritionistError,
+    refetch: refetchNutritionist,
+  } = useNutritionistDashboard()
 
   // Show different content based on role
   if (isUserRole) {
@@ -39,7 +52,18 @@ export default function DashboardPage() {
     )
   }
 
-  // All other roles (superadmin, nutritionist, admin, etc.) see admin dashboard
+  if (isNutritionistRole) {
+    return (
+      <NutritionistDashboardView
+        data={nutritionistData as NutritionistDashboardResponse | undefined}
+        loading={isNutritionistLoading}
+        error={isNutritionistError}
+        onRetry={() => refetchNutritionist()}
+      />
+    )
+  }
+
+  // All other admin roles see admin dashboard
   return (
     <DashboardView
       data={adminData as DashboardResponse | undefined}

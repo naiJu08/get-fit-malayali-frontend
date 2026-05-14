@@ -48,6 +48,7 @@ const AUTH_ME = '/auth/me'
 const USERS_DELETE = '/users/delete'
 const DUPLICATE_DIET_TEMPLATE = '/diet_plan_templates/duplicate'
 const TEMPLATE_CATEGORIES = '/diet_template_categories'
+const NUTRITIONIST_DASHBOARD = '/nutritionist/dashboard'
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
   ASSESSOR_LIST_URL,
@@ -97,6 +98,7 @@ const apiUrl: { [key: string]: string } = {
   USERS_DELETE,
   DUPLICATE_DIET_TEMPLATE,
   TEMPLATE_CATEGORIES,
+  NUTRITIONIST_DASHBOARD,
 }
 
 export default apiUrl

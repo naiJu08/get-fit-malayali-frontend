@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { getData, deleteData } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
-import type { DashboardResponse } from './types'
+import type { DashboardResponse, NutritionistDashboardResponse } from './types'
 import { useAuthStore } from '../../store/authStore'
 import { useSnackbarManager } from '../../components/common/snackbar'
 
@@ -10,6 +10,12 @@ const fetchDashboard = async (): Promise<DashboardResponse> => {
   const response = await getData(apiUrl.ADMIN_DASHBOARD)
   return response as DashboardResponse
 }
+
+const fetchNutritionistDashboard =
+  async (): Promise<NutritionistDashboardResponse> => {
+    const response = await getData(apiUrl.NUTRITIONIST_DASHBOARD)
+    return response as NutritionistDashboardResponse
+  }
 
 // Fetch user profile data for user role
 const fetchUserProfile = async () => {
@@ -21,9 +27,21 @@ export const useAdminDashboard = () => {
   const { roleData } = useAuthStore()
   const roleName = roleData?.name
   const isUserRole = roleName === 'user'
+  const isNutritionistRole = roleName === 'nutritionist'
 
   return useQuery(['admin-dashboard'], fetchDashboard, {
-    enabled: !isUserRole, // Only enable if role is not "user"
+    enabled: !isUserRole && !isNutritionistRole,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export const useNutritionistDashboard = () => {
+  const { roleData } = useAuthStore()
+  const roleName = roleData?.name
+  const isNutritionistRole = roleName === 'nutritionist'
+
+  return useQuery(['nutritionist-dashboard'], fetchNutritionistDashboard, {
+    enabled: isNutritionistRole,
     refetchOnWindowFocus: false,
   })
 }

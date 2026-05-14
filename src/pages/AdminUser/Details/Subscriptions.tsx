@@ -1290,6 +1290,7 @@ export default function Subscriptions({
     if (!user?.id || !dateStr) return
     try {
       setSelectedDate(dateStr)
+      setDayDetail(null)
       setDayDetailOpen(true)
       setDayDetailTab(focusTab)
       setDayDetailLoading(true)
@@ -1301,6 +1302,51 @@ export default function Subscriptions({
       setDayDetailLoading(false)
     }
   }
+
+  const getActiveDayDate = () => dayDetail?.date || selectedDate
+
+  const canNavigateDayDetail = (direction: 'previous' | 'next') => {
+    const activeDate = getActiveDayDate()
+    const startDate = overview?.subscription?.start_date
+    const endDate = overview?.subscription?.end_date
+    if (!activeDate || !startDate || !endDate || dayDetailLoading) return false
+
+    const current = moment(activeDate, 'YYYY-MM-DD', true)
+    const boundary = moment(
+      direction === 'previous' ? startDate : endDate,
+      'YYYY-MM-DD',
+      true
+    )
+    if (!current.isValid() || !boundary.isValid()) return false
+
+    return direction === 'previous'
+      ? current.isAfter(boundary, 'day')
+      : current.isBefore(boundary, 'day')
+  }
+
+  const navigateDayDetail = (direction: 'previous' | 'next') => {
+    if (!canNavigateDayDetail(direction)) return
+    const activeDate = getActiveDayDate()
+    const nextDate = moment(activeDate, 'YYYY-MM-DD')
+      .add(direction === 'previous' ? -1 : 1, 'day')
+      .format('YYYY-MM-DD')
+
+    setAssignOpen(false)
+    setReviewOpen(false)
+    setYogaAssignOpen(false)
+    setYogaReviewOpen(false)
+    setMedAssignOpen(false)
+    setMedReviewOpen(false)
+    setCurrentMonth(moment(nextDate, 'YYYY-MM-DD').format('YYYY-MM'))
+    openDayDetail(nextDate, dayDetailTab)
+  }
+
+  const dayDetailNavigatorLabel = dayDetail
+    ? `Plan Day ${safeStr(dayDetail?.day_number)} - ${moment(dayDetail?.date).format('MMM D, YYYY')}`
+    : selectedDate
+      ? `Day Details - ${moment(selectedDate).format('MMM D, YYYY')}`
+      : 'Day Details'
+
   useEffect(() => {
     if (!assignOpen) return
     if (drawerSelectionInitializedRef.current) return
@@ -4444,12 +4490,43 @@ export default function Subscriptions({
         handleClose={() => setDayDetailOpen(false)}
         className="w-screen max-w-[1000px]"
         unmountOnClose
+        accentHeader
         title={
-          dayDetail
-            ? `Plan Day ${safeStr(dayDetail?.day_number)} • ${moment(dayDetail?.date).format('MMM D, YYYY')}`
-            : selectedDate
-              ? `Day Details • ${moment(selectedDate).format('MMM D, YYYY')}`
-              : 'Day Details'
+          <div className="flex w-full items-center gap-3">
+            <div className="flex flex-1 items-center justify-center">
+              <div className="flex h-9 items-center justify-center gap-3 rounded-lg border border-blue-100 bg-white px-3 shadow-sm">
+                <button
+                  type="button"
+                  aria-label="Previous day"
+                  onClick={() => navigateDayDetail('previous')}
+                  disabled={!canNavigateDayDetail('previous')}
+                  className={`h-7 w-7 flex items-center justify-center transition-colors ${
+                    canNavigateDayDetail('previous')
+                      ? 'text-gray-700'
+                      : 'text-gray-300 cursor-not-allowed'
+                  }`}
+                >
+                  <Icons name="previous-arrow" />
+                </button>
+                <span className="min-w-[220px] text-center text-sm font-semibold text-primaryText">
+                  {dayDetailNavigatorLabel}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Next day"
+                  onClick={() => navigateDayDetail('next')}
+                  disabled={!canNavigateDayDetail('next')}
+                  className={`h-7 w-7 flex items-center justify-center transition-colors ${
+                    canNavigateDayDetail('next')
+                      ? 'text-gray-700'
+                      : 'text-gray-300 cursor-not-allowed'
+                  }`}
+                >
+                  <Icons name="next-arrow" />
+                </button>
+              </div>
+            </div>
+          </div>
         }
         actionLabel={undefined}
         actionLoader={false}
