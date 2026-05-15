@@ -15,7 +15,7 @@ export const getColumns = (navigate?: (path: string) => void) => {
       return { cell, toolTip: typeof cell === 'string' ? cell : '' }
     }
 
-  const formatDate = (d: any) => (d ? moment(d).format('YYYY-MM-DD') : '')
+  const formatDate = (d: any) => (d ? moment(d).format('DD-MM-YYYY') : '')
   const column = [
     {
       title: 'Client',

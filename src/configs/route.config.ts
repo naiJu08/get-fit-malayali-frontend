@@ -258,6 +258,30 @@ const MEAL_TIMING_DETAILS: RouterMenuProps = {
   permission_slugs: [],
 }
 
+const ASSESSMENT_CATEGORY: RouterMenuProps = {
+  id: 34,
+  path: '/assessment-category',
+  parent_id: null,
+  label: 'Assessment Category',
+  key: 'assessment-category',
+  icon: 'category-icon',
+  breadcrumb: ['ASSESSMENT_CATEGORY'],
+  permission_slugs: ['superadmin'],
+  slugOptions: ['ASSESSMENT_CATEGORY'],
+  isSidebarMenu: true,
+}
+
+const ASSESSMENT_CATEGORY_DETAILS: RouterMenuProps = {
+  id: 35,
+  path: '/assessment-category/:id',
+  parent_id: 34,
+  isDetails: true,
+  icon: 'user',
+  label: 'Assessment Category Details',
+  key: 'assessment-category-details',
+  permission_slugs: [],
+}
+
 const WORKOUT_DETAILS: RouterMenuProps = {
   id: 28,
   path: '/workout/:id',
@@ -541,4 +565,6 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   DIET_TEMPLATE_DIET_PLAN,
   MEAL_TIMING,
   MEAL_TIMING_DETAILS,
+  ASSESSMENT_CATEGORY,
+  ASSESSMENT_CATEGORY_DETAILS,
 }
