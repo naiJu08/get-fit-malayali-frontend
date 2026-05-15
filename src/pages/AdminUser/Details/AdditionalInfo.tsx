@@ -1,10 +1,13 @@
 import moment from 'moment'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FormProvider, useForm, useWatch } from 'react-hook-form'
 
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
+import Icons from '../../../components/common/icons'
 import { useSnackbarManager } from '../../../components/common/snackbar'
+import SmartTable from '../../../components/common/table/SmartTable'
+import { TableColumns } from '../../../common/types'
 import { getErrorMessage } from '../../../utilities/parsers'
 import {
   getUserAdditionalData,
@@ -12,6 +15,7 @@ import {
   updateUserAdditionalData,
 } from '../api'
 import DialogModal from '../../../components/common/modal/DialogModal'
+import { useAssessmentCategories } from '../../AssessmentCategory/api'
 
 const fieldKeys = [
   'package',
@@ -37,6 +41,8 @@ const fieldKeys = [
   'preferred_workout_yoga_time',
   'preferred_workout_yoga_time_other',
   'workout_preference',
+  'height',
+  'weight',
   'bmi',
   'location',
   'medical_conditions',
@@ -53,12 +59,21 @@ const fieldKeys = [
   'note',
 ] as const
 
-type AdditionalData = Record<(typeof fieldKeys)[number], string>
+type AdditionalData = Record<(typeof fieldKeys)[number], string> & {
+  assessment_answers?: any[]
+  assessment_answers_attributes?: any[]
+  assessment_category_id?: string
+  assessment_category_name?: string
+  assessment_question_ids?: any[]
+}
 
 const defaultValues = fieldKeys.reduce<AdditionalData>((acc, key) => {
   acc[key] = ''
   return acc
 }, {} as AdditionalData)
+defaultValues.assessment_category_id = ''
+defaultValues.assessment_category_name = ''
+defaultValues.assessment_question_ids = []
 
 type SelectOption = { id: string; name: string }
 
@@ -196,6 +211,8 @@ const sections: SectionDefinition[] = [
         label: 'Lactation status',
         options: dropdownOptions.lactation_status,
       },
+      { key: 'height', label: 'Height' },
+      { key: 'weight', label: 'Weight' },
       { key: 'bmi', label: 'BMI' },
       { key: 'location', label: 'Location' },
     ],
@@ -384,15 +401,62 @@ const formatValue = (
 
 const normalizeAdditionalData = (raw: any): AdditionalData | null => {
   if (!raw || typeof raw !== 'object') return null
-  return fieldKeys.reduce<AdditionalData>((acc, key) => {
+  const next = fieldKeys.reduce<AdditionalData>((acc, key) => {
     acc[key] = raw?.[key] ?? ''
     return acc
   }, {} as AdditionalData)
+  const assessmentAnswers = Array.isArray(raw?.assessment_answers)
+    ? raw.assessment_answers
+    : []
+  next.assessment_answers = assessmentAnswers
+  next.assessment_category_id =
+    assessmentAnswers[0]?.assessment_category_id != null
+      ? String(assessmentAnswers[0].assessment_category_id)
+      : ''
+  next.assessment_category_name = assessmentAnswers[0]?.category_name ?? ''
+  next.assessment_question_ids = assessmentAnswers
+    .filter((answer: any) => answer?.answer === true)
+    .map((answer: any) => String(answer?.assessment_question_id))
+  return next
+}
+
+const extractAdditionalPayload = (raw: any) => {
+  const value =
+    raw?.additional_data ?? raw?.data?.additional_data ?? raw?.data ?? raw
+  if (Array.isArray(value)) return value[0] ?? null
+  return value
+}
+
+const formatUserMetric = (value: any) => {
+  if (value === null || value === undefined || value === '') return '--'
+  return String(value)
+}
+
+const formatUserMetricForForm = (value: any) => {
+  if (value === null || value === undefined || value === '') return ''
+  return String(value)
+}
+
+const getUserBmi = (user: Record<string, any> | undefined) => {
+  const apiBmi = user?.bmi ?? user?.body_mass_index
+  if (apiBmi !== null && apiBmi !== undefined && apiBmi !== '') {
+    return String(apiBmi)
+  }
+
+  const height = Number(user?.height)
+  const weight = Number(user?.weight)
+  if (!Number.isFinite(height) || !Number.isFinite(weight) || height <= 0) {
+    return '--'
+  }
+
+  const heightInMeters = height / 100
+  return (weight / (heightInMeters * heightInMeters)).toFixed(1)
 }
 
 const buildFieldConfig = (
   field: SectionField,
-  values: Partial<AdditionalData>
+  values: Partial<AdditionalData>,
+  disabled = false
 ) => {
   const hidden = field.showWhen ? !field.showWhen(values) : false
   if (field.options?.length) {
@@ -409,6 +473,7 @@ const buildFieldConfig = (
       async: false,
       notDataMessage: 'No options found',
       hidden,
+      disabled,
     }
   }
 
@@ -420,6 +485,7 @@ const buildFieldConfig = (
       type: 'textarea',
       placeholder: field.placeholder ?? `Describe ${field.label.toLowerCase()}`,
       hidden,
+      disabled,
     }
   }
 
@@ -433,6 +499,7 @@ const buildFieldConfig = (
       maxDate: field.maxDate,
       minDate: field.minDate,
       hidden,
+      disabled,
     }
   }
 
@@ -443,7 +510,34 @@ const buildFieldConfig = (
     type: 'text',
     placeholder: field.placeholder ?? `Enter ${field.label.toLowerCase()}`,
     hidden,
+    disabled,
   }
+}
+
+const getAssessmentCategoryRows = (data: any) => {
+  if (Array.isArray(data?.assessment_categories)) {
+    return data.assessment_categories
+  }
+  if (Array.isArray(data?.data?.assessment_categories)) {
+    return data.data.assessment_categories
+  }
+  if (Array.isArray(data?.items)) return data.items
+  if (Array.isArray(data?.data)) return data.data
+  return []
+}
+
+const getSelectedAssessmentQuestionIds = (value: any) => {
+  const values = Array.isArray(value) ? value : value ? [value] : []
+
+  return values
+    .map((item) => {
+      if (typeof item === 'object' && item !== null) {
+        return item?.id ?? item?.assessment_question_id
+      }
+      return item
+    })
+    .filter((id) => id !== null && id !== undefined && String(id).trim() !== '')
+    .map((id) => String(id))
 }
 
 export default function AdditionalInfo({
@@ -454,13 +548,16 @@ export default function AdditionalInfo({
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [data, setData] = useState<AdditionalData | null>(null)
-  const [modalMode, setModalMode] = useState<'create' | 'edit' | null>(null)
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view' | null>(
+    null
+  )
   const { enqueueSnackbar } = useSnackbarManager()
 
   const methods = useForm<AdditionalData>({ defaultValues })
   const {
     handleSubmit,
     reset,
+    // setValue,
     formState: { isDirty },
   } = methods
   const watchedValuesRaw =
@@ -472,54 +569,139 @@ export default function AdditionalInfo({
       watchedValuesRaw.preferred_workout_yoga_time
     ),
   }
+  const selectedAssessmentCategoryId = String(
+    watchedValuesRaw.assessment_category_id ?? ''
+  )
+  // const selectedAssessmentQuestionIds = useMemo(
+  //   () =>
+  //     getSelectedAssessmentQuestionIds(watchedValuesRaw.assessment_question_ids),
+  //   [watchedValuesRaw.assessment_question_ids]
+  // )
 
-  const transformForForm = (payload: AdditionalData | null) => {
-    if (!payload) return defaultValues
-    const next = { ...payload }
-    if (next.location) {
-      next.location = capitalizeWords(next.location)
-    }
-    if (next.preferred_workout_yoga_time) {
-      next.preferred_workout_yoga_time = capitalizeWords(
-        next.preferred_workout_yoga_time
-      )
-    }
+  const { data: assessmentCategoryData } = useAssessmentCategories({
+    page: 1,
+    per_page: 999,
+    active: true,
+  } as any)
+  const assessmentCategories = useMemo(
+    () => getAssessmentCategoryRows(assessmentCategoryData),
+    [assessmentCategoryData]
+  )
+  const selectedAssessmentCategory = useMemo(
+    () =>
+      assessmentCategories.find(
+        (category: any) =>
+          String(category?.id) === String(selectedAssessmentCategoryId)
+      ),
+    [assessmentCategories, selectedAssessmentCategoryId]
+  )
+  const assessmentQuestionOptions = useMemo(
+    () =>
+      Array.isArray(selectedAssessmentCategory?.assessment_questions)
+        ? selectedAssessmentCategory.assessment_questions
+        : [],
+    [selectedAssessmentCategory]
+  )
+  // const selectedAssessmentQuestionItems = useMemo(
+  //   () =>
+  //     assessmentQuestionOptions.filter((question: any) =>
+  //       selectedAssessmentQuestionIds.includes(String(question?.id))
+  //     ),
+  //   [assessmentQuestionOptions, selectedAssessmentQuestionIds]
+  // )
 
-    // Capitalize preferred_workout_yoga_time_other
-    if (next.preferred_workout_yoga_time_other) {
-      next.preferred_workout_yoga_time_other = capitalizeWords(
-        next.preferred_workout_yoga_time_other
-      )
-    }
-    if (isCustomSocialHabit(next.social_habits)) {
-      next.social_habits_other = next.social_habits
-      next.social_habits = 'others'
-    } else {
-      next.social_habits_other = ''
-    }
-    if (isCustomPreferredWorkoutYogaTime(next.preferred_workout_yoga_time)) {
-      next.preferred_workout_yoga_time_other = next.preferred_workout_yoga_time
-      next.preferred_workout_yoga_time = 'others'
-    } else {
-      next.preferred_workout_yoga_time_other = ''
-    }
-    return next
-  }
+  const userMetricDefaults = useMemo(
+    () => ({
+      height: formatUserMetricForForm(user?.height),
+      weight: formatUserMetricForForm(user?.weight),
+      bmi: getUserBmi(user) === '--' ? '' : getUserBmi(user),
+    }),
+    [user]
+  )
+
+  const defaultValuesWithUserMetrics = useMemo(
+    () => ({
+      ...defaultValues,
+      ...userMetricDefaults,
+    }),
+    [userMetricDefaults]
+  )
+
+  const transformForForm = useCallback(
+    (payload: AdditionalData | null) => {
+      if (!payload) return defaultValuesWithUserMetrics
+      const next = {
+        ...payload,
+        ...userMetricDefaults,
+      }
+      if (next.location) {
+        next.location = capitalizeWords(next.location)
+      }
+      if (next.preferred_workout_yoga_time) {
+        next.preferred_workout_yoga_time = capitalizeWords(
+          next.preferred_workout_yoga_time
+        )
+      }
+
+      // Capitalize preferred_workout_yoga_time_other
+      if (next.preferred_workout_yoga_time_other) {
+        next.preferred_workout_yoga_time_other = capitalizeWords(
+          next.preferred_workout_yoga_time_other
+        )
+      }
+      if (isCustomSocialHabit(next.social_habits)) {
+        next.social_habits_other = next.social_habits
+        next.social_habits = 'others'
+      } else {
+        next.social_habits_other = ''
+      }
+      if (isCustomPreferredWorkoutYogaTime(next.preferred_workout_yoga_time)) {
+        next.preferred_workout_yoga_time_other =
+          next.preferred_workout_yoga_time
+        next.preferred_workout_yoga_time = 'others'
+      } else {
+        next.preferred_workout_yoga_time_other = ''
+      }
+      next.assessment_category_id = payload.assessment_category_id ?? ''
+      next.assessment_category_name = payload.assessment_category_name ?? ''
+      next.assessment_question_ids = payload.assessment_question_ids ?? []
+      next.assessment_answers = payload.assessment_answers ?? []
+      return next
+    },
+    [defaultValuesWithUserMetrics, userMetricDefaults]
+  )
+
+  const transformForView = useCallback(
+    (payload: AdditionalData | null) => {
+      const next = transformForForm(payload)
+      const viewValues = fieldKeys.reduce<AdditionalData>((acc, key) => {
+        const value = next[key]
+        acc[key] =
+          value === null || value === undefined || String(value).trim() === ''
+            ? '--'
+            : value
+        return acc
+      }, {} as AdditionalData)
+      viewValues.assessment_category_id = next.assessment_category_id ?? ''
+      viewValues.assessment_category_name = next.assessment_category_name ?? ''
+      viewValues.assessment_question_ids = next.assessment_question_ids ?? []
+      viewValues.assessment_answers = next.assessment_answers ?? []
+      return viewValues
+    },
+    [transformForForm]
+  )
   useEffect(() => {
-    reset(defaultValues)
+    reset(defaultValuesWithUserMetrics)
     setData(null)
     setModalMode(null)
-  }, [userId, reset])
+  }, [userId, reset, defaultValuesWithUserMetrics])
 
   useEffect(() => {
     if (!userId) return
     setLoading(true)
     getUserAdditionalData(userId, subscriptionId)
       .then((res) => {
-        const payload =
-          normalizeAdditionalData(res?.additional_data) ||
-          normalizeAdditionalData(res?.data?.additional_data) ||
-          normalizeAdditionalData(res)
+        const payload = normalizeAdditionalData(extractAdditionalPayload(res))
         if (payload) {
           setData(payload)
           reset(transformForForm(payload))
@@ -533,12 +715,63 @@ export default function AdditionalInfo({
         }
       })
       .finally(() => setLoading(false))
-  }, [userId, subscriptionId, enqueueSnackbar, reset])
+  }, [userId, subscriptionId, enqueueSnackbar, reset, transformForForm])
 
   const hasSavedData = useMemo(() => {
     if (!data) return false
     return fieldKeys.some((key) => (data?.[key] ?? '').trim() !== '')
   }, [data])
+
+  const assessmentRows = useMemo(() => {
+    if (!data) return []
+
+    return [
+      {
+        id: 'additional-info',
+        package: formatValue('package', data?.package),
+        date_of_assessment: formatValue(
+          'date_of_assessment',
+          data?.date_of_assessment
+        ),
+        dietary_choice: formatValue('dietary_choice', data?.dietary_choice),
+        height: formatUserMetric(user?.height),
+        weight: formatUserMetric(user?.weight),
+        bmi: getUserBmi(user),
+      },
+    ]
+  }, [data, user])
+
+  const assessmentColumns = useMemo<TableColumns[]>(() => {
+    const columns = [
+      { title: 'Package', field: 'package' },
+      { title: 'Date of assessment', field: 'date_of_assessment' },
+      { title: 'Dietary choice', field: 'dietary_choice' },
+      { title: 'Height', field: 'height' },
+      { title: 'Weight', field: 'weight' },
+      { title: 'BMI', field: 'bmi' },
+    ]
+
+    return columns.map((column) => ({
+      ...column,
+      sortable: false,
+      resizable: true,
+      isVisible: true,
+      customCell: true,
+      colWidth: 180,
+      renderCell: (row: any) => ({
+        cell: (
+          <div
+            className={`whitespace-pre-wrap break-words ${
+              row?.[column.field] === '--' ? 'text-gray-400' : 'text-gray-900'
+            }`}
+          >
+            {row?.[column.field]}
+          </div>
+        ),
+        toolTip: row?.[column.field],
+      }),
+    }))
+  }, [])
 
   const handleSave = (values: AdditionalData) => {
     if (!userId) return
@@ -570,6 +803,31 @@ export default function AdditionalInfo({
     }
     payload.preferred_workout_yoga_time_other = ''
 
+    const assessmentCategoryId = values.assessment_category_id
+    const selectedQuestionIds = getSelectedAssessmentQuestionIds(
+      values.assessment_question_ids
+    )
+    const dataAssessmentAnswers = data?.assessment_answers
+    const existingAnswers = Array.isArray(dataAssessmentAnswers)
+      ? dataAssessmentAnswers
+      : []
+    if (assessmentCategoryId) {
+      payload.assessment_answers_attributes = assessmentQuestionOptions.map(
+        (question: any) => {
+          const existingAnswer = existingAnswers.find(
+            (answer: any) =>
+              String(answer?.assessment_question_id) === String(question?.id)
+          )
+          return {
+            ...(existingAnswer?.id ? { id: existingAnswer.id } : {}),
+            assessment_category_id: Number(assessmentCategoryId),
+            assessment_question_id: Number(question.id),
+            answer: selectedQuestionIds.includes(String(question.id)),
+          }
+        }
+      ) as any
+    }
+
     const persist =
       modalMode === 'edit' ? updateUserAdditionalData : saveUserAdditionalData
 
@@ -589,9 +847,7 @@ export default function AdditionalInfo({
     persist(userId, payload, subscriptionId)
       .then((res) => {
         const payloadFromResponse =
-          normalizeAdditionalData(res?.additional_data) ||
-          normalizeAdditionalData(res?.data?.additional_data) ||
-          payload
+          normalizeAdditionalData(extractAdditionalPayload(res)) || payload
 
         setData(payloadFromResponse)
         reset(transformForForm(payloadFromResponse))
@@ -615,25 +871,30 @@ export default function AdditionalInfo({
 
   const isModalOpen = modalMode !== null
 
-  const openModal = (mode: 'create' | 'edit') => {
+  const openModal = (mode: 'create' | 'edit' | 'view') => {
     if (mode === 'create') {
-      reset(defaultValues)
+      reset(defaultValuesWithUserMetrics)
+    } else if (mode === 'view') {
+      reset(transformForView(data ?? defaultValuesWithUserMetrics))
     } else {
-      reset(transformForForm(data ?? defaultValues))
+      reset(transformForForm(data ?? defaultValuesWithUserMetrics))
     }
     setModalMode(mode)
   }
 
   const handleModalClose = () => {
-    reset(data ?? defaultValues)
+    reset(data ? transformForForm(data) : defaultValuesWithUserMetrics)
     setModalMode(null)
   }
 
   const formHeading =
-    modalMode === 'edit'
-      ? 'Edit Nutritional Assessment'
-      : 'Create Nutritional Assessment'
+    modalMode === 'view'
+      ? 'Nutritional Assessment Details'
+      : modalMode === 'edit'
+        ? 'Edit Nutritional Assessment'
+        : 'Create Nutritional Assessment'
   const disableSubmit = saving || (!isDirty && !hasSavedData)
+  const viewMode = modalMode === 'view'
 
   const formBody = (
     <FormProvider {...methods}>
@@ -659,29 +920,84 @@ export default function AdditionalInfo({
                 .filter((field) =>
                   field.showWhen ? field.showWhen(watchedValues) : true
                 )
-                .map((field) => buildFieldConfig(field, watchedValues))}
+                .map((field) =>
+                  buildFieldConfig(field, watchedValues, viewMode)
+                )}
               edit
               spacing
             />
+            {/* {section.title === 'Program Overview' && (
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <FormBuilder
+                  data={[
+                    {
+                      name: 'assessment_category_name',
+                      id: 'assessment_category_id',
+                      label: 'Assessment Category',
+                      type: 'custom_select',
+                      placeholder: 'Select assessment category',
+                      desc: 'name',
+                      descId: 'id',
+                      data: assessmentCategories,
+                      initialLoad: true,
+                      async: false,
+                      notDataMessage: 'No categories found',
+                      disabled: viewMode,
+                      handleCallBack: () => {
+                        setValue('assessment_question_ids', [], {
+                          shouldDirty: true,
+                        })
+                      },
+                    },
+                  ]}
+                  edit
+                />
+                <FormBuilder
+                  data={[
+                    {
+                      name: 'assessment_question_ids',
+                      id: 'assessment_question_ids',
+                      label: 'Assessment Question',
+                      type: 'multi_select',
+                      placeholder: 'Select assessment questions',
+                      desc: 'question_text',
+                      descId: 'id',
+                      data: assessmentQuestionOptions,
+                      getData: () => assessmentQuestionOptions,
+                      selectedItems: selectedAssessmentQuestionItems,
+                      initialLoad: true,
+                      async: false,
+                      isMultiple: true,
+                      notDataMessage: selectedAssessmentCategoryId
+                        ? 'No questions found'
+                        : 'Select assessment category first',
+                    },
+                  ]}
+                  edit={!viewMode}
+                />
+              </div>
+            )} */}
           </div>
         ))}
-        <div className="flex flex-wrap gap-3 justify-end">
-          <button
-            type="button"
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 text-sm"
-            disabled={saving}
-            onClick={handleModalClose}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 rounded-md bg-primaryGreen text-white text-sm disabled:opacity-60"
-            disabled={disableSubmit}
-          >
-            {saving ? 'Saving…' : 'Save'}
-          </button>
-        </div>
+        {!viewMode && (
+          <div className="flex flex-wrap gap-3 justify-end">
+            <button
+              type="button"
+              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 text-sm"
+              disabled={saving}
+              onClick={handleModalClose}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 rounded-md bg-primaryGreen text-white text-sm disabled:opacity-60"
+              disabled={disableSubmit}
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        )}
       </form>
     </FormProvider>
   )
@@ -705,57 +1021,42 @@ export default function AdditionalInfo({
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap justify-end gap-3">
-        {hasSavedData ? (
-          <button
-            type="button"
-            className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 text-sm"
-            onClick={() => openModal('edit')}
-          >
-            Edit
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="px-4 py-2 rounded-md bg-primaryGreen text-white text-sm"
-            onClick={() => openModal('create')}
-          >
-            Create
-          </button>
-        )}
+        <button
+          type="button"
+          className="px-4 py-2 rounded-md bg-primaryGreen text-white text-sm"
+          onClick={() => openModal('create')}
+        >
+          Create
+        </button>
       </div>
 
       {hasSavedData ? (
-        sections.map((section) => (
-          <div
-            key={section.title}
-            className="border rounded-lg bg-white p-5 shadow-sm"
-          >
-            <h3 className="text-base font-semibold text-gray-900 mb-4">
-              {section.title}
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {section.fields
-                .filter((field) =>
-                  field.showWhen
-                    ? field.showWhen(data ?? ({} as AdditionalData))
-                    : true
-                )
-                .map((field) => (
-                  <div
-                    key={field.key}
-                    className="border rounded-md p-3 bg-gray-50"
-                  >
-                    <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                      {field.label}
-                    </div>
-                    <div className="text-sm text-gray-900">
-                      {formatValue(field.key, data?.[field.key])}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        ))
+        <SmartTable
+          data={assessmentRows}
+          dataRowKey="id"
+          toolbar={false}
+          search={false}
+          height={assessmentRows.length === 0 ? 300 : 520}
+          emptyTitle="No nutritional assessment to display"
+          emptySubTitle=""
+          columns={assessmentColumns}
+          pagination={false}
+          externalActions={true}
+          actionProps={[
+            {
+              icon: <Icons name="eye" />,
+              title: 'View',
+              toolTip: 'View',
+              action: () => openModal('view'),
+            },
+            {
+              icon: <Icons name="edit" />,
+              title: 'Edit',
+              toolTip: 'Edit',
+              action: () => openModal('edit'),
+            },
+          ]}
+        />
       ) : (
         <div className="p-6 border rounded-lg bg-white flex flex-col gap-4">
           <InfoBox content="No nutritional assessment available for this user." />

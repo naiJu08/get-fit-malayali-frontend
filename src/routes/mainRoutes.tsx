@@ -71,6 +71,10 @@ const DietTemplateMain = lazy(() => import('../pages/DietTemplate'))
 const DietTemplateCategories = lazy(
   () => import('../pages/DietTemplateCategories')
 )
+const AssessmentCategory = lazy(() => import('../pages/AssessmentCategory'))
+const AssessmentCategoryDetails = lazy(
+  () => import('../pages/AssessmentCategory/Details')
+)
 
 const routes: any = [
   { slug: 'DASHBOARD', component: <Dashboard /> },
@@ -110,6 +114,11 @@ const routes: any = [
   { slug: 'REMINDER_SETTINGS', component: <UserDetails /> },
   { slug: 'MEAL_TIMING', component: <MealTimingMain /> },
   { slug: 'MEAL_TIMING_DETAILS', component: <MealTimingDetails /> },
+  { slug: 'ASSESSMENT_CATEGORY', component: <AssessmentCategory /> },
+  {
+    slug: 'ASSESSMENT_CATEGORY_DETAILS',
+    component: <AssessmentCategoryDetails />,
+  },
 
   {
     isAuthRoute: true,

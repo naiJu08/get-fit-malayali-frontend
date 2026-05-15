@@ -10,7 +10,7 @@ import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { useAuthStore } from '../../store/authStore'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
-import { useMealTimingList, deleteMealTiming, updateMealTiming } from './api'
+import { useMealTimingList, deleteMealTiming } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create/index'
 import { useNavigate } from 'react-router-dom'
@@ -174,23 +174,6 @@ export default function MealTimingMain() {
     setCreateOpen(true)
   }
 
-  const handleToggleStatus = async (row: any) => {
-    try {
-      const currentStatus = row?.status || 'inactive'
-      const newStatus =
-        currentStatus.toLowerCase() === 'active' ? 'inactive' : 'active'
-
-      await updateMealTiming(row.id, {
-        ...row,
-        status: newStatus,
-      })
-
-      refetch()
-    } catch (error) {
-      console.error('Error toggling status:', error)
-    }
-  }
-
   useEffect(() => {
     const cols = getColumns({
       onNameClick: (row: any) => navigate(`/mealtiming/${row?.id}`),
@@ -273,19 +256,6 @@ export default function MealTimingMain() {
                     action: (row: any) => handleEdit(row),
                     title: 'Edit',
                     toolTip: 'Edit',
-                  },
-                  {
-                    title: 'Activate',
-                    action: (row: any) => handleToggleStatus(row),
-                    icon: <Icons name="activate-icon" />,
-                    toolTip: 'Activate',
-                    variant: 'success',
-                    hide: (row: any) => {
-                      const v = row?.status
-                      const isActive =
-                        typeof v === 'string' && v.toLowerCase() === 'active'
-                      return isActive
-                    },
                   },
                   {
                     icon: <Icons name="table-delete" />,

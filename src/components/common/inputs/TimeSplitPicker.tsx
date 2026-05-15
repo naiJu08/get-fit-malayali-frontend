@@ -270,14 +270,13 @@ const TimeSplitPicker = (props: Props) => {
   const errorTarget = (() => {
     if (!hasError) return null
 
-    // Only show the red underline on the sub-field the user interacted with.
     const last = lastInteractedRef.current
     if (last === 'hour') return 'hour'
     if (last === 'minute') return 'minute'
     if (last === 'period') return 'period'
 
-    // Fallback: if the form says "time" is invalid but we don't know which
-    // part the user touched, underline the first missing part.
+    // Untouched required errors should sit under the minute box for this split input.
+    if (!isValidHour(hour) && !isValidMinute(minute)) return 'minute'
     if (!isValidHour(hour)) return 'hour'
     if (!isValidMinute(minute)) return 'minute'
     return 'hour'
@@ -288,6 +287,13 @@ const TimeSplitPicker = (props: Props) => {
     if (err?.message) errMsg = err.message
     return errMsg
   }
+
+  const errorMessageColumnClass =
+    errorTarget === 'period'
+      ? 'col-start-3'
+      : errorTarget === 'minute'
+        ? 'col-start-2'
+        : 'col-start-1'
 
   const hourOptions = useMemo(
     () => Array.from({ length: 12 }, (_, i) => String(i + 1)),
@@ -458,8 +464,12 @@ const TimeSplitPicker = (props: Props) => {
         )}
 
       {errors && errors[name] && (
-        <div className="text-error text-error-label mt-[1px]">
-          {getErrors(errors[name])}
+        <div className="grid grid-cols-[1fr_1fr_1fr] gap-3">
+          <div
+            className={`text-error text-error-label mt-[1px] ${errorMessageColumnClass}`}
+          >
+            {getErrors(errors[name])}
+          </div>
         </div>
       )}
     </div>
