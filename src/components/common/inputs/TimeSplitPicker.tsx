@@ -149,6 +149,7 @@ const TimeSplitPicker = (props: Props) => {
   const [period, setPeriod] = useState<'AM' | 'PM'>(initialParts.period)
   const pendingPartialClearRef = useRef<null | 'hour' | 'minute'>(null)
   const lastInteractedRef = useRef<null | 'hour' | 'minute' | 'period'>(null)
+  const clearedPartRef = useRef<null | 'hour' | 'minute'>(null)
   const [hourOpen, setHourOpen] = useState(false)
   const [minuteOpen, setMinuteOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -175,6 +176,7 @@ const TimeSplitPicker = (props: Props) => {
         return
       }
 
+      clearedPartRef.current = null
       setHour('')
       setMinute('')
       setPeriod('AM')
@@ -266,7 +268,26 @@ const TimeSplitPicker = (props: Props) => {
     emitChange(nextHour, nextMinute, nextPeriod)
   }
 
-  const hasError = Boolean(errors && errors[name])
+  const getErrors = (err: any) => {
+    let errMsg = ''
+    if (err?.message) errMsg = err.message
+    return errMsg
+  }
+
+  const errorMessage = getErrors(errors?.[name])
+  const lastInteractedValue =
+    lastInteractedRef.current === 'hour'
+      ? hour
+      : lastInteractedRef.current === 'minute'
+        ? minute
+        : ''
+  const shouldSuppressRequiredWhileTyping =
+    errorMessage === 'Required.' && String(lastInteractedValue).trim() !== ''
+  const hasError = Boolean(
+    errors && errors[name] && !shouldSuppressRequiredWhileTyping
+  )
+  const requiredErrorPart =
+    errorMessage === 'Required.' ? clearedPartRef.current : null
   const errorTarget = (() => {
     if (!hasError) return null
 
@@ -275,25 +296,28 @@ const TimeSplitPicker = (props: Props) => {
     if (last === 'minute') return 'minute'
     if (last === 'period') return 'period'
 
-    // Untouched required errors should sit under the minute box for this split input.
-    if (!isValidHour(hour) && !isValidMinute(minute)) return 'minute'
+    if (!isValidHour(hour) && !isValidMinute(minute)) return 'hour'
     if (!isValidHour(hour)) return 'hour'
     if (!isValidMinute(minute)) return 'minute'
     return 'hour'
   })()
-
-  const getErrors = (err: any) => {
-    let errMsg = ''
-    if (err?.message) errMsg = err.message
-    return errMsg
-  }
-
-  const errorMessageColumnClass =
-    errorTarget === 'period'
-      ? 'col-start-3'
-      : errorTarget === 'minute'
-        ? 'col-start-2'
-        : 'col-start-1'
+  const showRequiredHourError =
+    hasError &&
+    errorMessage === 'Required.' &&
+    !isValidHour(hour) &&
+    (requiredErrorPart ? requiredErrorPart === 'hour' : true)
+  const showRequiredMinuteError =
+    hasError &&
+    errorMessage === 'Required.' &&
+    !isValidMinute(minute) &&
+    (requiredErrorPart ? requiredErrorPart === 'minute' : true)
+  const showSingleError =
+    hasError && errorMessage !== 'Required.' && Boolean(errorTarget)
+  const showHourError =
+    showRequiredHourError || (showSingleError && errorTarget === 'hour')
+  const showMinuteError =
+    showRequiredMinuteError || (showSingleError && errorTarget === 'minute')
+  const showPeriodError = showSingleError && errorTarget === 'period'
 
   const hourOptions = useMemo(
     () => Array.from({ length: 12 }, (_, i) => String(i + 1)),
@@ -329,10 +353,12 @@ const TimeSplitPicker = (props: Props) => {
               const nextRaw = digits.slice(-2)
               if (nextRaw === '') {
                 setHour('')
+                clearedPartRef.current = 'hour'
                 pendingPartialClearRef.current = 'hour'
                 onChange({ value: '', name })
                 return
               }
+              clearedPartRef.current = null
               const nextNum = Number(nextRaw)
               if (!Number.isFinite(nextNum) || nextNum < 1 || nextNum > 12)
                 return
@@ -340,7 +366,7 @@ const TimeSplitPicker = (props: Props) => {
               emitIfValid(nextRaw, minute, period)
             }}
             onBlur={() => emitIfValid(hour, minute, period)}
-            className={`w-full textfield pr-10 ${errorTarget === 'hour' ? 'textfield-error' : ''}`}
+            className={`w-full textfield pr-10 ${showHourError ? 'textfield-error' : ''}`}
           />
           <button
             type="button"
@@ -369,10 +395,12 @@ const TimeSplitPicker = (props: Props) => {
               const nextRaw = digits.slice(-2)
               if (nextRaw === '') {
                 setMinute('')
+                clearedPartRef.current = 'minute'
                 pendingPartialClearRef.current = 'minute'
                 onChange({ value: '', name })
                 return
               }
+              clearedPartRef.current = null
               const nextNum = Number(nextRaw)
               if (!Number.isFinite(nextNum) || nextNum < 0 || nextNum > 59)
                 return
@@ -382,7 +410,7 @@ const TimeSplitPicker = (props: Props) => {
             onBlur={() => {
               emitIfValid(hour, minute, period)
             }}
-            className={`w-full textfield pr-10 ${errorTarget === 'minute' ? 'textfield-error' : ''}`}
+            className={`w-full textfield pr-10 ${showMinuteError ? 'textfield-error' : ''}`}
           />
           <button
             type="button"
@@ -409,7 +437,7 @@ const TimeSplitPicker = (props: Props) => {
               setPeriod(next)
               emitIfValid(hour, minute, next)
             }}
-            className={`w-full textfield pr-10 ${errorTarget === 'period' ? 'textfield-error' : ''}`}
+            className={`w-full textfield pr-10 ${showPeriodError ? 'textfield-error' : ''}`}
           >
             <option value="AM">AM</option>
             <option value="PM">PM</option>
@@ -463,13 +491,23 @@ const TimeSplitPicker = (props: Props) => {
           document.body
         )}
 
-      {errors && errors[name] && (
+      {hasError && (
         <div className="grid grid-cols-[1fr_1fr_1fr] gap-3">
-          <div
-            className={`text-error text-error-label mt-[1px] ${errorMessageColumnClass}`}
-          >
-            {getErrors(errors[name])}
-          </div>
+          {showHourError ? (
+            <div className="text-error text-error-label mt-[1px] col-start-1">
+              {errorMessage}
+            </div>
+          ) : null}
+          {showMinuteError ? (
+            <div className="text-error text-error-label mt-[1px] col-start-2">
+              {errorMessage}
+            </div>
+          ) : null}
+          {showPeriodError ? (
+            <div className="text-error text-error-label mt-[1px] col-start-3">
+              {errorMessage}
+            </div>
+          ) : null}
         </div>
       )}
     </div>

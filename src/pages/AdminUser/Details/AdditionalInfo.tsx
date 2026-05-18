@@ -60,12 +60,29 @@ const fieldKeys = [
 ] as const
 
 type AdditionalData = Record<(typeof fieldKeys)[number], string> & {
+  id?: string | number
   assessment_answers?: any[]
   assessment_answers_attributes?: any[]
+  assessment_categories?: AssessmentCategoryFormItem[]
   assessment_category_id?: string
   assessment_category_name?: string
   assessment_question_ids?: any[]
+  assessment_question_no_ids?: any[]
 }
+
+type AssessmentCategoryFormItem = {
+  assessment_category_id: string
+  assessment_category_name: string
+  assessment_question_ids: any[]
+  assessment_question_no_ids: any[]
+}
+
+const getEmptyAssessmentCategory = (): AssessmentCategoryFormItem => ({
+  assessment_category_id: '',
+  assessment_category_name: '',
+  assessment_question_ids: [],
+  assessment_question_no_ids: [],
+})
 
 const defaultValues = fieldKeys.reduce<AdditionalData>((acc, key) => {
   acc[key] = ''
@@ -74,6 +91,8 @@ const defaultValues = fieldKeys.reduce<AdditionalData>((acc, key) => {
 defaultValues.assessment_category_id = ''
 defaultValues.assessment_category_name = ''
 defaultValues.assessment_question_ids = []
+defaultValues.assessment_question_no_ids = []
+defaultValues.assessment_categories = [getEmptyAssessmentCategory()]
 
 type SelectOption = { id: string; name: string }
 
@@ -405,18 +424,44 @@ const normalizeAdditionalData = (raw: any): AdditionalData | null => {
     acc[key] = raw?.[key] ?? ''
     return acc
   }, {} as AdditionalData)
+  next.id = raw?.id
   const assessmentAnswers = Array.isArray(raw?.assessment_answers)
     ? raw.assessment_answers
-    : []
+    : Array.isArray(raw?.assessment_answers_attributes)
+      ? raw.assessment_answers_attributes
+      : []
   next.assessment_answers = assessmentAnswers
   next.assessment_category_id =
-    assessmentAnswers[0]?.assessment_category_id != null
-      ? String(assessmentAnswers[0].assessment_category_id)
-      : ''
-  next.assessment_category_name = assessmentAnswers[0]?.category_name ?? ''
+    raw?.assessment_category_id != null
+      ? String(raw.assessment_category_id)
+      : assessmentAnswers[0]?.assessment_category_id != null
+        ? String(assessmentAnswers[0].assessment_category_id)
+        : ''
+  next.assessment_category_name =
+    raw?.assessment_category_name ?? assessmentAnswers[0]?.category_name ?? ''
   next.assessment_question_ids = assessmentAnswers
     .filter((answer: any) => answer?.answer === true)
     .map((answer: any) => String(answer?.assessment_question_id))
+  next.assessment_question_no_ids = assessmentAnswers
+    .filter((answer: any) => answer?.answer === false)
+    .map((answer: any) => String(answer?.assessment_question_id))
+  let assessmentCategoriesForForm = Array.isArray(raw?.assessment_categories)
+    ? raw.assessment_categories
+    : buildAssessmentCategoriesForForm(assessmentAnswers)
+  if (!assessmentCategoriesForForm.length && next.assessment_category_id) {
+    assessmentCategoriesForForm = [
+      {
+        assessment_category_id: next.assessment_category_id,
+        assessment_category_name: next.assessment_category_name ?? '',
+        assessment_question_ids: next.assessment_question_ids ?? [],
+        assessment_question_no_ids: next.assessment_question_no_ids ?? [],
+      },
+    ]
+  }
+  if (!assessmentCategoriesForForm.length) {
+    assessmentCategoriesForForm = [getEmptyAssessmentCategory()]
+  }
+  next.assessment_categories = assessmentCategoriesForForm
   return next
 }
 
@@ -426,6 +471,24 @@ const extractAdditionalPayload = (raw: any) => {
   if (Array.isArray(value)) return value[0] ?? null
   return value
 }
+
+const extractAdditionalPayloadList = (raw: any) => {
+  const value =
+    raw?.additional_data ?? raw?.data?.additional_data ?? raw?.data ?? raw
+  if (Array.isArray(value)) return value
+  return value ? [value] : []
+}
+
+const hasAdditionalPayloadList = (raw: any) => {
+  const value =
+    raw?.additional_data ?? raw?.data?.additional_data ?? raw?.data ?? raw
+  return Array.isArray(value)
+}
+
+const normalizeAdditionalDataList = (raw: any) =>
+  extractAdditionalPayloadList(raw)
+    .map((item) => normalizeAdditionalData(item))
+    .filter(Boolean) as AdditionalData[]
 
 const formatUserMetric = (value: any) => {
   if (value === null || value === undefined || value === '') return '--'
@@ -540,6 +603,42 @@ const getSelectedAssessmentQuestionIds = (value: any) => {
     .map((id) => String(id))
 }
 
+const buildAssessmentCategoriesForForm = (assessmentAnswers: any[]) => {
+  const categoryMap = new Map<string, AssessmentCategoryFormItem>()
+
+  assessmentAnswers.forEach((answer: any) => {
+    if (
+      answer?.assessment_category_id === null ||
+      answer?.assessment_category_id === undefined
+    ) {
+      return
+    }
+
+    const categoryId = String(answer.assessment_category_id)
+    const category =
+      categoryMap.get(categoryId) ??
+      ({
+        assessment_category_id: categoryId,
+        assessment_category_name: answer?.category_name ?? '',
+        assessment_question_ids: [],
+        assessment_question_no_ids: [],
+      } as AssessmentCategoryFormItem)
+
+    const questionId = String(answer?.assessment_question_id ?? '')
+    if (questionId) {
+      if (answer?.answer === true) {
+        category.assessment_question_ids.push(questionId)
+      } else if (answer?.answer === false) {
+        category.assessment_question_no_ids.push(questionId)
+      }
+    }
+
+    categoryMap.set(categoryId, category)
+  })
+
+  return Array.from(categoryMap.values())
+}
+
 export default function AdditionalInfo({
   user,
   subscriptionId,
@@ -548,6 +647,9 @@ export default function AdditionalInfo({
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [data, setData] = useState<AdditionalData | null>(null)
+  const [additionalDataList, setAdditionalDataList] = useState<
+    AdditionalData[]
+  >([])
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view' | null>(
     null
   )
@@ -557,7 +659,7 @@ export default function AdditionalInfo({
   const {
     handleSubmit,
     reset,
-    // setValue,
+    setValue,
     formState: { isDirty },
   } = methods
   const watchedValuesRaw =
@@ -569,14 +671,13 @@ export default function AdditionalInfo({
       watchedValuesRaw.preferred_workout_yoga_time
     ),
   }
-  const selectedAssessmentCategoryId = String(
-    watchedValuesRaw.assessment_category_id ?? ''
-  )
-  // const selectedAssessmentQuestionIds = useMemo(
-  //   () =>
-  //     getSelectedAssessmentQuestionIds(watchedValuesRaw.assessment_question_ids),
-  //   [watchedValuesRaw.assessment_question_ids]
-  // )
+  const watchedAssessmentCategories = useMemo(() => {
+    const categories = watchedValuesRaw.assessment_categories
+    if (Array.isArray(categories) && categories.length) {
+      return categories
+    }
+    return [getEmptyAssessmentCategory()]
+  }, [watchedValuesRaw.assessment_categories])
 
   const { data: assessmentCategoryData } = useAssessmentCategories({
     page: 1,
@@ -587,28 +688,13 @@ export default function AdditionalInfo({
     () => getAssessmentCategoryRows(assessmentCategoryData),
     [assessmentCategoryData]
   )
-  const selectedAssessmentCategory = useMemo(
-    () =>
+  const getAssessmentCategoryById = useCallback(
+    (categoryId: string | number) =>
       assessmentCategories.find(
-        (category: any) =>
-          String(category?.id) === String(selectedAssessmentCategoryId)
+        (category: any) => String(category?.id) === String(categoryId)
       ),
-    [assessmentCategories, selectedAssessmentCategoryId]
+    [assessmentCategories]
   )
-  const assessmentQuestionOptions = useMemo(
-    () =>
-      Array.isArray(selectedAssessmentCategory?.assessment_questions)
-        ? selectedAssessmentCategory.assessment_questions
-        : [],
-    [selectedAssessmentCategory]
-  )
-  // const selectedAssessmentQuestionItems = useMemo(
-  //   () =>
-  //     assessmentQuestionOptions.filter((question: any) =>
-  //       selectedAssessmentQuestionIds.includes(String(question?.id))
-  //     ),
-  //   [assessmentQuestionOptions, selectedAssessmentQuestionIds]
-  // )
 
   const userMetricDefaults = useMemo(
     () => ({
@@ -632,8 +718,10 @@ export default function AdditionalInfo({
       if (!payload) return defaultValuesWithUserMetrics
       const next = {
         ...payload,
-        ...userMetricDefaults,
       }
+      next.height = payload.height || userMetricDefaults.height
+      next.weight = payload.weight || userMetricDefaults.weight
+      next.bmi = payload.bmi || userMetricDefaults.bmi
       if (next.location) {
         next.location = capitalizeWords(next.location)
       }
@@ -665,6 +753,10 @@ export default function AdditionalInfo({
       next.assessment_category_id = payload.assessment_category_id ?? ''
       next.assessment_category_name = payload.assessment_category_name ?? ''
       next.assessment_question_ids = payload.assessment_question_ids ?? []
+      next.assessment_question_no_ids = payload.assessment_question_no_ids ?? []
+      next.assessment_categories = payload.assessment_categories?.length
+        ? payload.assessment_categories
+        : [getEmptyAssessmentCategory()]
       next.assessment_answers = payload.assessment_answers ?? []
       return next
     },
@@ -685,6 +777,11 @@ export default function AdditionalInfo({
       viewValues.assessment_category_id = next.assessment_category_id ?? ''
       viewValues.assessment_category_name = next.assessment_category_name ?? ''
       viewValues.assessment_question_ids = next.assessment_question_ids ?? []
+      viewValues.assessment_question_no_ids =
+        next.assessment_question_no_ids ?? []
+      viewValues.assessment_categories = next.assessment_categories ?? [
+        getEmptyAssessmentCategory(),
+      ]
       viewValues.assessment_answers = next.assessment_answers ?? []
       return viewValues
     },
@@ -693,6 +790,7 @@ export default function AdditionalInfo({
   useEffect(() => {
     reset(defaultValuesWithUserMetrics)
     setData(null)
+    setAdditionalDataList([])
     setModalMode(null)
   }, [userId, reset, defaultValuesWithUserMetrics])
 
@@ -701,10 +799,11 @@ export default function AdditionalInfo({
     setLoading(true)
     getUserAdditionalData(userId, subscriptionId)
       .then((res) => {
-        const payload = normalizeAdditionalData(extractAdditionalPayload(res))
-        if (payload) {
-          setData(payload)
-          reset(transformForForm(payload))
+        const payloads = normalizeAdditionalDataList(res)
+        setAdditionalDataList(payloads)
+        if (payloads.length) {
+          setData(payloads[0])
+          reset(transformForForm(payloads[0]))
         }
       })
       .catch((error) => {
@@ -718,28 +817,24 @@ export default function AdditionalInfo({
   }, [userId, subscriptionId, enqueueSnackbar, reset, transformForForm])
 
   const hasSavedData = useMemo(() => {
-    if (!data) return false
-    return fieldKeys.some((key) => (data?.[key] ?? '').trim() !== '')
-  }, [data])
+    return additionalDataList.length > 0
+  }, [additionalDataList])
 
   const assessmentRows = useMemo(() => {
-    if (!data) return []
-
-    return [
-      {
-        id: 'additional-info',
-        package: formatValue('package', data?.package),
-        date_of_assessment: formatValue(
-          'date_of_assessment',
-          data?.date_of_assessment
-        ),
-        dietary_choice: formatValue('dietary_choice', data?.dietary_choice),
-        height: formatUserMetric(user?.height),
-        weight: formatUserMetric(user?.weight),
-        bmi: getUserBmi(user),
-      },
-    ]
-  }, [data, user])
+    return additionalDataList.map((item, index) => ({
+      id: item.id ?? `additional-info-${index}`,
+      package: formatValue('package', item.package),
+      date_of_assessment: formatValue(
+        'date_of_assessment',
+        item.date_of_assessment
+      ),
+      dietary_choice: formatValue('dietary_choice', item.dietary_choice),
+      height: formatUserMetric(item.height),
+      weight: formatUserMetric(item.weight),
+      bmi: formatUserMetric(item.bmi),
+      additionalData: item,
+    }))
+  }, [additionalDataList])
 
   const assessmentColumns = useMemo<TableColumns[]>(() => {
     const columns = [
@@ -803,52 +898,99 @@ export default function AdditionalInfo({
     }
     payload.preferred_workout_yoga_time_other = ''
 
-    const assessmentCategoryId = values.assessment_category_id
-    const selectedQuestionIds = getSelectedAssessmentQuestionIds(
-      values.assessment_question_ids
-    )
+    const assessmentCategoryItems = Array.isArray(values.assessment_categories)
+      ? values.assessment_categories
+      : []
     const dataAssessmentAnswers = data?.assessment_answers
     const existingAnswers = Array.isArray(dataAssessmentAnswers)
       ? dataAssessmentAnswers
       : []
-    if (assessmentCategoryId) {
-      payload.assessment_answers_attributes = assessmentQuestionOptions.map(
-        (question: any) => {
-          const existingAnswer = existingAnswers.find(
-            (answer: any) =>
-              String(answer?.assessment_question_id) === String(question?.id)
-          )
-          return {
-            ...(existingAnswer?.id ? { id: existingAnswer.id } : {}),
-            assessment_category_id: Number(assessmentCategoryId),
-            assessment_question_id: Number(question.id),
-            answer: selectedQuestionIds.includes(String(question.id)),
-          }
-        }
-      ) as any
+    const assessmentAnswersAttributes = assessmentCategoryItems.flatMap(
+      (item) => {
+        const assessmentCategoryId = item.assessment_category_id
+        const selectedQuestionIds = getSelectedAssessmentQuestionIds(
+          item.assessment_question_ids
+        )
+        const selectedQuestionNoIds = getSelectedAssessmentQuestionIds(
+          item.assessment_question_no_ids
+        )
+        const category = getAssessmentCategoryById(assessmentCategoryId)
+        const questions = Array.isArray(category?.assessment_questions)
+          ? category.assessment_questions
+          : []
+
+        if (!assessmentCategoryId) return []
+
+        return questions
+          .filter((question: any) => {
+            const questionId = String(question?.id)
+            return (
+              selectedQuestionIds.includes(questionId) ||
+              selectedQuestionNoIds.includes(questionId)
+            )
+          })
+          .map((question: any) => {
+            const existingAnswer = existingAnswers.find(
+              (answer: any) =>
+                String(answer?.assessment_question_id) === String(question?.id)
+            )
+            return {
+              ...(existingAnswer?.id ? { id: existingAnswer.id } : {}),
+              assessment_category_id: Number(assessmentCategoryId),
+              assessment_question_id: Number(question.id),
+              answer: selectedQuestionIds.includes(String(question.id)),
+            }
+          })
+      }
+    )
+
+    if (assessmentAnswersAttributes.length) {
+      payload.assessment_answers_attributes = assessmentAnswersAttributes as any
+    }
+
+    if (modalMode === 'edit' && !data?.id) {
+      enqueueSnackbar('Additional information id is required to update.', {
+        variant: 'error',
+      })
+      setSaving(false)
+      return
     }
 
     const persist =
-      modalMode === 'edit' ? updateUserAdditionalData : saveUserAdditionalData
+      modalMode === 'edit'
+        ? updateUserAdditionalData(userId, payload, data?.id)
+        : saveUserAdditionalData(userId, payload, subscriptionId)
 
-    // persist(userId, payload, subscriptionId)
-    //   .then((res) => {
-    //     const payloadFromResponse =
-    //       normalizeAdditionalData(res?.additional_data) ||
-    //       normalizeAdditionalData(res?.data?.additional_data) ||
-    //       payload
-    //     setData(payloadFromResponse)
-    //     reset(transformForForm(payloadFromResponse))
-    //     setModalMode(null)
-    //     enqueueSnackbar('Additional information saved successfully.', {
-    //       variant: 'success',
-    //     })
-    //   })
-    persist(userId, payload, subscriptionId)
+    persist
       .then((res) => {
         const payloadFromResponse =
-          normalizeAdditionalData(extractAdditionalPayload(res)) || payload
+          normalizeAdditionalData(extractAdditionalPayload(res)) ||
+          normalizeAdditionalData({
+            ...payload,
+            assessment_categories: values.assessment_categories,
+          }) ||
+          payload
 
+        const payloadsFromResponse = hasAdditionalPayloadList(res)
+          ? normalizeAdditionalDataList(res)
+          : []
+        if (payloadsFromResponse.length) {
+          setAdditionalDataList(payloadsFromResponse)
+        } else {
+          setAdditionalDataList((prev) => {
+            const existingIndex = prev.findIndex(
+              (item) =>
+                payloadFromResponse.id &&
+                String(item.id) === String(payloadFromResponse.id)
+            )
+            if (existingIndex >= 0) {
+              return prev.map((item, index) =>
+                index === existingIndex ? payloadFromResponse : item
+              )
+            }
+            return [payloadFromResponse, ...prev]
+          })
+        }
         setData(payloadFromResponse)
         reset(transformForForm(payloadFromResponse))
         setModalMode(null)
@@ -869,15 +1011,89 @@ export default function AdditionalInfo({
       .finally(() => setSaving(false))
   }
 
+  const handleAssessmentQuestionAnswer = (
+    categoryIndex: number,
+    questionId: string | number,
+    answer: boolean
+  ) => {
+    const normalizedQuestionId = String(questionId)
+    const currentQuestionIds = getSelectedAssessmentQuestionIds(
+      methods.getValues(
+        `assessment_categories.${categoryIndex}.assessment_question_ids` as any
+      )
+    )
+    const currentQuestionNoIds = getSelectedAssessmentQuestionIds(
+      methods.getValues(
+        `assessment_categories.${categoryIndex}.assessment_question_no_ids` as any
+      )
+    )
+    const nextQuestionIds = answer
+      ? Array.from(new Set([...currentQuestionIds, normalizedQuestionId]))
+      : currentQuestionIds.filter((id) => id !== normalizedQuestionId)
+    const nextQuestionNoIds = answer
+      ? currentQuestionNoIds.filter((id) => id !== normalizedQuestionId)
+      : Array.from(new Set([...currentQuestionNoIds, normalizedQuestionId]))
+
+    setValue(
+      `assessment_categories.${categoryIndex}.assessment_question_ids` as any,
+      nextQuestionIds,
+      {
+        shouldDirty: true,
+        shouldValidate: true,
+      }
+    )
+    setValue(
+      `assessment_categories.${categoryIndex}.assessment_question_no_ids` as any,
+      nextQuestionNoIds,
+      {
+        shouldDirty: true,
+        shouldValidate: true,
+      }
+    )
+  }
+
+  const handleAddAssessmentCategory = () => {
+    setValue(
+      'assessment_categories',
+      [...watchedAssessmentCategories, getEmptyAssessmentCategory()],
+      {
+        shouldDirty: true,
+        shouldValidate: true,
+      }
+    )
+  }
+
+  const handleRemoveAssessmentCategory = (categoryIndex: number) => {
+    const nextCategories = watchedAssessmentCategories.filter(
+      (_item, index) => index !== categoryIndex
+    )
+    setValue(
+      'assessment_categories',
+      nextCategories.length ? nextCategories : [getEmptyAssessmentCategory()],
+      {
+        shouldDirty: true,
+        shouldValidate: true,
+      }
+    )
+  }
+
   const isModalOpen = modalMode !== null
 
-  const openModal = (mode: 'create' | 'edit' | 'view') => {
+  const openModal = (
+    mode: 'create' | 'edit' | 'view',
+    selectedData?: AdditionalData
+  ) => {
     if (mode === 'create') {
+      setData(null)
       reset(defaultValuesWithUserMetrics)
     } else if (mode === 'view') {
-      reset(transformForView(data ?? defaultValuesWithUserMetrics))
+      const nextData = selectedData ?? data
+      setData(nextData ?? null)
+      reset(transformForView(nextData ?? defaultValuesWithUserMetrics))
     } else {
-      reset(transformForForm(data ?? defaultValuesWithUserMetrics))
+      const nextData = selectedData ?? data
+      setData(nextData ?? null)
+      reset(transformForForm(nextData ?? defaultValuesWithUserMetrics))
     }
     setModalMode(mode)
   }
@@ -896,6 +1112,196 @@ export default function AdditionalInfo({
   const disableSubmit = saving || (!isDirty && !hasSavedData)
   const viewMode = modalMode === 'view'
 
+  const assessmentCategorySection = (
+    <div className="border rounded-lg bg-white p-5 shadow-sm">
+      <div className="mb-4">
+        <h3 className="text-base font-semibold text-gray-900">
+          Assessment Category
+        </h3>
+      </div>
+      <div className="flex flex-col gap-4">
+        {watchedAssessmentCategories.map((categoryItem, categoryIndex) => {
+          const selectedAssessmentCategoryId = String(
+            categoryItem?.assessment_category_id ?? ''
+          )
+          const selectedAssessmentCategory = getAssessmentCategoryById(
+            selectedAssessmentCategoryId
+          )
+          const assessmentQuestionOptions = Array.isArray(
+            selectedAssessmentCategory?.assessment_questions
+          )
+            ? selectedAssessmentCategory.assessment_questions
+            : []
+          const selectedAssessmentQuestionIdSet = new Set(
+            getSelectedAssessmentQuestionIds(
+              categoryItem?.assessment_question_ids
+            )
+          )
+          const selectedAssessmentQuestionNoIdSet = new Set(
+            getSelectedAssessmentQuestionIds(
+              categoryItem?.assessment_question_no_ids
+            )
+          )
+
+          return (
+            <div
+              key={categoryIndex}
+              className="rounded-lg border border-gray-200 bg-white p-4"
+            >
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="text-[11px] font-medium text-gray-900">
+                  Assessment Category {categoryIndex + 1}
+                </div>
+                {!viewMode && watchedAssessmentCategories.length > 1 ? (
+                  <button
+                    type="button"
+                    className="text-[10px] font-medium text-red-500 hover:text-red-600"
+                    onClick={() =>
+                      handleRemoveAssessmentCategory(categoryIndex)
+                    }
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="mb-4">
+                <div className="flex-1">
+                  <FormBuilder
+                    data={[
+                      {
+                        name: `assessment_categories.${categoryIndex}.assessment_category_name`,
+                        id: `assessment_categories.${categoryIndex}.assessment_category_id`,
+                        label: 'Category Name',
+                        type: 'custom_select',
+                        placeholder: 'Select category name',
+                        desc: 'name',
+                        descId: 'id',
+                        data: assessmentCategories,
+                        initialLoad: true,
+                        async: false,
+                        notDataMessage: 'No categories found',
+                        disabled: viewMode,
+                        handleCallBack: () => {
+                          setValue(
+                            `assessment_categories.${categoryIndex}.assessment_question_ids` as any,
+                            [],
+                            {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            }
+                          )
+                          setValue(
+                            `assessment_categories.${categoryIndex}.assessment_question_no_ids` as any,
+                            [],
+                            {
+                              shouldDirty: true,
+                              shouldValidate: true,
+                            }
+                          )
+                        },
+                      },
+                    ]}
+                    edit
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-2 text-[11px] font-medium text-gray-900">
+                  Questions
+                </div>
+                {selectedAssessmentCategoryId ? (
+                  assessmentQuestionOptions.length ? (
+                    <div className="flex flex-col gap-3">
+                      {assessmentQuestionOptions.map(
+                        (question: any, index: number) => {
+                          const questionId = String(question?.id)
+                          const isYesChecked =
+                            selectedAssessmentQuestionIdSet.has(questionId)
+                          const isNoChecked =
+                            selectedAssessmentQuestionNoIdSet.has(questionId)
+
+                          return (
+                            <div
+                              key={questionId}
+                              className="rounded-md border border-gray-200 bg-white p-3"
+                            >
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="text-sm font-medium text-gray-900">
+                                  {index + 1}. {question?.question_text}
+                                </div>
+                                <div className="flex items-center gap-5 text-sm text-gray-700">
+                                  <label className="inline-flex items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      className="h-4 w-4 rounded border-gray-300 text-primaryGreen focus:ring-primaryGreen"
+                                      checked={isYesChecked}
+                                      disabled={viewMode}
+                                      onChange={() =>
+                                        handleAssessmentQuestionAnswer(
+                                          categoryIndex,
+                                          questionId,
+                                          true
+                                        )
+                                      }
+                                    />
+                                    <span>Yes</span>
+                                  </label>
+                                  <label className="inline-flex items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      className="h-4 w-4 rounded border-gray-300 text-primaryGreen focus:ring-primaryGreen"
+                                      checked={isNoChecked}
+                                      disabled={viewMode}
+                                      onChange={() =>
+                                        handleAssessmentQuestionAnswer(
+                                          categoryIndex,
+                                          questionId,
+                                          false
+                                        )
+                                      }
+                                    />
+                                    <span>No</span>
+                                  </label>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        }
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-md border border-gray-200 bg-white p-3 text-sm text-gray-500">
+                      No questions found for this category.
+                    </div>
+                  )
+                ) : (
+                  <div className="rounded-md border border-gray-200 bg-white p-3 text-sm text-gray-500">
+                    Select a category name to view questions.
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        })}
+        {!viewMode ? (
+          <div className="flex justify-end pt-1">
+            <button
+              type="button"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-white shadow-sm ring-2 ring-blue-100 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+              onClick={handleAddAssessmentCategory}
+              aria-label="Add assessment category"
+              title="Add assessment category"
+            >
+              <span className="text-[20px] leading-none">+</span>
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  )
+
   const formBody = (
     <FormProvider {...methods}>
       <form
@@ -903,80 +1309,31 @@ export default function AdditionalInfo({
         onSubmit={handleSubmit((formValues) => handleSave(formValues))}
       >
         {sections.map((section) => (
-          <div
-            key={section.title}
-            className="border rounded-lg bg-white p-5 shadow-sm"
-          >
-            <div className="mb-4">
-              <h3 className="text-base font-semibold text-gray-900">
-                {section.title}
-              </h3>
-              {section.description ? (
-                <p className="text-sm text-gray-500">{section.description}</p>
-              ) : null}
-            </div>
-            <FormBuilder
-              data={section.fields
-                .filter((field) =>
-                  field.showWhen ? field.showWhen(watchedValues) : true
-                )
-                .map((field) =>
-                  buildFieldConfig(field, watchedValues, viewMode)
-                )}
-              edit
-              spacing
-            />
-            {/* {section.title === 'Program Overview' && (
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                <FormBuilder
-                  data={[
-                    {
-                      name: 'assessment_category_name',
-                      id: 'assessment_category_id',
-                      label: 'Assessment Category',
-                      type: 'custom_select',
-                      placeholder: 'Select assessment category',
-                      desc: 'name',
-                      descId: 'id',
-                      data: assessmentCategories,
-                      initialLoad: true,
-                      async: false,
-                      notDataMessage: 'No categories found',
-                      disabled: viewMode,
-                      handleCallBack: () => {
-                        setValue('assessment_question_ids', [], {
-                          shouldDirty: true,
-                        })
-                      },
-                    },
-                  ]}
-                  edit
-                />
-                <FormBuilder
-                  data={[
-                    {
-                      name: 'assessment_question_ids',
-                      id: 'assessment_question_ids',
-                      label: 'Assessment Question',
-                      type: 'multi_select',
-                      placeholder: 'Select assessment questions',
-                      desc: 'question_text',
-                      descId: 'id',
-                      data: assessmentQuestionOptions,
-                      getData: () => assessmentQuestionOptions,
-                      selectedItems: selectedAssessmentQuestionItems,
-                      initialLoad: true,
-                      async: false,
-                      isMultiple: true,
-                      notDataMessage: selectedAssessmentCategoryId
-                        ? 'No questions found'
-                        : 'Select assessment category first',
-                    },
-                  ]}
-                  edit={!viewMode}
-                />
+          <div key={section.title} className="contents">
+            <div className="border rounded-lg bg-white p-5 shadow-sm">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-gray-900">
+                  {section.title}
+                </h3>
+                {section.description ? (
+                  <p className="text-sm text-gray-500">{section.description}</p>
+                ) : null}
               </div>
-            )} */}
+              <FormBuilder
+                data={section.fields
+                  .filter((field) =>
+                    field.showWhen ? field.showWhen(watchedValues) : true
+                  )
+                  .map((field) =>
+                    buildFieldConfig(field, watchedValues, viewMode)
+                  )}
+                edit
+                spacing
+              />
+            </div>
+            {section.title === 'Program Overview'
+              ? assessmentCategorySection
+              : null}
           </div>
         ))}
         {!viewMode && (
@@ -1047,13 +1404,13 @@ export default function AdditionalInfo({
               icon: <Icons name="eye" />,
               title: 'View',
               toolTip: 'View',
-              action: () => openModal('view'),
+              action: (row: any) => openModal('view', row.additionalData),
             },
             {
               icon: <Icons name="edit" />,
               title: 'Edit',
               toolTip: 'Edit',
-              action: () => openModal('edit'),
+              action: (row: any) => openModal('edit', row.additionalData),
             },
           ]}
         />

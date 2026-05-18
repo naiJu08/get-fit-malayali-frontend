@@ -25,6 +25,14 @@ const toTitleCase = (value?: string | null) => {
   return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
 }
 
+const normalizeStatus = (rowData: any) => {
+  if (rowData?.active === true) return 'Active'
+  if (rowData?.active === false) return 'Inactive'
+  return String(rowData?.status ?? 'active').toLowerCase() === 'inactive'
+    ? 'Inactive'
+    : 'Active'
+}
+
 export default function CreateDietTemplateCategory({
   isDrawerOpen,
   handleClose,
@@ -37,6 +45,7 @@ export default function CreateDietTemplateCategory({
     reValidateMode: 'onChange',
     defaultValues: {
       name: '',
+      status: 'Active',
     },
   })
   const { handleSubmit, reset, setError } = methods
@@ -47,6 +56,7 @@ export default function CreateDietTemplateCategory({
   const handleClearAndClose = () => {
     reset({
       name: '',
+      status: 'Active',
     })
     handleClose()
   }
@@ -55,10 +65,12 @@ export default function CreateDietTemplateCategory({
     if (isDrawerOpen && edit && rowData) {
       reset({
         name: toTitleCase(rowData?.name),
+        status: normalizeStatus(rowData),
       })
     } else if (isDrawerOpen && !edit) {
       reset({
         name: '',
+        status: 'Active',
       })
     }
   }, [isDrawerOpen, edit, rowData, reset])
@@ -79,7 +91,7 @@ export default function CreateDietTemplateCategory({
     const payload = {
       diet_template_category: {
         name: toTitleCase(values.name.trim()),
-        status: 'active',
+        status: values.status.toLowerCase(),
       },
     }
 
@@ -113,6 +125,20 @@ export default function CreateDietTemplateCategory({
       placeholder: 'Enter diet plan category name',
       required: true,
       maxLength: 50,
+    },
+    {
+      name: 'status',
+      label: 'Status',
+      id: 'status',
+      type: 'custom_select',
+      placeholder: 'Select status',
+      required: true,
+      desc: 'name',
+      descId: 'id',
+      data: [
+        { id: 'Active', name: 'Active' },
+        { id: 'Inactive', name: 'Inactive' },
+      ],
     },
   ]
 

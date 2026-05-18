@@ -37,7 +37,7 @@ const FormBuilder: React.FC<Props> = (props) => {
   const {
     control,
     setValue,
-    formState: { errors },
+    formState: { errors, isSubmitted, touchedFields },
     register,
     watch,
   } = useFormContext()
@@ -616,9 +616,16 @@ const FormBuilder: React.FC<Props> = (props) => {
                 required={field.required}
                 disabled={field?.disabled ?? isEditable()}
                 hidePeriodIcon={field.hidePeriodIcon}
-                errors={!isEditable() ? errors : undefined}
+                errors={
+                  !isEditable() && (isSubmitted || touchedFields[field.name])
+                    ? errors
+                    : undefined
+                }
                 onChange={(data) =>
-                  setValue(field.name, data.value, { shouldValidate: true })
+                  setValue(field.name, data.value, {
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  })
                 }
               />
             )}
