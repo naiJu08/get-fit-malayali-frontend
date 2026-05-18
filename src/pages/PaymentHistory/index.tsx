@@ -1,5 +1,5 @@
 import SmartTable from '../../components/common/table/SmartTable'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import DynamicDropdown from '../../components/common/DynamicDropdown'
@@ -558,27 +558,36 @@ export default function Subscriptions() {
 
   // status filter removed
 
-  const getPlansDropdown = async (search: string, pageNum: number) => {
-    const params = new URLSearchParams()
-    if (search) params.set('search', search)
-    params.set('per_page', '1000')
-    if (pageNum) params.set('page', String(pageNum))
-    const url = `${apiUrl.PLANS}?${params.toString()}`
-    const res = await getData(url)
-    const items: any[] = Array.isArray(res)
-      ? (res as any[])
-      : (res?.items ?? res?.plans ?? [])
-    const mapped = items.map((p: any) => ({
-      id: p?.id,
-      value: p?.name ?? p?.plan_name ?? 'Plan',
-    }))
-    const nextCache: Record<string, string> = { ...plansCache }
-    for (const it of mapped) {
-      if (it?.id != null) nextCache[String(it.id)] = it.value
-    }
-    setPlansCache(nextCache)
-    return [{ id: null, value: 'All Plans' }, ...mapped]
-  }
+  const getPlansDropdown = useCallback(
+    async (search: string, pageNum: number) => {
+      const params = new URLSearchParams()
+      if (search) params.set('search', search)
+      params.set('per_page', '1000')
+      if (pageNum) params.set('page', String(pageNum))
+      const url = `${apiUrl.PLANS}?${params.toString()}`
+      const res = await getData(url)
+      const items: any[] = Array.isArray(res)
+        ? (res as any[])
+        : (res?.items ?? res?.plans ?? [])
+      const mapped = items.map((p: any) => ({
+        id: p?.id,
+        value: p?.name ?? p?.plan_name ?? 'Plan',
+      }))
+      setPlansCache((prev) => {
+        let changed = false
+        const nextCache: Record<string, string> = { ...prev }
+        for (const it of mapped) {
+          if (it?.id != null && nextCache[String(it.id)] !== it.value) {
+            nextCache[String(it.id)] = it.value
+            changed = true
+          }
+        }
+        return changed ? nextCache : prev
+      })
+      return [{ id: null, value: 'All Plans' }, ...mapped]
+    },
+    []
+  )
 
   const basicData = {
     title: 'Payment History',
@@ -626,6 +635,7 @@ export default function Subscriptions() {
                         tileItem={{ label: 'Plan', value: planLabel }}
                         value={planIdFilter}
                         getData={getPlansDropdown}
+                        hideLoader
                         setUpdateCREId={(id: any) => {
                           const v = id ? String(id) : ''
                           setPlanIdFilter(v)

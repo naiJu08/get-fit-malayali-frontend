@@ -584,15 +584,9 @@ export const saveUserAdditionalData = (
 export const updateUserAdditionalData = (
   userId: string | number,
   payload: Record<string, any>,
-  subscriptionId?: string | number | null
+  additionalDataId?: string | number | null
 ) => {
-  const baseUrl = `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data`
-  const url =
-    subscriptionId !== undefined &&
-    subscriptionId !== null &&
-    subscriptionId !== ''
-      ? `${baseUrl}?subscription_id=${subscriptionId}`
-      : baseUrl
+  const url = `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data/${additionalDataId}`
   return updateData(url, {
     additional_data: payload,
   })
