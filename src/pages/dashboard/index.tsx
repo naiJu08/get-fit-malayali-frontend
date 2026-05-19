@@ -11,6 +11,25 @@ import { useAuthStore } from '../../store/authStore'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+const formatDateOfBirth = (value?: string) => {
+  if (!value) return 'Not provided'
+
+  const dateOnlyMatch = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch
+    return `${day}-${month}-${year}`
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+
+  return `${day}-${month}-${year}`
+}
+
 export default function DashboardPage() {
   const { roleData } = useAuthStore()
   const roleName = roleData?.name
@@ -274,7 +293,7 @@ function UserProfileView({ data, loading, error, onRetry }: any) {
               <div className="flex justify-between items-center py-3 border-b border-gray-100">
                 <span className="text-gray-600">Date of Birth</span>
                 <span className="font-medium text-gray-900">
-                  {data.date_of_birth || 'Not provided'}
+                  {formatDateOfBirth(data.date_of_birth)}
                 </span>
               </div>
               <div className="flex justify-between items-center py-3 border-b border-gray-100">
@@ -439,7 +458,7 @@ function UserProfileView({ data, loading, error, onRetry }: any) {
                   #{data.id || 'N/A'}
                 </span>
               </div>
-              <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              {/* <div className="flex justify-between items-center py-3 border-b border-gray-100">
                 <span className="text-gray-600">Device Data Consent</span>
                 <span
                   className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -450,7 +469,7 @@ function UserProfileView({ data, loading, error, onRetry }: any) {
                 >
                   {data.device_data_consent ? 'Enabled' : 'Disabled'}
                 </span>
-              </div>
+              </div> */}
               <div className="flex justify-between items-center py-3">
                 <span className="text-gray-600">Member Since</span>
                 <span className="font-medium text-gray-900">
