@@ -110,7 +110,7 @@ export default function MealTimingCreate({
     })
 
     hydratedRowRef.current = hydrationKey
-  }, [isDrawerOpen, edit, rowData])
+  }, [isDrawerOpen, edit, rowData, methods])
 
   /* Reset hydration when drawer closes */
   useEffect(() => {
@@ -127,7 +127,7 @@ export default function MealTimingCreate({
         status: 'Active',
       })
     }
-  }, [isDrawerOpen, edit])
+  }, [isDrawerOpen, edit, methods])
 
   /* ------------------- SUBMIT ------------------- */
 

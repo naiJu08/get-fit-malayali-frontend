@@ -100,20 +100,18 @@ function AssignTabContent({
     }
   }
 
-  const exercises = Array.isArray(wp?.exercises)
-    ? wp.exercises
-        .slice()
-        .sort(
-          (a: any, b: any) =>
-            (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
-        )
-        .filter(
-          (ex: any) =>
-            !removedExerciseIds.includes(
-              ex?.workout_id || ex?.workout?.id || ex?.id
-            )
-        )
-    : []
+  const exercises = useMemo(() => {
+    if (!Array.isArray(wp?.exercises)) return []
+    return wp.exercises
+      .slice()
+      .sort(
+        (a: any, b: any) => (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
+      )
+      .filter(
+        (ex: any) =>
+          !removedExerciseIds.includes(ex?.workout_id || ex?.workout?.id || ex?.id)
+      )
+  }, [wp?.exercises, removedExerciseIds])
   const groupedAssignedExercises = useMemo(() => {
     if (!Array.isArray(exercises) || exercises.length === 0) return []
 
@@ -136,8 +134,12 @@ function AssignTabContent({
 
       const legendText = `${catName} - ${subName}`
 
-      if (!groups.has(legendText)) groups.set(legendText, [])
-      groups.get(legendText)!.push(ex)
+      let bucket = groups.get(legendText)
+      if (!bucket) {
+        bucket = []
+        groups.set(legendText, bucket)
+      }
+      bucket.push(ex)
     })
 
     return Array.from(groups.entries()).map(([legend, items]) => ({
@@ -757,14 +759,6 @@ export default function WorkoutPlanDetails() {
       params.subcategory_ids = selectedSubcategoryIds.join(',')
     }
 
-    console.log('🔍 Workout API Params:', {
-      params,
-      workoutFiltersEnabled,
-      selectedCategoryId,
-      selectedSubcategoryIds,
-      assignOpen,
-    })
-
     return params
   }, [
     wpPage,
@@ -783,7 +777,8 @@ export default function WorkoutPlanDetails() {
     }
   )
 
-  const workouts = (workoutsResp as any)?.workouts ?? []
+  const workoutsData = (workoutsResp as any)?.workouts
+  const workouts = useMemo(() => workoutsData ?? [], [workoutsData])
 
   useEffect(() => {
     if (!assignOpen) {
@@ -891,7 +886,7 @@ export default function WorkoutPlanDetails() {
     return ''
   }
 
-  const getWorkoutGroupLabels = (w: any) => {
+  const getWorkoutGroupLabels = useCallback((w: any) => {
     const main =
       w?.category?.main_category?.name ??
       w?.category?.parent?.name ??
@@ -916,12 +911,12 @@ export default function WorkoutPlanDetails() {
       main: String(main || 'Others'),
       sub: String(sub || 'Others'),
     }
-  }
+  }, [])
 
-  const getWorkoutGroupKey = (w: any) => {
+  const getWorkoutGroupKey = useCallback((w: any) => {
     const { main, sub } = getWorkoutGroupLabels(w)
     return `${main}::${sub}`
-  }
+  }, [getWorkoutGroupLabels])
 
   // Group workouts by subcategory for the Assign drawer so that
   // workouts sharing the same subcategory appear in a single wrapper.
@@ -948,7 +943,8 @@ export default function WorkoutPlanDetails() {
         const labels = getWorkoutGroupLabels(w)
         groups.set(key, { main: labels.main, sub: labels.sub, items: [] })
       }
-      groups.get(key)!.items.push(w)
+      const group = groups.get(key)
+      if (group) group.items.push(w)
     })
 
     return Array.from(groups.values()).map((group) => ({
@@ -957,7 +953,7 @@ export default function WorkoutPlanDetails() {
       legend: `${group.main} - ${group.sub}`,
       items: group.items,
     }))
-  }, [workouts])
+  }, [workouts, getWorkoutGroupKey, getWorkoutGroupLabels])
 
   // Group selected workouts by subcategory for the Review drawer so that
   // ordering is managed within each subcategory only.
@@ -977,7 +973,8 @@ export default function WorkoutPlanDetails() {
         const labels = getWorkoutGroupLabels(w)
         groups.set(key, { main: labels.main, sub: labels.sub, items: [] })
       }
-      groups.get(key)!.items.push(w)
+      const group = groups.get(key)
+      if (group) group.items.push(w)
 
       // Capture the category priority for this group (first value wins).
       if (!priorities.has(key)) {
@@ -995,7 +992,7 @@ export default function WorkoutPlanDetails() {
         priority: priorities.get(key) ?? 9999,
       }))
       .sort((a, b) => a.priority - b.priority)
-  }, [selectedWorkouts])
+  }, [selectedWorkouts, getWorkoutGroupKey, getWorkoutGroupLabels])
 
   const canReorderWorkoutGroups = useMemo(
     () =>
@@ -1071,7 +1068,7 @@ export default function WorkoutPlanDetails() {
 
   useEffect(() => {
     if (!Array.isArray(selectedWorkouts) || selectedWorkouts.length === 0) {
-      if (Object.keys(workoutCounts).length) setWorkoutCounts({})
+      setWorkoutCounts((prev) => (Object.keys(prev).length ? {} : prev))
       return
     }
 
