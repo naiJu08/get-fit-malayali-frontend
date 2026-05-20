@@ -173,6 +173,18 @@ const DIET_TEMPLATE_DIET_PLAN: RouterMenuProps = {
   key: 'diet-template-diet-plan',
   permission_slugs: [],
 }
+const DIET_TEMPLATE_CATEGORIES: RouterMenuProps = {
+  id: 49,
+  path: '/diet-plan-categories',
+  parent_id: null,
+  label: 'Diet Plan Categories',
+  key: 'diet-plan-categories',
+  icon: 'category-icon',
+  breadcrumb: ['DIET_TEMPLATE_CATEGORIES'],
+  permission_slugs: ['superadmin', 'nutritionist'],
+  slugOptions: ['DIET_TEMPLATE_CATEGORIES'],
+  isSidebarMenu: true,
+}
 const WORKOUT: RouterMenuProps = {
   id: 25,
   path: '/workout',
@@ -223,6 +235,51 @@ const NOTIFICATIONS: RouterMenuProps = {
   icon: 'notification',
   permission_slugs: ['superadmin'],
   isSidebarMenu: true,
+}
+const MEAL_TIMING: RouterMenuProps = {
+  id: 32,
+  path: '/mealtiming',
+  parent_id: null,
+  label: 'Meal Timing',
+  key: 'mealtiming',
+  icon: 'notification',
+  permission_slugs: ['superadmin'],
+  isSidebarMenu: true,
+}
+
+const MEAL_TIMING_DETAILS: RouterMenuProps = {
+  id: 33,
+  path: '/mealtiming/:id',
+  parent_id: 32,
+  isDetails: true,
+  icon: 'user',
+  label: 'Meal Timing Details',
+  key: 'mealtiming-details',
+  permission_slugs: [],
+}
+
+const ASSESSMENT_CATEGORY: RouterMenuProps = {
+  id: 34,
+  path: '/assessment-category',
+  parent_id: null,
+  label: 'Assessment Category',
+  key: 'assessment-category',
+  icon: 'category-icon',
+  breadcrumb: ['ASSESSMENT_CATEGORY'],
+  permission_slugs: ['superadmin'],
+  slugOptions: ['ASSESSMENT_CATEGORY'],
+  isSidebarMenu: true,
+}
+
+const ASSESSMENT_CATEGORY_DETAILS: RouterMenuProps = {
+  id: 35,
+  path: '/assessment-category/:id',
+  parent_id: 34,
+  isDetails: true,
+  icon: 'user',
+  label: 'Assessment Category Details',
+  key: 'assessment-category-details',
+  permission_slugs: [],
 }
 
 const WORKOUT_DETAILS: RouterMenuProps = {
@@ -468,6 +525,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   CATEGORIES,
   CATEGORIES_DETAILS,
   DIET_TEMPLATE,
+  DIET_TEMPLATE_CATEGORIES,
   WORKOUT,
   YOGA,
   MEDITATION,
@@ -505,4 +563,8 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   MEDITATIONPLAN,
   DIET_TEMPLATE_DETAILS,
   DIET_TEMPLATE_DIET_PLAN,
+  MEAL_TIMING,
+  MEAL_TIMING_DETAILS,
+  ASSESSMENT_CATEGORY,
+  ASSESSMENT_CATEGORY_DETAILS,
 }

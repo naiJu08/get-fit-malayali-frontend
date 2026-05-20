@@ -322,6 +322,7 @@ export function StatCard({
   gradient,
   icon,
   badge,
+  onClick,
 }: {
   title: string
   value: string | number
@@ -329,11 +330,13 @@ export function StatCard({
   gradient: string
   icon: string
   badge?: string
+  onClick?: () => void
 }) {
   return (
     <div
-      className="relative overflow-hidden rounded-2xl shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-default"
+      className={`relative overflow-hidden rounded-2xl shadow-lg hover:-translate-y-1 transition-all duration-200 ${onClick ? 'cursor-pointer' : 'cursor-default'}`}
       style={{ background: gradient }}
+      onClick={onClick}
     >
       <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/10" />
       <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full bg-white/5" />

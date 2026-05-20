@@ -87,12 +87,13 @@ export const dietPlanFormSchema = z.object({
   day_name: z.string().min(1, 'Day name is required'),
   sequence_number: z
     .union([z.number(), z.string()])
-    .transform((v) => Number(v))
-    .refine(
-      (v) => Number.isFinite(v) && v >= 1,
-      'Sequence number must be >= 1'
-    ),
+    .transform((v) => Number(v)),
+  // .refine(
+  //   (v) => Number.isFinite(v) && v >= 1,
+  //   'Sequence number must be >= 1'
+  // ),
   meal_time: z.string().min(1, 'Meal time is required'),
+  meal_time_time: z.string().optional().or(z.literal('')),
   notes: z.string().optional().or(z.literal('')),
   protein: z
     .union([z.number(), z.string()])

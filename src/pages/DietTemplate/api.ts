@@ -80,6 +80,9 @@ export const useCreateTemplate = (handleSubmission: (data: any) => void) => {
 export const deleteTemplate = (id: string) => {
   return deleteData(`${apiUrl.DIET_TEMPLATE}/${id}`)
 }
+export const duplicateTemplate = (id: string) => {
+  return postData(`${apiUrl.DIET_TEMPLATE}/${id}/duplicate`, {})
+}
 export const useDeleteTemplate = (handleSubmission?: (data: any) => void) => {
   const { enqueueSnackbar } = useSnackbarManager()
   return useMutation(deleteTemplate, {

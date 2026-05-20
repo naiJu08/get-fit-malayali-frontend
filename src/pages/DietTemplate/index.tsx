@@ -18,7 +18,9 @@ import {
   useTemplateList,
   DISABLE_NONLOGIN_APIS,
   deleteTemplate,
+  duplicateTemplate,
 } from './api'
+import { useDietTemplateCategories } from '../DietTemplateCategories/api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
@@ -38,6 +40,7 @@ export default function DietTemplateMain() {
   const [deleteTemplateError, setDeleteTemplateError] = useState<string | null>(
     null
   )
+  const [duplicateTemplateLoader, setDuplicateTemplateLoader] = useState(false)
   const [loader, setLoader] = useState(false)
   const { roleData } = useAuthStore()
   const isNutritionist = roleData?.name === 'nutritionist'
@@ -55,6 +58,18 @@ export default function DietTemplateMain() {
   }
   const location = useLocation()
   const { data, refetch, isFetching } = useTemplateList(searchParams)
+  const { data: dietTemplateCategoriesData } = useDietTemplateCategories({
+    page: 1,
+    per_page: 100,
+    status: 'active',
+  })
+  const dietTemplateCategoryOptions = Array.isArray(
+    dietTemplateCategoriesData?.diet_template_categories
+  )
+    ? dietTemplateCategoriesData.diet_template_categories
+    : []
+  const selectedDietTemplateCategory =
+    (filters as any)?.diet_template_category_id || ''
   useEffect(() => {
     if (pageParams?.search) {
       setPageParams({ ...pageParams, search: '', page: 1 })
@@ -74,11 +89,6 @@ export default function DietTemplateMain() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.meta?.total_pages])
-  // Refetch when filters/pagination/sort/search change (align with Notifications)
-  useEffect(() => {
-    refetch()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, per_page, search, ordering, JSON.stringify(filters)])
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,
@@ -97,6 +107,7 @@ export default function DietTemplateMain() {
       ...pageParams,
       page: 1,
       search: '',
+      filters: {},
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, setPageParams])
@@ -169,6 +180,28 @@ export default function DietTemplateMain() {
       setLoader(false)
     }
   }
+  const handleDuplicateTemplate = async (row: any) => {
+    if (!row?.id || duplicateTemplateLoader) return
+    try {
+      setDuplicateTemplateLoader(true)
+      const response = await duplicateTemplate(String(row.id))
+      const message =
+        response?.data?.message ||
+        response?.message ||
+        'Diet template duplicated successfully'
+      enqueueSnackbar(message, { variant: 'success' })
+      refetch()
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.errors?.[0] ||
+        error?.response?.data?.detail ||
+        error?.response?.data?.message ||
+        'Failed to duplicate template'
+      enqueueSnackbar(errorMessage, { variant: 'error' })
+    } finally {
+      setDuplicateTemplateLoader(false)
+    }
+  }
   const basicData = {
     title: 'Diet Templates',
     icon: 'template-icon',
@@ -187,6 +220,16 @@ export default function DietTemplateMain() {
       sortType: orderDirection,
       ordering: getSortedColumnName(orderColumn, orderDirection),
     })
+  }
+
+  const handleDietTemplateCategoryFilter = (value: string) => {
+    const nextFilters = { ...(filters || {}) }
+    if (value) {
+      nextFilters.diet_template_category_id = value
+    } else {
+      delete (nextFilters as any).diet_template_category_id
+    }
+    setPageParams({ ...pageParams, filters: nextFilters, page: 1 })
   }
 
   // const intensityOptions = useMemo(() => ['Moderate', 'High', 'Low'], [])
@@ -214,6 +257,12 @@ export default function DietTemplateMain() {
         action: (row: any) => handleEdit(row),
         title: 'Edit',
         toolTip: 'Edit',
+      },
+      {
+        icon: <Icons name="duplicate-icon" />,
+        action: (row: any) => handleDuplicateTemplate(row),
+        title: 'Duplicate',
+        toolTip: 'Duplicate Diet Template',
       },
       {
         icon: <Icons name="table-delete" />,
@@ -249,7 +298,29 @@ export default function DietTemplateMain() {
               data={data?.diet_plan_templates ?? []}
               dataRowKey="id"
               toolbar={true}
-              toolbarExtra={<div className="flex items-end gap-3"></div>}
+              toolbarExtra={
+                <div className="flex items-end gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-600">
+                      Diet Plan Category
+                    </label>
+                    <select
+                      className="w-64 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-lg bg-white text-xs focus:outline-none focus:ring-0 focus:border-gray-300"
+                      value={selectedDietTemplateCategory}
+                      onChange={(event) =>
+                        handleDietTemplateCategoryFilter(event.target.value)
+                      }
+                    >
+                      <option value="">All</option>
+                      {dietTemplateCategoryOptions.map((category: any) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              }
               height={
                 (data?.diet_plan_templates?.length ?? 0) === 0
                   ? calcWindowHeight(218)

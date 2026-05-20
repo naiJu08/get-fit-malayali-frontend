@@ -1290,6 +1290,7 @@ export default function Subscriptions({
     if (!user?.id || !dateStr) return
     try {
       setSelectedDate(dateStr)
+      setDayDetail(null)
       setDayDetailOpen(true)
       setDayDetailTab(focusTab)
       setDayDetailLoading(true)
@@ -1301,6 +1302,51 @@ export default function Subscriptions({
       setDayDetailLoading(false)
     }
   }
+
+  const getActiveDayDate = () => dayDetail?.date || selectedDate
+
+  const canNavigateDayDetail = (direction: 'previous' | 'next') => {
+    const activeDate = getActiveDayDate()
+    const startDate = overview?.subscription?.start_date
+    const endDate = overview?.subscription?.end_date
+    if (!activeDate || !startDate || !endDate || dayDetailLoading) return false
+
+    const current = moment(activeDate, 'YYYY-MM-DD', true)
+    const boundary = moment(
+      direction === 'previous' ? startDate : endDate,
+      'YYYY-MM-DD',
+      true
+    )
+    if (!current.isValid() || !boundary.isValid()) return false
+
+    return direction === 'previous'
+      ? current.isAfter(boundary, 'day')
+      : current.isBefore(boundary, 'day')
+  }
+
+  const navigateDayDetail = (direction: 'previous' | 'next') => {
+    if (!canNavigateDayDetail(direction)) return
+    const activeDate = getActiveDayDate()
+    const nextDate = moment(activeDate, 'YYYY-MM-DD')
+      .add(direction === 'previous' ? -1 : 1, 'day')
+      .format('YYYY-MM-DD')
+
+    setAssignOpen(false)
+    setReviewOpen(false)
+    setYogaAssignOpen(false)
+    setYogaReviewOpen(false)
+    setMedAssignOpen(false)
+    setMedReviewOpen(false)
+    setCurrentMonth(moment(nextDate, 'YYYY-MM-DD').format('YYYY-MM'))
+    openDayDetail(nextDate, dayDetailTab)
+  }
+
+  const dayDetailNavigatorLabel = dayDetail
+    ? `Plan Day ${safeStr(dayDetail?.day_number)} - ${moment(dayDetail?.date).format('MMM D, YYYY')}`
+    : selectedDate
+      ? `Day Details - ${moment(selectedDate).format('MMM D, YYYY')}`
+      : 'Day Details'
+
   useEffect(() => {
     if (!assignOpen) return
     if (drawerSelectionInitializedRef.current) return
@@ -2242,7 +2288,27 @@ export default function Subscriptions({
       const sidebarW = 20 // Very thin sidebar
       const marginX = gap + sidebarW + 5 // Reduced left margin
       const rightMargin = 15
-      const contentWidth = pageWidth - marginX - rightMargin
+      const genderValue =
+        user?.gender ?? user?.gender_id ?? user?.profile?.gender
+      const genderText = String(genderValue ?? '')
+        .trim()
+        .toLowerCase()
+      const isFemale =
+        genderValue === 1 ||
+        genderValue === '1' ||
+        genderText === 'female' ||
+        genderText === 'f'
+      const pdfPalette = isFemale
+        ? {
+            start: [244, 149, 185] as const,
+            end: [255, 238, 246] as const,
+            dark: [153, 27, 77] as const,
+          }
+        : {
+            start: [138, 185, 235] as const,
+            end: [240, 248, 255] as const,
+            dark: [22, 60, 92] as const,
+          }
 
       const drawBackground = () => {
         const topbarH = 6 // Thinner top bar
@@ -2251,12 +2317,8 @@ export default function Subscriptions({
         const barHeight = 5
 
         // Gradient color variables defined early for reuse
-        const rStart = 138,
-          gStart = 185,
-          bStart = 235
-        const rEnd = 240,
-          gEnd = 248,
-          bEnd = 255
+        const [rStart, gStart, bStart] = pdfPalette.start
+        const [rEnd, gEnd, bEnd] = pdfPalette.end
 
         // 1. Top bar
         pdf.setFillColor(rStart, gStart, bStart)
@@ -2378,7 +2440,11 @@ export default function Subscriptions({
         const logoCircleR = 7 // Drastically smaller white circle
 
         pdf.setFillColor(255, 255, 255)
-        pdf.setDrawColor(22, 60, 92)
+        pdf.setDrawColor(
+          pdfPalette.dark[0],
+          pdfPalette.dark[1],
+          pdfPalette.dark[2]
+        )
         pdf.setLineWidth(0.8)
         pdf.circle(logoCenterX, logoCenterY, logoCircleR, 'FD')
 
@@ -2450,7 +2516,11 @@ export default function Subscriptions({
 
       pdf.setFont('times', 'bold')
       pdf.setFontSize(10)
-      pdf.setTextColor(24, 60, 92) // Dark Blue
+      pdf.setTextColor(
+        pdfPalette.dark[0],
+        pdfPalette.dark[1],
+        pdfPalette.dark[2]
+      )
 
       const headerRows = [
         `NAME: ${clientName}`,
@@ -2506,12 +2576,8 @@ export default function Subscriptions({
 
         // Day header with background matching sidebar gradient at option position
         // Calculate sidebar color at this y position
-        const rStart = 138,
-          gStart = 185,
-          bStart = 235
-        const rEnd = 240,
-          gEnd = 248,
-          bEnd = 255
+        const [rStart, gStart, bStart] = pdfPalette.start
+        const [rEnd, gEnd, bEnd] = pdfPalette.end
         const topbarH = 6
         const barHeight = 5
         const ratio =
@@ -2522,13 +2588,19 @@ export default function Subscriptions({
         const b = bStart + (bEnd - bStart) * ratio
 
         pdf.setFillColor(Math.round(r), Math.round(g), Math.round(b)) // Sidebar gradient color at this position
-        pdf.rect(gap, yPosition - 4, contentWidth + sidebarW + gap, 8, 'F') // Extend to merge with sidebar
-        pdf.setTextColor(22, 60, 92) // Dark text for contrast against light background
+        const optionBarX = gap + sidebarW
+        const optionBarTop = yPosition - 4
+        const optionBarHeight = 8
+        const optionBarWidth = pageWidth - rightMargin - optionBarX
+        pdf.rect(optionBarX, optionBarTop, optionBarWidth, optionBarHeight, 'F')
+        pdf.setTextColor(
+          pdfPalette.dark[0],
+          pdfPalette.dark[1],
+          pdfPalette.dark[2]
+        ) // Dark text for contrast against light background
         pdf.setFont('times', 'bold')
         pdf.setFontSize(11)
         const optionText = `Option- ${dayNum}`
-        const optionBarTop = yPosition - 4
-        const optionBarHeight = 8
         const optionTextY = optionBarTop + optionBarHeight / 2 + 1
         pdf.text(optionText, marginX, optionTextY)
         pdf.setTextColor(0, 0, 0)
@@ -4418,12 +4490,43 @@ export default function Subscriptions({
         handleClose={() => setDayDetailOpen(false)}
         className="w-screen max-w-[1000px]"
         unmountOnClose
+        accentHeader
         title={
-          dayDetail
-            ? `Plan Day ${safeStr(dayDetail?.day_number)} • ${moment(dayDetail?.date).format('MMM D, YYYY')}`
-            : selectedDate
-              ? `Day Details • ${moment(selectedDate).format('MMM D, YYYY')}`
-              : 'Day Details'
+          <div className="flex w-full items-center gap-3">
+            <div className="flex flex-1 items-center justify-center">
+              <div className="flex h-9 items-center justify-center gap-3 rounded-lg border border-blue-100 bg-white px-3 shadow-sm">
+                <button
+                  type="button"
+                  aria-label="Previous day"
+                  onClick={() => navigateDayDetail('previous')}
+                  disabled={!canNavigateDayDetail('previous')}
+                  className={`h-7 w-7 flex items-center justify-center transition-colors ${
+                    canNavigateDayDetail('previous')
+                      ? 'text-gray-700'
+                      : 'text-gray-300 cursor-not-allowed'
+                  }`}
+                >
+                  <Icons name="previous-arrow" />
+                </button>
+                <span className="min-w-[220px] text-center text-sm font-semibold text-primaryText">
+                  {dayDetailNavigatorLabel}
+                </span>
+                <button
+                  type="button"
+                  aria-label="Next day"
+                  onClick={() => navigateDayDetail('next')}
+                  disabled={!canNavigateDayDetail('next')}
+                  className={`h-7 w-7 flex items-center justify-center transition-colors ${
+                    canNavigateDayDetail('next')
+                      ? 'text-gray-700'
+                      : 'text-gray-300 cursor-not-allowed'
+                  }`}
+                >
+                  <Icons name="next-arrow" />
+                </button>
+              </div>
+            </div>
+          </div>
         }
         actionLabel={undefined}
         actionLoader={false}
@@ -4443,6 +4546,7 @@ export default function Subscriptions({
               onChangeTab={(tabId) => setDayDetailTab(tabId as DayDetailTab)}
               isNutritionist={isNutritionist}
               subscriptionId={overview?.subscription?.id}
+              userId={id}
               refreshDayDetail={refreshDayDetail}
               onEditWorkoutPlan={() => {
                 setDragIndex(null)

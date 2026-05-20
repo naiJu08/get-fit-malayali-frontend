@@ -165,6 +165,13 @@ export const getColumns = ({
       customCell: true,
       ...defaultColumnProps,
     },
+    {
+      title: 'Diet Template Category',
+      renderCell: createRenderCell('diet_template_category_name'),
+      field: 'diet_template_category_name',
+      customCell: true,
+      ...defaultColumnProps,
+    },
     // {
     //   title: 'Average Rating',
     //   field: 'average_rating',

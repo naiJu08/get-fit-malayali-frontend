@@ -89,7 +89,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
   return (
     <>
       <div
-        className={`justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none overscroll-none ${
+        className={`justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-[1400] outline-none focus:outline-none overscroll-none ${
           !showModal ? 'hidden' : ''
         } `}
         onClick={() => handleOutsideCancel('outside')}
@@ -203,7 +203,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
         </div>
       </div>
       {showModal && !fromModal && (
-        <div className="opacity-50 fixed inset-0 z-40 bg-black dark:bg-bgWhite"></div>
+        <div className="opacity-50 fixed inset-0 z-[1390] bg-black dark:bg-bgWhite"></div>
       )}
     </>
   )

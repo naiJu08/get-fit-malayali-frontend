@@ -26,6 +26,13 @@ body,
   width: 100%;
 }
 
+/* Override TabContainer's overflow-hidden in specific screens */
+.allow-tab-overflow {
+  .tab-section {
+    overflow: visible !important;
+  }
+}
+
 //test
 :root {
   // --primary: hsl(var(--hue), 90%, 50%);
