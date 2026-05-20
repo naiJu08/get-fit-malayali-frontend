@@ -464,12 +464,6 @@ export default function Subscriptions() {
     ordering: ordering,
     ...filters,
   }
-  useEffect(() => {
-    if (pageParams?.search) {
-      setPageParams({ ...pageParams, search: '', page: 1 })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
   const didInitRef = useRef(false)
   useEffect(() => {
     if (!didInitRef.current) {
@@ -478,7 +472,31 @@ export default function Subscriptions() {
       setPlanLabel('All Plans')
       setPageParams({ ...pageParams, search: '', filters: {}, page: 1 })
     }
-  }, [])
+  }, [pageParams, setPageParams])
+
+  const resolvePlanLabel = useCallback(
+    async (id?: number | string) => {
+      if (!id) {
+        setPlanLabel('All Plans')
+        return
+      }
+      try {
+        const res: any = await getData(`${apiUrl.PLANS}/${id}`)
+        const name =
+          res?.name ??
+          res?.plan_name ??
+          res?.data?.name ??
+          res?.data?.plan_name
+        if (!name) return
+        const label = String(name)
+        setPlanLabel(label)
+        setPlansCache((prev) =>
+          prev[String(id)] === label ? prev : { ...prev, [String(id)]: label }
+        )
+      } catch {}
+    },
+    [setPlansCache]
+  )
 
   useEffect(() => {
     const planFromStore = (filters as any)?.plan_id
@@ -493,27 +511,19 @@ export default function Subscriptions() {
     } else {
       setPlanLabel('All Plans')
     }
-  }, [filters])
+  }, [filters, plansCache, resolvePlanLabel])
+
+  const pageParamsRef = useRef(pageParams)
+  useEffect(() => {
+    pageParamsRef.current = pageParams
+  }, [pageParams])
   useEffect(() => {
     setPageParams({
-      ...pageParams,
+      ...pageParamsRef.current,
       page: 1,
       search: '',
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, setPageParams])
-  const resolvePlanLabel = async (id?: number | string) => {
-    if (!id) {
-      setPlanLabel('All Plans')
-      return
-    }
-    try {
-      const res: any = await getData(`${apiUrl.PLANS}/${id}`)
-      const name =
-        res?.name ?? res?.plan_name ?? res?.data?.name ?? res?.data?.plan_name
-      if (name) setPlanLabel(String(name))
-    } catch {}
-  }
 
   const { data, isFetching } = useAdminUser(searchParams)
   const onChangePage = (row: number) => {
@@ -531,7 +541,7 @@ export default function Subscriptions() {
   }
   useEffect(() => {
     setColumns(getColumns(navigate))
-  }, [])
+  }, [navigate])
 
   const handleSeach = (key?: string) => {
     setPageParams({
@@ -586,7 +596,7 @@ export default function Subscriptions() {
       })
       return [{ id: null, value: 'All Plans' }, ...mapped]
     },
-    []
+    [setPlansCache]
   )
 
   const basicData = {
