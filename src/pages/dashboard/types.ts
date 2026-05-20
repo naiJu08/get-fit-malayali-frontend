@@ -28,6 +28,7 @@ export type DashboardResponse = {
     by_status?: Record<string, number>
     active_now?: number
     expired_now?: number
+    expiring_soon_users?: number
     paused_now?: number
     new_this_month?: number
     subscribers_by_plan?: {
@@ -55,6 +56,13 @@ export type DashboardResponse = {
     yoga_included?: number
     meditation_included?: number
     hints?: Record<string, string>
+  }
+
+  clients?: {
+    total?: number
+    active?: number
+    inactive?: number
+    with_active_subscription?: number
   }
 
   workouts?: {
@@ -337,5 +345,50 @@ export type DashboardResponse = {
       completion_rate?: number
       issue?: string
     }[]
+  }
+}
+
+export type NutritionistDashboardResponse = {
+  generated_at?: string
+  date_info?: {
+    target_date?: string
+    range_days?: number
+    range_start?: string
+    range_end?: string
+  }
+  nutritionist?: {
+    id?: number | string
+    name?: string
+    email?: string
+    role?: string
+  }
+  clients?: {
+    total?: number
+    by_status?: Record<string, number>
+    hints?: Record<string, string>
+  }
+  subscriptions?: {
+    active_or_paused?: number
+    expiring_soon?: number
+    expiring_within_days?: number
+    hints?: Record<string, string | number>
+  }
+  engagement?: {
+    totals?: {
+      diet_item_completions?: number
+      workout_completions?: number
+      yoga_completions?: number
+      meditation_completions?: number
+    }
+    hints?: Record<string, string>
+  }
+  alerts?: {
+    expiring_soon?: any[]
+    inactive?: any[]
+    missing_diet_template_today?: any[]
+  }
+  feedbacks?: {
+    total?: number
+    recent?: any[]
   }
 }

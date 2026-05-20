@@ -4,9 +4,9 @@ import { useMutation } from '@tanstack/react-query'
 import {
   getData,
   postData,
-  updateData,
   updateFromData,
   deleteData,
+  updateData,
 } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import { QueryParams } from '../../common/types'
@@ -459,6 +459,50 @@ export const useUserReminders = ({ userId }: { userId?: string | number }) => {
   )
 }
 
+// User meal timings
+export const updateUserMealTiming = (
+  userId: string | number,
+  payload: {
+    user_meal_timing: {
+      meal_time: string
+      time: string
+      diet_plan_template_id: number | string
+      subscription_id: number | string
+      sequence_number: number
+    }
+  }
+) => {
+  const url = `${apiUrl.USER_MEAL_TIMINGS}?user_id=${userId}`
+  return postData(url, payload)
+}
+
+export const useUpdateUserMealTiming = (onSuccess?: () => void) => {
+  const { enqueueSnackbar } = useSnackbarManager()
+  return useMutation(
+    ({
+      userId,
+      payload,
+    }: {
+      userId: string | number
+      payload: Parameters<typeof updateUserMealTiming>[1]
+    }) => updateUserMealTiming(userId, payload),
+    {
+      onSuccess: () => {
+        enqueueSnackbar('Meal time updated successfully', {
+          variant: 'success',
+        })
+        onSuccess?.()
+      },
+      onError: (error: any) => {
+        enqueueSnackbar(
+          getErrorMessage(error) || 'Failed to update meal time',
+          { variant: 'error' }
+        )
+      },
+    }
+  )
+}
+
 // Subscription-level report
 export const getSubscriptionReport = (subscriptionId: string | number) => {
   return getData(`${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/report`)
@@ -540,15 +584,9 @@ export const saveUserAdditionalData = (
 export const updateUserAdditionalData = (
   userId: string | number,
   payload: Record<string, any>,
-  subscriptionId?: string | number | null
+  additionalDataId?: string | number | null
 ) => {
-  const baseUrl = `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data`
-  const url =
-    subscriptionId !== undefined &&
-    subscriptionId !== null &&
-    subscriptionId !== ''
-      ? `${baseUrl}?subscription_id=${subscriptionId}`
-      : baseUrl
+  const url = `${apiUrl.SUBSCRIPTION_CALENDAR}/${userId}/additional_data/${additionalDataId}`
   return updateData(url, {
     additional_data: payload,
   })

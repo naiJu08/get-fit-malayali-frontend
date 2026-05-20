@@ -14,6 +14,8 @@ import SubscriptionDetailsMain from '../pages/Subscriptions/Details'
 import PaymentHistory from '../pages/PaymentHistory'
 import YogaPlanDetails from '../pages/Plans/Details/YogaPlan/details'
 import DietTemplateDetails from '../pages/DietTemplate/Details'
+import MealTimingMain from '../pages/MealTiming'
+import MealTimingDetails from '../pages/MealTiming/Details'
 //
 // Users sample page is no longer used for the Users route; using AdminUser instead
 
@@ -66,6 +68,13 @@ const YogaMain = lazy(() => import('../pages/Yoga'))
 const MeditationMain = lazy(() => import('../pages/Meditation'))
 const MeditationDetails = lazy(() => import('../pages/Meditation/Details'))
 const DietTemplateMain = lazy(() => import('../pages/DietTemplate'))
+const DietTemplateCategories = lazy(
+  () => import('../pages/DietTemplateCategories')
+)
+const AssessmentCategory = lazy(() => import('../pages/AssessmentCategory'))
+const AssessmentCategoryDetails = lazy(
+  () => import('../pages/AssessmentCategory/Details')
+)
 
 const routes: any = [
   { slug: 'DASHBOARD', component: <Dashboard /> },
@@ -77,6 +86,7 @@ const routes: any = [
   { slug: 'CATEGORIES', component: <CategoriesMain /> },
   { slug: 'CATEGORIES_DETAILS', component: <CategoriesDetails /> },
   { slug: 'DIET_TEMPLATE', component: <DietTemplateMain /> },
+  { slug: 'DIET_TEMPLATE_CATEGORIES', component: <DietTemplateCategories /> },
   { slug: 'DIET_TEMPLATE_DETAILS', component: <DietTemplateDetails /> },
   { slug: 'DIET_TEMPLATE_DIET_PLAN', component: <DietTemplateDetails /> },
   { slug: 'WORKOUT_PLAN_DETAILS', component: <WorkoutPlanDetails /> },
@@ -102,6 +112,13 @@ const routes: any = [
   { slug: 'PLAN_DETAILS_DIET', component: <PlanDetails /> },
   { slug: 'PAYMENT_HISTORY', component: <PaymentHistory /> },
   { slug: 'REMINDER_SETTINGS', component: <UserDetails /> },
+  { slug: 'MEAL_TIMING', component: <MealTimingMain /> },
+  { slug: 'MEAL_TIMING_DETAILS', component: <MealTimingDetails /> },
+  { slug: 'ASSESSMENT_CATEGORY', component: <AssessmentCategory /> },
+  {
+    slug: 'ASSESSMENT_CATEGORY_DETAILS',
+    component: <AssessmentCategoryDetails />,
+  },
 
   {
     isAuthRoute: true,

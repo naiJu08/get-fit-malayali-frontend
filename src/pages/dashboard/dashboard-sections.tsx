@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { DashboardResponse } from './types'
 import {
   fmt,
@@ -28,26 +29,51 @@ type Props = { data?: DashboardResponse }
 
 // ── KPI Banner ────────────────────────────────────────────────────────────────
 export function KPIBanner({ data }: Props) {
+  const navigate = useNavigate()
+
   const cards = [
     {
-      title: 'Total Users',
-      value: fmt(data?.users?.total),
-      sub: `${fmt(data?.users?.by_status?.active)} active · ${fmt(data?.users?.by_role?.user)} members`,
+      title: 'Total Clients',
+      value: fmt(data?.clients?.total),
+      sub: `${fmt(data?.clients?.active)} active · ${fmt(data?.clients?.inactive)} inactive · ${fmt(data?.clients?.with_active_subscription)} with active subscription`,
       gradient: 'linear-gradient(135deg,#667eea,#764ba2)',
       icon: '👥',
-      badge: data?.users?.new_this_month
-        ? `+${data.users.new_this_month} this month`
+      badge: data?.clients?.total
+        ? `+${data.clients.total} this month`
         : undefined,
+      onClick: () => navigate('/users'),
     },
     {
       title: 'Subscriptions',
       value: fmt(data?.subscriptions?.total),
-      sub: `${fmt(data?.subscriptions?.active_now)} active · ${fmt(data?.subscriptions?.paused_now)} paused`,
+      sub: `${fmt(data?.subscriptions?.active_now)} active · ${fmt(data?.subscriptions?.paused_now)} paused · ${fmt(data?.subscriptions?.expired_now)} expired`,
       gradient: 'linear-gradient(135deg,#06b6d4,#3b82f6)',
       icon: '📋',
       badge: data?.subscriptions?.new_this_month
         ? `+${data.subscriptions.new_this_month} this month`
         : undefined,
+      onClick: () => navigate('/subscriptions'),
+    },
+    {
+      title: 'Subscriptions Expire within 7 days',
+      value: fmt(data?.subscriptions?.expiring_soon_users),
+      // sub: `${fmt(data?.subscriptions?.active_now)} active · ${fmt(data?.subscriptions?.paused_now)} paused · ${fmt(data?.subscriptions?.expired_now)} expired`,
+      gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
+      icon: '📋',
+      // badge: data?.subscriptions?.new_this_month
+      //   ? `+${data.subscriptions.new_this_month} this month`
+      //   : undefined,
+      onClick: () => navigate('/subscriptions'),
+    },
+
+    {
+      title: 'Plans Library',
+      value: fmt(data?.plans?.total),
+      sub: `${fmt(data?.plans?.active)} active · ${fmt(data?.plans?.inactive)} inactive`,
+      gradient: 'linear-gradient(135deg,#f6ad55,#ed8936)',
+      icon: '📊',
+      badge: undefined,
+      onClick: () => navigate('/plans'),
     },
     {
       title: 'Active Revenue',
@@ -58,39 +84,32 @@ export function KPIBanner({ data }: Props) {
       gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
       icon: '💰',
       badge: 'INR',
+      onClick: () => navigate('/payment-history'),
     },
-    {
-      title: 'Plans Library',
-      value: fmt(data?.plans?.total),
-      sub: `${fmt(data?.plans?.active)} active · ${fmt(data?.plans?.inactive)} inactive`,
-      gradient: 'linear-gradient(135deg,#f6ad55,#ed8936)',
-      icon: '📊',
-      badge: undefined,
-    },
-    {
-      title: 'Workouts',
-      value: fmt(data?.workouts?.total),
-      sub: `${fmt(data?.workouts?.with_video)} with video · ${fmt(data?.workouts?.user_specific_exercises)} personalised`,
-      gradient: 'linear-gradient(135deg,#fc8181,#f56565)',
-      icon: '🏋️',
-      badge: undefined,
-    },
-    {
-      title: 'Meditation',
-      value: fmt(data?.meditations?.total_meditations),
-      sub: `${fmt(data?.meditations?.with_video)} with video · ${fmt(data?.meditations?.user_specific_meditations)} personalised`,
-      gradient: 'linear-gradient(135deg,#9f7aea,#667eea)',
-      icon: '🧘',
-      badge: undefined,
-    },
-    {
-      title: 'Yoga',
-      value: fmt(data?.yoga?.total_yoga_items),
-      sub: `${fmt(data?.yoga?.with_video)} with video · ${fmt(data?.yoga?.user_specific_yoga_exercises)} personalised`,
-      gradient: 'linear-gradient(135deg,#38b2ac,#4299e1)',
-      icon: '🧘‍♀️',
-      badge: undefined,
-    },
+    // {
+    //   title: 'Workouts',
+    //   value: fmt(data?.workouts?.total),
+    //   sub: `${fmt(data?.workouts?.with_video)} with video · ${fmt(data?.workouts?.user_specific_exercises)} personalised`,
+    //   gradient: 'linear-gradient(135deg,#fc8181,#f56565)',
+    //   icon: '🏋️',
+    //   badge: undefined,
+    // },
+    // {
+    //   title: 'Meditation',
+    //   value: fmt(data?.meditations?.total_meditations),
+    //   sub: `${fmt(data?.meditations?.with_video)} with video · ${fmt(data?.meditations?.user_specific_meditations)} personalised`,
+    //   gradient: 'linear-gradient(135deg,#9f7aea,#667eea)',
+    //   icon: '🧘',
+    //   badge: undefined,
+    // },
+    // {
+    //   title: 'Yoga',
+    //   value: fmt(data?.yoga?.total_yoga_items),
+    //   sub: `${fmt(data?.yoga?.with_video)} with video · ${fmt(data?.yoga?.user_specific_yoga_exercises)} personalised`,
+    //   gradient: 'linear-gradient(135deg,#38b2ac,#4299e1)',
+    //   icon: '🧘‍♀️',
+    //   badge: undefined,
+    // },
     {
       title: 'Notifications',
       value: fmt(data?.notifications?.total),
@@ -98,6 +117,7 @@ export function KPIBanner({ data }: Props) {
       gradient: 'linear-gradient(135deg,#ed8936,#ecc94b)',
       icon: '🔔',
       badge: `${data?.notifications?.unread ?? 0} unread`,
+      onClick: () => navigate('/notifications'),
     },
   ]
   return (

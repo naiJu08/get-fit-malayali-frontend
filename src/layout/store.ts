@@ -141,6 +141,8 @@ type PagePermissions = {
   fileRepo?: Action[]
   Charter?: Action[]
   DataTables?: Action[]
+  MEAL_TIMING?: Action[]
+  ASSESSMENT_CATEGORY?: Action[]
 }
 
 type Permissions = {
@@ -185,6 +187,8 @@ const permissions: Permissions = {
     Tabularform: ['view', 'edit', 'create'],
     fileRepo: ['view'],
     DataTables: ['view'],
+    MEAL_TIMING: ['view', 'create', 'edit', 'delete'],
+    ASSESSMENT_CATEGORY: ['view', 'create', 'edit', 'delete'],
   },
   Assessor: {
     Employee: [],
@@ -195,6 +199,8 @@ const permissions: Permissions = {
     DEIStrategy: ['view'],
     fileRepo: ['view'],
     DataTables: ['view'],
+    MEAL_TIMING: ['view'],
+    ASSESSMENT_CATEGORY: ['view'],
   },
   Organisation: {
     Employee: [],
@@ -205,6 +211,8 @@ const permissions: Permissions = {
     DEIStrategy: ['view', 'edit'],
     fileRepo: ['view', 'create', 'delete'],
     DataTables: ['view', 'edit'],
+    MEAL_TIMING: ['view', 'create', 'edit', 'delete'],
+    ASSESSMENT_CATEGORY: ['view', 'create', 'edit', 'delete'],
   },
 }
 

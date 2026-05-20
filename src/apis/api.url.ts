@@ -32,6 +32,8 @@ const CLIENT_REPORTS = 'monthly_reports'
 const SUBSCRIPTION_CALENDAR = '/admin/users'
 const USER_REMINDERS = '/user_reminders'
 const SUBSCRIPTION_HISTORY = '/subscriptions/user_history'
+const USER_MEAL_TIMINGS = '/user_meal_timings'
+const MEAL_TIMINGS = '/meal_timings'
 
 const ADMIN_DASHBOARD = 'admin/dashboard'
 const YOGA = '/yogas'
@@ -44,6 +46,10 @@ const INACTIVE_USERS = '/admin/inactive_users'
 const MEALS_STATUS_CHANGE = '/meals/bulk_status_change'
 const AUTH_ME = '/auth/me'
 const USERS_DELETE = '/users/delete'
+const DUPLICATE_DIET_TEMPLATE = '/diet_plan_templates/duplicate'
+const TEMPLATE_CATEGORIES = '/diet_template_categories'
+const NUTRITIONIST_DASHBOARD = '/nutritionist/dashboard'
+const ASSESSSMENT_CATEGORY = '/admin/assessment_categories'
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
   ASSESSOR_LIST_URL,
@@ -78,6 +84,8 @@ const apiUrl: { [key: string]: string } = {
   SUBSCRIPTION_CALENDAR,
   USER_REMINDERS,
   SUBSCRIPTION_HISTORY,
+  USER_MEAL_TIMINGS,
+  MEAL_TIMINGS,
   ADMIN_DASHBOARD,
   YOGA,
   MEDITATION,
@@ -89,6 +97,10 @@ const apiUrl: { [key: string]: string } = {
   MEALS_STATUS_CHANGE,
   AUTH_ME,
   USERS_DELETE,
+  DUPLICATE_DIET_TEMPLATE,
+  TEMPLATE_CATEGORIES,
+  NUTRITIONIST_DASHBOARD,
+  ASSESSSMENT_CATEGORY,
 }
 
 export default apiUrl

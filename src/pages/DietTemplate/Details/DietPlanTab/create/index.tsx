@@ -14,6 +14,10 @@ import FormBuilder from '../../../../../components/app/formBuilder'
 import ToggleSwitch from '../../../../../components/common/inputs/ToggleSwitch'
 import { useCreateDietPlan, useDietPlanDetail, useUpdateDietPlan } from '../api'
 import { useMeals } from '../../../../Meals/api'
+import {
+  getMealTimingDetails,
+  useMealTimingList,
+} from '../../../../MealTiming/api'
 import Button from '../../../../../components/common/buttons/Button'
 import { useSnackbarManager } from '../../../../../components/common/snackbar'
 
@@ -139,6 +143,7 @@ const DietPlanForm = ({
       day_number: edit ? Number(rowData?.day_number ?? 1) : 0,
       sequence_number: Number(rowData?.sequence_number ?? 1),
       meal_time: rowData?.meal_time ?? '',
+      meal_time_time: rowData?.meal_time_time ?? '',
       day_name:
         rowData?.day_name ?? getDayNameFromNumber(rowData?.day_number) ?? '',
       notes: rowData?.notes ?? '',
@@ -176,6 +181,36 @@ const DietPlanForm = ({
   const selectedMealTime = watch('meal_time')
   const selectedDayName = watch('day_name')
   const selectedDayNumber = watch('day_number')
+
+  const mealTimingParams = useMemo(
+    () => ({
+      page: 1,
+      page_size: 1000,
+      search: '',
+      ordering: '',
+      status: 'active',
+    }),
+    []
+  )
+  const { data: mealTimingListData } = useMealTimingList(
+    mealTimingParams as any
+  )
+
+  const mealTimeOptions = useMemo(() => {
+    const items = (mealTimingListData as any)?.meal_timings ?? []
+    const fromApi = Array.isArray(items)
+      ? items
+          .map((mt: any) => {
+            const name = mt?.name
+            const id = mt?.id ?? name
+            if (!name) return null
+            return { id, name, value: name, time: mt?.time }
+          })
+          .filter(Boolean)
+      : []
+
+    return fromApi.length > 0 ? (fromApi as any[]) : MEAL_TIME_OPTIONS
+  }, [mealTimingListData])
   const searchParams = {
     page: 1,
     per_page: 999,
@@ -253,8 +288,12 @@ const DietPlanForm = ({
       const keys = getDayKeys(plan?.day_name, plan?.day_number)
       if (!keys.length) return
       keys.forEach((key) => {
-        if (!map.has(key)) map.set(key, new Set())
-        map.get(key)!.add(normalizedMealTime)
+        const existing = map.get(key)
+        if (existing) {
+          existing.add(normalizedMealTime)
+          return
+        }
+        map.set(key, new Set([normalizedMealTime]))
       })
     })
     return map
@@ -273,8 +312,8 @@ const DietPlanForm = ({
   const normalizedSelectedMealTime = normalizeMealTime(selectedMealTime)
 
   const availableMealTimeOptions = useMemo(() => {
-    if (!selectedDayName && !selectedDayNumber) return MEAL_TIME_OPTIONS
-    return MEAL_TIME_OPTIONS.filter((option) => {
+    if (!selectedDayName && !selectedDayNumber) return mealTimeOptions
+    return mealTimeOptions.filter((option: any) => {
       const normalized = normalizeMealTime(option.value)
       if (
         normalizedSelectedMealTime &&
@@ -288,7 +327,19 @@ const DietPlanForm = ({
     selectedDayNumber,
     normalizedSelectedMealTime,
     usedMealTimeValues,
+    mealTimeOptions,
   ])
+
+  const selectedMealTimeTime = useMemo(() => {
+    if (!selectedMealTime) return ''
+    const match = mealTimeOptions.find(
+      (mt: any) =>
+        String(mt?.id) === String(selectedMealTime) ||
+        String(mt?.value) === String(selectedMealTime) ||
+        String(mt?.name) === String(selectedMealTime)
+    )
+    return match?.time ? String(match.time) : ''
+  }, [mealTimeOptions, selectedMealTime])
 
   const isMealTimeRestricted =
     !!normalizedSelectedMealTime &&
@@ -299,6 +350,57 @@ const DietPlanForm = ({
     if (!isMealTimeRestricted) return
     setValue('meal_time', '', { shouldValidate: true })
   }, [edit, isMealTimeRestricted, setValue])
+
+  useEffect(() => {
+    if (!isOpen) return
+    const currentMealTimeTime = watch('meal_time_time')
+    if (currentMealTimeTime) return
+
+    const nextValue =
+      rowData?.meal_time_time ??
+      (selectedMealTime ? selectedMealTimeTime : '') ??
+      ''
+
+    if (!nextValue) return
+
+    setValue('meal_time_time', nextValue, { shouldValidate: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    isOpen,
+    rowData?.meal_time_time,
+    selectedMealTime,
+    selectedMealTimeTime,
+    setValue,
+  ])
+
+  useEffect(() => {
+    if (!isOpen) return
+    if (!selectedMealTime) return
+    const currentMealTimeTime = watch('meal_time_time')
+    if (currentMealTimeTime) return
+    if (selectedMealTimeTime) return
+
+    const selectedId = Number(selectedMealTime)
+    if (!Number.isFinite(selectedId) || selectedId <= 0) return
+
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res: any = await getMealTimingDetails(String(selectedId))
+        if (cancelled) return
+        const time = res?.meal_timing?.time
+        if (time) {
+          setValue('meal_time_time', String(time), { shouldValidate: false })
+        }
+      } catch {
+        // ignore (fallback is empty)
+      }
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, selectedMealTime, selectedMealTimeTime, setValue, watch])
 
   const allMeals = (mealsData as any)?.meals ?? []
   const filteredMeals = allMeals
@@ -459,7 +561,7 @@ const DietPlanForm = ({
           : [
               {
                 meal_id: 0,
-                count: 0,
+                count: 1,
                 requirement: 'Optional',
                 protein: '',
                 carbs: '',
@@ -476,7 +578,7 @@ const DietPlanForm = ({
       replaceMeals([
         {
           meal_id: 0,
-          count: 0,
+          count: 1,
           requirement: 'Optional',
           protein: '',
           carbs: '',
@@ -603,7 +705,7 @@ const DietPlanForm = ({
               meals: [
                 {
                   meal_id: 0,
-                  count: 0,
+                  count: 1,
                   requirement: 'Optional',
                   protein: '',
                   carbs: '',
@@ -616,7 +718,7 @@ const DietPlanForm = ({
             replaceMeals([
               {
                 meal_id: 0,
-                count: 0,
+                count: 1,
                 requirement: 'Optional',
                 protein: '',
                 carbs: '',
@@ -633,9 +735,66 @@ const DietPlanForm = ({
     }
   }
 
+  const getFirstFormErrorMessage = (errs: any): string | null => {
+    if (!errs) return null
+    if (typeof errs === 'string') return errs
+
+    if (Array.isArray(errs)) {
+      for (const item of errs) {
+        const msg = getFirstFormErrorMessage(item)
+        if (msg) return msg
+      }
+      return null
+    }
+
+    if (typeof errs === 'object') {
+      if (errs?.message) return String(errs.message)
+
+      for (const key of Object.keys(errs)) {
+        const msg = getFirstFormErrorMessage(errs[key])
+        if (msg) return msg
+      }
+    }
+
+    return null
+  }
+
+  const onInvalidSubmit = (formErrors: any) => {
+    const msg =
+      getFirstFormErrorMessage(formErrors) ||
+      'Please fix the highlighted errors and try again'
+    enqueueSnackbar(msg, { variant: 'error' })
+  }
+
+  const submitAndClose = handleSubmit(
+    (values) => onSubmit(values, false),
+    onInvalidSubmit
+  )
+  const submitAndAddNew = handleSubmit(
+    (values) => onSubmit(values, true),
+    onInvalidSubmit
+  )
+
   const handleMealTimeChange = (option: any) => {
     const mealTime = option?.id ?? option?.value ?? ''
     setValue('meal_time', mealTime, { shouldValidate: true })
+
+    const timeFromOption = option?.time
+    if (typeof timeFromOption === 'string') {
+      setValue('meal_time_time', timeFromOption, { shouldValidate: false })
+    } else if (mealTime) {
+      const match = mealTimeOptions.find(
+        (mt: any) =>
+          String(mt?.id) === String(mealTime) ||
+          String(mt?.value) === String(mealTime) ||
+          String(mt?.name) === String(mealTime)
+      )
+      if (match?.time) {
+        setValue('meal_time_time', String(match.time), {
+          shouldValidate: false,
+        })
+      }
+    }
 
     if (mealTime) {
       const mapping: Record<string, number> = {
@@ -658,7 +817,7 @@ const DietPlanForm = ({
   const formFields = [
     {
       name: 'meal_time',
-      label: 'Meal Time',
+      label: 'Meal ',
       type: 'custom_search_select',
       desc: 'name',
       descId: 'id',
@@ -670,6 +829,16 @@ const DietPlanForm = ({
       disabled: !!edit,
       onChange: handleMealTimeChange,
     },
+    {
+      name: 'meal_time_time',
+      label: 'Meal Time',
+      type: 'text',
+      placeholder: '',
+      initialLoad: rowData?.meal_time_time ?? selectedMealTimeTime ?? '',
+      required: false,
+      disabled: true,
+    },
+
     {
       name: 'notes',
       label: 'Notes',
@@ -688,7 +857,7 @@ const DietPlanForm = ({
       title={edit ? 'Edit Diet Plan' : 'Create Diet Plan'}
       actionLabel={edit ? 'Update' : 'Create'}
       actionLoader={creating || updating}
-      onSubmit={handleSubmit((values) => onSubmit(values, false))}
+      onSubmit={submitAndClose}
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"
       small={false}
@@ -705,7 +874,7 @@ const DietPlanForm = ({
               disabled={creating || updating}
               isLoading={creating}
               label="Submit and Add New"
-              onClick={handleSubmit((values) => onSubmit(values, true))}
+              onClick={submitAndAddNew}
               className="bg-blue-500"
             />
           )}
@@ -714,7 +883,7 @@ const DietPlanForm = ({
               disabled={creating || updating}
               isLoading={creating || updating}
               label="Update"
-              onClick={handleSubmit((values) => onSubmit(values, false))}
+              onClick={submitAndClose}
               primary
             />
           )}
@@ -892,9 +1061,7 @@ const DietPlanForm = ({
                                   mealId === '' ? 0 : Number(mealId),
                                   { shouldValidate: true }
                                 )
-                                // Trigger validation for both meal_id and count to show errors
                                 trigger(`meals.${index}.meal_id`)
-                                trigger(`meals.${index}.count`)
                                 refetchMeals()
                               }}
                             />
@@ -1102,7 +1269,7 @@ const DietPlanForm = ({
                       onClick={() =>
                         appendMeal({
                           meal_id: 0,
-                          count: 0,
+                          count: 1,
                           requirement: 'Optional',
                           protein: '',
                           carbs: '',

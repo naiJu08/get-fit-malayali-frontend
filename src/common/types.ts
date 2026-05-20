@@ -357,6 +357,7 @@ export interface DialogModalProps {
   stylelabel?: string
   headborder?: boolean
   tall?: boolean
+  bodyOverflowVisible?: boolean
 }
 export interface TabItemProps {
   label: string
@@ -505,6 +506,7 @@ export interface FormBuilderProps {
   requiredWidth?: number
   requiredHeight?: number
   dimensionLabel?: string
+  hidePeriodIcon?: boolean
 }
 interface Content {
   cell: ReactNode | string
