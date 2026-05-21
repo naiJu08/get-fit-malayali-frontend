@@ -1,3 +1,0 @@
-{"total": {"lines":{"total":323,"covered":265,"skipped":0,"pct":82.04},"statements":{"total":347,"covered":278,"skipped":0,"pct":80.11},"functions":{"total":76,"covered":59,"skipped":0,"pct":77.63},"branches":{"total":231,"covered":149,"skipped":0,"pct":64.5},"branchesTrue":{"total":0,"covered":0,"skipped":0,"pct":"Unknown"}}
-,"C:\\Users\\user\\Desktop\\Get Fit\\get-fit-malayali-frontend\\src\\pages\\Subscriptions\\index.tsx": {"lines":{"total":323,"covered":265,"skipped":0,"pct":82.04},"functions":{"total":76,"covered":59,"skipped":0,"pct":77.63},"statements":{"total":347,"covered":278,"skipped":0,"pct":80.11},"branches":{"total":231,"covered":149,"skipped":0,"pct":64.5}}
-}
