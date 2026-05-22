@@ -10,6 +10,79 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
+export const createColumnRenderCell =
+  (key: string, isCustom?: string) => (row: AdminListResponse) => {
+    if (isCustom === 'fullname') {
+      return {
+        cell: <>{`${row?.user?.first_name} ${row?.user?.last_name}`}</>,
+      }
+    } else if (isCustom === 'lastlogin') {
+      return {
+        cell: (
+          <>
+            {row?.user?.last_login
+              ? moment(row?.user?.last_login).format('DD-MM-YYYY')
+              : ''}
+          </>
+        ),
+      }
+    } else if (isCustom === 'capitalize') {
+      const propertyValue = getNestedProperty(row, key)
+      const val = typeof propertyValue === 'string' ? propertyValue : ''
+      const cap = val
+        ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
+        : ''
+      return {
+        cell: cap,
+        toolTip: cap,
+      }
+    } else if (isCustom === 'link') {
+      const propertyValue = getNestedProperty(row, key)
+      const url = typeof propertyValue === 'string' ? propertyValue : ''
+      return {
+        cell: url ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#2563eb' }}
+          >
+            {url}
+          </a>
+        ) : (
+          ''
+        ),
+        toolTip: url,
+      }
+    } else if (isCustom === 'role-capitalize') {
+      const propertyValue = getNestedProperty(row, key)
+      const raw = typeof propertyValue === 'string' ? propertyValue : ''
+      const lower = raw.toLowerCase()
+      const display =
+        lower === 'superadmin'
+          ? 'Super Admin'
+          : raw
+            ? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
+            : ''
+      return {
+        cell: display,
+        toolTip: display,
+      }
+    } else if (isCustom === 'fulldate') {
+      const propertyValue = getNestedProperty(row, key)
+
+      return {
+        cell: convertUTCtoBrowserTimeZone(propertyValue),
+        toolTip: getNestedProperty(row, key) ?? '',
+      }
+    } else {
+      return {
+        cell: getNestedProperty(row, key),
+        toolTip: getNestedProperty(row, key) ?? '',
+      }
+    }
+  }
+
 export const getColumns = ({
   onNameClick,
   disableNameLink = false,
@@ -20,79 +93,6 @@ export const getColumns = ({
     }
   | AdminListResponse
   | any) => {
-  const createRenderCell =
-    (key: string, isCustom?: string) => (row: AdminListResponse) => {
-      if (isCustom === 'fullname') {
-        return {
-          cell: <>{`${row?.user?.first_name} ${row?.user?.last_name}`}</>,
-        }
-      } else if (isCustom === 'lastlogin') {
-        return {
-          cell: (
-            <>
-              {row?.user?.last_login
-                ? moment(row?.user?.last_login).format('DD-MM-YYYY')
-                : ''}
-            </>
-          ),
-        }
-      } else if (isCustom === 'capitalize') {
-        const propertyValue = getNestedProperty(row, key)
-        const val = typeof propertyValue === 'string' ? propertyValue : ''
-        const cap = val
-          ? val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
-          : ''
-        return {
-          cell: cap,
-          toolTip: cap,
-        }
-      } else if (isCustom === 'link') {
-        const propertyValue = getNestedProperty(row, key)
-        const url = typeof propertyValue === 'string' ? propertyValue : ''
-        return {
-          cell: url ? (
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#2563eb' }}
-            >
-              {url}
-            </a>
-          ) : (
-            ''
-          ),
-          toolTip: url,
-        }
-      } else if (isCustom === 'role-capitalize') {
-        const propertyValue = getNestedProperty(row, key)
-        const raw = typeof propertyValue === 'string' ? propertyValue : ''
-        const lower = raw.toLowerCase()
-        const display =
-          lower === 'superadmin'
-            ? 'Super Admin'
-            : raw
-              ? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
-              : ''
-        return {
-          cell: display,
-          toolTip: display,
-        }
-      } else if (isCustom === 'fulldate') {
-        const propertyValue = getNestedProperty(row, key)
-
-        return {
-          cell: convertUTCtoBrowserTimeZone(propertyValue),
-          toolTip: getNestedProperty(row, key) ?? '',
-        }
-      } else {
-        return {
-          cell: getNestedProperty(row, key),
-          toolTip: getNestedProperty(row, key) ?? '',
-        }
-      }
-    }
-
   const column = [
     // {
     //   title: 'Name',
@@ -160,14 +160,14 @@ export const getColumns = ({
     // },
     {
       title: 'Duration (Days)',
-      renderCell: createRenderCell('duration_days'),
+      renderCell: createColumnRenderCell('duration_days'),
       field: 'duration_days',
       customCell: true,
       ...defaultColumnProps,
     },
     {
       title: 'Diet Template Category',
-      renderCell: createRenderCell('diet_template_category_name'),
+      renderCell: createColumnRenderCell('diet_template_category_name'),
       field: 'diet_template_category_name',
       customCell: true,
       ...defaultColumnProps,

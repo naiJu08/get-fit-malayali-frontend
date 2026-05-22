@@ -9,7 +9,8 @@ import DietPlanTab from './Details/DietPlanTab'
 import CreateDietTemplate from './create'
 
 export default function DietTemplateDetails() {
-  const { id } = useParams()
+  const params = useParams()
+  const id = (params as any)?.id
   const navigate = useNavigate()
   const location = useLocation()
   const [data, setData] = useState<any>(null)
