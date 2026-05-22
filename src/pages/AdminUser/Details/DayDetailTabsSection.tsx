@@ -217,11 +217,12 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
   const { data: templateListData, isFetching: templateListLoading } =
     useTemplateList(templateListParams)
-  const { data: dietTemplateCategoriesData } = useDietTemplateCategories({
-    page: 1,
-    per_page: 100,
-    status: 'active',
-  })
+  const { data: dietTemplateCategoriesData } =
+    useDietTemplateCategories({
+      page: 1,
+      per_page: 100,
+      status: 'active',
+    }) ?? {}
   const dietTemplateCategoryOptions = Array.isArray(
     dietTemplateCategoriesData?.diet_template_categories
   )

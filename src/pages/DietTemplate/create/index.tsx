@@ -124,11 +124,12 @@ export default function CreateAdmin({
     defaultValues: defaultFormValues,
   })
   const { handleSubmit, getValues, setValue } = methods
-  const { data: dietTemplateCategoriesData } = useDietTemplateCategories({
-    page: 1,
-    per_page: 100,
-    status: 'active',
-  })
+  const { data: dietTemplateCategoriesData } =
+    useDietTemplateCategories({
+      page: 1,
+      per_page: 100,
+      status: 'active',
+    }) ?? {}
   const dietTemplateCategoryOptions = useMemo(
     () =>
       Array.isArray(dietTemplateCategoriesData?.diet_template_categories)
