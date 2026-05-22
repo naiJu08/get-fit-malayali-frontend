@@ -58,11 +58,12 @@ export default function DietTemplateMain() {
   }
   const location = useLocation()
   const { data, refetch, isFetching } = useTemplateList(searchParams)
-  const { data: dietTemplateCategoriesData } = useDietTemplateCategories({
-    page: 1,
-    per_page: 100,
-    status: 'active',
-  })
+  const { data: dietTemplateCategoriesData } =
+    useDietTemplateCategories({
+      page: 1,
+      per_page: 100,
+      status: 'active',
+    }) ?? {}
   const dietTemplateCategoryOptions = Array.isArray(
     dietTemplateCategoriesData?.diet_template_categories
   )
