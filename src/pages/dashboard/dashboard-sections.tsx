@@ -28,6 +28,107 @@ const COLORS = [
 type Props = { data?: DashboardResponse }
 
 // ── KPI Banner ────────────────────────────────────────────────────────────────
+// export function KPIBanner({ data }: Props) {
+//   const navigate = useNavigate()
+
+//   const cards = [
+//     {
+//       title: 'Total Clients',
+//       value: fmt(data?.clients?.total),
+//       sub: `${fmt(data?.clients?.active)} active · ${fmt(data?.clients?.inactive)} inactive · ${fmt(data?.clients?.with_active_subscription)} with active subscription`,
+//       gradient: 'linear-gradient(135deg,#667eea,#764ba2)',
+//       icon: '👥',
+//       badge: data?.clients?.total
+//         ? `+${data.clients.total} this month`
+//         : undefined,
+//       onClick: () => navigate('/users'),
+//     },
+//     {
+//       title: 'Subscriptions',
+//       value: fmt(data?.subscriptions?.total),
+//       sub: `${fmt(data?.subscriptions?.active_now)} active · ${fmt(data?.subscriptions?.paused_now)} paused · ${fmt(data?.subscriptions?.expired_now)} expired`,
+//       gradient: 'linear-gradient(135deg,#06b6d4,#3b82f6)',
+//       icon: '📋',
+//       badge: data?.subscriptions?.new_this_month
+//         ? `+${data.subscriptions.new_this_month} this month`
+//         : undefined,
+//       onClick: () => navigate('/subscriptions'),
+//     },
+//     {
+//       title: 'Subscriptions Expire within 7 days',
+//       value: fmt(data?.subscriptions?.expiring_soon_users),
+//       // sub: `${fmt(data?.subscriptions?.active_now)} active · ${fmt(data?.subscriptions?.paused_now)} paused · ${fmt(data?.subscriptions?.expired_now)} expired`,
+//       gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
+//       icon: '📋',
+//       // badge: data?.subscriptions?.new_this_month
+//       //   ? `+${data.subscriptions.new_this_month} this month`
+//       //   : undefined,
+//       onClick: () => navigate('/subscriptions'),
+//     },
+
+//     {
+//       title: 'Plans Library',
+//       value: fmt(data?.plans?.total),
+//       sub: `${fmt(data?.plans?.active)} active · ${fmt(data?.plans?.inactive)} inactive`,
+//       gradient: 'linear-gradient(135deg,#f6ad55,#ed8936)',
+//       icon: '📊',
+//       badge: undefined,
+//       onClick: () => navigate('/plans'),
+//     },
+//     {
+//       title: 'Active Revenue',
+//       value: fmtCurrency(
+//         data?.subscriptions?.revenue?.active_subscriptions_total_fees
+//       ),
+//       sub: `Lifetime: ${fmtCurrency(data?.subscriptions?.revenue?.lifetime_total_fees)}`,
+//       gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
+//       icon: '💰',
+//       badge: 'INR',
+//       onClick: () => navigate('/payment-history'),
+//     },
+//     // {
+//     //   title: 'Workouts',
+//     //   value: fmt(data?.workouts?.total),
+//     //   sub: `${fmt(data?.workouts?.with_video)} with video · ${fmt(data?.workouts?.user_specific_exercises)} personalised`,
+//     //   gradient: 'linear-gradient(135deg,#fc8181,#f56565)',
+//     //   icon: '🏋️',
+//     //   badge: undefined,
+//     // },
+//     // {
+//     //   title: 'Meditation',
+//     //   value: fmt(data?.meditations?.total_meditations),
+//     //   sub: `${fmt(data?.meditations?.with_video)} with video · ${fmt(data?.meditations?.user_specific_meditations)} personalised`,
+//     //   gradient: 'linear-gradient(135deg,#9f7aea,#667eea)',
+//     //   icon: '🧘',
+//     //   badge: undefined,
+//     // },
+//     // {
+//     //   title: 'Yoga',
+//     //   value: fmt(data?.yoga?.total_yoga_items),
+//     //   sub: `${fmt(data?.yoga?.with_video)} with video · ${fmt(data?.yoga?.user_specific_yoga_exercises)} personalised`,
+//     //   gradient: 'linear-gradient(135deg,#38b2ac,#4299e1)',
+//     //   icon: '🧘‍♀️',
+//     //   badge: undefined,
+//     // },
+//     {
+//       title: 'Notifications',
+//       value: fmt(data?.notifications?.total),
+//       sub: `${fmt(data?.notifications?.unread)} unread · ${fmt(data?.notifications?.delivered)} delivered`,
+//       gradient: 'linear-gradient(135deg,#ed8936,#ecc94b)',
+//       icon: '🔔',
+//       badge: `${data?.notifications?.unread ?? 0} unread`,
+//       onClick: () => navigate('/notifications'),
+//     },
+//   ]
+//   return (
+//     <div className="db-kpi-grid">
+//       {cards.map((c, i) => (
+//         <StatCard key={i} {...c} />
+//       ))}
+//     </div>
+//   )
+// }
+// ── KPI Banner ────────────────────────────────────────────────────────────────
 export function KPIBanner({ data }: Props) {
   const navigate = useNavigate()
 
@@ -35,44 +136,86 @@ export function KPIBanner({ data }: Props) {
     {
       title: 'Total Clients',
       value: fmt(data?.clients?.total),
-      sub: `${fmt(data?.clients?.active)} active · ${fmt(data?.clients?.inactive)} inactive · ${fmt(data?.clients?.with_active_subscription)} with active subscription`,
+      // sub: `${fmt(data?.clients?.active)} active · ${fmt(data?.clients?.inactive)} inactive · ${fmt(data?.clients?.with_active_subscription)} with active subscription`,
       gradient: 'linear-gradient(135deg,#667eea,#764ba2)',
       icon: '👥',
-      badge: data?.clients?.total
-        ? `+${data.clients.total} this month`
-        : undefined,
+      // badge: data?.clients?.total
+      //   ? `+${data.clients.total} this month`
+      //   : undefined,
       onClick: () => navigate('/users'),
+    },
+    {
+      title: 'Active Clients',
+      value: fmt(data?.clients?.active),
+      // sub: `${fmt(data?.clients?.total)} total clients · ${fmt(data?.clients?.with_active_subscription)} with active subscription`,
+      gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
+      icon: '✅',
+      // badge: `${Math.round(((data?.clients?.active ?? 0) / (data?.clients?.total || 1)) * 100)}% of total`,
+      onClick: () => navigate('/users?status=active'),
+    },
+    {
+      title: 'Inactive Clients',
+      value: fmt(data?.clients?.inactive),
+      // sub: `${fmt(data?.clients?.total)} total clients · No active subscription`,
+      gradient: 'linear-gradient(135deg,#fc8181,#f56565)',
+      icon: '⏸️',
+      // badge: `${Math.round(((data?.clients?.inactive ?? 0) / (data?.clients?.total || 1)) * 100)}% of total`,
+      onClick: () => navigate('/users?status=inactive'),
     },
     {
       title: 'Subscriptions',
       value: fmt(data?.subscriptions?.total),
-      sub: `${fmt(data?.subscriptions?.active_now)} active · ${fmt(data?.subscriptions?.paused_now)} paused · ${fmt(data?.subscriptions?.expired_now)} expired`,
-      gradient: 'linear-gradient(135deg,#06b6d4,#3b82f6)',
-      icon: '📋',
-      badge: data?.subscriptions?.new_this_month
-        ? `+${data.subscriptions.new_this_month} this month`
-        : undefined,
-      onClick: () => navigate('/subscriptions'),
-    },
-    {
-      title: 'Subscriptions Expire within 7 days',
-      value: fmt(data?.subscriptions?.expiring_soon_users),
       // sub: `${fmt(data?.subscriptions?.active_now)} active · ${fmt(data?.subscriptions?.paused_now)} paused · ${fmt(data?.subscriptions?.expired_now)} expired`,
-      gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
+      gradient: 'linear-gradient(135deg,#06b6d4,#3b82f6)',
       icon: '📋',
       // badge: data?.subscriptions?.new_this_month
       //   ? `+${data.subscriptions.new_this_month} this month`
       //   : undefined,
       onClick: () => navigate('/subscriptions'),
     },
-
+    {
+      title: 'Active Subscriptions',
+      value: fmt(data?.subscriptions?.active_now),
+      // sub: `${fmt(data?.subscriptions?.total)} total · ${fmt(data?.subscriptions?.expired_now)} expired`,
+      gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
+      icon: '🟢',
+      // badge: `${Math.round(((data?.subscriptions?.active_now ?? 0) / (data?.subscriptions?.total || 1)) * 100)}% of total`,
+      onClick: () => navigate('/subscriptions?status=active'),
+    },
+    {
+      title: 'Expired Subscriptions',
+      value: fmt(data?.subscriptions?.expired_now),
+      // sub: `${fmt(data?.subscriptions?.total)} total · ${fmt(data?.subscriptions?.active_now)} active`,
+      gradient: 'linear-gradient(135deg,#fc8181,#f56565)',
+      icon: '⏰',
+      // badge: 'Needs attention',
+      onClick: () => navigate('/subscriptions?status=expired'),
+    },
+    {
+      title: 'Expiring Soon (7d)',
+      value: fmt(data?.subscriptions?.expiring_soon_users),
+      // sub: `${fmt(data?.subscriptions?.active_now)} active subscriptions total · Expiring within 7 days`,
+      gradient: 'linear-gradient(135deg,#f6ad55,#ed8936)',
+      icon: '⚠️',
+      // badge: 'Renewal alert',
+      onClick: () => navigate('/subscriptions?filter=expiring_soon'),
+    },
+    {
+      title: 'Frozen Subscriptions',
+      value: fmt(data?.freezes?.active_subscriptions_with_freeze_now),
+      // sub: `${fmt(data?.freezes?.active_now)} active freezes · ${fmt(data?.freezes?.total)} total freezes all time`,
+      gradient: 'linear-gradient(135deg,#9f7aea,#667eea)',
+      icon: '❄️',
+      // badge: data?.freezes?.active_now ? `${data.freezes.active_now} currently frozen` : 'No active freezes',
+      onClick: () => navigate('/subscriptions?status=paused'),
+    },
     {
       title: 'Plans Library',
       value: fmt(data?.plans?.total),
-      sub: `${fmt(data?.plans?.active)} active · ${fmt(data?.plans?.inactive)} inactive`,
+      // sub: `${fmt(data?.plans?.active)} active · ${fmt(data?.plans?.inactive)} inactive`,
       gradient: 'linear-gradient(135deg,#f6ad55,#ed8936)',
       icon: '📊',
-      badge: undefined,
+      // badge: undefined,
       onClick: () => navigate('/plans'),
     },
     {
@@ -80,46 +223,23 @@ export function KPIBanner({ data }: Props) {
       value: fmtCurrency(
         data?.subscriptions?.revenue?.active_subscriptions_total_fees
       ),
-      sub: `Lifetime: ${fmtCurrency(data?.subscriptions?.revenue?.lifetime_total_fees)}`,
+      // sub: `Lifetime: ${fmtCurrency(data?.subscriptions?.revenue?.lifetime_total_fees)}`,
       gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
       icon: '💰',
-      badge: 'INR',
+      // badge: 'INR',
       onClick: () => navigate('/payment-history'),
     },
-    // {
-    //   title: 'Workouts',
-    //   value: fmt(data?.workouts?.total),
-    //   sub: `${fmt(data?.workouts?.with_video)} with video · ${fmt(data?.workouts?.user_specific_exercises)} personalised`,
-    //   gradient: 'linear-gradient(135deg,#fc8181,#f56565)',
-    //   icon: '🏋️',
-    //   badge: undefined,
-    // },
-    // {
-    //   title: 'Meditation',
-    //   value: fmt(data?.meditations?.total_meditations),
-    //   sub: `${fmt(data?.meditations?.with_video)} with video · ${fmt(data?.meditations?.user_specific_meditations)} personalised`,
-    //   gradient: 'linear-gradient(135deg,#9f7aea,#667eea)',
-    //   icon: '🧘',
-    //   badge: undefined,
-    // },
-    // {
-    //   title: 'Yoga',
-    //   value: fmt(data?.yoga?.total_yoga_items),
-    //   sub: `${fmt(data?.yoga?.with_video)} with video · ${fmt(data?.yoga?.user_specific_yoga_exercises)} personalised`,
-    //   gradient: 'linear-gradient(135deg,#38b2ac,#4299e1)',
-    //   icon: '🧘‍♀️',
-    //   badge: undefined,
-    // },
     {
       title: 'Notifications',
       value: fmt(data?.notifications?.total),
-      sub: `${fmt(data?.notifications?.unread)} unread · ${fmt(data?.notifications?.delivered)} delivered`,
+      // sub: `${fmt(data?.notifications?.unread)} unread · ${fmt(data?.notifications?.delivered)} delivered`,
       gradient: 'linear-gradient(135deg,#ed8936,#ecc94b)',
       icon: '🔔',
-      badge: `${data?.notifications?.unread ?? 0} unread`,
+      // badge: `${data?.notifications?.unread ?? 0} unread`,
       onClick: () => navigate('/notifications'),
     },
   ]
+  
   return (
     <div className="db-kpi-grid">
       {cards.map((c, i) => (
@@ -128,6 +248,7 @@ export function KPIBanner({ data }: Props) {
     </div>
   )
 }
+
 
 // ── Engagement Hourly Chart ───────────────────────────────────────────────────
 export function EngagementChart({ data }: Props) {
