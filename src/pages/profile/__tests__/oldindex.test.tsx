@@ -5,6 +5,10 @@ import { BrowserRouter } from 'react-router-dom'
 import Profile from '../oldIndex'
 // import Profile from '../'
 
+// Create controllable mock functions
+const mockDomainType = 'Assessor'
+const mockUseDomainManageStore = jest.fn(() => ({ domainType: mockDomainType }))
+
 // Mock child components
 jest.mock('../../../components/app/formBuilder/index', () => (props: any) => (
   <div data-testid="form-builder">
@@ -48,7 +52,7 @@ jest.mock('../../../components/common/snackbar', () => ({
 }))
 
 jest.mock('../../../store/domainManageStore', () => ({
-  useDomainManageStore: jest.fn(() => ({ domainType: 'Assessor' })),
+  useDomainManageStore: jest.fn(),
 }))
 
 jest.mock('../../../store/filterSore/assessorStore', () => ({
