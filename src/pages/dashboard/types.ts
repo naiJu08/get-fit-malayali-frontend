@@ -28,6 +28,7 @@ export type DashboardResponse = {
     by_status?: Record<string, number>
     active_now?: number
     expired_now?: number
+    dropped_out_now?: number
     expiring_soon_users?: number
     paused_now?: number
     new_this_month?: number

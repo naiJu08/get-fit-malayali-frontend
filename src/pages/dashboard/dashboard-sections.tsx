@@ -191,6 +191,15 @@ export function KPIBanner({ data }: Props) {
       // badge: 'Needs attention',
       onClick: () => navigate('/subscriptions?status=expired'),
     },
+    
+    {
+      title: 'Dropped Out Subscriptions',
+      value: fmt(data?.subscriptions?.dropped_out_now),
+      gradient: 'linear-gradient(135deg,#a0aec0,#718096)',
+      icon: '🚫',
+      onClick: () => navigate('/subscriptions?status=dropped_out'),
+    },
+    
     {
       title: 'Expiring Soon (7d)',
       value: fmt(data?.subscriptions?.expiring_soon_users),
