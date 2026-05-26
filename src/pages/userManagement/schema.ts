@@ -59,7 +59,7 @@ export const forgotSchema = z
       })
       .min(8, { message: text }),
     confirm_password: z.string(),
-    old_password: z.string(),
+    old_password: z.string().min(1, { message: 'Required' }),
   })
   .superRefine(({ password, confirm_password }, ctx) => {
     if (confirm_password !== password) {

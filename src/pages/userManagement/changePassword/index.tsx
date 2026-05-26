@@ -51,6 +51,8 @@ export default function ForceChangePassword() {
       })
       .catch((error) => {
         console.error('Error:', error)
+        const message = error?.response?.data?.message || 'Failed to change password'
+        enqueueSnackbar(message, { variant: 'error' })
       })
   }
   const [showPassword, setShowPassword] = useState({
@@ -117,7 +119,7 @@ export default function ForceChangePassword() {
                       )} */}
                   {/* </button> */}
                 </div>
-                {errors.password && (
+                {errors.old_password && (
                   <div className="text-xs text-red-500">
                     {errors?.old_password?.message as string}
                   </div>
