@@ -70,6 +70,11 @@ export const unfreezeSubscription = (
   payload?: { unfreeze_dates?: string[] }
 ) => postData(`${apiUrl.SUBSCRIPTIONS}/${id}/unfreeze`, payload ?? {})
 
+export const dropOutSubscription = (
+  id: string,
+  payload: { reason: string; dropped_out_on: string }
+) => postData(`${apiUrl.SUBSCRIPTIONS}/${id}/drop_out`, payload)
+
 // Aliases to match AdminUser module API names so copied components work without refactor
 export const useAdminUser = (input: QueryParams) => useSubscriptions(input)
 export const getAdminDetails = (id: string) => getSubscriptionDetails(id)

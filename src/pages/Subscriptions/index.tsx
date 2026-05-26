@@ -8,6 +8,7 @@ import DialogModal from '../../components/common/modal/DialogModal'
 import DynamicDropdown from '../../components/common/DynamicDropdown'
 import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
+import DropOutModal from '../../components/common/modal/DropOutModal'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
@@ -24,6 +25,7 @@ import {
   deleteAdmin,
   freezeUser,
   unfreezeUser,
+  dropOutSubscription,
 } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
@@ -65,6 +67,10 @@ export default function Subscriptions() {
   const [editViewIndicator, setEditViewIndicator] = useState(false)
   const [viewIndicator, setViewIndicator] = useState(false)
   const [loader, setloader] = useState(false)
+  const [dropOutOpen, setDropOutOpen] = useState(false)
+  const [dropOutRow, setDropOutRow] = useState<any>(null)
+  const [dropOutReason, setDropOutReason] = useState('')
+  const [dropOutLoading, setDropOutLoading] = useState(false)
 
   const params = useParams()
 
@@ -112,6 +118,7 @@ export default function Subscriptions() {
           ? 'Paused'
           : s === 'expired'
             ? 'Expired'
+            :s==='dropped_out'?'Dropped out'
             : 'All'
     )
 
@@ -522,6 +529,8 @@ export default function Subscriptions() {
       { id: 'active', value: 'Active' },
       { id: 'paused', value: 'Paused' },
       { id: 'expired', value: 'Expired' },
+      { id: 'dropped_out', value: 'Dropped Out' },
+
     ]
   }
 
@@ -574,6 +583,44 @@ export default function Subscriptions() {
 
   const handleRefresh = () => {
     refetch()
+  }
+
+  const formatLocalISODate = (date = new Date()) => {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+
+  const handleSubmitDropOut = () => {
+    const subscriptionId = dropOutRow?.id
+    const reason = (dropOutReason ?? '').trim()
+    if (!subscriptionId || !reason) return
+
+    setDropOutLoading(true)
+    dropOutSubscription(String(subscriptionId), {
+      reason,
+      dropped_out_on: formatLocalISODate(),
+    })
+      .then(() => {
+        enqueueSnackbar('Subscription dropped out successfully', {
+          variant: 'success',
+        })
+        setDropOutLoading(false)
+        setDropOutOpen(false)
+        setDropOutRow(null)
+        setDropOutReason('')
+        refetch()
+      })
+      .catch((err) => {
+        setDropOutLoading(false)
+        enqueueSnackbar(
+          err?.response?.data?.error?.message ||
+            err?.response?.data?.message ||
+            'Failed to drop out subscription',
+          { variant: 'error' }
+        )
+      })
   }
   const basicData = {
     title: 'Subscriptions',
@@ -868,6 +915,33 @@ export default function Subscriptions() {
                   toolTip: 'View Details',
                 },
                 {
+                  title: 'Drop out',
+                  action: (row) => {
+                    const status = String(row?.status ?? '')
+                      .toLowerCase()
+                      .trim()
+                    if (status !== 'active') {
+                      enqueueSnackbar(
+                        'Drop out is available only for active subscriptions',
+                        { variant: 'error' }
+                      )
+                      return
+                    }
+                    setDropOutRow(row)
+                    setDropOutReason('')
+                    setDropOutOpen(true)
+                  },
+                  icon: <Icons name="logout_icon" />,
+                  toolTip: 'Drop out',
+                  hide: (rowData: any) => {
+                    const status = String(rowData?.status ?? '')
+                      .toLowerCase()
+                      .trim()
+                    const hasDroppedOutOn = Boolean(rowData?.dropped_out_on)
+                    return hasDroppedOutOn || status !== 'active'
+                  },
+                },
+                {
                   title: 'Freeze',
                   action: (row) => {
                     setFreezeForm({ reason: '', start_date: '', end_date: '' })
@@ -934,6 +1008,20 @@ export default function Subscriptions() {
             loading={loader}
             values={freezeForm}
             onChange={handleFreezeChange}
+          />
+
+          <DropOutModal
+            isOpen={dropOutOpen}
+            onClose={() => {
+              if (dropOutLoading) return
+              setDropOutOpen(false)
+              setDropOutRow(null)
+              setDropOutReason('')
+            }}
+            onSubmit={handleSubmitDropOut}
+            loading={dropOutLoading}
+            reason={dropOutReason}
+            onChangeReason={setDropOutReason}
           />
 
           <ConfirmDeleteModal

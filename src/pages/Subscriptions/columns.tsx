@@ -29,10 +29,15 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
       expired: 'bg-orange-100 text-orange-800 border-orange-200',
       canceled: 'bg-red-100 text-red-800 border-red-200',
       pending: 'bg-blue-100 text-blue-800 border-blue-200',
+      dropped_out: 'bg-blue-100 text-blue-800 border-blue-200',
     }
     const colorClass =
       statusColors[key] || 'bg-gray-100 text-gray-800 border-gray-200'
-    const label = raw ? raw.charAt(0).toUpperCase() + raw.slice(1) : '--'
+    const label = raw
+      ? key === 'dropped_out' || key === 'dropped out'
+        ? 'Dropped Out'
+        : raw.charAt(0).toUpperCase() + raw.slice(1)
+      : '--'
     return (
       <span
         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${colorClass}`}

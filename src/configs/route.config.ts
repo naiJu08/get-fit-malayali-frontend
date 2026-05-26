@@ -216,16 +216,16 @@ const MEDITATION: RouterMenuProps = {
   isSidebarMenu: true,
 }
 
-// const SUBSCRIPTIONS: RouterMenuProps = {
-//   id: 29,
-//   path: '/subscriptions',
-//   parent_id: null,
-//   label: 'Subscriptions',
-//   key: 'subscriptions',
-//   icon: 'subscription',
-//   permission_slugs: ['superadmin', 'nutritionist'],
-//   isSidebarMenu: true,
-// }
+const SUBSCRIPTIONS: RouterMenuProps = {
+  id: 29,
+  path: '/subscriptions',
+  parent_id: null,
+  label: 'Subscriptions',
+  key: 'subscriptions',
+  icon: 'subscription',
+  permission_slugs: ['superadmin', 'nutritionist'],
+  isSidebarMenu: true,
+}
 // const NOTIFICATIONS: RouterMenuProps = {
 //   id: 30,
 //   path: '/notifications',
@@ -530,7 +530,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   YOGA,
   MEDITATION,
   // MEALS,
-  // SUBSCRIPTIONS,
+  SUBSCRIPTIONS,
   // NOTIFICATIONS,
   // RECIPE,
   // PAYMENT_HISTORY,
