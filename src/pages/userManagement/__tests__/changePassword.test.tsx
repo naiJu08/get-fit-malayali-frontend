@@ -278,6 +278,9 @@ describe('ForceChangePassword Component (unit)', () => {
   })
 
   test('handles API error response', async () => {
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
     const errorMessage = 'Current password is incorrect'
     mockForceChangePassword.mockRejectedValue({
       response: { data: { message: errorMessage } }
@@ -299,21 +302,20 @@ describe('ForceChangePassword Component (unit)', () => {
     const submitButton = screen.getByRole('button', { name: /Submit/i })
     fireEvent.click(submitButton)
     
-    await waitFor(() => {
-      expect(mockForceChangePassword).toHaveBeenCalled()
-    })
-    
-    // Wait a bit for the error to be processed
-    await new Promise(resolve => setTimeout(resolve, 100))
-    
-    expect(mockEnqueueSnackbar).toHaveBeenCalledWith(
-      errorMessage,
-      { variant: 'error' }
+    await waitFor(() => expect(mockForceChangePassword).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(mockEnqueueSnackbar).toHaveBeenCalledWith(errorMessage, {
+        variant: 'error',
+      })
     )
     expect(mockNavigate).not.toHaveBeenCalled()
+    consoleSpy.mockRestore()
   })
 
   test('handles generic API error', async () => {
+    const consoleSpy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
     mockForceChangePassword.mockRejectedValue({})
     
     render(<ForceChangePassword />)
@@ -332,17 +334,14 @@ describe('ForceChangePassword Component (unit)', () => {
     const submitButton = screen.getByRole('button', { name: /Submit/i })
     fireEvent.click(submitButton)
     
-    await waitFor(() => {
-      expect(mockForceChangePassword).toHaveBeenCalled()
-    })
-    
-    // Wait a bit for the error to be processed
-    await new Promise(resolve => setTimeout(resolve, 100))
-    
-    expect(mockEnqueueSnackbar).toHaveBeenCalledWith(
-      'Failed to change password',
-      { variant: 'error' }
+    await waitFor(() => expect(mockForceChangePassword).toHaveBeenCalled())
+    await waitFor(() =>
+      expect(mockEnqueueSnackbar).toHaveBeenCalledWith(
+        'Failed to change password',
+        { variant: 'error' }
+      )
     )
+    consoleSpy.mockRestore()
   })
 
   test('shows password strength validation error for weak password', async () => {
