@@ -105,11 +105,14 @@ function AssignTabContent({
     return wp.exercises
       .slice()
       .sort(
-        (a: any, b: any) => (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
+        (a: any, b: any) =>
+          (a?.sequence_number ?? 0) - (b?.sequence_number ?? 0)
       )
       .filter(
         (ex: any) =>
-          !removedExerciseIds.includes(ex?.workout_id || ex?.workout?.id || ex?.id)
+          !removedExerciseIds.includes(
+            ex?.workout_id || ex?.workout?.id || ex?.id
+          )
       )
   }, [wp?.exercises, removedExerciseIds])
   const groupedAssignedExercises = useMemo(() => {
@@ -913,10 +916,13 @@ export default function WorkoutPlanDetails() {
     }
   }, [])
 
-  const getWorkoutGroupKey = useCallback((w: any) => {
-    const { main, sub } = getWorkoutGroupLabels(w)
-    return `${main}::${sub}`
-  }, [getWorkoutGroupLabels])
+  const getWorkoutGroupKey = useCallback(
+    (w: any) => {
+      const { main, sub } = getWorkoutGroupLabels(w)
+      return `${main}::${sub}`
+    },
+    [getWorkoutGroupLabels]
+  )
 
   // Group workouts by subcategory for the Assign drawer so that
   // workouts sharing the same subcategory appear in a single wrapper.
