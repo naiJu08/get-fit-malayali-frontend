@@ -125,23 +125,7 @@ export default function MeditationPlanIndex({
     preventAutoSeed,
   ])
 
-  const getEmbedUrl = (url?: string) => {
-    const u = String(url || '')
-    if (!u) return ''
-    if (u.includes('youtube.com/watch')) {
-      try {
-        const v = new URL(u).searchParams.get('v')
-        return v ? `https://www.youtube.com/embed/${v}` : ''
-      } catch {
-        return ''
-      }
-    }
-    if (u.includes('youtu.be/')) {
-      const id = u.split('youtu.be/')[1]?.split(/[?&]/)[0]
-      return id ? `https://www.youtube.com/embed/${id}` : ''
-    }
-    return ''
-  }
+  const getEmbedUrl = getMeditationEmbedUrl
 
   const handleAssign = async () => {
     if (!planId || selectedMeditations.length === 0) return
@@ -522,7 +506,7 @@ export default function MeditationPlanIndex({
   )
 }
 
-function formatMeditationName(value?: any) {
+export function formatMeditationName(value?: any) {
   const raw =
     value === null || value === undefined || value === ''
       ? 'Untitled'
@@ -530,7 +514,7 @@ function formatMeditationName(value?: any) {
   return raw.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
-function getMeditationDurationLabel(item: any) {
+export function getMeditationDurationLabel(item: any) {
   const secondsCandidates = [
     item?.duration_seconds,
     item?.meditation_duration_seconds,
@@ -556,14 +540,14 @@ function getMeditationDurationLabel(item: any) {
   return formatMeditationDuration(totalSeconds)
 }
 
-function toPositiveInteger(value: any) {
+export function toPositiveInteger(value: any) {
   if (value === null || value === undefined || value === '') return null
   const num = Number(value)
   if (!Number.isFinite(num) || num <= 0) return null
   return Math.round(num)
 }
 
-function minuteLikeRawToSeconds(raw: any) {
+export function minuteLikeRawToSeconds(raw: any) {
   if (raw === null || raw === undefined || raw === '') return null
 
   if (typeof raw === 'string') {
@@ -609,7 +593,7 @@ function minuteLikeRawToSeconds(raw: any) {
   return Math.round(numeric * 60)
 }
 
-function formatMeditationDuration(totalSeconds: number) {
+export function formatMeditationDuration(totalSeconds: number) {
   if (totalSeconds < 60) {
     return `${totalSeconds} sec`
   }
@@ -622,6 +606,24 @@ function formatMeditationDuration(totalSeconds: number) {
   }
 
   return `${minutes}m ${seconds.toString().padStart(2, '0')}s`
+}
+
+export function getMeditationEmbedUrl(url?: string) {
+  const u = String(url || '')
+  if (!u) return ''
+  if (u.includes('youtube.com/watch')) {
+    try {
+      const v = new URL(u).searchParams.get('v')
+      return v ? `https://www.youtube.com/embed/${v}` : ''
+    } catch {
+      return ''
+    }
+  }
+  if (u.includes('youtu.be/')) {
+    const id = u.split('youtu.be/')[1]?.split(/[?&]/)[0]
+    return id ? `https://www.youtube.com/embed/${id}` : ''
+  }
+  return ''
 }
 
 function AssignedMeditationsSection({
