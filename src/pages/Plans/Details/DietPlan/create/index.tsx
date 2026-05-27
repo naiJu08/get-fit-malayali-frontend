@@ -35,12 +35,12 @@ const DAY_NAME_INDEX_MAP = DAY_NAMES.reduce<Record<string, number>>(
   {}
 )
 
-const getDayIndexFromName = (name?: string | null) => {
+export const getDayIndexFromName = (name?: string | null) => {
   if (!name) return null
   return DAY_NAME_INDEX_MAP[name.toLowerCase()] ?? null
 }
 
-const getDayNameFromNumber = (dayNumber?: number | string | null) => {
+export const getDayNameFromNumber = (dayNumber?: number | string | null) => {
   const num = Number(dayNumber)
   if (!Number.isFinite(num) || num <= 0) return ''
   const index = (num - 1) % DAY_NAMES.length

@@ -947,12 +947,12 @@ function DetailItem({ label, value }: { label: string; value: any }) {
   )
 }
 
-function safeStr(v: any) {
+export function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
 }
 
-function getYogaDisplayName(value?: any) {
+export function getYogaDisplayName(value?: any) {
   const raw =
     value === null || value === undefined || value === ''
       ? 'Untitled'
@@ -961,7 +961,7 @@ function getYogaDisplayName(value?: any) {
   return lowered.replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function getYogaDurationLabel(item: any) {
+export function getYogaDurationLabel(item: any) {
   const secondsCandidates = [
     item?.duration_seconds,
     item?.yoga_duration_seconds,
@@ -990,14 +990,14 @@ function getYogaDurationLabel(item: any) {
   return formatDurationLabel(totalSeconds)
 }
 
-function toPositiveInteger(value: any) {
+export function toPositiveInteger(value: any) {
   if (value === null || value === undefined || value === '') return null
   const num = Number(value)
   if (!Number.isFinite(num) || num <= 0) return null
   return Math.round(num)
 }
 
-function minuteLikeRawToSeconds(raw: any) {
+export function minuteLikeRawToSeconds(raw: any) {
   if (raw === null || raw === undefined || raw === '') return null
 
   if (typeof raw === 'string') {
@@ -1043,7 +1043,7 @@ function minuteLikeRawToSeconds(raw: any) {
   return Math.round(numeric * 60)
 }
 
-function formatDurationLabel(totalSeconds: number) {
+export function formatDurationLabel(totalSeconds: number) {
   if (totalSeconds < 60) {
     return `${totalSeconds} sec`
   }
