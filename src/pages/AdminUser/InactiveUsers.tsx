@@ -1,4 +1,4 @@
-import SmartTable from '../../components/common/table/SmartTable'
+﻿import SmartTable from '../../components/common/table/SmartTable'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
