@@ -66,6 +66,8 @@
     "build:uat": "env-cmd -f .env.uat react-scripts build",
     "build:prod": "env-cmd -f .env.production react-scripts build",
     "test": "react-scripts test",
+    "test:fast": "node --no-deprecation node_modules/react-scripts/scripts/test.js --watchAll=false --cacheDirectory=.tmp/jest-cache",
+    "test:trace-deprecation": "node --trace-deprecation node_modules/react-scripts/scripts/test.js --watchAll=false --cacheDirectory=.tmp/jest-cache",
     "test:coverage": "react-scripts test --coverage --watchAll=false",
     "test:coverage:watch": "react-scripts test --coverage",
     "test:meditation": "react-scripts test --testPathPattern=Meditation --testPathIgnorePatterns=coverage.config.js --watchAll=false",
@@ -82,6 +84,11 @@
     "test:plans": "node --max_old_space_size=4096 node_modules/react-scripts/scripts/test.js --watchAll=false --runInBand --cacheDirectory=node_modules/.cache/jest --testPathPattern=src/pages/Plans",
     "test:plans:details": "node --max_old_space_size=4096 node_modules/react-scripts/scripts/test.js --watchAll=false --runInBand --cacheDirectory=node_modules/.cache/jest --testPathPattern=src/pages/Plans/Details",
     "test:plans:coverage": "node --max_old_space_size=4096 node_modules/react-scripts/scripts/test.js --watchAll=false --runInBand --cacheDirectory=node_modules/.cache/jest --testPathIgnorePatterns=coverage.config.js --coverage --coverageDirectory=coverage-plans --coverageReporters=text --coverageReporters=json-summary --coverageThreshold={} --collectCoverageFrom=\"src/pages/Plans/**/*.{ts,tsx}\" --collectCoverageFrom=\"!src/pages/Plans/**/__tests__/**\" --testPathPattern=src/pages/Plans",
+    "test:adminuser:coverage": "powershell -NoProfile -Command \"$covDir = '.tmp/coverage-adminuser'; $cacheDir = '.tmp/jest-cache-adminuser'; node node_modules/react-scripts/scripts/test.js --watchAll=false --runInBand --cacheDirectory=$cacheDir --coverage --coverageDirectory=$covDir --coverageReporters=text --coverageReporters=text-summary --coverageThreshold='{}' --collectCoverageFrom=src/pages/AdminUser/index.tsx --collectCoverageFrom=src/pages/AdminUser/Details.tsx --collectCoverageFrom=src/pages/AdminUser/InactiveUsers.tsx --collectCoverageFrom=src/pages/AdminUser/api.ts --collectCoverageFrom=src/pages/AdminUser/columns.tsx --collectCoverageFrom=src/pages/AdminUser/inactiveUserColumns.tsx --collectCoverageFrom=src/pages/AdminUser/Details/Vitals.tsx AdminUser; if (Test-Path $covDir) { Remove-Item -Recurse -Force $covDir }; if (Test-Path $cacheDir) { Remove-Item -Recurse -Force $cacheDir }\"",
+    "test:adminuser:details": "node node_modules/react-scripts/scripts/test.js --watchAll=false --runInBand --cacheDirectory=.tmp/jest-cache-adminuser-details --runTestsByPath src/pages/AdminUser/_tests_/Details_Clients.test.tsx src/pages/AdminUser/_tests_/Details_DayDetailTabsSection.test.tsx",
+    "test:adminuser:vitals": "node --max_old_space_size=4096 node_modules/react-scripts/scripts/test.js --watchAll=false --runInBand --cacheDirectory=.tmp/jest-cache-adminuser-vitals --runTestsByPath src/pages/AdminUser/_tests_/Details_Vitals.test.tsx",
+    "test:adminuser:vitals:coverage": "powershell -NoProfile -Command \"$covDir = '.tmp/coverage-adminuser-vitals'; $cacheDir = '.tmp/jest-cache-adminuser-vitals'; $tmpDir = (Resolve-Path '.tmp').Path; $env:TEMP = $tmpDir; $env:TMP = $tmpDir; $env:JEST_HASTE_MAP_CACHE_DIRECTORY = $tmpDir; node --max_old_space_size=4096 node_modules/react-scripts/scripts/test.js --watchAll=false --runInBand --cacheDirectory=$cacheDir --coverage --coverageDirectory=$covDir --coverageReporters=text --coverageReporters=text-summary --coverageThreshold='{}' --collectCoverageFrom=src/pages/AdminUser/Details/Vitals.tsx --runTestsByPath src/pages/AdminUser/_tests_/Details_Vitals.test.tsx; if (Test-Path $covDir) { Remove-Item -Recurse -Force $covDir }; if (Test-Path $cacheDir) { Remove-Item -Recurse -Force $cacheDir }\"",
+    "test:adminuser:details:coverage": "powershell -NoProfile -Command \"$covDir = '.tmp/coverage-adminuser-details'; $cacheDir = '.tmp/jest-cache-adminuser-details'; node --max_old_space_size=4096 node_modules/react-scripts/scripts/test.js --watchAll=false --runInBand --cacheDirectory=$cacheDir --coverage --coverageDirectory=$covDir --coverageReporters=text --coverageReporters=text-summary --coverageThreshold='{}' --collectCoverageFrom=src/pages/AdminUser/Details/AdditionalInfo.tsx --collectCoverageFrom=src/pages/AdminUser/Details/BodyComposition.tsx --collectCoverageFrom=src/pages/AdminUser/Details/BodyMeasurements.tsx --collectCoverageFrom=src/pages/AdminUser/Details/Clients.tsx --collectCoverageFrom=src/pages/AdminUser/Details/DayDetailTabsSection.tsx AdminUser; if (Test-Path $covDir) { Remove-Item -Recurse -Force $covDir }; if (Test-Path $cacheDir) { Remove-Item -Recurse -Force $cacheDir }\"",
     "test:yoga": "react-scripts test --testPathPattern=Yoga/__tests__",
     "test:yoga:coverage": "react-scripts test --coverage --testPathPattern=Yoga/__tests__",
     "lint": "eslint \"./src/**/*.{js,jsx,ts,tsx}\"",
@@ -101,6 +108,10 @@
     "node_modules/(?!(axios|react-datepicker)/)"
   ],
   "moduleNameMapper": {
+    "^\\.\\./Details/Recipes$": "<rootDir>/src/pages/AdminUser/Details/Recipe.tsx/Recipes.tsx",
+    "^\\.\\./Details/Recipe/Recipes$": "<rootDir>/src/pages/AdminUser/Details/Recipe.tsx/Recipes.tsx",
+    "^\\.\\./Details/Recipe/recipes\\.api$": "<rootDir>/src/pages/AdminUser/Details/Recipe.tsx/recipes.api.ts",
+    "^\\.\\./Details/Recipe/userRecipeColumns$": "<rootDir>/src/pages/AdminUser/Details/Recipe.tsx/userRecipeColumns.tsx",
     "\\.(css|less|scss|sass)$": "identity-obj-proxy"
   },
   "collectCoverageFrom": [
