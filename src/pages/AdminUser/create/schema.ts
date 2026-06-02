@@ -362,3 +362,6 @@ export const changePasswordSchema = z.object({
 
 export type AdminSchema = z.infer<typeof formSchema>
 export type ChangePasswordSchema = z.infer<typeof changePasswordSchema>
+
+// Default export for unit tests that do `import schema from '../create/schema'`.
+export default formSchema
