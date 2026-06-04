@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import Clients from '../Details/Clients'
 
 jest.mock('../api', () => ({
@@ -99,7 +100,11 @@ describe('Clients', () => {
     api.createAssignedClient.mockResolvedValue({ message: 'ok' })
     api.deleteAssignedClient.mockResolvedValue({ message: 'ok' })
 
-    render(<Clients user={{ id: 'admin-1', status: 'active' }} />)
+    render(
+      <MemoryRouter>
+        <Clients user={{ id: 'admin-1', status: 'active' }} />
+      </MemoryRouter>
+    )
 
     fireEvent.click(screen.getByRole('button', { name: /Assign Client/i }))
     expect(screen.getByText(/Assign Client/i, { selector: 'div' })).toBeInTheDocument()
@@ -121,7 +126,11 @@ describe('Clients', () => {
     })
     api.useAdminUser.mockReturnValue({ data: { items: [] }, isFetching: false })
 
-    render(<Clients user={{ id: 'admin-1', status: 'suspended' }} />)
+    render(
+      <MemoryRouter>
+        <Clients user={{ id: 'admin-1', status: 'suspended' }} />
+      </MemoryRouter>
+    )
     expect(screen.queryByRole('button', { name: /Assign Client/i })).not.toBeInTheDocument()
   })
 })
