@@ -142,13 +142,18 @@ const FormBuilder: React.FC<Props> = (props) => {
       : style
   }
 
-  const handleFileUpload = (value: any, field: FormBuilderProps) => {
+  const handleFileUpload = async (value: any, field: FormBuilderProps) => {
     if (field.isMultiple) {
       setValue(field.name, value, {
         shouldValidate: true,
       })
     } else {
-      setValue(field.name, value?.target?.files[0] ?? '', {
+      const selectedFile = value?.target?.files[0] ?? ''
+      const nextValue = field.handleCallBack
+        ? await field.handleCallBack(selectedFile)
+        : selectedFile
+
+      setValue(field.name, nextValue ?? '', {
         shouldValidate: true,
       })
     }

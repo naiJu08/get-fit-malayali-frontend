@@ -118,8 +118,9 @@ export default function Subscriptions() {
           ? 'Paused'
           : s === 'expired'
             ? 'Expired'
-            :s==='dropped_out'?'Dropped out'
-            : 'All'
+            : s === 'dropped_out'
+              ? 'Dropped out'
+              : 'All'
     )
 
     // Prefer cached label; otherwise resolve plan name so it shows after refresh
@@ -530,7 +531,6 @@ export default function Subscriptions() {
       { id: 'paused', value: 'Paused' },
       { id: 'expired', value: 'Expired' },
       { id: 'dropped_out', value: 'Dropped Out' },
-
     ]
   }
 

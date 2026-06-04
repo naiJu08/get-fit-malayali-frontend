@@ -6,6 +6,8 @@
     "@craco/craco": "^7.1.0",
     "@emotion/react": "^11.10.5",
     "@emotion/styled": "^11.10.5",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@hookform/resolvers": "^2.9.11",
     "@mui/icons-material": "^5.11.0",
     "@mui/material": "^5.15.20",

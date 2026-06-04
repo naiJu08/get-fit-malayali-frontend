@@ -191,7 +191,7 @@ export function KPIBanner({ data }: Props) {
       // badge: 'Needs attention',
       onClick: () => navigate('/subscriptions?status=expired'),
     },
-    
+
     {
       title: 'Dropped Out Subscriptions',
       value: fmt(data?.subscriptions?.dropped_out_now),
@@ -199,7 +199,7 @@ export function KPIBanner({ data }: Props) {
       icon: '🚫',
       onClick: () => navigate('/subscriptions?status=dropped_out'),
     },
-    
+
     {
       title: 'Expiring Soon (7d)',
       value: fmt(data?.subscriptions?.expiring_soon_users),
@@ -248,7 +248,7 @@ export function KPIBanner({ data }: Props) {
       onClick: () => navigate('/notifications'),
     },
   ]
-  
+
   return (
     <div className="db-kpi-grid">
       {cards.map((c, i) => (
@@ -257,7 +257,6 @@ export function KPIBanner({ data }: Props) {
     </div>
   )
 }
-
 
 // ── Engagement Hourly Chart ───────────────────────────────────────────────────
 export function EngagementChart({ data }: Props) {
