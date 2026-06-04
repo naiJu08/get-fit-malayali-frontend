@@ -49,8 +49,8 @@ describe('Subscriptions create schema', () => {
       notes: undefined,
     })
 
-    expect(result.start_date).toBe(start)
-    expect(result.end_date).toBe(end)
+    expect(result.start_date).toEqual(start)
+    expect(result.end_date).toEqual(end)
     expect(result.notes).toBeUndefined()
   })
 

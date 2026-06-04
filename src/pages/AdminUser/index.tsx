@@ -320,7 +320,6 @@ export default function AdminUser() {
         )
       })
   }
-
   const handleEdit = async (rowData: any) => {
     if (rowData?.id) {
       const data = await getAdminDetails(rowData?.id)

@@ -10,7 +10,7 @@ const defaultColumnProps = {
 
 // type ColumnBuilder = (row: any) => { cell: React.ReactNode; toolTip?: string }
 
-export const createRenderCell = (path: string, type?: 'date') => (row: any) => {
+const createRenderCell = (path: string, type?: 'date') => (row: any) => {
   const value = getNestedProperty(row, path)
   if (type === 'date') {
     const formatted = value ? moment(value).format('DD-MM-YYYY HH:mm') : '--'
@@ -87,5 +87,3 @@ export const getUserRecipeColumns = (onNameClick?: (row: any) => void) => {
     },
   ]
 }
-
-export default getUserRecipeColumns

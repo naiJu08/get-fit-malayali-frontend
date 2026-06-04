@@ -5,12 +5,6 @@ import { useEffect, useState } from 'react'
 import { jsPDF } from 'jspdf'
 import Button from '../../../components/common/buttons/Button'
 
-const haveSameItemIds = (currentItems: any[], nextItems: any[] = []) => {
-  if (currentItems.length !== nextItems.length) return false
-
-  return currentItems.every((item, index) => item?.id === nextItems[index]?.id)
-}
-
 export default function Vitals({
   user,
   subscriptionId,
@@ -38,17 +32,11 @@ export default function Vitals({
     setAllItems((prev) => {
       // on first page, reset; on subsequent pages, append
       if (page === 1) {
-        if (haveSameItemIds(prev, data.items)) {
-          return prev
-        }
         return data.items
       }
 
       const existingIds = new Set(prev.map((i: any) => i.id))
       const newItems = data.items.filter((i: any) => !existingIds.has(i.id))
-      if (newItems.length === 0) {
-        return prev
-      }
       return [...prev, ...newItems]
     })
   }, [data?.items, page])

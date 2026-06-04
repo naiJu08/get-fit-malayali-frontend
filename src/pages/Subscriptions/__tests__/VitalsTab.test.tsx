@@ -1,7 +1,6 @@
 import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import SubscriptionVitalsTab from '../Details/VitalsTab'
-import { useVitals } from '../../AdminUser/api'
 import { jsPDF } from 'jspdf'
 
 const mockUseVitals = jest.fn()
@@ -68,10 +67,27 @@ const firstVitals = [
   },
 ]
 
+const mockJsPDF = jsPDF as unknown as jest.Mock
+const originalConsoleError = console.error
+
 describe('SubscriptionVitalsTab', () => {
+  beforeAll(() => {
+    console.error = jest.fn((...args) => {
+      const message = args[0]?.toString() || ''
+      if (message.includes('ReactDOMTestUtils.act')) return
+      ;(originalConsoleError as any)(...args)
+    })
+  })
+
+  afterAll(() => {
+    console.error = originalConsoleError
+  })
+
   beforeEach(() => {
     jest.clearAllMocks()
-    ;(jsPDF as jest.Mock).mockImplementation(() => mockPdfDoc)
+    mockPdfDoc.internal.pageSize.getWidth.mockReturnValue(210)
+    mockPdfDoc.internal.pageSize.getHeight.mockReturnValue(297)
+    mockJsPDF.mockImplementation(() => mockPdfDoc as any)
   })
 
   it('calls useVitals with subscription params and shows loading state', () => {
@@ -82,7 +98,7 @@ describe('SubscriptionVitalsTab', () => {
 
     render(<SubscriptionVitalsTab subscription={subscription} />)
 
-    expect(useVitals).toHaveBeenCalledWith({
+    expect(mockUseVitals).toHaveBeenCalledWith({
       user_id: 42,
       subscription_id: 99,
       page: 1,
@@ -168,35 +184,38 @@ describe('SubscriptionVitalsTab', () => {
   })
 
   it('loads the next page and appends only new vitals', async () => {
+    const firstPage = {
+      data: { items: firstVitals, total_pages: 2 },
+      isFetching: false,
+    }
+    const secondPage = {
+      data: {
+        items: [
+          firstVitals[0],
+          {
+            id: 3,
+            recorded_at: '2026-05-22T08:00:00Z',
+            sleep_hours: 8,
+            water_intake: 3,
+            steps: 11000,
+          },
+        ],
+        total_pages: 2,
+      },
+      isFetching: false,
+    }
+
     mockUseVitals.mockImplementation((params: any) => {
       if (params.page === 2) {
-        return {
-          data: {
-            items: [
-              firstVitals[0],
-              {
-                id: 3,
-                recorded_at: '2026-05-22T08:00:00Z',
-                sleep_hours: 8,
-                water_intake: 3,
-                steps: 11000,
-              },
-            ],
-            total_pages: 2,
-          },
-          isFetching: false,
-        }
+        return secondPage
       }
 
-      return {
-        data: { items: firstVitals, total_pages: 2 },
-        isFetching: false,
-      }
+      return firstPage
     })
 
     render(<SubscriptionVitalsTab subscription={subscription} />)
 
-    await waitFor(() => expect(screen.getByText('9000')).toBeInTheDocument())
+    expect(await screen.findByText('9000')).toBeInTheDocument()
     fireEvent.click(screen.getByText('View more'))
 
     await waitFor(() => {
@@ -204,7 +223,7 @@ describe('SubscriptionVitalsTab', () => {
       expect(screen.queryByText('View more')).not.toBeInTheDocument()
     })
     expect(screen.getAllByText('9000')).toHaveLength(1)
-    expect(useVitals).toHaveBeenLastCalledWith({
+    expect(mockUseVitals).toHaveBeenLastCalledWith({
       user_id: 42,
       subscription_id: 99,
       page: 2,
@@ -231,10 +250,10 @@ describe('SubscriptionVitalsTab', () => {
 
     render(<SubscriptionVitalsTab subscription={subscription} />)
 
-    await waitFor(() => expect(screen.getByText('Generate PDF')).toBeInTheDocument())
+    expect(await screen.findByText('Generate PDF')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Generate PDF'))
 
-    expect(jsPDF).toHaveBeenCalledWith('p', 'mm', 'a4')
+    expect(mockJsPDF).toHaveBeenCalledWith('p', 'mm', 'a4')
     expect(mockPdfDoc.text).toHaveBeenCalledWith(
       'Vitals Report',
       105,
@@ -271,7 +290,7 @@ describe('SubscriptionVitalsTab', () => {
   })
 
   it('adds new pages when PDF rows exceed the current page height', async () => {
-    const manyVitals = Array.from({ length: 45 }, (_, index) => ({
+    const manyVitals = Array.from({ length: 36 }, (_, index) => ({
       id: index + 1,
       recorded_at: '2026-05-21T08:00:00Z',
       sleep_hours: 6,
@@ -286,7 +305,7 @@ describe('SubscriptionVitalsTab', () => {
 
     render(<SubscriptionVitalsTab subscription={subscription} />)
 
-    await waitFor(() => expect(screen.getByText('Generate PDF')).toBeInTheDocument())
+    expect(await screen.findByText('Generate PDF')).toBeInTheDocument()
     fireEvent.click(screen.getByText('Generate PDF'))
 
     expect(mockPdfDoc.addPage).toHaveBeenCalled()

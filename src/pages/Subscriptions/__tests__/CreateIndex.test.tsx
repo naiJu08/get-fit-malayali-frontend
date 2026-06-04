@@ -1,5 +1,6 @@
 import React from 'react'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { useForm } from 'react-hook-form'
 import CreateAdmin from '../create'
 
 const mockCreateMutate = jest.fn()
@@ -9,12 +10,14 @@ let mockFormValues: any = {}
 let mockCreateSuccess: (() => void) | undefined
 let mockUpdateSuccess: (() => void) | undefined
 
+const createMockFormMethods = () => ({
+  reset: mockReset,
+  handleSubmit: (callback: any) => () => callback(mockFormValues),
+})
+
 jest.mock('react-hook-form', () => ({
   FormProvider: ({ children }: any) => <div data-testid="form-provider">{children}</div>,
-  useForm: jest.fn(() => ({
-    reset: mockReset,
-    handleSubmit: (callback: any) => () => callback(mockFormValues),
-  })),
+  useForm: jest.fn(() => createMockFormMethods()),
 }))
 
 jest.mock('../../../components/common', () => ({
@@ -103,8 +106,11 @@ jest.mock('../api', () => ({
 }))
 
 describe('Subscriptions create drawer', () => {
+  const mockUseForm = useForm as jest.Mock
+
   beforeEach(() => {
     jest.clearAllMocks()
+    mockUseForm.mockImplementation(() => createMockFormMethods())
     mockFormValues = {
       user_id: '42',
       plan_id: { id: '7' },

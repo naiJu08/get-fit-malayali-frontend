@@ -56,9 +56,3 @@ export const useAssignRecipes = () => {
     },
   })
 }
-
-export default {
-  useUserRecipes,
-  useAssignRecipes,
-  assignRecipesToUser,
-}

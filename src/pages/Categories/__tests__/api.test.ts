@@ -1,3 +1,5 @@
+import { useMutation, useQuery } from '@tanstack/react-query'
+
 import {
   DISABLE_NONLOGIN_APIS,
   useCategoriesList,
@@ -12,7 +14,6 @@ import {
 import * as apiHelpers from '../../../apis/api.helpers'
 import * as parsers from '../../../utilities/parsers'
 
-// Mock dependencies
 jest.mock('@tanstack/react-query', () => ({
   useQuery: jest.fn(),
   useMutation: jest.fn(),
@@ -20,14 +21,54 @@ jest.mock('@tanstack/react-query', () => ({
 
 jest.mock('../../../apis/api.helpers')
 jest.mock('../../../apis/api.url', () => ({
-  CATEGORIES: '/categories',
+  __esModule: true,
+  default: {
+    CATEGORIES: '/categories',
+  },
 }))
-jest.mock('../../../utilities/parsers')
-jest.mock('../../../components/common/snackbar')
+
+const mockEnqueueSnackbar = jest.fn()
+jest.mock('../../../components/common/snackbar', () => ({
+  useSnackbarManager: () => ({
+    enqueueSnackbar: mockEnqueueSnackbar,
+  }),
+}))
+
+jest.mock('../../../utilities/parsers', () => ({
+  parseQueryParams: jest.fn(),
+  getErrorMessage: jest.fn((error: any) => {
+    if (Array.isArray(error)) return error.join(', ')
+    if (typeof error === 'string') return error
+    if (error?.message) return String(error.message)
+    return String(error ?? 'An unexpected error occurred')
+  }),
+}))
 
 describe('Categories API', () => {
+  const mockUseQuery = useQuery as jest.Mock
+  const mockUseMutation = useMutation as jest.Mock
+  const mockParseQueryParams = parsers.parseQueryParams as jest.Mock
+  const mockGetErrorMessage = parsers.getErrorMessage as jest.Mock
+
   beforeEach(() => {
     jest.clearAllMocks()
+    mockUseQuery.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isSuccess: false,
+    })
+    mockUseMutation.mockReturnValue({
+      mutate: jest.fn(),
+      mutateAsync: jest.fn(),
+      isLoading: false,
+    })
+    mockParseQueryParams.mockReturnValue('')
+    mockGetErrorMessage.mockImplementation((error: any) => {
+      if (Array.isArray(error)) return error.join(', ')
+      if (typeof error === 'string') return error
+      if (error?.message) return String(error.message)
+      return String(error ?? 'An unexpected error occurred')
+    })
   })
 
   describe('Constants', () => {
@@ -38,12 +79,8 @@ describe('Categories API', () => {
 
   describe('useCategoriesList', () => {
     test('should call useQuery with correct parameters', () => {
-      const mockUseQuery = jest.fn()
-      jest.mock('@tanstack/react-query', () => ({
-        useQuery: jest.fn().mockReturnValue(mockUseQuery),
-      }))
-
       const input = { page: 1, limit: 10 }
+
       useCategoriesList(input)
 
       expect(mockUseQuery).toHaveBeenCalledWith(
@@ -55,19 +92,9 @@ describe('Categories API', () => {
 
   describe('useCreateCategories', () => {
     test('should call useMutation with correct parameters', () => {
-      const mockUseMutation = jest.fn()
-      const mockEnqueueSnackbar = jest.fn()
-      jest.mock('@tanstack/react-query', () => ({
-        useMutation: jest.fn().mockReturnValue(mockUseMutation),
-      }))
-      jest.mock('../../../components/common/snackbar', () => ({
-        useSnackbarManager: jest.fn().mockReturnValue({
-          enqueueSnackbar: mockEnqueueSnackbar,
-        }),
-      }))
-
       const onSuccess = jest.fn()
       const successMessage = 'Test Success'
+
       useCreateCategories(onSuccess, successMessage)
 
       expect(mockUseMutation).toHaveBeenCalledWith(
@@ -80,46 +107,27 @@ describe('Categories API', () => {
     })
 
     test('should call onSuccess callback when mutation succeeds', () => {
-      const mockUseMutation = jest.fn()
-      const mockEnqueueSnackbar = jest.fn()
-      jest.mock('@tanstack/react-query', () => ({
-        useMutation: jest.fn().mockReturnValue(mockUseMutation),
-      }))
-      jest.mock('../../../components/common/snackbar', () => ({
-        useSnackbarManager: jest.fn().mockReturnValue({
-          enqueueSnackbar: mockEnqueueSnackbar,
-        }),
-      }))
-
       const onSuccess = jest.fn()
       const successMessage = 'Test Success'
 
-      const mockResult = { mutate: jest.fn(), isLoading: false }
-      mockUseMutation.mockReturnValue(mockResult)
+      useCreateCategories(onSuccess, successMessage)
 
-      const result = useCreateCategories(onSuccess, successMessage)
+      const [, options] = mockUseMutation.mock.calls[0]
+      const response = { data: { id: 1, name: 'Category' } }
+      options.onSuccess(response)
 
-      // Test that the hook returns the expected structure
-      expect(result.mutate).toBeDefined()
-      expect(typeof result.mutate).toBe('function')
+      expect(onSuccess).toHaveBeenCalledWith(response)
+      expect(mockEnqueueSnackbar).toHaveBeenCalledWith(successMessage, {
+        variant: 'success',
+      })
     })
   })
 
   describe('useUpdateCategories', () => {
     test('should call useMutation with correct parameters', () => {
-      const mockUseMutation = jest.fn()
-      const mockEnqueueSnackbar = jest.fn()
-      jest.mock('@tanstack/react-query', () => ({
-        useMutation: jest.fn().mockReturnValue(mockUseMutation),
-      }))
-      jest.mock('../../../components/common/snackbar', () => ({
-        useSnackbarManager: jest.fn().mockReturnValue({
-          enqueueSnackbar: mockEnqueueSnackbar,
-        }),
-      }))
-
       const onSuccess = jest.fn()
       const successMessage = 'Test Update Success'
+
       useUpdateCategories(onSuccess, successMessage)
 
       expect(mockUseMutation).toHaveBeenCalledWith(
@@ -132,28 +140,19 @@ describe('Categories API', () => {
     })
 
     test('should call onSuccess callback when update succeeds', () => {
-      const mockUseMutation = jest.fn()
-      const mockEnqueueSnackbar = jest.fn()
-      jest.mock('@tanstack/react-query', () => ({
-        useMutation: jest.fn().mockReturnValue(mockUseMutation),
-      }))
-      jest.mock('../../../components/common/snackbar', () => ({
-        useSnackbarManager: jest.fn().mockReturnValue({
-          enqueueSnackbar: mockEnqueueSnackbar,
-        }),
-      }))
-
       const onSuccess = jest.fn()
       const successMessage = 'Test Update Success'
 
-      const mockResult = { mutate: jest.fn(), isLoading: false }
-      mockUseMutation.mockReturnValue(mockResult)
+      useUpdateCategories(onSuccess, successMessage)
 
-      const result = useUpdateCategories(onSuccess, successMessage)
+      const [, options] = mockUseMutation.mock.calls[0]
+      const response = { data: { id: 1, name: 'Updated Category' } }
+      options.onSuccess(response)
 
-      // Test that the hook returns the expected structure
-      expect(result.mutate).toBeDefined()
-      expect(typeof result.mutate).toBe('function')
+      expect(onSuccess).toHaveBeenCalledWith(response)
+      expect(mockEnqueueSnackbar).toHaveBeenCalledWith(successMessage, {
+        variant: 'success',
+      })
     })
   })
 
@@ -172,14 +171,15 @@ describe('Categories API', () => {
 
     test('getSubCategories should call getData with correct URL and params', async () => {
       const mockGetData = jest.fn().mockResolvedValue({ data: [] })
-      const mockParseQueryParams = jest
-        .fn()
-        .mockReturnValue('?parent_id=123&page=1')
+      mockParseQueryParams.mockReturnValue('?parent_id=123&page=1')
       ;(apiHelpers.getData as jest.Mock) = mockGetData
-      ;(parsers.parseQueryParams as jest.Mock) = mockParseQueryParams
 
       const result = await getSubCategories('123', { page: 1 })
 
+      expect(mockParseQueryParams).toHaveBeenCalledWith({
+        page: 1,
+        parent_id: '123',
+      })
       expect(mockGetData).toHaveBeenCalledWith(
         '/categories?parent_id=123&page=1'
       )
@@ -211,10 +211,12 @@ describe('Categories API', () => {
       const mockUpdateData = jest.fn().mockResolvedValue({ data: { id: 1 } })
       ;(apiHelpers.updateData as jest.Mock) = mockUpdateData
 
-      const updateData = { id: 1, name: 'Updated Category' }
-      const result = await updateCategories(updateData)
+      const categoryUpdate = { id: 1, data: { name: 'Updated Category' } }
+      const result = await updateCategories(categoryUpdate)
 
-      expect(mockUpdateData).toHaveBeenCalledWith('/categories/1', undefined)
+      expect(mockUpdateData).toHaveBeenCalledWith('/categories/1', {
+        name: 'Updated Category',
+      })
       expect(result).toEqual({ data: { id: 1 } })
     })
   })
@@ -231,10 +233,8 @@ describe('Categories API', () => {
       const mockGetData = jest
         .fn()
         .mockRejectedValue(new Error('Network Error'))
+      mockParseQueryParams.mockReturnValue('?parent_id=123&page=1')
       ;(apiHelpers.getData as jest.Mock) = mockGetData
-      jest.mock('../../../utilities/parsers', () => ({
-        parseQueryParams: jest.fn().mockReturnValue('?parent_id=123&page=1'),
-      }))
 
       await expect(getSubCategories('123')).rejects.toThrow('Network Error')
     })
@@ -249,9 +249,7 @@ describe('Categories API', () => {
     })
 
     test('createCategories should handle API errors', async () => {
-      const mockPostData = jest
-        .fn()
-        .mockRejectedValue(new Error('Create Error'))
+      const mockPostData = jest.fn().mockRejectedValue(new Error('Create Error'))
       ;(apiHelpers.postData as jest.Mock) = mockPostData
 
       await expect(createCategories({ name: 'Test' })).rejects.toThrow(
@@ -265,9 +263,9 @@ describe('Categories API', () => {
         .mockRejectedValue(new Error('Update Error'))
       ;(apiHelpers.updateData as jest.Mock) = mockUpdateData
 
-      await expect(updateCategories({ id: 1, name: 'Test' })).rejects.toThrow(
-        'Update Error'
-      )
+      await expect(
+        updateCategories({ id: 1, data: { name: 'Test' } })
+      ).rejects.toThrow('Update Error')
     })
   })
 
@@ -307,14 +305,15 @@ describe('Categories API', () => {
   describe('Parameter Validation', () => {
     test('getSubCategories should handle default params', async () => {
       const mockGetData = jest.fn().mockResolvedValue({ data: [] })
-      const mockParseQueryParams = jest
-        .fn()
-        .mockReturnValue('?parent_id=123&page=1')
+      mockParseQueryParams.mockReturnValue('?parent_id=123&page=1')
       ;(apiHelpers.getData as jest.Mock) = mockGetData
-      ;(parsers.parseQueryParams as jest.Mock) = mockParseQueryParams
 
       await getSubCategories('123')
 
+      expect(mockParseQueryParams).toHaveBeenCalledWith({
+        page: 1,
+        parent_id: '123',
+      })
       expect(mockGetData).toHaveBeenCalledWith(
         '/categories?parent_id=123&page=1'
       )
@@ -322,16 +321,18 @@ describe('Categories API', () => {
 
     test('getSubCategories should merge custom params', async () => {
       const mockGetData = jest.fn().mockResolvedValue({ data: [] })
-      const mockParseQueryParams = jest
-        .fn()
-        .mockReturnValue('?parent_id=123&page=2&limit=20')
+      mockParseQueryParams.mockReturnValue('?parent_id=123&page=2&per_page=20')
       ;(apiHelpers.getData as jest.Mock) = mockGetData
-      ;(parsers.parseQueryParams as jest.Mock) = mockParseQueryParams
 
-      await getSubCategories('123', { page: 2 })
+      await getSubCategories('123', { page: 2, per_page: 20 })
 
+      expect(mockParseQueryParams).toHaveBeenCalledWith({
+        page: 2,
+        per_page: 20,
+        parent_id: '123',
+      })
       expect(mockGetData).toHaveBeenCalledWith(
-        '/categories?parent_id=123&page=2&limit=20'
+        '/categories?parent_id=123&page=2&per_page=20'
       )
     })
 
@@ -339,10 +340,12 @@ describe('Categories API', () => {
       const mockUpdateData = jest.fn().mockResolvedValue({ data: { id: 1 } })
       ;(apiHelpers.updateData as jest.Mock) = mockUpdateData
 
-      const updateData = { id: 1, name: 'Updated Category' }
-      await updateCategories(updateData)
+      const categoryUpdate = { id: 1, data: { name: 'Updated Category' } }
+      await updateCategories(categoryUpdate)
 
-      expect(mockUpdateData).toHaveBeenCalledWith('/categories/1', undefined)
+      expect(mockUpdateData).toHaveBeenCalledWith('/categories/1', {
+        name: 'Updated Category',
+      })
     })
 
     test('deleteCategories should construct correct URL with ID', async () => {

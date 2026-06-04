@@ -30,7 +30,21 @@ const composition = {
   bone_mass: 3.2,
 }
 
+const originalConsoleError = console.error
+
 describe('SubscriptionBodyCompositionTab', () => {
+  beforeAll(() => {
+    console.error = jest.fn((...args) => {
+      const message = args[0]?.toString() || ''
+      if (message.includes('ReactDOMTestUtils.act')) return
+      ;(originalConsoleError as any)(...args)
+    })
+  })
+
+  afterAll(() => {
+    console.error = originalConsoleError
+  })
+
   beforeEach(() => {
     jest.clearAllMocks()
   })
@@ -119,34 +133,37 @@ describe('SubscriptionBodyCompositionTab', () => {
   })
 
   it('loads the next page and appends only new records', async () => {
+    const firstPage = {
+      data: { items: [composition], total_pages: 2 },
+      isFetching: false,
+    }
+    const secondPage = {
+      data: {
+        items: [
+          composition,
+          {
+            id: 3,
+            recorded_at: '2026-05-22T08:00:00Z',
+            fat_percentage: 21,
+            muscle_mass: 32,
+          },
+        ],
+        total_pages: 2,
+      },
+      isFetching: false,
+    }
+
     mockUseBodyCompositions.mockImplementation((params: any) => {
       if (params.page === 2) {
-        return {
-          data: {
-            items: [
-              composition,
-              {
-                id: 3,
-                recorded_at: '2026-05-22T08:00:00Z',
-                fat_percentage: 21,
-                muscle_mass: 32,
-              },
-            ],
-            total_pages: 2,
-          },
-          isFetching: false,
-        }
+        return secondPage
       }
 
-      return {
-        data: { items: [composition], total_pages: 2 },
-        isFetching: false,
-      }
+      return firstPage
     })
 
     render(<SubscriptionBodyCompositionTab subscription={subscription} />)
 
-    await waitFor(() => expect(screen.getByText('22%')).toBeInTheDocument())
+    expect(await screen.findByText('22%')).toBeInTheDocument()
     fireEvent.click(screen.getByText('View more'))
 
     await waitFor(() => {

@@ -1,4 +1,4 @@
-﻿import moment from 'moment'
+import moment from 'moment'
 import { AdminListResponse } from '../../common/types'
 import { getNestedProperty } from '../../utilities/parsers'
 
