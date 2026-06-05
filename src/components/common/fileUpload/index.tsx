@@ -178,7 +178,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
           setFile([...existingFiles, ...filesArray])
         } else {
           const selectedFile = e?.target?.files[0]
-          if (selectedFile.size < 5250000) {
+          const maxFileSizeInBytes =
+            sizeLimit && sizeLimit > 0 ? sizeLimit * 1024 * 1024 : null
+
+          if (!maxFileSizeInBytes || selectedFile.size < maxFileSizeInBytes) {
             const dimensionsValid = await validateImageDimensions(selectedFile)
             if (!dimensionsValid) {
               e.target.value = ''
@@ -191,7 +194,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
             setAttachmentName?.(selectedFile?.name)
             e.target.value = ''
           } else {
-            enqueueSnackbar('Maximum file size 5mb', { variant: 'error' })
+            enqueueSnackbar(`Maximum file size ${sizeLimit}mb`, {
+              variant: 'error',
+            })
             setFile('')
           }
         }
@@ -350,11 +355,13 @@ const FileUpload: React.FC<FileUploadProps> = ({
               className={` text-xxs leading-4  ${disabled ? 'text-input-disabled' : 'text-primaryText'}`}
             >
               {supportedFiles}
-              <span
-                className={`text-primary text-xxs leading-4 ${disabled && 'opacity-60'}`}
-              >
-                (Max {sizeLimit} MB)
-              </span>
+              {sizeLimit && sizeLimit > 0 ? (
+                <span
+                  className={`text-primary text-xxs leading-4 ${disabled && 'opacity-60'}`}
+                >
+                  (Max {sizeLimit} MB)
+                </span>
+              ) : null}
             </p>
             {/* <p className="text-[#999696] font-bold text-sm">Drag and Drop</p>
           <p className="text-secondary font-bold text-sm uppercase">Or</p> */}

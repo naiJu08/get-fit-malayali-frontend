@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import moment from 'moment'
 // import moment from 'moment'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
 
@@ -17,10 +17,120 @@ import { humanizeDatetime } from '../../../utilities/format'
 // import FormFieldView from '../../../components/common/inputs/FormFieldView'
 import { useCreateWorkout, useUpdateWorkout } from '../api'
 import { WorkoutSchema, formSchema } from './schema'
-
+import { FFmpeg } from '@ffmpeg/ffmpeg'
+import { fetchFile, toBlobURL } from '@ffmpeg/util'
 const toTitleCase = (value?: string) => {
   if (!value) return ''
   return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+}
+
+const ffmpeg = new FFmpeg()
+let isFfmpegLoaded = false
+
+export const resetFfmpeg = () => {
+  ffmpeg.terminate()
+  isFfmpegLoaded = false
+}
+
+const loadFfmpeg = async () => {
+  if (isFfmpegLoaded) return
+
+  const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.9/dist/umd'
+
+  await ffmpeg.load({
+    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+  })
+
+  isFfmpegLoaded = true
+}
+
+const getVideoDimensions = async (file: File) => {
+  return new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const videoElement = document.createElement('video')
+    const objectUrl = URL.createObjectURL(file)
+
+    const cleanup = () => {
+      URL.revokeObjectURL(objectUrl)
+      videoElement.removeAttribute('src')
+      videoElement.load()
+    }
+
+    videoElement.preload = 'metadata'
+    videoElement.onloadedmetadata = () => {
+      resolve({
+        width: videoElement.videoWidth,
+        height: videoElement.videoHeight,
+      })
+      cleanup()
+    }
+    videoElement.onerror = () => {
+      reject(new Error('Unable to read video metadata'))
+      cleanup()
+    }
+    videoElement.src = objectUrl
+  })
+}
+
+export const compressVideo = async (
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<File> => {
+  await loadFfmpeg()
+
+  const inputName = `input-${Date.now()}-${file.name}`
+  const outputName = `output-${Date.now()}.mp4`
+  const { width, height } = await getVideoDimensions(file)
+  const ffmpegArgs = ['-i', inputName]
+
+  if (width > 1280 || height > 720) {
+    ffmpegArgs.push('-vf', width >= height ? 'scale=1280:-2' : 'scale=-2:720')
+  }
+
+  const handleProgress = ({ progress }: { progress: number }) => {
+    onProgress?.(Math.min(100, Math.max(0, Math.round(progress * 100))))
+  }
+
+  ffmpeg.on('progress', handleProgress)
+
+  try {
+    await ffmpeg.writeFile(inputName, await fetchFile(file))
+    ffmpegArgs.push(
+      '-c:v',
+      'libx264',
+      '-crf',
+      '28',
+      '-preset',
+      'ultrafast',
+      '-c:a',
+      'aac',
+      '-b:a',
+      '96k',
+      '-movflags',
+      'faststart',
+      outputName
+    )
+    await ffmpeg.exec(ffmpegArgs)
+
+    const data = await ffmpeg.readFile(outputName)
+    const outputData =
+      data instanceof Uint8Array
+        ? new Uint8Array(data)
+        : new TextEncoder().encode(data)
+    const compressedName = file.name.replace(/\.[^/.]+$/, '')
+
+    onProgress?.(100)
+
+    return new File([outputData], `compressed_${compressedName}.mp4`, {
+      type: 'video/mp4',
+    })
+  } finally {
+    ffmpeg.off('progress', handleProgress)
+    await Promise.allSettled([
+      ffmpeg.deleteFile(inputName),
+      ffmpeg.deleteFile(outputName),
+    ])
+  }
 }
 
 type Props = {
@@ -72,7 +182,31 @@ export default function CreateAdmin({
   })
   const [deleteModal, setDeleteModal] = useState(false)
   const [videoDurationMs, setVideoDurationMs] = useState<number | null>(null)
-  console.log('videoDurationMs', videoDurationMs)
+  const [isCompressingVideo, setIsCompressingVideo] = useState(false)
+  const [compressionProgress, setCompressionProgress] = useState<number | null>(
+    null
+  )
+  const [selectedVideoName, setSelectedVideoName] = useState('')
+  const [isExistingVideoCleared, setIsExistingVideoCleared] = useState(false)
+  const compressionCancelledRef = useRef(false)
+  const resetCompressionState = () => {
+    setIsCompressingVideo(false)
+    setCompressionProgress(null)
+    setSelectedVideoName('')
+    setVideoDurationMs(null)
+  }
+
+  const stopVideoCompression = () => {
+    if (!isCompressingVideo) return
+
+    compressionCancelledRef.current = true
+    resetFfmpeg()
+    methods.setValue('video_file', '')
+    methods.setValue('video_url', '')
+    clearErrors('video_file')
+    resetCompressionState()
+  }
+
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
   // useEffect(() => {
@@ -96,6 +230,7 @@ export default function CreateAdmin({
   //     return sanitized
   //   }
   // }
+
   const formatVideoDurationLabel = (durationMs: number | null) => {
     if (durationMs === null) return ''
     const totalSeconds = Math.max(0, Math.floor(durationMs / 1000))
@@ -158,7 +293,6 @@ export default function CreateAdmin({
       })),
     [normalizedCategories]
   )
-
   const subcategoryParentMap = useMemo(() => {
     const map: Record<
       string,
@@ -185,6 +319,7 @@ export default function CreateAdmin({
   // }
 
   const handleClearAndClose = () => {
+    stopVideoCompression()
     methods.reset({
       name: '',
       description: '',
@@ -197,7 +332,8 @@ export default function CreateAdmin({
       video_file: '',
       thumbnail: '',
     } as any)
-    setVideoDurationMs(null)
+    resetCompressionState()
+    setIsExistingVideoCleared(false)
     handleClose()
   }
 
@@ -214,13 +350,15 @@ export default function CreateAdmin({
       video_file: '',
       thumbnail: '',
     } as any)
-    setVideoDurationMs(null)
+    resetCompressionState()
+    setIsExistingVideoCleared(false)
 
     handleRefresh?.()
     handleClearAndClose()
   }
   useEffect(() => {
     if (!(isDrawerOpen && edit && !viewMode && rowData)) return
+    setIsExistingVideoCleared(false)
 
     const rawCategory = rowData?.category
     const mainCategory = rawCategory?.main_category
@@ -295,8 +433,18 @@ export default function CreateAdmin({
   useEffect(() => {
     if (!isDrawerOpen) {
       hydratedRowRef.current = null
+      setSelectedVideoName('')
+      setCompressionProgress(null)
+      setIsExistingVideoCleared(false)
     }
   }, [isDrawerOpen])
+
+  useEffect(() => {
+    if (!isDrawerOpen) return
+
+    loadFfmpeg().catch(() => null)
+  }, [isDrawerOpen])
+
   const onSuccess = () => {
     handleSubmission()
   }
@@ -332,6 +480,57 @@ export default function CreateAdmin({
     const fileName = path.split('/').pop() || ''
     return decodeURIComponent(fileName).replace(/%/g, '')
   }
+
+  const handleVideoCompression = useCallback(
+    async (selectedFile?: File | string) => {
+      if (!(selectedFile instanceof File)) {
+        if (!selectedFile) {
+          setVideoDurationMs(null)
+          setCompressionProgress(null)
+          setSelectedVideoName('')
+          setIsExistingVideoCleared(true)
+          methods.setValue('video_url', '')
+        }
+
+        return selectedFile ?? ''
+      }
+
+      setSelectedVideoName(selectedFile.name)
+      setIsExistingVideoCleared(false)
+      compressionCancelledRef.current = false
+      setIsCompressingVideo(true)
+      setCompressionProgress(0)
+
+      try {
+        const compressedVideo = await compressVideo(
+          selectedFile,
+          setCompressionProgress
+        )
+        clearErrors('video_file')
+        return compressedVideo
+      } catch (error) {
+        if (compressionCancelledRef.current) {
+          clearErrors('video_file')
+          return ''
+        }
+
+        resetCompressionState()
+        setError('video_file', {
+          type: 'manual',
+          message:
+            error instanceof Error &&
+            error.message === 'called FFmpeg.terminate()'
+              ? 'Video compression cancelled.'
+              : 'Video compression failed. Please try another video.',
+        })
+        return ''
+      } finally {
+        setIsCompressingVideo(false)
+        compressionCancelledRef.current = false
+      }
+    },
+    [clearErrors, methods, setError]
+  )
 
   useEffect(() => {
     if (categoryChangeRef.current === undefined) {
@@ -445,22 +644,34 @@ export default function CreateAdmin({
           'video/x-msvideo',
         ],
         acceptedFiles: 'MP4, MOV, AVI',
-        fileSize: 5,
-        selectedFiles: getFileName(rowData?.video_url),
+        fileSize: 0,
+        selectedFiles:
+          selectedVideoName ||
+          watchedVideoFile?.name ||
+          (!isExistingVideoCleared ? getFileName(rowData?.video_url) : ''),
         subName: 'video_file',
+        handleCallBack: handleVideoCompression,
         handleDeleteFile: () => {
           methods.setValue('video_file', '')
           methods.setValue('video_url', '')
           setVideoDurationMs(null)
+          setCompressionProgress(null)
+          setSelectedVideoName('')
+          setIsExistingVideoCleared(true)
         },
       },
     ],
     [
       categoryOptions,
-      // existingThumbnailFile,
-      // existingVideoFile,
-      selectedCategoryId,
+      handleVideoCompression,
+      methods,
+      rowData?.thumbnail_url,
+      rowData?.video_url,
+      isExistingVideoCleared,
+      selectedVideoName,
       subcategoryOptions,
+      videoDurationMs,
+      watchedVideoFile,
     ]
   )
 
@@ -538,49 +749,8 @@ export default function CreateAdmin({
 
     fallbackFromExistingDuration()
   }, [watchedVideoFile, rowData?.video_url, rowData?.duration_minutes])
-  // const onSubmit = (details: any) => {
-  //   // Ensure a video file is always present (for both create and edit)
-  //   if (!details?.video_file && !rowData?.video_url) {
-  //     setError('video_file', { type: 'manual', message: 'Required.' })
-  //     return
-  //   }
-  //   clearErrors('video_file')
 
-  //   const fd = new FormData()
-  //   fd.append('workout[name]', details?.name ?? '')
-  //   fd.append('workout[description]', details?.description ?? '')
-  //   fd.append('workout[intensity_level]', details?.intensity_level ?? '')
-  //   // fd.append('workout[video_url]', details?.video_url ?? '')
-  //   // if (details?.video_file) {
-  //   //   fd.append('video', details.video_file as any)
-  //   // }
-  //   if (!details?.video_file) {
-  //     fd.append('workout[video_url]', rowData?.video_url ?? '')
-  //   }
-
-  //   // Only send binary if user uploaded a new file
-  //   if (details?.video_file instanceof File) {
-  //     fd.append('video', details.video_file)
-  //   }
-  //   const thumbVal: any = details?.thumbnail
-  //   // Only append if a new File is provided (not just an existing URL/string)
-  //   if (thumbVal && typeof thumbVal !== 'string') {
-  //     fd.append('workout[thumbnail]', thumbVal as any)
-  //   }
-
-  //   if (videoDurationMs !== null) {
-  //     const durationMinutes = videoDurationMs / 60000
-  //     fd.append('workout[duration_minutes]', durationMinutes.toFixed(2))
-  //   }
-
-  //   if (rowData?.id) {
-  //     updateMutation({ id: rowData?.id, data: fd })
-  //   } else {
-  //     mutate(fd)
-  //   }
-  // }
-  const onSubmit = (details: any) => {
-    // Validate subcategory requirement
+  const onSubmit = async (details: any) => {
     if (subcategoryOptions.length > 0 && !details?.subcategory_id) {
       setError('subcategory_id', {
         type: 'manual',
@@ -728,9 +898,14 @@ export default function CreateAdmin({
               : 'Create Workout'
         }
         actionLabel={viewMode ? 'Edit' : 'Save'}
+        actionDisabled={isCompressingVideo}
         actionLoader={isCreating || isUpdating}
         onSubmit={
-          viewMode ? handleChangeMode : handleSubmit((data) => onSubmit(data))
+          viewMode
+            ? handleChangeMode
+            : isCompressingVideo
+              ? undefined
+              : handleSubmit((data) => onSubmit(data))
         }
         secondaryAction={() => handleClearAndClose()}
         secondaryActionLabel="Cancel"
@@ -739,9 +914,98 @@ export default function CreateAdmin({
           <div className="flex flex-col gap-4">
             {!viewMode ? (
               <>
+                {isCompressingVideo && (
+                  <div className="mb-5 overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-indigo-50 p-5 shadow-lg">
+                    {/* Header */}
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+                        <svg
+                          className="h-6 w-6 text-blue-600 animate-pulse"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 10l4.55-2.28A1 1 0 0121 8.62v6.76a1 1 0 01-1.45.9L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
+                        </svg>
+                      </div>
+
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-800">
+                          Optimizing Video
+                        </h3>
+
+                        <p className="max-w-[280px] truncate text-xs text-gray-500">
+                          {selectedVideoName}
+                        </p>
+                      </div>
+
+                      <div className="rounded-full bg-blue-600 px-3 py-1 text-sm font-bold text-white shadow">
+                        {compressionProgress ?? 0}%
+                      </div>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="relative h-4 overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-500"
+                        style={{
+                          width: `${compressionProgress ?? 0}%`,
+                        }}
+                      />
+
+                      <div className="absolute inset-0 animate-pulse bg-white/10" />
+                    </div>
+
+                    {/* Status */}
+                    <div className="mt-3 flex items-center justify-between text-xs">
+                      <span className="font-medium text-gray-500">
+                        {(compressionProgress ?? 0) < 30 &&
+                          'Preparing video...'}
+
+                        {(compressionProgress ?? 0) >= 30 &&
+                          (compressionProgress ?? 0) < 70 &&
+                          'Compressing video...'}
+
+                        {(compressionProgress ?? 0) >= 70 &&
+                          (compressionProgress ?? 0) < 100 &&
+                          'Finalizing output...'}
+
+                        {(compressionProgress ?? 0) === 100 &&
+                          'Compression complete'}
+                      </span>
+
+                      <span className="font-semibold text-blue-600">
+                        Please wait
+                      </span>
+                    </div>
+
+                    {/* Animated Dots */}
+                    <div className="mt-3 flex gap-1">
+                      <span className="h-2 w-2 animate-bounce rounded-full bg-blue-500" />
+                      <span
+                        className="h-2 w-2 animate-bounce rounded-full bg-indigo-500"
+                        style={{ animationDelay: '0.2s' }}
+                      />
+                      <span
+                        className="h-2 w-2 animate-bounce rounded-full bg-purple-500"
+                        style={{ animationDelay: '0.4s' }}
+                      />
+                    </div>
+                  </div>
+                )}
                 <FormProvider {...methods}>
-                  <FormBuilder data={formBuilderProps} edit={true} spacing />
+                  <FormBuilder
+                    data={formBuilderProps}
+                    edit={!isCompressingVideo}
+                    spacing
+                  />
                 </FormProvider>
+
                 {videoDurationMs !== null &&
                   (watchedVideoFile instanceof File ||
                     (typeof watchedVideoFile === 'string' &&
