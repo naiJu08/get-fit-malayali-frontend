@@ -2,7 +2,7 @@ import api, {
   assignRecipesToUser,
   useAssignRecipes,
   useUserRecipes,
-} from '../Details/Recipe/recipes.api'
+} from '../Details/Recipe.tsx/recipes.api'
 
 const mockGetData = jest.fn()
 const mockPostData = jest.fn()

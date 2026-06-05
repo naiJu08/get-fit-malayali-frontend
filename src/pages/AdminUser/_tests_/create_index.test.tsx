@@ -3,8 +3,8 @@ import Create from '../create/index'
 
 const mockCreateMutation = jest.fn()
 const mockUpdateMutation = jest.fn()
-const mockCreateSuccess = { current: () => undefined }
-const mockUpdateSuccess = { current: () => undefined }
+const mockCreateSuccess: { current?: () => void } = {}
+const mockUpdateSuccess: { current?: () => void } = {}
 const mockReset = jest.fn()
 const mockSetValue = jest.fn()
 const mockSetError = jest.fn()
@@ -177,7 +177,7 @@ describe('Create Page', () => {
       })
     })
 
-    mockCreateSuccess.current()
+    mockCreateSuccess.current?.()
     expect(mockHandleRefresh).toHaveBeenCalled()
     expect(mockHandleClose).toHaveBeenCalled()
   })

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
+export {}
+
 type SetupOptions = {
   role?: string
 }

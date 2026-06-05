@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
-import Recipes from '../Details/Recipe/Recipes'
+import Recipes from '../Details/Recipe.tsx/Recipes'
 
 const mockNavigate = jest.fn()
 const mockSetPageParams = jest.fn()
@@ -35,39 +35,51 @@ jest.mock('../../../components/common/table/SmartTable', () => {
   }
 })
 
-jest.mock('../../../components/common/buttons/Button', () => (props: any) => (
-  <button type="button" onClick={props.onClick}>
-    {props.label}
-  </button>
-))
-
-jest.mock('../../../components/common/icons', () => (props: any) => (
-  <span>{props.name}</span>
-))
-
-jest.mock('../../../components/common/drawer', () => (props: any) =>
-  props.open ? (
-    <div>
-      <div>{props.title}</div>
-      <button onClick={props.handleClose}>close-drawer</button>
-      <button onClick={props.handleSubmit} disabled={props.disableSubmit}>
-        {props.actionLabel}
+jest.mock('../../../components/common/buttons/Button', () => {
+  return function MockButton(props: any) {
+    return (
+      <button type="button" onClick={props.onClick}>
+        {props.label}
       </button>
-      {props.children}
-    </div>
-  ) : null
-)
+    )
+  }
+})
 
-jest.mock('../../../components/common/inputs/SearchInput', () => (props: any) => (
-  <div>
-    <input
-      aria-label={props.placeholder}
-      value={props.searchValue}
-      onChange={(event) => props.handleChange(event.target.value)}
-    />
-    <button onClick={() => props.handleSearch?.()}>run-search</button>
-  </div>
-))
+jest.mock('../../../components/common/icons', () => {
+  return function MockIcons(props: any) {
+    return <span>{props.name}</span>
+  }
+})
+
+jest.mock('../../../components/common/drawer', () => {
+  return function MockDrawer(props: any) {
+    return props.open ? (
+      <div>
+        <div>{props.title}</div>
+        <button onClick={props.handleClose}>close-drawer</button>
+        <button onClick={props.handleSubmit} disabled={props.disableSubmit}>
+          {props.actionLabel}
+        </button>
+        {props.children}
+      </div>
+    ) : null
+  }
+})
+
+jest.mock('../../../components/common/inputs/SearchInput', () => {
+  return function MockSearchInput(props: any) {
+    return (
+      <div>
+        <input
+          aria-label={props.placeholder}
+          value={props.searchValue}
+          onChange={(event) => props.handleChange(event.target.value)}
+        />
+        <button onClick={() => props.handleSearch?.()}>run-search</button>
+      </div>
+    )
+  }
+})
 
 jest.mock('../../../store/filterSore/adminUserStore', () => ({
   useAdminUserFilterStore: () => ({
@@ -92,7 +104,7 @@ jest.mock('../../Recipe/api', () => ({
   useRecipes: (...args: any[]) => mockUseRecipes(...args),
 }))
 
-jest.mock('../Details/Recipe/recipes.api', () => ({
+jest.mock('../Details/Recipe.tsx/recipes.api', () => ({
   useUserRecipes: (...args: any[]) => mockUseUserRecipes(...args),
   useAssignRecipes: (...args: any[]) => mockUseAssignRecipes(...args),
 }))

@@ -53,6 +53,8 @@ export default function UserDetails() {
   }, [refreshUserDetails, id])
 
   const user = data?.user || data || {}
+  const userId = user?.id
+  const hasSubscribedPlan = Boolean(user?.subscribed_plan)
   const isNutritionist = (() => {
     const r = user?.role
     if (r === 2 || r === '2') return true
@@ -64,10 +66,10 @@ export default function UserDetails() {
     let mounted = true
 
     const run = async () => {
-      if (!user?.id || isNutritionist) return
-      if (!user?.subscribed_plan) return
+      if (!userId || isNutritionist) return
+      if (!hasSubscribedPlan) return
       try {
-        const overview = await getActivePlanOverview(user.id)
+        const overview = await getActivePlanOverview(userId)
         if (!mounted) return
         const subId = overview?.subscription?.id
         setSubscriptionId(subId ?? null)
@@ -84,7 +86,7 @@ export default function UserDetails() {
     return () => {
       mounted = false
     }
-  }, [user?.id, isNutritionist])
+  }, [userId, isNutritionist, hasSubscribedPlan])
 
   const pathBase = useMemo(() => {
     return location.pathname.startsWith('/users/nutritionist')
