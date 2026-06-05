@@ -472,7 +472,8 @@ export default function CreateAdmin({
               : 'Create Meditation'
         }
         actionLabel={viewMode ? 'Edit' : 'Save'}
-        actionLoader={isCreating || isUpdating || isCompressingVideo}
+        actionDisabled={isCompressingVideo}
+        actionLoader={isCreating || isUpdating}
         onSubmit={
           viewMode
             ? handleChangeMode

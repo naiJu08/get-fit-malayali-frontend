@@ -341,6 +341,7 @@ export interface DialogModalProps {
   onClose?: (type?: string, key?: string | undefined) => void
   onSubmit?: () => void
   actionLabel?: string
+  actionDisabled?: boolean
   actionLoader?: boolean
   title?: any
   subTitle?: any

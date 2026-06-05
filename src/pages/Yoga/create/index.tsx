@@ -554,7 +554,8 @@ export default function CreateAdmin({
         onClose={() => handleClearAndClose()}
         title={edit ? 'Edit Yoga' : viewMode ? 'Yoga Details' : 'Create Yoga'}
         actionLabel={viewMode ? 'Edit' : 'Save'}
-        actionLoader={isCreating || isUpdating || isCompressingVideo}
+        actionDisabled={isCompressingVideo}
+        actionLoader={isCreating || isUpdating}
         onSubmit={
           viewMode
             ? handleChangeMode

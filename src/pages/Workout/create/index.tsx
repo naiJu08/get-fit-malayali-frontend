@@ -898,7 +898,8 @@ export default function CreateAdmin({
               : 'Create Workout'
         }
         actionLabel={viewMode ? 'Edit' : 'Save'}
-        actionLoader={isCreating || isUpdating || isCompressingVideo}
+        actionDisabled={isCompressingVideo}
+        actionLoader={isCreating || isUpdating}
         onSubmit={
           viewMode
             ? handleChangeMode

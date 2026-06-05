@@ -11,6 +11,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
   isCloseIcon = true,
   onSubmit,
   actionLabel,
+  actionDisabled = false,
   disabled = false,
   actionLoader,
   title,
@@ -187,7 +188,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
 
                       {actionLabel && (
                         <Button
-                          disabled={disabled}
+                          disabled={disabled || actionDisabled}
                           isLoading={actionLoader}
                           label={actionLabel}
                           onClick={handleSubmit}
