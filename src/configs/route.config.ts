@@ -102,18 +102,18 @@ const ADMIN_USER: RouterMenuProps = {
   breadcrumb: ['ADMIN_USER', 'ADMIN_USER_DETAILS'],
   isSidebarMenu: true,
 }
-// const PLANS: RouterMenuProps = {
-//   id: 21,
-//   path: '/plans',
-//   parent_id: null,
-//   label: 'Plans',
-//   key: 'plans',
-//   icon: 'plan',
-//   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
-//   permission_slugs: ['superadmin', 'nutritionist'],
-//   slugOptions: ['PLANS', 'PLAN_DETAILS', 'DIET_DETAILS'],
-//   isSidebarMenu: true,
-// }
+const PLANS: RouterMenuProps = {
+  id: 21,
+  path: '/plans',
+  parent_id: null,
+  label: 'Plans',
+  key: 'plans',
+  icon: 'plan',
+  breadcrumb: ['PLANS', 'PLAN_DETAILS'],
+  permission_slugs: ['superadmin', 'nutritionist'],
+  slugOptions: ['PLANS', 'PLAN_DETAILS', 'DIET_DETAILS'],
+  isSidebarMenu: true,
+}
 const CATEGORIES: RouterMenuProps = {
   id: 20,
   path: '/categories',
@@ -137,22 +137,22 @@ const CATEGORIES_DETAILS: RouterMenuProps = {
   permission_slugs: [],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
-// const DIET_TEMPLATE: RouterMenuProps = {
-//   id: 21,
-//   path: '/diet-template',
-//   parent_id: null,
-//   label: 'Diet Template',
-//   key: 'diet-template',
-//   icon: 'template-icon-white',
-//   breadcrumb: ['DIET_TEMPLATE'],
-//   permission_slugs: ['superadmin', 'nutritionist'],
-//   slugOptions: [
-//     'DIET_TEMPLATE',
-//     'DIET_TEMPLATE_DETAILS',
-//     'DIET_TEMPLATE_DIET_PLAN',
-//   ],
-//   isSidebarMenu: true,
-// }
+const DIET_TEMPLATE: RouterMenuProps = {
+  id: 21,
+  path: '/diet-template',
+  parent_id: null,
+  label: 'Diet Template',
+  key: 'diet-template',
+  icon: 'template-icon-white',
+  breadcrumb: ['DIET_TEMPLATE'],
+  permission_slugs: ['superadmin', 'nutritionist'],
+  slugOptions: [
+    'DIET_TEMPLATE',
+    'DIET_TEMPLATE_DETAILS',
+    'DIET_TEMPLATE_DIET_PLAN',
+  ],
+  isSidebarMenu: true,
+}
 const DIET_TEMPLATE_DETAILS: RouterMenuProps = {
   id: 16,
   path: '/diet-template/:id',
@@ -173,18 +173,18 @@ const DIET_TEMPLATE_DIET_PLAN: RouterMenuProps = {
   key: 'diet-template-diet-plan',
   permission_slugs: [],
 }
-// const DIET_TEMPLATE_CATEGORIES: RouterMenuProps = {
-//   id: 49,
-//   path: '/diet-plan-categories',
-//   parent_id: null,
-//   label: 'Diet Plan Categories',
-//   key: 'diet-plan-categories',
-//   icon: 'category-icon',
-//   breadcrumb: ['DIET_TEMPLATE_CATEGORIES'],
-//   permission_slugs: ['superadmin', 'nutritionist'],
-//   slugOptions: ['DIET_TEMPLATE_CATEGORIES'],
-//   isSidebarMenu: true,
-// }
+const DIET_TEMPLATE_CATEGORIES: RouterMenuProps = {
+  id: 49,
+  path: '/diet-plan-categories',
+  parent_id: null,
+  label: 'Diet Plan Categories',
+  key: 'diet-plan-categories',
+  icon: 'category-icon',
+  breadcrumb: ['DIET_TEMPLATE_CATEGORIES'],
+  permission_slugs: ['superadmin', 'nutritionist'],
+  slugOptions: ['DIET_TEMPLATE_CATEGORIES'],
+  isSidebarMenu: true,
+}
 const WORKOUT: RouterMenuProps = {
   id: 25,
   path: '/workout',
@@ -226,26 +226,26 @@ const SUBSCRIPTIONS: RouterMenuProps = {
   permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
-// const NOTIFICATIONS: RouterMenuProps = {
-//   id: 30,
-//   path: '/notifications',
-//   parent_id: null,
-//   label: 'Broadcast',
-//   key: 'notifications',
-//   icon: 'notification',
-//   permission_slugs: ['superadmin'],
-//   isSidebarMenu: true,
-// }
-// const MEAL_TIMING: RouterMenuProps = {
-//   id: 32,
-//   path: '/mealtiming',
-//   parent_id: null,
-//   label: 'Meal Timing',
-//   key: 'mealtiming',
-//   icon: 'notification',
-//   permission_slugs: ['superadmin'],
-//   isSidebarMenu: true,
-// }
+const NOTIFICATIONS: RouterMenuProps = {
+  id: 30,
+  path: '/notifications',
+  parent_id: null,
+  label: 'Broadcast',
+  key: 'notifications',
+  icon: 'notification',
+  permission_slugs: ['superadmin'],
+  isSidebarMenu: true,
+}
+const MEAL_TIMING: RouterMenuProps = {
+  id: 32,
+  path: '/mealtiming',
+  parent_id: null,
+  label: 'Meal Timing',
+  key: 'mealtiming',
+  icon: 'notification',
+  permission_slugs: ['superadmin'],
+  isSidebarMenu: true,
+}
 
 const MEAL_TIMING_DETAILS: RouterMenuProps = {
   id: 33,
@@ -392,16 +392,16 @@ const PLAN_DETAILS_DIET: RouterMenuProps = {
   key: 'plan-details-diet',
   permission_slugs: [],
 }
-// const RECIPE: RouterMenuProps = {
-//   id: 24,
-//   path: '/recipe',
-//   parent_id: 21,
-//   label: 'Recipe',
-//   key: 'recipe',
-//   icon: 'recipe',
-//   permission_slugs: ['superadmin'],
-//   isSidebarMenu: true,
-// }
+const RECIPE: RouterMenuProps = {
+  id: 24,
+  path: '/recipe',
+  parent_id: 21,
+  label: 'Recipe',
+  key: 'recipe',
+  icon: 'recipe',
+  permission_slugs: ['superadmin'],
+  isSidebarMenu: true,
+}
 
 const RECIPE_DETAILS: RouterMenuProps = {
   id: 29,
@@ -412,16 +412,16 @@ const RECIPE_DETAILS: RouterMenuProps = {
   permission_slugs: [],
   isSidebarMenu: true,
 }
-// const MEALS: RouterMenuProps = {
-//   id: 48,
-//   path: '/meals',
-//   parent_id: null,
-//   label: 'Food',
-//   key: 'meals',
-//   icon: 'meal-icon',
-//   permission_slugs: ['superadmin', 'nutritionist'],
-//   isSidebarMenu: true,
-// }
+const MEALS: RouterMenuProps = {
+  id: 48,
+  path: '/meals',
+  parent_id: null,
+  label: 'Food',
+  key: 'meals',
+  icon: 'meal-icon',
+  permission_slugs: ['superadmin', 'nutritionist'],
+  isSidebarMenu: true,
+}
 const MEALS_DETAILS: RouterMenuProps = {
   id: 30,
   path: '/meals/:id',
@@ -507,33 +507,33 @@ const ORGANISATION_USERLIST: RouterMenuProps = {
   permission_slugs: [],
   isSidebarMenu: true,
 }
-// const PAYMENT_HISTORY: RouterMenuProps = {
-//   id: 45,
-//   path: '/payment-history',
-//   parent_id: null,
-//   label: 'Payment History',
-//   icon: 'paymentapproval-icon',
-//   key: 'payment-history',
-//   permission_slugs: ['superadmin'],
-//   isSidebarMenu: true,
-// }
+const PAYMENT_HISTORY: RouterMenuProps = {
+  id: 45,
+  path: '/payment-history',
+  parent_id: null,
+  label: 'Payment History',
+  icon: 'paymentapproval-icon',
+  key: 'payment-history',
+  permission_slugs: ['superadmin'],
+  isSidebarMenu: true,
+}
 
 export const router_config: { [key: string]: RouterMenuProps } = {
   DASHBOARD,
   ADMIN_USER,
-  // PLANS,
+  PLANS,
   CATEGORIES,
   CATEGORIES_DETAILS,
-  // DIET_TEMPLATE,
-  // DIET_TEMPLATE_CATEGORIES,
+  DIET_TEMPLATE,
+  DIET_TEMPLATE_CATEGORIES,
   WORKOUT,
   YOGA,
   MEDITATION,
-  // MEALS,
+  MEALS,
   SUBSCRIPTIONS,
-  // NOTIFICATIONS,
-  // RECIPE,
-  // PAYMENT_HISTORY,
+  NOTIFICATIONS,
+  RECIPE,
+  PAYMENT_HISTORY,
 
   // Remaining routes (details and others)
   PLAN_DETAILS,
@@ -554,7 +554,6 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   RESET_PASSWORD,
   CHANGE_PASSWORD,
   USER_PROFILE,
-  // TABULARFORM,
   ORGANISATION_FILE_REPOSTITORY,
   ORGANISATION_USERLIST,
   WORKOUT_DETAILS,
@@ -563,7 +562,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   MEDITATIONPLAN,
   DIET_TEMPLATE_DETAILS,
   DIET_TEMPLATE_DIET_PLAN,
-  // MEAL_TIMING,
+  MEAL_TIMING,
   MEAL_TIMING_DETAILS,
   ASSESSMENT_CATEGORY,
   ASSESSMENT_CATEGORY_DETAILS,
