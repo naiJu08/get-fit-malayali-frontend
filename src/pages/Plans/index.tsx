@@ -280,7 +280,7 @@ export default function Plans() {
     // refetch()
   }
   const basicData = {
-    title: 'Plans',
+    title: 'Package Plans',
     icon: 'plan',
   }
   const openDrawer = () => {

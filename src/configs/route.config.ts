@@ -89,6 +89,38 @@ const USER_PROFILE: RouterMenuProps = {
   permission_slugs: [domainTypes['EMPLOYEE']],
 }
 
+// Master Options for Sub-menus
+
+const FITNESS: RouterMenuProps = {
+  id: 200,
+  parent_id: null,
+  label: 'Fitness',
+  key: 'fitness',
+  icon: 'workout',
+  permission_slugs: ['superadmin', 'nutritionist'],
+  isSidebarMenu: true,
+}
+
+const DIET_NUTRITION: RouterMenuProps = {
+  id: 300,
+  parent_id: null,
+  label: 'Diet & Nutrition',
+  key: 'diet-nutrition',
+  icon: 'meal-icon',
+  permission_slugs: ['superadmin', 'nutritionist'],
+  isSidebarMenu: true,
+}
+
+const FINANCE: RouterMenuProps = {
+  id: 400,
+  parent_id: null,
+  label: 'Finance',
+  key: 'finance',
+  icon: 'paymentapproval-icon',
+  permission_slugs: ['superadmin'],
+  isSidebarMenu: true,
+}
+
 //Contacts
 
 const ADMIN_USER: RouterMenuProps = {
@@ -106,7 +138,7 @@ const PLANS: RouterMenuProps = {
   id: 21,
   path: '/plans',
   parent_id: null,
-  label: 'Plans',
+  label: 'Package Plans',
   key: 'plans',
   icon: 'plan',
   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
@@ -117,7 +149,7 @@ const PLANS: RouterMenuProps = {
 const CATEGORIES: RouterMenuProps = {
   id: 20,
   path: '/categories',
-  parent_id: null,
+  parent_id: 200,
   label: 'Workout categories',
   key: 'categories',
   icon: 'category-icon',
@@ -138,9 +170,9 @@ const CATEGORIES_DETAILS: RouterMenuProps = {
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
 const DIET_TEMPLATE: RouterMenuProps = {
-  id: 21,
+  id: 220,
   path: '/diet-template',
-  parent_id: null,
+  parent_id: 300,
   label: 'Diet Template',
   key: 'diet-template',
   icon: 'template-icon-white',
@@ -156,7 +188,7 @@ const DIET_TEMPLATE: RouterMenuProps = {
 const DIET_TEMPLATE_DETAILS: RouterMenuProps = {
   id: 16,
   path: '/diet-template/:id',
-  parent_id: 21,
+  parent_id: 220,
   isDetails: true,
   icon: 'user',
   label: 'Diet Template Details',
@@ -166,7 +198,7 @@ const DIET_TEMPLATE_DETAILS: RouterMenuProps = {
 const DIET_TEMPLATE_DIET_PLAN: RouterMenuProps = {
   id: 17,
   path: '/diet-template/:id/diet-plan',
-  parent_id: 21,
+  parent_id: 220,
   isDetails: true,
   icon: 'user',
   label: 'Diet Template Diet Plan',
@@ -176,7 +208,7 @@ const DIET_TEMPLATE_DIET_PLAN: RouterMenuProps = {
 const DIET_TEMPLATE_CATEGORIES: RouterMenuProps = {
   id: 49,
   path: '/diet-plan-categories',
-  parent_id: null,
+  parent_id: 300,
   label: 'Diet Plan Categories',
   key: 'diet-plan-categories',
   icon: 'category-icon',
@@ -188,7 +220,7 @@ const DIET_TEMPLATE_CATEGORIES: RouterMenuProps = {
 const WORKOUT: RouterMenuProps = {
   id: 25,
   path: '/workout',
-  parent_id: null,
+  parent_id: 200,
   label: 'Workout',
   key: 'workout',
   icon: 'workout',
@@ -198,7 +230,7 @@ const WORKOUT: RouterMenuProps = {
 const YOGA: RouterMenuProps = {
   id: 46,
   path: '/yoga',
-  parent_id: null,
+  parent_id: 200,
   label: 'Yoga',
   key: 'yoga',
   icon: 'yoga-icon',
@@ -208,7 +240,7 @@ const YOGA: RouterMenuProps = {
 const MEDITATION: RouterMenuProps = {
   id: 47,
   path: '/meditation',
-  parent_id: null,
+  parent_id: 200,
   label: 'Meditation',
   key: 'meditation',
   icon: 'meditation-icon',
@@ -219,7 +251,7 @@ const MEDITATION: RouterMenuProps = {
 const SUBSCRIPTIONS: RouterMenuProps = {
   id: 29,
   path: '/subscriptions',
-  parent_id: null,
+  parent_id: 400,
   label: 'Subscriptions',
   key: 'subscriptions',
   icon: 'subscription',
@@ -239,7 +271,7 @@ const NOTIFICATIONS: RouterMenuProps = {
 const MEAL_TIMING: RouterMenuProps = {
   id: 32,
   path: '/mealtiming',
-  parent_id: null,
+  parent_id: 300,
   label: 'Meal Timing',
   key: 'mealtiming',
   icon: 'notification',
@@ -291,7 +323,6 @@ const WORKOUT_DETAILS: RouterMenuProps = {
   label: 'Workout Details',
   key: 'workout-details',
   permission_slugs: [],
-  // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
 const YOGA_DETAILS: RouterMenuProps = {
   id: 30,
@@ -302,18 +333,16 @@ const YOGA_DETAILS: RouterMenuProps = {
   label: 'Yoga Details',
   key: 'yoga-details',
   permission_slugs: [],
-  // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
 const MEDITATION_DETAILS: RouterMenuProps = {
   id: 31,
   path: '/meditation/:id',
-  parent_id: 46,
+  parent_id: 47,
   isDetails: true,
   icon: 'user',
   label: 'Meditation Details',
   key: 'meditation-details',
   permission_slugs: [],
-  // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
 const SUBSCRIPTIONS_DETAILS: RouterMenuProps = {
   id: 291,
@@ -395,7 +424,7 @@ const PLAN_DETAILS_DIET: RouterMenuProps = {
 const RECIPE: RouterMenuProps = {
   id: 24,
   path: '/recipe',
-  parent_id: 21,
+  parent_id: 300,
   label: 'Recipe',
   key: 'recipe',
   icon: 'recipe',
@@ -406,7 +435,7 @@ const RECIPE: RouterMenuProps = {
 const RECIPE_DETAILS: RouterMenuProps = {
   id: 29,
   path: '/recipe/:id',
-  parent_id: 21,
+  parent_id: 24,
   label: 'Recipe Details',
   key: 'recipe',
   permission_slugs: [],
@@ -415,7 +444,7 @@ const RECIPE_DETAILS: RouterMenuProps = {
 const MEALS: RouterMenuProps = {
   id: 48,
   path: '/meals',
-  parent_id: null,
+  parent_id: 300,
   label: 'Food',
   key: 'meals',
   icon: 'meal-icon',
@@ -425,7 +454,7 @@ const MEALS: RouterMenuProps = {
 const MEALS_DETAILS: RouterMenuProps = {
   id: 30,
   path: '/meals/:id',
-  parent_id: 21,
+  parent_id: 48,
   label: 'Food Details',
   key: 'meals-details',
   permission_slugs: [],
@@ -442,7 +471,6 @@ const WORKOUT_PLAN_DETAILS: RouterMenuProps = {
   key: 'workout-details',
   permission_slugs: [],
   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
-  // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
 const YOGAPLAN_DETAILS: RouterMenuProps = {
   id: 26,
@@ -454,7 +482,6 @@ const YOGAPLAN_DETAILS: RouterMenuProps = {
   key: 'yogaplan-details',
   permission_slugs: [],
   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
-  // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
 
 const DIET_DETAILS: RouterMenuProps = {
@@ -510,7 +537,7 @@ const ORGANISATION_USERLIST: RouterMenuProps = {
 const PAYMENT_HISTORY: RouterMenuProps = {
   id: 45,
   path: '/payment-history',
-  parent_id: null,
+  parent_id: 400,
   label: 'Payment History',
   icon: 'paymentapproval-icon',
   key: 'payment-history',
@@ -522,20 +549,41 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   DASHBOARD,
   ADMIN_USER,
   PLANS,
+  FITNESS,
+  DIET_NUTRITION,
+  FINANCE,
+  ASSESSMENT_CATEGORY,
+  ASSESSMENT_CATEGORY_DETAILS,
+  NOTIFICATIONS,
+
+  // Children under FITNESS
   CATEGORIES,
   CATEGORIES_DETAILS,
-  DIET_TEMPLATE,
-  DIET_TEMPLATE_CATEGORIES,
   WORKOUT,
+  WORKOUT_DETAILS,
   YOGA,
+  YOGA_DETAILS,
   MEDITATION,
+  MEDITATION_DETAILS,
+
+  // Children under DIET_NUTRITION
+  DIET_TEMPLATE,
+  DIET_TEMPLATE_DETAILS,
+  DIET_TEMPLATE_DIET_PLAN,
+  DIET_TEMPLATE_CATEGORIES,
   MEALS,
-  SUBSCRIPTIONS,
-  NOTIFICATIONS,
+  MEALS_DETAILS,
   RECIPE,
+  RECIPE_DETAILS,
+  MEAL_TIMING,
+  MEAL_TIMING_DETAILS,
+
+  // Children under FINANCE
+  SUBSCRIPTIONS,
+  SUBSCRIPTIONS_DETAILS,
   PAYMENT_HISTORY,
 
-  // Remaining routes (details and others)
+  // Other details / routes
   PLAN_DETAILS,
   PLAN_DETAILS_DETAILS,
   PLAN_DETAILS_WORKOUT,
@@ -543,12 +591,9 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   YOGAPLAN,
   YOGAPLAN_DETAILS,
   WORKOUT_PLAN_DETAILS,
-  SUBSCRIPTIONS_DETAILS,
   REMINDER_SETTINGS,
   USER_ADDITIONAL_INFO,
   DIET_DETAILS,
-  RECIPE_DETAILS,
-  MEALS_DETAILS,
   LOGIN,
   FORGET_PASSWORD,
   RESET_PASSWORD,
@@ -556,14 +601,5 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   USER_PROFILE,
   ORGANISATION_FILE_REPOSTITORY,
   ORGANISATION_USERLIST,
-  WORKOUT_DETAILS,
-  YOGA_DETAILS,
-  MEDITATION_DETAILS,
   MEDITATIONPLAN,
-  DIET_TEMPLATE_DETAILS,
-  DIET_TEMPLATE_DIET_PLAN,
-  MEAL_TIMING,
-  MEAL_TIMING_DETAILS,
-  ASSESSMENT_CATEGORY,
-  ASSESSMENT_CATEGORY_DETAILS,
 }
