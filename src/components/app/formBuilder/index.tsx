@@ -598,6 +598,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                   errors={errors}
                   showTimeSelect
                   showTimeSelectOnly
+                  fromPopup={fromPopup}
                   maxDate={field.maxDate}
                   minDate={field.minDate}
                   disabled={field?.disabled ?? isEditable()}
