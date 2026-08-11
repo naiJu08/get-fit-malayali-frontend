@@ -935,8 +935,9 @@ span.iconBox.iconBox_bg-active {
   }
 }
 
-.react-datepicker-popper {
-  z-index: 1300 !important;
+.react-datepicker-popper,
+.react-datepicker-portal {
+  z-index: 99999 !important;
 }
 
 .iconBlue {

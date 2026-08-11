@@ -73,6 +73,7 @@ export default function FreezeUserModal({
             value={values.start_date}
             onChange={handleStartDateChange}
             minDate={tomorrow}
+            fromPopup
           />
           <CommonDatePicker
             name="end_date"
@@ -80,6 +81,7 @@ export default function FreezeUserModal({
             value={values.end_date}
             onChange={onChange}
             minDate={endMinDate}
+            fromPopup
           />
         </div>
         <div className="p-5 pt-0 flex items-center justify-end gap-2">
