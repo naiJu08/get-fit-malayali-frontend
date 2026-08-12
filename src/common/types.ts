@@ -514,7 +514,7 @@ interface Content {
   toolTip?: string
 }
 export type TableColumns = {
-  title: string
+  title: string | ReactNode
   field: string
   sortable?: boolean
   resizable?: boolean

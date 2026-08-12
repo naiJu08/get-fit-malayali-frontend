@@ -169,6 +169,40 @@ const CATEGORIES_DETAILS: RouterMenuProps = {
   permission_slugs: [],
   // breadcrumb: ['ORGANISATION', 'ORGANISATION_DETAILS'],
 }
+const WORKOUT_TEMPLATE: RouterMenuProps = {
+  id: 221,
+  path: '/workout-templates',
+  parent_id: 200,
+  label: 'Workout Templates',
+  key: 'workout-templates',
+  icon: 'workout',
+  breadcrumb: ['WORKOUT_TEMPLATE'],
+  permission_slugs: ['superadmin', 'nutritionist'],
+  slugOptions: [
+    'WORKOUT_TEMPLATE',
+    'WORKOUT_TEMPLATE_DETAILS',
+    'WORKOUT_TEMPLATE_DAY',
+  ],
+  isSidebarMenu: true,
+}
+const WORKOUT_TEMPLATE_DETAILS: RouterMenuProps = {
+  id: 222,
+  path: '/workout-templates/:id',
+  parent_id: 221,
+  isDetails: true,
+  label: 'Workout Template Details',
+  key: 'workout-template-details',
+  permission_slugs: [],
+}
+const WORKOUT_TEMPLATE_DAY: RouterMenuProps = {
+  id: 223,
+  path: '/workout-templates/:templateId/day/:dayId',
+  parent_id: 221,
+  isDetails: true,
+  label: 'Workout Template Day',
+  key: 'workout-template-day',
+  permission_slugs: [],
+}
 const DIET_TEMPLATE: RouterMenuProps = {
   id: 220,
   path: '/diet-template',
@@ -568,6 +602,9 @@ export const router_config: { [key: string]: RouterMenuProps } = {
 
   // Children under DIET_NUTRITION
   DIET_TEMPLATE,
+  WORKOUT_TEMPLATE,
+  WORKOUT_TEMPLATE_DETAILS,
+  WORKOUT_TEMPLATE_DAY,
   DIET_TEMPLATE_DETAILS,
   DIET_TEMPLATE_DIET_PLAN,
   DIET_TEMPLATE_CATEGORIES,

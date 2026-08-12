@@ -20,6 +20,7 @@ import { useDietTemplateCategories } from '../../DietTemplateCategories/api'
 import { useSnackbarManager } from '../../../components/common/snackbar'
 import { getErrorMessage } from '../../../utilities/parsers'
 import { assignDietPlanTemplate, useUpdateUserMealTiming } from '../api'
+import WorkoutTemplateAssign from '../../WorkoutTemplate/Assign'
 import { useMutation } from '@tanstack/react-query'
 
 interface DayDetailTabsSectionProps {
@@ -922,6 +923,14 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
           </Tab>
 
           <Tab id="workout">
+            <WorkoutTemplateAssign
+              subscriptionId={subscriptionId}
+              currentName={
+                dayDetail?.workout_template?.name ||
+                dayDetail?.subscription?.workout_template_name
+              }
+              onAssigned={refreshDayDetail as any}
+            />
             <div className="max-h-[700px] overflow-y-auto">
               <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
                 <div className="flex items-center justify-between mb-2 gap-3">
