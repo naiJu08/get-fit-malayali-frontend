@@ -12,6 +12,8 @@ const MEALS = 'meals'
 const WORKOUT_PLAN = 'workout_plans'
 const WORKOUT_TEMPLATES = 'workout_templates'
 const WORKOUT_TEMPLATE_DAYS = 'workout_template_days'
+const YOGA_TEMPLATES = 'yoga_templates'
+const YOGA_TEMPLATE_DAYS = 'yoga_template_days'
 const DIET_PLAN = 'diet_plans'
 const YOGA_PLAN = 'yoga_plans'
 const GROUP_LIST = 'groups'
@@ -68,6 +70,8 @@ const apiUrl: { [key: string]: string } = {
   WORKOUT_PLAN,
   WORKOUT_TEMPLATES,
   WORKOUT_TEMPLATE_DAYS,
+  YOGA_TEMPLATES,
+  YOGA_TEMPLATE_DAYS,
   DIET_PLAN,
   YOGA_PLAN,
   GROUP_LIST,

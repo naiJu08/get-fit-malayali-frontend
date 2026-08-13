@@ -203,6 +203,36 @@ const WORKOUT_TEMPLATE_DAY: RouterMenuProps = {
   key: 'workout-template-day',
   permission_slugs: [],
 }
+const YOGA_TEMPLATE: RouterMenuProps = {
+  id: 224,
+  path: '/yoga-templates',
+  parent_id: 200,
+  label: 'Yoga Templates',
+  key: 'yoga-templates',
+  icon: 'yoga',
+  breadcrumb: ['YOGA_TEMPLATE'],
+  permission_slugs: ['superadmin', 'nutritionist'],
+  slugOptions: ['YOGA_TEMPLATE', 'YOGA_TEMPLATE_DETAILS', 'YOGA_TEMPLATE_DAY'],
+  isSidebarMenu: true,
+}
+const YOGA_TEMPLATE_DETAILS: RouterMenuProps = {
+  id: 225,
+  path: '/yoga-templates/:id',
+  parent_id: 224,
+  isDetails: true,
+  label: 'Yoga Template Details',
+  key: 'yoga-template-details',
+  permission_slugs: [],
+}
+const YOGA_TEMPLATE_DAY: RouterMenuProps = {
+  id: 226,
+  path: '/yoga-templates/:templateId/day/:dayId',
+  parent_id: 224,
+  isDetails: true,
+  label: 'Yoga Template Day',
+  key: 'yoga-template-day',
+  permission_slugs: [],
+}
 const DIET_TEMPLATE: RouterMenuProps = {
   id: 220,
   path: '/diet-template',
@@ -603,6 +633,9 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   // Children under DIET_NUTRITION
   DIET_TEMPLATE,
   WORKOUT_TEMPLATE,
+  YOGA_TEMPLATE,
+  YOGA_TEMPLATE_DETAILS,
+  YOGA_TEMPLATE_DAY,
   WORKOUT_TEMPLATE_DETAILS,
   WORKOUT_TEMPLATE_DAY,
   DIET_TEMPLATE_DETAILS,
