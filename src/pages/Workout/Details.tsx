@@ -79,7 +79,7 @@ export default function UserDetails() {
             <button onClick={() => navigate('/workout')} aria-label="Back">
               <Icons name="left-arrow-icon" />
             </button>
-            <h1 className="text-xl font-semibold">Workout Details</h1>
+            <h1 className="text-xl font-semibold">Exercise Details</h1>
           </div>
           {workout?.id && (
             <button
@@ -88,7 +88,7 @@ export default function UserDetails() {
               onClick={() => setEditModalOpen(true)}
             >
               <Icons name="edit" />
-              <span className="ml-2">Edit Workout</span>
+              <span className="ml-2">Edit Exercise</span>
             </button>
           )}
         </div>

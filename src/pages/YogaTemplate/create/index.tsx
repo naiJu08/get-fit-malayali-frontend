@@ -41,8 +41,10 @@ export default function YogaTemplateForm({
   }, [isOpen, rowData, reset])
 
   const submit = async (values: YogaTemplateValues) => {
+    const rawName = values.name || ''
+    const capitalizedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
     const data = new FormData()
-    data.append('yoga_template[name]', values.name)
+    data.append('yoga_template[name]', capitalizedName)
     data.append('yoga_template[duration_days]', String(values.duration_days))
     data.append('yoga_template[description]', values.description || '')
     const response: any =

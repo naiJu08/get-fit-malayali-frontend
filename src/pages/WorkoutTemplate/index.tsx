@@ -139,6 +139,7 @@ export default function WorkoutTemplateIndex() {
           dataRowKey="id"
           toolbar
           search
+          searchPlaceholder="Search Template Name"
           searchValue={params.search}
           height={
             templates.length === 0

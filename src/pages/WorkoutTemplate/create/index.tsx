@@ -41,8 +41,10 @@ export default function WorkoutTemplateForm({
   }, [isOpen, rowData, reset])
 
   const submit = async (values: WorkoutTemplateValues) => {
+    const rawName = values.name || ''
+    const capitalizedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
     const data = new FormData()
-    data.append('workout_template[name]', values.name)
+    data.append('workout_template[name]', capitalizedName)
     data.append('workout_template[duration_days]', String(values.duration_days))
     data.append('workout_template[description]', values.description || '')
     const response: any =
