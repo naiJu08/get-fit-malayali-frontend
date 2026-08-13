@@ -200,6 +200,12 @@ export default function CopyExercisesDialog({
     }
   }
 
+  const selectionValid =
+    selectedTargetIds.length >= sourceCount && selectedTargetIds.length > 0
+  const selectionMessage = selectionValid
+    ? `${selectedTargetIds.length} target ${selectedTargetIds.length === 1 ? 'day' : 'days'} ready to copy`
+    : `${selectedTargetIds.length} selected / minimum ${sourceCount} required`
+
   return (
     <DialogModal
       isOpen={open}
@@ -212,30 +218,94 @@ export default function CopyExercisesDialog({
       secondaryAction={onClose}
       secondaryActionLabel="Cancel"
       small={false}
-      className="w-[92vw] max-w-[900px]"
+      className="w-[94vw] max-w-[920px]"
       body={
-        <div className="space-y-4">
-          <p className="text-sm text-gray-600">
-            Copying {sourceCount} source day{sourceCount === 1 ? '' : 's'}.
-            Select at least {sourceCount} target day
-            {sourceCount === 1 ? '' : 's'}.
-          </p>
+        <div className="space-y-5">
+          <div className="rounded-xl border border-blue-100 bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">
+                  Copy workout exercises
+                </p>
+                <p className="mt-1 text-xs text-gray-600">
+                  Choose where the selected source days should be copied.
+                </p>
+              </div>
+              <div className="rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm">
+                {sourceCount} source {sourceCount === 1 ? 'day' : 'days'}{' '}
+                selected
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-medium">
+            <span className="flex items-center gap-2 text-blue-700">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-white">
+                1
+              </span>
+              Choose destination
+            </span>
+            <span className="h-px flex-1 bg-gray-200" />
+            <span
+              className={`flex items-center gap-2 ${selectedParentId || targetType === 'same_template' ? 'text-blue-700' : 'text-gray-400'}`}
+            >
+              <span
+                className={`flex h-6 w-6 items-center justify-center rounded-full ${selectedParentId || targetType === 'same_template' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-400'}`}
+              >
+                2
+              </span>
+              Select target days
+            </span>
+          </div>
+
           {targetType !== 'same_template' && !selectedParentId && (
-            <div className="space-y-2">
-              <input
-                className="w-full border rounded-lg p-3 text-sm"
-                placeholder={
-                  targetType === 'client'
-                    ? 'Search clients'
-                    : 'Search workout templates'
-                }
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-              <div className="max-h-64 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-2">
+            <div className="space-y-3">
+              <div className="relative">
+                <input
+                  className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 pl-10 text-sm outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
+                  placeholder={
+                    targetType === 'client'
+                      ? 'Search clients by name'
+                      : 'Search workout templates by name'
+                  }
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+                <span className="absolute left-3 top-3.5 text-gray-400">⌕</span>
+              </div>
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>
+                  {targetType === 'client'
+                    ? 'Select a subscription'
+                    : 'Select a destination template'}
+                </span>
+                <span>
+                  {
+                    parentOptions.filter((item) =>
+                      String(item?.name || item?.user_name || '')
+                        .toLowerCase()
+                        .includes(search.toLowerCase())
+                    ).length
+                  }{' '}
+                  available
+                </span>
+              </div>
+              <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
                 {loading && (
-                  <div className="text-sm text-gray-500">Loading...</div>
+                  <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-gray-500">
+                    Loading destinations...
+                  </div>
                 )}
+                {!loading &&
+                  parentOptions.filter((item) =>
+                    String(item?.name || item?.user_name || '')
+                      .toLowerCase()
+                      .includes(search.toLowerCase())
+                  ).length === 0 && (
+                    <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-gray-500">
+                      No destinations found.
+                    </div>
+                  )}
                 {parentOptions
                   .filter((item) =>
                     String(item?.name || item?.user_name || '')
@@ -246,7 +316,7 @@ export default function CopyExercisesDialog({
                     <button
                       type="button"
                       key={item.id}
-                      className="text-left border rounded-lg p-3 hover:border-primaryGreen"
+                      className="group rounded-xl border border-gray-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-blue-400 hover:shadow-md"
                       onClick={() => {
                         setTargets([])
                         setSelectedTargetIds([])
@@ -254,24 +324,64 @@ export default function CopyExercisesDialog({
                         setSelectedParentId(String(item.id))
                       }}
                     >
-                      <div className="font-medium">
-                        {item.name || item.user_name}
-                      </div>
-                      {targetType === 'client' && (
-                        <div className="text-xs text-gray-500">
-                          {item.start_date} – {item.end_date}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-gray-900">
+                            {item.name || item.user_name}
+                          </p>
+                          {targetType === 'client' ? (
+                            <p className="mt-1 text-xs text-gray-500">
+                              Subscription dates: {item.start_date} –{' '}
+                              {item.end_date}
+                            </p>
+                          ) : (
+                            <p className="mt-1 text-xs text-gray-500">
+                              {item.description || 'Workout template'}
+                            </p>
+                          )}
+                          {targetType !== 'client' && (
+                            <div className="mt-2 flex gap-3 text-[11px] text-gray-500">
+                              <span>{item.duration_days || 0} days</span>
+                              <span>{item.days_count || 0} generated days</span>
+                            </div>
+                          )}
                         </div>
-                      )}
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600 transition group-hover:bg-blue-600 group-hover:text-white">
+                          →
+                        </span>
+                      </div>
                     </button>
                   ))}
               </div>
             </div>
           )}
+
           {targetType !== 'same_template' && selectedParentId && (
-            <div className="space-y-1">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  Destination selected
+                </p>
+                <p className="truncate text-sm font-semibold text-gray-900">
+                  {selectedClientTarget?.user_name ||
+                    parents.find(
+                      (item) => String(item.id) === String(selectedParentId)
+                    )?.name ||
+                    parents.find(
+                      (item) => String(item.id) === String(selectedParentId)
+                    )?.user_name}
+                </p>
+                {targetType === 'client' && selectedClientTarget && (
+                  <p className="mt-1 text-xs text-gray-500">
+                    Subscription: {selectedClientTarget.subscription_start_date}{' '}
+                    – {selectedClientTarget.subscription_end_date} ·{' '}
+                    {clientTargetSummary}
+                  </p>
+                )}
+              </div>
               <button
                 type="button"
-                className="text-sm text-blue-600 hover:underline"
+                className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition hover:border-blue-400 hover:text-blue-700"
                 onClick={() => {
                   setSelectedParentId('')
                   setSelectedClientTarget(null)
@@ -281,66 +391,99 @@ export default function CopyExercisesDialog({
               >
                 Change selection
               </button>
-              {targetType === 'client' && selectedClientTarget && (
-                <div className="text-xs text-gray-500">
-                  Subscription: {selectedClientTarget.subscription_start_date} –{' '}
-                  {selectedClientTarget.subscription_end_date} ·{' '}
-                  {clientTargetSummary}
+            </div>
+          )}
+
+          {(targetType === 'same_template' || selectedParentId) && (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">
+                    Select target days
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Source exercises will replace the exercises in each selected
+                    target day.
+                  </p>
+                </div>
+                <span
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold ${selectionValid ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'}`}
+                >
+                  {selectionMessage}
+                </span>
+              </div>
+              {loading && (
+                <div className="rounded-lg border border-dashed p-8 text-center text-sm text-gray-500">
+                  Loading target days...
+                </div>
+              )}
+              {!loading && dayOptions.length > 0 && (
+                <div className="grid max-h-72 grid-cols-1 gap-2 overflow-y-auto rounded-xl bg-gray-50 p-2 pr-1 md:grid-cols-2">
+                  {dayOptions.map((day) => {
+                    const isSourceDay =
+                      targetType === 'same_template' &&
+                      selectedSourceDayIds.map(String).includes(String(day.id))
+                    const checked = selectedTargetIds.includes(String(day.id))
+                    return (
+                      <label
+                        key={day.id}
+                        className={`group flex cursor-pointer items-center gap-3 rounded-lg border bg-white px-3 py-3 transition ${isSourceDay ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400' : checked ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/40'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          disabled={isSourceDay}
+                          checked={checked}
+                          onChange={() => toggleTarget(day.id)}
+                          className="h-4 w-4 accent-blue-600"
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-medium">
+                            {day.title || `Day ${day.day_number}`}
+                          </span>
+                          <span className="mt-0.5 block text-xs text-gray-500">
+                            Day {day.day_number}
+                            {day.target_date ? ` · ${day.target_date}` : ''}
+                            {isSourceDay ? ' · Source day' : ''}
+                          </span>
+                        </span>
+                        {checked && <span className="text-blue-600">✓</span>}
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+              {!loading && dayOptions.length === 0 && (
+                <div className="rounded-lg border border-dashed border-amber-200 bg-amber-50 p-5 text-center text-sm text-amber-700">
+                  No target days available for this destination.
+                </div>
+              )}
+              <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+                <div
+                  className={`h-full rounded-full transition-all ${selectionValid ? 'bg-emerald-500' : 'bg-blue-500'}`}
+                  style={{
+                    width: `${Math.min(100, sourceCount ? (selectedTargetIds.length / sourceCount) * 100 : 0)}%`,
+                  }}
+                />
+              </div>
+              {!selectionValid && (
+                <p className="text-xs font-medium text-rose-600">
+                  Select at least {sourceCount} target{' '}
+                  {sourceCount === 1 ? 'day' : 'days'} to continue.
+                </p>
+              )}
+              {error && (
+                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+                  {error}
                 </div>
               )}
             </div>
           )}
-          {dayOptions.length > 0 && (
-            <div className="space-y-2">
-              <div className="font-semibold text-sm">Select target days</div>
-              <div className="max-h-72 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-2">
-                {dayOptions.map((day) => {
-                  const isSourceDay =
-                    targetType === 'same_template' &&
-                    selectedSourceDayIds.map(String).includes(String(day.id))
-                  return (
-                    <label
-                      key={day.id}
-                      className={`flex items-center gap-3 border rounded-lg p-3 ${isSourceDay ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'cursor-pointer'}`}
-                    >
-                      <input
-                        type="checkbox"
-                        disabled={isSourceDay}
-                        checked={selectedTargetIds.includes(String(day.id))}
-                        onChange={() => toggleTarget(day.id)}
-                      />
-                      <span>
-                        {day.title || `Day ${day.day_number}`}
-                        {day.target_date && (
-                          <span className="ml-2 text-xs text-gray-500">
-                            ({day.target_date})
-                          </span>
-                        )}
-                        {isSourceDay && (
-                          <span className="ml-2 text-xs">(source day)</span>
-                        )}
-                      </span>
-                    </label>
-                  )
-                })}
-              </div>
-              <div
-                className={`text-xs ${selectedTargetIds.length >= sourceCount ? 'text-gray-500' : 'text-red-600'}`}
-              >
-                {selectedTargetIds.length} selected / minimum {sourceCount}{' '}
-                required
-              </div>
+
+          {!selectedParentId && targetType !== 'same_template' && error && (
+            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+              {error}
             </div>
           )}
-          {!loading &&
-            targetType !== 'same_template' &&
-            selectedParentId &&
-            dayOptions.length === 0 && (
-              <div className="text-sm text-gray-500">
-                No target days available.
-              </div>
-            )}
-          {error && <div className="text-sm text-red-600">{error}</div>}
         </div>
       }
     />
