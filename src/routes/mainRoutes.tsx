@@ -75,6 +75,11 @@ const WorkoutTemplateDetails = lazy(
 const WorkoutTemplateDayDetails = lazy(
   () => import('../pages/WorkoutTemplate/DayDetails')
 )
+const YogaTemplateMain = lazy(() => import('../pages/YogaTemplate'))
+const YogaTemplateDetails = lazy(() => import('../pages/YogaTemplate/Details'))
+const YogaTemplateDayDetails = lazy(
+  () => import('../pages/YogaTemplate/DayDetails')
+)
 const DietTemplateCategories = lazy(
   () => import('../pages/DietTemplateCategories')
 )
@@ -96,6 +101,9 @@ const routes: any = [
   { slug: 'WORKOUT_TEMPLATE', component: <WorkoutTemplateMain /> },
   { slug: 'WORKOUT_TEMPLATE_DETAILS', component: <WorkoutTemplateDetails /> },
   { slug: 'WORKOUT_TEMPLATE_DAY', component: <WorkoutTemplateDayDetails /> },
+  { slug: 'YOGA_TEMPLATE', component: <YogaTemplateMain /> },
+  { slug: 'YOGA_TEMPLATE_DETAILS', component: <YogaTemplateDetails /> },
+  { slug: 'YOGA_TEMPLATE_DAY', component: <YogaTemplateDayDetails /> },
   { slug: 'DIET_TEMPLATE_CATEGORIES', component: <DietTemplateCategories /> },
   { slug: 'DIET_TEMPLATE_DETAILS', component: <DietTemplateDetails /> },
   { slug: 'DIET_TEMPLATE_DIET_PLAN', component: <DietTemplateDetails /> },

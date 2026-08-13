@@ -21,6 +21,7 @@ import { useSnackbarManager } from '../../../components/common/snackbar'
 import { getErrorMessage } from '../../../utilities/parsers'
 import { assignDietPlanTemplate, useUpdateUserMealTiming } from '../api'
 import WorkoutTemplateAssign from '../../WorkoutTemplate/Assign'
+import YogaTemplateAssign from '../../YogaTemplate/Assign'
 import { useMutation } from '@tanstack/react-query'
 
 interface DayDetailTabsSectionProps {
@@ -264,7 +265,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   }
 
   const hasYogaData = useMemo(() => {
-    return !!dayDetail?.yoga_plan
+    return !!(
+      dayDetail?.yoga_plan ||
+      dayDetail?.yoga_template ||
+      dayDetail?.subscription?.yoga_template_name
+    )
   }, [dayDetail])
   useEffect(() => {
     if (!hasYogaData && dayDetailTab === 'yoga') {
@@ -1088,8 +1093,18 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
             </div>
           </Tab>
 
-          {dayDetail?.yoga_plan && (
+          {(dayDetail?.yoga_plan ||
+            dayDetail?.yoga_template ||
+            dayDetail?.subscription?.yoga_template_name) && (
             <Tab id="yoga">
+              <YogaTemplateAssign
+                subscriptionId={subscriptionId}
+                currentName={
+                  dayDetail?.yoga_template?.name ||
+                  dayDetail?.subscription?.yoga_template_name
+                }
+                onAssigned={refreshDayDetail as any}
+              />
               <div className="max-h-[700px] overflow-y-auto">
                 <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
                   <div className="flex items-center justify-between mb-2 gap-3">
