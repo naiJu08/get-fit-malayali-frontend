@@ -555,7 +555,7 @@ export default function CreateAdmin({
   const formBuilderProps = useMemo(
     () => [
       {
-        ...textField('name', 'Name', 'Enter workout name', true),
+        ...textField('name', 'Name', 'Enter exercise name', true),
         maxLength: 50,
       },
       {
@@ -892,10 +892,10 @@ export default function CreateAdmin({
         onClose={() => handleClearAndClose()}
         title={
           edit
-            ? 'Edit Workout'
+            ? 'Edit Exercise'
             : viewMode
-              ? 'Workout Details'
-              : 'Create Workout'
+              ? 'Exercise Details'
+              : 'Create Exercise'
         }
         actionLabel={viewMode ? 'Edit' : 'Save'}
         actionDisabled={isCompressingVideo}

@@ -347,7 +347,7 @@ export default function CreateAdmin({
   const formBuilderProps = useMemo(
     () => [
       {
-        ...textField('name', 'Name', 'Enter workout name', true),
+        ...textField('name', 'Name', 'Enter exercise name', true),
         maxlength: 50,
       },
       {

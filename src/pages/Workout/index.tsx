@@ -189,7 +189,7 @@ export default function WorkoutMain() {
     refetch()
   }
   const basicData = {
-    title: 'Workouts',
+    title: 'Exercises',
     icon: 'workout',
   }
   const openDrawer = () => {
@@ -198,7 +198,7 @@ export default function WorkoutMain() {
     setCreateOpen(true)
   }
   const headerProps = {
-    actionTitle: 'Create Workout',
+    actionTitle: 'Create Exercise',
   }
   const handleSort = (orderColumn: any, orderDirection: any) => {
     if (!orderColumn || !orderDirection) {
@@ -382,7 +382,7 @@ export default function WorkoutMain() {
                   : calcWindowHeight(150)
               }
               search={true}
-              searchPlaceholder="Search Workout Name"
+              searchPlaceholder="Search Exercise Name"
               searchValue={pageParams?.search || ''}
               onSearchChange={(val) => {
                 setPageParams({ ...pageParams, search: val, page: 1 })

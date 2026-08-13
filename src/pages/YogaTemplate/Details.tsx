@@ -97,7 +97,9 @@ export default function YogaTemplateDetails() {
           <button
             type="button"
             className="text-blue-600 hover:underline"
-            onClick={() => navigate(`/yoga-templates/${id}/day/${row.id}`)}
+            onClick={() =>
+              navigate(`/yoga-templates/${id}/day/${row.id}?tab=assign`)
+            }
           >
             {row.title || `Day ${row.day_number}`}
           </button>
@@ -210,7 +212,7 @@ export default function YogaTemplateDetails() {
                 title: 'View',
                 toolTip: 'View',
                 action: (row: any) =>
-                  navigate(`/yoga-templates/${id}/day/${row.id}`),
+                  navigate(`/yoga-templates/${id}/day/${row.id}?tab=assign`),
               },
               {
                 icon: <Icons name="edit" />,

@@ -297,7 +297,7 @@ export default function WorkoutPlanDetails() {
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
   const currentTab = (
-    searchParams.get('tab') === 'assign' ? 'assign' : 'details'
+    searchParams.get('tab') === 'details' ? 'details' : 'assign'
   ) as 'details' | 'assign'
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
@@ -1332,9 +1332,9 @@ export default function WorkoutPlanDetails() {
               data={tabs}
               activeTab={currentTab}
               onClick={(item) => {
-                const next = item.id === 'assign' ? 'assign' : 'details'
+                const next = item.id === 'details' ? 'details' : 'assign'
                 // preserve current pathname; update tab query param
-                setSearchParams(next === 'assign' ? { tab: 'assign' } : {})
+                setSearchParams({ tab: next })
               }}
             >
               <Tab id="details">
