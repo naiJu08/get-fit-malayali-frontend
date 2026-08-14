@@ -12,7 +12,6 @@ import GuestRoute from './components/guestRoute'
 import UserRoute from './components/userRoute'
 import SubscriptionDetailsMain from '../pages/Subscriptions/Details'
 import PaymentHistory from '../pages/PaymentHistory'
-import YogaPlanDetails from '../pages/Plans/Details/YogaPlan/details'
 import DietTemplateDetails from '../pages/DietTemplate/Details'
 import MealTimingMain from '../pages/MealTiming'
 import MealTimingDetails from '../pages/MealTiming/Details'
@@ -30,9 +29,6 @@ const Subscriptions = lazy(() => import('../pages/Subscriptions'))
 const Workout = lazy(() => import('../pages/Workout'))
 const Plans = lazy(() => import('../pages/Plans'))
 const PlanDetails = lazy(() => import('../pages/Plans/Details/index'))
-const WorkoutPlanDetails = lazy(
-  () => import('../pages/Plans/Details/WorkoutPlan/details')
-)
 const DietPlanDetails = lazy(
   () => import('../pages/DietTemplate/Details/DietPlanTab/details')
 )
@@ -107,11 +103,8 @@ const routes: any = [
   { slug: 'DIET_TEMPLATE_CATEGORIES', component: <DietTemplateCategories /> },
   { slug: 'DIET_TEMPLATE_DETAILS', component: <DietTemplateDetails /> },
   { slug: 'DIET_TEMPLATE_DIET_PLAN', component: <DietTemplateDetails /> },
-  { slug: 'WORKOUT_PLAN_DETAILS', component: <WorkoutPlanDetails /> },
   { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
-  { slug: 'YOGAPLAN', component: <PlanDetails /> },
   { slug: 'MEDITATIONPLAN', component: <PlanDetails /> },
-  { slug: 'YOGAPLAN_DETAILS', component: <YogaPlanDetails /> },
   { slug: 'RECIPE', component: <Recipe /> },
   { slug: 'MEALS', component: <Meals /> },
   { slug: 'MEALS_DETAILS', component: <MealsDetails /> },
@@ -126,7 +119,6 @@ const routes: any = [
   { slug: 'WORKOUT_DETAILS', component: <WorkoutDetails /> },
   { slug: 'YOGA_DETAILS', component: <YogaDetails /> },
   { slug: 'MEDITATION_DETAILS', component: <MeditationDetails /> },
-  { slug: 'PLAN_DETAILS_WORKOUT', component: <PlanDetails /> },
   { slug: 'PLAN_DETAILS_DIET', component: <PlanDetails /> },
   { slug: 'PAYMENT_HISTORY', component: <PaymentHistory /> },
   { slug: 'REMINDER_SETTINGS', component: <UserDetails /> },

@@ -84,8 +84,16 @@ export const formSchema = z
 
     subcategory: z.string().optional(),
     subcategory_id: z.coerce.number().optional(),
+    subcategory_ids: z.array(z.any()).optional(),
 
-    video_url: z.string().optional(), // added support for existing video
+    video_source: z.enum(['file', 'url']),
+
+    video_url: z
+      .string()
+      .trim()
+      .refine((value) => value === '' || /^https?:\/\//i.test(value), {
+        message: 'Enter a valid YouTube or video URL.',
+      }),
 
     video_file: z
       .any()

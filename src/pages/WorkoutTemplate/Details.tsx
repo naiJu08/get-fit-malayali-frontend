@@ -143,21 +143,29 @@ export default function WorkoutTemplateDetails() {
               Edit Template
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="border rounded-lg p-3 bg-white">
-              <div className="text-xs text-gray-500 mb-1">Name</div>
+              <div className="text-xs text-gray-500 mb-1">Template Name</div>
               <div className="text-sm">{template.name || '--'}</div>
             </div>
             <div className="border rounded-lg p-3 bg-white">
-              <div className="text-xs text-gray-500 mb-1">Duration (Days)</div>
-              <div className="text-sm">{template.duration_days ?? '--'}</div>
+              <div className="text-xs text-gray-500 mb-1">Intensity Level</div>
+              <div className="text-sm">{template.intensity_level || '--'}</div>
             </div>
             <div className="border rounded-lg p-3 bg-white">
-              <div className="text-xs text-gray-500 mb-1">
-                Guideline Content
-              </div>
+              <div className="text-xs text-gray-500 mb-1">Days</div>
+              <div className="text-sm">{template.duration_days ?? '--'}</div>
+            </div>
+            <div className="border rounded-lg p-3 bg-white md:col-span-2 lg:col-span-3">
+              <div className="text-xs text-gray-500 mb-1">Description</div>
               <div className="text-sm whitespace-pre-wrap">
-                {template.description || template.guideline_content || '--'}
+                {template.description || '--'}
+              </div>
+            </div>
+            <div className="border rounded-lg p-3 bg-white md:col-span-2 lg:col-span-3">
+              <div className="text-xs text-gray-500 mb-1">Notes</div>
+              <div className="text-sm whitespace-pre-wrap">
+                {template.notes || '--'}
               </div>
             </div>
           </div>

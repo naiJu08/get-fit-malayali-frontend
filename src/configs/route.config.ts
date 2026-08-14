@@ -384,7 +384,7 @@ const WORKOUT_DETAILS: RouterMenuProps = {
   parent_id: 25,
   isDetails: true,
   icon: 'user',
-  label: 'Workout Details',
+  label: 'Exercise Details',
   key: 'workout-details',
   permission_slugs: [],
 }
@@ -464,17 +464,6 @@ const PLAN_DETAILS_DETAILS: RouterMenuProps = {
   permission_slugs: [],
 }
 
-const PLAN_DETAILS_WORKOUT: RouterMenuProps = {
-  id: 222,
-  path: '/plans/:id/workout-plan',
-  parent_id: 21,
-  isDetails: true,
-  icon: 'user',
-  label: 'Plan Details - Workout',
-  key: 'plan-details-workout',
-  permission_slugs: [],
-}
-
 const PLAN_DETAILS_DIET: RouterMenuProps = {
   id: 223,
   path: '/plans/:id/dietplan',
@@ -525,29 +514,6 @@ const MEALS_DETAILS: RouterMenuProps = {
   isSidebarMenu: true,
 }
 
-const WORKOUT_PLAN_DETAILS: RouterMenuProps = {
-  id: 26,
-  path: '/plans/:plan_id/workout_details/:id',
-  parent_id: 21,
-  isDetails: true,
-  icon: 'user',
-  label: 'Workout plan Details',
-  key: 'workout-details',
-  permission_slugs: [],
-  breadcrumb: ['PLANS', 'PLAN_DETAILS'],
-}
-const YOGAPLAN_DETAILS: RouterMenuProps = {
-  id: 26,
-  path: '/plans/:plan_id/yoga_details/:id',
-  parent_id: 21,
-  isDetails: true,
-  icon: 'user',
-  label: 'Yogaplan Details',
-  key: 'yogaplan-details',
-  permission_slugs: [],
-  breadcrumb: ['PLANS', 'PLAN_DETAILS'],
-}
-
 const DIET_DETAILS: RouterMenuProps = {
   id: 27,
   path: '/diet_details/:id',
@@ -558,16 +524,6 @@ const DIET_DETAILS: RouterMenuProps = {
   key: 'diet-details',
   permission_slugs: [],
   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
-}
-const YOGAPLAN: RouterMenuProps = {
-  id: 224,
-  path: '/plans/:id/yogaplan',
-  parent_id: 21,
-  isDetails: true,
-  icon: 'user',
-  label: 'Yogaplan',
-  key: 'yogaplan',
-  permission_slugs: [],
 }
 const MEDITATIONPLAN: RouterMenuProps = {
   id: 225,
@@ -656,11 +612,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   // Other details / routes
   PLAN_DETAILS,
   PLAN_DETAILS_DETAILS,
-  PLAN_DETAILS_WORKOUT,
   PLAN_DETAILS_DIET,
-  YOGAPLAN,
-  YOGAPLAN_DETAILS,
-  WORKOUT_PLAN_DETAILS,
   REMINDER_SETTINGS,
   USER_ADDITIONAL_INFO,
   DIET_DETAILS,

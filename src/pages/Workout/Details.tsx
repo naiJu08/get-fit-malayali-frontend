@@ -22,7 +22,7 @@ export default function UserDetails() {
       setData(res)
       setError('')
     } catch (e: any) {
-      setError(e?.response?.data?.message || 'Failed to load user')
+      setError(e?.response?.data?.message || 'Failed to load exercise')
     } finally {
       setLoading(false)
     }
@@ -95,7 +95,7 @@ export default function UserDetails() {
 
         {loading && (
           <div className="p-6">
-            <InfoBox content="Loading user details..." />
+            <InfoBox content="Loading exercise details..." />
           </div>
         )}
         {error && !loading && (

@@ -102,13 +102,13 @@ export default function WorkoutMain() {
     try {
       setDeletingWorkout(true)
       await deleteWorkout(String(rowData.id))
-      enqueueSnackbar('Workout deleted successfully', { variant: 'success' })
+      enqueueSnackbar('Exercise deleted successfully', { variant: 'success' })
       setDeleteWorkoutModal(false)
       setWorkoutToDelete(null)
       refetch()
     } catch (err: any) {
       // Extract error message from response
-      let errorMessage = 'Failed to delete workout'
+      let errorMessage = 'Failed to delete exercise'
 
       if (err?.response?.data?.errors) {
         // If response has errors array, use the first error

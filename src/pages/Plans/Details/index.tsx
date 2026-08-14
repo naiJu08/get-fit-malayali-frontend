@@ -3,9 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { usePlan } from '../api'
 import Icons from '../../../components/common/icons'
 import InfoBox from '../../../components/app/alertBox/infoBox'
-import WorkoutPlanIndex from './WorkoutPlan'
 import DietPlanIndex from './DietPlan'
-import YogaPlanIndex from './YogaPlan'
 import MeditationPlanIndex, {
   MeditationAssignCTAConfig,
 } from './MeditationPlan'
@@ -13,19 +11,9 @@ import DetailsInfo from './DetailsInfo'
 import CreatePlan from '../create'
 import { Tab, TabContainer } from '../../../components/common/tab'
 
-function WorkoutTab(props: { planName?: string; planId?: string | number }) {
-  const { planName, planId } = props
-  return <WorkoutPlanIndex planName={planName} planId={planId} />
-}
-
 function DietTab(props: { planName?: string; planId?: string | number }) {
   const { planName, planId } = props
   return <DietPlanIndex planName={planName} planId={planId} />
-}
-
-function YogaTab(props: { planName?: string; planId?: string | number }) {
-  const { planName, planId } = props
-  return <YogaPlanIndex planName={planName} planId={planId} />
 }
 
 function MeditationTab(props: {
@@ -67,15 +55,6 @@ function PlanDetailsContent() {
 
   const plan = (data as any)?.plan ?? (data as any) ?? {}
 
-  const hasYogaPlan = useMemo(() => {
-    const yogaFlag = plan?.yoga_included
-    if (typeof yogaFlag === 'string') {
-      const normalized = yogaFlag.trim().toLowerCase()
-      return normalized === 'true' || normalized === '1'
-    }
-    return Boolean(yogaFlag)
-  }, [plan?.yoga_included])
-
   const hasMeditationPlan = useMemo(() => {
     const medFlag = plan?.meditation_included
     if (typeof medFlag === 'string') {
@@ -89,14 +68,12 @@ function PlanDetailsContent() {
   const tabs = useMemo(() => {
     const baseTabs: TabConfig[] = [
       { id: 'details', label: 'Details' },
-      { id: 'workout-plan', label: 'Workout Plan' },
       // { id: 'dietplan', label: 'Diet Plan' },
     ]
-    if (hasYogaPlan) baseTabs.push({ id: 'yogaplan', label: 'Yoga Plan' })
     if (hasMeditationPlan)
       baseTabs.push({ id: 'meditationplan', label: 'Meditations' })
     return baseTabs
-  }, [hasYogaPlan, hasMeditationPlan])
+  }, [hasMeditationPlan])
 
   // Derive active tab from URL (like User Details)
   const path = location.pathname || ''
@@ -167,17 +144,9 @@ function PlanDetailsContent() {
             onEdit={() => setEditModalOpen(true)}
           />
         </Tab>
-        <Tab id="workout-plan">
-          <WorkoutTab planName={plan?.name} planId={id} />
-        </Tab>
         <Tab id="dietplan">
           <DietTab planName={plan?.name} planId={id} />
         </Tab>
-        {hasYogaPlan && (
-          <Tab id="yogaplan">
-            <YogaTab planName={plan?.name} planId={id} />
-          </Tab>
-        )}
         {hasMeditationPlan && (
           <Tab id="meditationplan">
             <MeditationTab

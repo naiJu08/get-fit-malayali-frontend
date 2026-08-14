@@ -88,14 +88,6 @@ export default function DetailsInfo({
             <DetailItem label="Status" value={mapActive(plan?.active)} />
             <DetailItem label="Fees" value={renderFees(plan?.fees)} />
             <DetailItem
-              label="Workout Plans"
-              value={safeStr(plan?.workout_plans_count)}
-            />
-            <DetailItem
-              label="Yoga Plans"
-              value={safeStr(plan?.yoga_plans_count)}
-            />
-            <DetailItem
               label="Meditation Plans"
               value={safeStr(plan?.meditations_count)}
             />
