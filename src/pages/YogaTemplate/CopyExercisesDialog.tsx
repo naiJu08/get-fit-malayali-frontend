@@ -287,7 +287,7 @@ export default function CopyExercisesDialog({
                   available
                 </span>
               </div>
-              <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto pr-1 md:grid-cols-2">
+              <div className="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto p-1 md:grid-cols-2">
                 {loading && (
                   <div className="col-span-full rounded-lg border border-dashed p-8 text-center text-sm text-gray-500">
                     Loading destinations...
@@ -313,7 +313,7 @@ export default function CopyExercisesDialog({
                     <button
                       type="button"
                       key={item.id}
-                      className="group rounded-xl border border-gray-200 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-blue-400 hover:shadow-md"
+                      className="group rounded-xl border border-gray-200 bg-white p-4 text-left transition hover:border-blue-400 hover:shadow-md"
                       onClick={() => {
                         setTargets([])
                         setSelectedTargetIds([])
