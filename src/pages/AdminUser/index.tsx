@@ -33,6 +33,41 @@ import CreateAdmin from './create'
 import { useAuthStore } from '../../store/authStore'
 
 type StatusFilterValue = 'all' | 'active' | 'deactivated'
+type UserRole =
+  | 'user'
+  | 'nutritionist'
+  | 'physiotherapist'
+  | 'yogist'
+  | 'sales'
+  | 'marketing'
+  | 'inactive-user'
+const ROLE_PATHS: Record<UserRole, string> = {
+  user: '/users',
+  nutritionist: '/users/nutritionist',
+  physiotherapist: '/users/physiotherapist',
+  yogist: '/users/yogist',
+  sales: '/users/sales',
+  marketing: '/users/marketing',
+  'inactive-user': '/admin/inactive-users',
+}
+const ROLE_LABELS: Record<UserRole, string> = {
+  user: 'Client',
+  nutritionist: 'Nutritionist',
+  physiotherapist: 'Physiotherapist',
+  yogist: 'Yogist',
+  sales: 'Sales',
+  marketing: 'Marketing',
+  'inactive-user': 'Inactive Users',
+}
+const ROLE_HEADER_LABELS: Record<UserRole, string> = {
+  user: 'Clients',
+  nutritionist: 'Nutritionists',
+  physiotherapist: 'Physiotherapists',
+  yogist: 'Yogists',
+  sales: 'Sales',
+  marketing: 'Marketing',
+  'inactive-user': 'Inactive Clients',
+}
 
 export default function AdminUser() {
   const navigate = useNavigate()
@@ -65,9 +100,7 @@ export default function AdminUser() {
   } | null>(null)
 
   const params = useParams()
-  const [activeRole, setActiveRole] = useState<
-    'user' | 'nutritionist' | 'inactive-user'
-  >('user')
+  const [activeRole, setActiveRole] = useState<UserRole>('user')
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
@@ -81,11 +114,18 @@ export default function AdminUser() {
   }
   useEffect(() => {
     const path = location.pathname || ''
-    if (path.startsWith('/users/nutritionist')) {
-      setActiveRole('nutritionist')
-    } else if (path.startsWith('/users')) {
-      setActiveRole('user')
-    }
+    const role = (
+      [
+        'nutritionist',
+        'physiotherapist',
+        'yogist',
+        'sales',
+        'marketing',
+        'inactive-user',
+        'user',
+      ] as UserRole[]
+    ).find((key) => path.startsWith(ROLE_PATHS[key]))
+    setActiveRole(role || 'user')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname])
 
@@ -140,8 +180,7 @@ export default function AdminUser() {
       getColumns({
         onViewAction: onViewAction,
         onNameClick: (row: any) => {
-          const base =
-            activeRole === 'nutritionist' ? '/users/nutritionist' : '/users'
+          const base = ROLE_PATHS[activeRole]
           navigate(`${base}/${row?.id}`)
         },
         activeRole,
@@ -344,17 +383,14 @@ export default function AdminUser() {
     refetch()
   }
   const basicData = {
-    title: 'Users',
+    title: ROLE_HEADER_LABELS[activeRole],
     icon: 'user',
   }
   const openDrawer = () => {
     setCreateOpen(true)
     setRowData({})
   }
-  const headerProps = {
-    actionTitle:
-      activeRole === 'nutritionist' ? 'Create Nutritionist' : 'Create Client',
-  }
+  const headerProps = { actionTitle: 'Create ' + ROLE_LABELS[activeRole] }
   const handleSort = (orderColumn: any, orderDirection: any) => {
     setPageParams({
       ...pageParams,
@@ -398,56 +434,40 @@ export default function AdminUser() {
             actionProps={headerProps}
             checkPermission={checkPermissions('Employee', 'create')}
           />
-          {/* Role Tabs with action on the right */}
+          {/* Clients keep the Client / Inactive Clients tabs; other roles are standalone pages. */}
           <div className="px-4">
             <div className="flex items-center justify-between">
-              <div className="flex gap-4 border-b">
-                <button
-                  type="button"
-                  className={`px-3 py-2 -mb-px ${
-                    activeRole === 'user'
-                      ? 'border-b-2 border-blue-600 text-blue-600'
-                      : 'text-gray-600'
-                  }`}
-                  onClick={() => navigate('/users')}
-                >
-                  Client
-                </button>
-                {loginRole !== 'nutritionist' && (
+              {activeRole === 'user' ? (
+                <div className="flex gap-4 border-b">
                   <button
                     type="button"
-                    className={`px-3 py-2 -mb-px ${
-                      activeRole === 'nutritionist'
+                    className={
+                      'px-3 py-2 -mb-px ' +
+                      (activeRole === 'user'
                         ? 'border-b-2 border-blue-600 text-blue-600'
-                        : 'text-gray-600'
-                    }`}
-                    onClick={() => navigate('/users/nutritionist')}
+                        : 'text-gray-600')
+                    }
+                    onClick={() => navigate('/users')}
                   >
-                    Nutritionist
+                    Client
                   </button>
-                )}
-                <button
-                  type="button"
-                  className={`px-3 py-2 -mb-px ${
-                    activeRole === 'inactive-user'
-                      ? 'border-b-2 border-blue-600 text-blue-600'
-                      : 'text-gray-600'
-                  }`}
-                  onClick={() => navigate('/admin/inactive-users')}
-                >
-                  Inactive Users
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    className={'px-3 py-2 -mb-px text-gray-600'}
+                    onClick={() => navigate('/admin/inactive-users')}
+                  >
+                    Inactive Clients
+                  </button>
+                </div>
+              ) : (
+                <div />
+              )}
 
               {loginRole !== 'nutritionist' &&
                 checkPermissions('Employee', 'create') && (
                   <Button
                     className="bg-primaryGreen mt-4"
-                    label={
-                      activeRole === 'nutritionist'
-                        ? 'Create Nutritionist'
-                        : 'Create Client'
-                    }
+                    label={'Create ' + ROLE_LABELS[activeRole]}
                     icon={'plus'}
                     onClick={openDrawer}
                   />
@@ -480,9 +500,9 @@ export default function AdminUser() {
                 }
                 search={true}
                 searchPlaceholder={
-                  activeRole === 'nutritionist'
-                    ? 'Search Nutritionist Name'
-                    : 'Search Client Name'
+                  activeRole === 'user'
+                    ? 'Search Client Name'
+                    : 'Search ' + ROLE_LABELS[activeRole] + ' Name'
                 }
                 height={
                   data?.items?.length === 0
@@ -509,10 +529,7 @@ export default function AdminUser() {
                   {
                     icon: <Icons name="eye" />,
                     action: (row) => {
-                      const base =
-                        activeRole === 'nutritionist'
-                          ? '/users/nutritionist'
-                          : '/users'
+                      const base = ROLE_PATHS[activeRole]
                       navigate(`${base}/${row?.id}`)
                     },
                     title: 'View',

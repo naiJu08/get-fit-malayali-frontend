@@ -25,6 +25,7 @@ export const formSchema = z
     //   .min(1, { message: 'Required.' })
     //   .url({ message: 'Enter a valid URL' }),
     video_url: z.string().optional(), // added support for existing video
+    video_source: z.enum(['file', 'url']).default('file'),
 
     video_file: z
       .any()

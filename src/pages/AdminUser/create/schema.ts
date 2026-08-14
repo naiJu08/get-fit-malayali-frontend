@@ -26,6 +26,15 @@ const foodAllergiesFieldSchema = z.union([
   z.array(z.union([z.string(), selectLikeOptionSchema])),
 ])
 
+const optionalNumberField = z.preprocess((value) => {
+  if (value === '' || value === null || value === undefined) return undefined
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isNaN(parsed) ? value : parsed
+  }
+  return value
+}, z.number().min(10).max(999).optional())
+
 export const formSchema = z
   .object({
     name: z
@@ -216,16 +225,8 @@ export const formSchemaNutritionist = z
       ])
     ),
     // Optional fields for Nutritionist
-    height: z
-      .number()
-      .min(10, { message: 'Height should contain at least 2 digits.' })
-      .max(999, { message: 'Height should not exceed 3 digits.' })
-      .optional(),
-    weight: z
-      .number()
-      .min(10, { message: 'Weight should contain at least 2 digits.' })
-      .max(999, { message: 'Weight should not exceed 3 digits.' })
-      .optional(),
+    height: optionalNumberField,
+    weight: optionalNumberField,
     lifestyle: z.string().optional(),
     goal: z.string().optional(),
     food_preferences: z.string().optional(),
@@ -306,16 +307,8 @@ export const formSchemaNutritionistEdit = z
       z.string().min(1, { message: 'Required.' }),
       z.date({ invalid_type_error: 'Required.' }),
     ]),
-    height: z
-      .number()
-      .min(10, { message: 'Height should contain at least 2 digits.' })
-      .max(999, { message: 'Height should not exceed 3 digits.' })
-      .optional(),
-    weight: z
-      .number()
-      .min(10, { message: 'Weight should contain at least 2 digits.' })
-      .max(999, { message: 'Weight should not exceed 3 digits.' })
-      .optional(),
+    height: optionalNumberField,
+    weight: optionalNumberField,
     lifestyle: z.string().optional(),
     goal: z.string().optional(),
     food_preferences: z.string().optional(),

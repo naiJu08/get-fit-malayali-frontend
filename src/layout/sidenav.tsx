@@ -12,6 +12,14 @@ interface SidebarMenuProps extends Omit<RouterMenuProps, 'hasChild'> {
   hasChild?: RouterMenuProps[]
 }
 
+const ROLE_USER_PATHS = [
+  '/users/nutritionist',
+  '/users/physiotherapist',
+  '/users/yogist',
+  '/users/sales',
+  '/users/marketing',
+]
+
 const generateArray = (m: {
   [key: string]: RouterMenuProps
 }): RouterMenuProps[] => {
@@ -124,6 +132,12 @@ export default function Sidenav() {
   const isItemActive = useCallback(
     (item: RouterMenuProps | SidebarMenuProps) => {
       const candidates = candidatePathsForItem(item as RouterMenuProps)
+      if (
+        item.key === 'client-users' &&
+        ROLE_USER_PATHS.some((base) => pathMatches(pathname, base))
+      ) {
+        return false
+      }
       return candidates.some((candidate) => pathMatches(pathname, candidate))
     },
     [pathname, candidatePathsForItem, pathMatches]

@@ -761,7 +761,7 @@ const FormBuilder: React.FC<Props> = (props) => {
               {field.group_data
                 ? field?.group_data?.map((group: any) => (
                     <div
-                      key={data?.id}
+                      key={group.id}
                       className="flex item-center gap-1 my-2 cursor-pointer"
                     >
                       <input
@@ -888,19 +888,19 @@ const FormBuilder: React.FC<Props> = (props) => {
     <>
       {props.spacing ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {data.map((field: FormBuilderProps) => (
-            <>
-              {!field.hidden && <div key={field.name}>{renderForm(field)}</div>}
-            </>
-          ))}
+          {data.map((field: FormBuilderProps) =>
+            !field.hidden ? (
+              <div key={field.name}>{renderForm(field)}</div>
+            ) : null
+          )}
         </div>
       ) : (
         <>
-          {data.map((field: FormBuilderProps) => (
-            <>
-              {!field.hidden && <div key={field.name}>{renderForm(field)}</div>}
-            </>
-          ))}
+          {data.map((field: FormBuilderProps) =>
+            !field.hidden ? (
+              <div key={field.name}>{renderForm(field)}</div>
+            ) : null
+          )}
         </>
       )}
     </>

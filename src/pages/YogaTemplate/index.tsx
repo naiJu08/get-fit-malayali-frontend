@@ -76,8 +76,9 @@ export default function YogaTemplateIndex() {
         ),
       }),
     },
-    { title: 'Duration (days)', field: 'duration_days' },
-    { title: 'Days', field: 'days_count' },
+    { title: 'Intensity Level', field: 'intensity_level' },
+    { title: 'Days', field: 'duration_days' },
+    { title: 'Template Days', field: 'days_count' },
     {
       title: 'Created At',
       field: 'created_at',

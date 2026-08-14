@@ -7,6 +7,7 @@ import { FormProvider, useForm } from 'react-hook-form'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
+import { useSnackbarManager } from '../../../components/common/snackbar'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
 import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
@@ -298,7 +299,14 @@ type Props = {
   subSection?: boolean
   setEditViewIndicator?: (value: boolean) => void
   editViewIndicator?: boolean
-  activeRole?: 'user' | 'nutritionist' | 'inactive-user'
+  activeRole?:
+    | 'user'
+    | 'nutritionist'
+    | 'physiotherapist'
+    | 'yogist'
+    | 'sales'
+    | 'marketing'
+    | 'inactive-user'
 }
 
 export default function CreateAdmin({
@@ -313,6 +321,8 @@ export default function CreateAdmin({
   setEditViewIndicator,
   activeRole,
 }: Props) {
+  const { enqueueSnackbar } = useSnackbarManager()
+
   const textField = (
     name: string,
     label: string,
@@ -350,7 +360,8 @@ export default function CreateAdmin({
     //   })
   }
 
-  const isNutritionistTab = activeRole === 'nutritionist'
+  const isNutritionistTab =
+    activeRole !== 'user' && activeRole !== 'inactive-user'
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter full name', true) },
     {
@@ -390,6 +401,10 @@ export default function CreateAdmin({
       data: [
         { id: 2, name: 'Nutritionist' },
         { id: 3, name: 'Client' },
+        { id: 4, name: 'Physiotherapist' },
+        { id: 5, name: 'Yogist' },
+        { id: 6, name: 'Sales' },
+        { id: 7, name: 'Marketing' },
       ],
       type: 'custom_select',
       placeholder: 'Select role',
@@ -756,6 +771,28 @@ export default function CreateAdmin({
     useUpdateAdmin(onSuccess)
 
   const methods = useForm<AdminSchema>({
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+      password_confirmation: '',
+      phone: '',
+      role: '',
+      role_id: '',
+      gender: '',
+      date_of_birth: '',
+      height: isNutritionistTab ? undefined : '',
+      weight: isNutritionistTab ? undefined : '',
+      lifestyle: '',
+      goal: '',
+      food_preferences: '',
+      medical_conditions: [],
+      other_medical_condition: '',
+      food_allergies: [],
+      state: '',
+      ethnicity: '',
+      status: '',
+    } as any,
     resolver: zodResolver(
       isNutritionistTab
         ? edit
@@ -767,11 +804,25 @@ export default function CreateAdmin({
     reValidateMode: 'onChange',
   })
   const { handleSubmit } = methods
+  const handleInvalidSubmit = (formErrors: any) => {
+    const firstError = Object.values(formErrors || {})[0] as any
+    if (firstError?.message) {
+      enqueueSnackbar(String(firstError.message), { variant: 'error' })
+    }
+  }
   // Prefill role based on active tab when creating (not edit/view)
   useEffect(() => {
     if (isDrawerOpen && !edit && !viewMode) {
-      const defaultRoleId = activeRole === 'nutritionist' ? 2 : 3
-      const defaultRoleLabel = defaultRoleId === 2 ? 'Nutritionist' : 'Client'
+      const roleMap: Record<string, [number, string]> = {
+        user: [3, 'Client'],
+        nutritionist: [2, 'Nutritionist'],
+        physiotherapist: [4, 'Physiotherapist'],
+        yogist: [5, 'Yogist'],
+        sales: [6, 'Sales'],
+        marketing: [7, 'Marketing'],
+      }
+      const [defaultRoleId, defaultRoleLabel] =
+        roleMap[activeRole || 'user'] || roleMap.user
       methods.setValue('role_id' as any, defaultRoleId as any, {
         shouldValidate: true,
         shouldDirty: true,
@@ -795,7 +846,17 @@ export default function CreateAdmin({
         typeof currentRole === 'number'
           ? currentRole
           : parseInt(currentRole, 10)
-      const label = id === 2 ? 'Nutritionist' : id === 3 ? 'Client' : ''
+      const label =
+        (
+          {
+            2: 'Nutritionist',
+            3: 'Client',
+            4: 'Physiotherapist',
+            5: 'Yogist',
+            6: 'Sales',
+            7: 'Marketing',
+          } as Record<number, string>
+        )[id] || ''
       if (label) {
         methods.setValue('role' as any, label as any, {
           shouldValidate: true,
@@ -809,12 +870,15 @@ export default function CreateAdmin({
   useEffect(() => {
     if (!isDrawerOpen) return
     const id = roleIdValue
-    const label =
-      id === 2 || id === '2'
-        ? 'Nutritionist'
-        : id === 3 || id === '3'
-          ? 'Client'
-          : ''
+    const roleLabels: Record<string, string> = {
+      '2': 'Nutritionist',
+      '3': 'Client',
+      '4': 'Physiotherapist',
+      '5': 'Yogist',
+      '6': 'Sales',
+      '7': 'Marketing',
+    }
+    const label = roleLabels[String(id)] || ''
     if (label) {
       const currentRole = (methods as any).getValues?.('role')
       if (currentRole !== label) {
@@ -886,6 +950,10 @@ export default function CreateAdmin({
         if (t === 'admin') return 1
         if (t === 'nutritionist') return 2
         if (t === 'user' || t === 'client') return 3
+        if (t === 'physiotherapist') return 4
+        if (t === 'yogist') return 5
+        if (t === 'sales') return 6
+        if (t === 'marketing' || t === 'maketing') return 7
         return 0
       }
       roleId = mapRoleName(rawRole)
@@ -1238,7 +1306,16 @@ export default function CreateAdmin({
         onClose={() => handleClearAndClose()}
         title={(() => {
           const label =
-            activeRole === 'nutritionist' ? 'Nutritionist' : 'Client'
+            (
+              {
+                user: 'Client',
+                nutritionist: 'Nutritionist',
+                physiotherapist: 'Physiotherapist',
+                yogist: 'Yogist',
+                sales: 'Sales',
+                marketing: 'Marketing',
+              } as Record<string, string>
+            )[activeRole || 'user'] || 'Client'
           if (edit) return `Edit ${label}`
           if (viewMode) return `${label} Details`
           return `Create ${label}`
@@ -1246,7 +1323,9 @@ export default function CreateAdmin({
         actionLabel={viewMode ? 'Edit' : 'Save'}
         actionLoader={isCreating || isUpdating}
         onSubmit={
-          viewMode ? handleChangeMode : handleSubmit((data) => onSubmit(data))
+          viewMode
+            ? handleChangeMode
+            : handleSubmit((data) => onSubmit(data), handleInvalidSubmit)
         }
         secondaryAction={() => handleClearAndClose()}
         secondaryActionLabel="Cancel"

@@ -95,12 +95,23 @@ export default function CreateAdmin({
   }
 
   const methods = useForm<YogaSchema>({
+    defaultValues: {
+      name: '',
+      description: '',
+      intensity_level: '',
+      category: '',
+      video_source: 'file',
+      video_url: '',
+      video_file: '',
+      thumbnail: '',
+    },
     resolver: zodResolver(formSchema),
     mode: 'onChange',
     reValidateMode: 'onChange',
   })
   const { handleSubmit, watch, setError, clearErrors } = methods
   const watchedVideoFile = watch('video_file')
+  const watchedVideoSource = watch('video_source')
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
   // useEffect(() => {
@@ -209,31 +220,59 @@ export default function CreateAdmin({
       maxlength: 250,
     },
     {
-      name: 'video_file',
-      label: 'Video File',
-      id: 'video_file',
-      type: 'file_upload',
-      placeholder: 'Upload video file',
+      name: 'video_source',
+      label: 'Video Source',
+      id: 'video_source',
+      type: 'radio',
       required: true,
-      accept: 'video/*',
-      supportedExtensions: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
-      acceptedFiles: 'MP4, MOV, AVI',
-      fileSize: 0,
-      selectedFiles:
-        selectedVideoName ||
-        watchedVideoFile?.name ||
-        (!isExistingVideoCleared ? getFileName(rowData?.video_url) : ''),
-      subName: 'video_file',
-      handleCallBack: handleVideoCompression,
-      handleDeleteFile: () => {
-        methods.setValue('video_file', '')
-        methods.setValue('video_url', '')
-        setVideoDurationMs(null)
-        setCompressionProgress(null)
-        setSelectedVideoName('')
-        setIsExistingVideoCleared(true)
-      },
+      data: [
+        { id: 1, value: 'file', radioLabel: 'Upload video file' },
+        { id: 2, value: 'url', radioLabel: 'Use video URL' },
+      ],
     },
+    ...(watchedVideoSource === 'url'
+      ? [
+          {
+            ...textField(
+              'video_url',
+              'Video URL',
+              'Enter YouTube or direct video URL',
+              true
+            ),
+          },
+        ]
+      : [
+          {
+            name: 'video_file',
+            label: 'Video File',
+            id: 'video_file',
+            type: 'file_upload',
+            placeholder: 'Upload video file',
+            required: true,
+            accept: 'video/*',
+            supportedExtensions: [
+              'video/mp4',
+              'video/quicktime',
+              'video/x-msvideo',
+            ],
+            acceptedFiles: 'MP4, MOV, AVI',
+            fileSize: 0,
+            selectedFiles:
+              selectedVideoName ||
+              watchedVideoFile?.name ||
+              (!isExistingVideoCleared ? getFileName(rowData?.video_url) : ''),
+            subName: 'video_file',
+            handleCallBack: handleVideoCompression,
+            handleDeleteFile: () => {
+              methods.setValue('video_file', '')
+              methods.setValue('video_url', '')
+              setVideoDurationMs(null)
+              setCompressionProgress(null)
+              setSelectedVideoName('')
+              setIsExistingVideoCleared(true)
+            },
+          },
+        ]),
     {
       name: 'thumbnail',
       label: 'Thumbnail',
@@ -274,6 +313,7 @@ export default function CreateAdmin({
       description: '',
       intensity_level: '',
       category: '',
+      video_source: 'file',
       video_url: '',
       video_file: '',
       thumbnail: '',
@@ -291,6 +331,7 @@ export default function CreateAdmin({
       description: '',
       intensity_level: '',
       category: '',
+      video_source: 'file',
       video_url: '',
       video_file: '',
       thumbnail: '',
@@ -328,6 +369,12 @@ export default function CreateAdmin({
         description: rowData?.description ?? '',
         intensity_level: rowData?.intensity_level ?? '',
         category: matchedCategory?.name ?? '',
+        video_source:
+          /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|vimeo\.com)/i.test(
+            rowData?.video_url ?? ''
+          )
+            ? 'url'
+            : 'file',
         video_file: getFileName(rowData?.video_url) ?? '',
         video_url: rowData?.video_url ?? '',
         thumbnail: getFileName(rowData?.thumbnail_url) ?? '',
@@ -421,42 +468,42 @@ export default function CreateAdmin({
   }
 
   const onSubmit = (details: any) => {
-    const originalVideoName = getFileName(rowData?.video_url)
     const currentVideoName = details?.video_file
-
     const hasNewVideoFile = currentVideoName instanceof File
-    const hasExistingVideoUrl =
-      typeof currentVideoName === 'string' && currentVideoName !== ''
-
-    const videoRemoved = currentVideoName === ''
-    const videoUnchanged =
+    const hasExistingVideoFile =
       typeof currentVideoName === 'string' &&
-      currentVideoName === originalVideoName
+      currentVideoName !== '' &&
+      !isExistingVideoCleared
+    const externalVideoUrl = String(details?.video_url ?? '').trim()
 
-    // If user deleted video
-    if (videoRemoved) {
-      setError('video_file', { type: 'manual', message: 'Video is required.' })
+    if (
+      details?.video_source === 'file' &&
+      !hasNewVideoFile &&
+      !hasExistingVideoFile
+    ) {
+      setError('video_file', {
+        type: 'manual',
+        message: 'Upload a video file.',
+      })
       return
     }
-
-    clearErrors('video_file')
-
-    // ✅ Append only if changed
-
+    if (details?.video_source === 'url' && !externalVideoUrl) {
+      setError('video_url', {
+        type: 'manual',
+        message: 'Enter a YouTube or video URL.',
+      })
+      return
+    }
+    clearErrors(['video_file', 'video_url'])
     const fd = new FormData()
     fd.append('yoga[name]', details?.name ?? '')
     fd.append('yoga[description]', details?.description ?? '')
     fd.append('yoga[intensity_level]', details?.intensity_level ?? '')
     fd.append('yoga[category]', extractSelectValue(details?.category))
-    // fd.append('yoga[video_url]', details?.video_url ?? '')
-    // CASE 1: user uploaded new video
-    if (!videoUnchanged) {
-      if (hasNewVideoFile) {
-        fd.append('video', currentVideoName)
-      } else if (hasExistingVideoUrl) {
-        fd.append('yoga[video_url]', currentVideoName)
-      }
-    }
+    if (details?.video_source === 'file' && hasNewVideoFile)
+      fd.append('video', currentVideoName)
+    else if (details?.video_source === 'url')
+      fd.append('yoga[video_url]', externalVideoUrl)
 
     // Thumbnail handling - only append if changed
     const thumbVal = details?.thumbnail
