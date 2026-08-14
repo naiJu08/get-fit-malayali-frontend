@@ -62,7 +62,7 @@ export default function WorkoutTemplateIndex() {
 
   const columns: any[] = [
     {
-      title: 'Name',
+      title: 'Template Name',
       field: 'name',
       customCell: true,
       renderCell: (row: any) => ({
@@ -76,8 +76,10 @@ export default function WorkoutTemplateIndex() {
         ),
       }),
     },
-    { title: 'Duration (days)', field: 'duration_days' },
-    { title: 'Days', field: 'days_count' },
+    { title: 'Description', field: 'description' },
+    { title: 'Intensity Level', field: 'intensity_level' },
+    { title: 'Days', field: 'duration_days' },
+    { title: 'Notes', field: 'notes' },
     {
       title: 'Created At',
       field: 'created_at',

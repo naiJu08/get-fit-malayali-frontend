@@ -67,12 +67,14 @@ export const useCreateWorkout = (handleSubmission: (data: any) => void) => {
   return useMutation(createWorkout, {
     onSuccess: (res: any) => {
       handleSubmission(res.data)
-      enqueueSnackbar('Workout created successfully', { variant: 'success' })
+      enqueueSnackbar(res?.data?.message || 'Exercise created successfully', {
+        variant: 'success',
+      })
     },
 
     onError: (error: any) => {
       const errorData = error?.response?.data
-      let errorMessage = 'Failed to create workout'
+      let errorMessage = 'Failed to create exercise'
 
       if (
         errorData?.errors &&
@@ -102,21 +104,22 @@ export const useUpdateWorkout = (handleSubmission: (data: any) => void) => {
   return useMutation(updateWorkout, {
     onSuccess: (res: any) => {
       handleSubmission(res.data)
-      enqueueSnackbar('Workout updated successfully', { variant: 'success' })
+      enqueueSnackbar(res?.data?.message || 'Exercise updated successfully', {
+        variant: 'success',
+      })
     },
 
     onError: (error: any) => {
       // enqueueSnackbar(getErrorMessage(error.response.data.error), {
       //   variant: 'error',
       // })
-      enqueueSnackbar(
-        error?.response?.data?.detail
-          ? getErrorMessage(error?.response?.data?.detail)
-          : error?.response?.data?.message,
-        {
-          variant: 'error',
-        }
-      )
+      const errorData = error?.response?.data
+      const message = Array.isArray(errorData?.errors)
+        ? errorData.errors.join(', ')
+        : errorData?.detail
+          ? getErrorMessage(errorData.detail)
+          : errorData?.message || 'Failed to update exercise'
+      enqueueSnackbar(message, { variant: 'error' })
     },
   })
 }

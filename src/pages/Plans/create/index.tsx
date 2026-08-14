@@ -82,11 +82,6 @@ export default function CreatePlan({
     fd.append('plan[description]', values.description ?? '')
     fd.append('plan[duration_days]', String(values.duration_days ?? ''))
     fd.append('plan[fees]', String(values.fees ?? ''))
-    fd.append(
-      'plan[yoga_included]',
-      String(values.yoga_included ? 'true' : 'false')
-    )
-
     const meditationIncluded = Boolean(values.meditation_included)
     fd.append('plan[meditation_included]', String(meditationIncluded))
 
@@ -133,7 +128,6 @@ export default function CreatePlan({
         description: resolvedPlan?.description ?? '',
         duration_days: resolvedPlan?.duration_days ?? 0,
         fees: resolvedPlan?.fees ?? 0,
-        yoga_included: Boolean(resolvedPlan?.yoga_included ?? false),
         meditation_included: Boolean(
           resolvedPlan?.meditation_included ?? false
         ),
@@ -148,7 +142,6 @@ export default function CreatePlan({
         description: '',
         duration_days: 0,
         fees: 0,
-        yoga_included: false,
         meditation_included: true,
         thumbnail: '',
       })
@@ -303,21 +296,6 @@ export default function CreatePlan({
               <FormProvider {...methods}>
                 <FormBuilder data={formBuilderProps} edit={true} spacing />
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-600">Yoga Included</span>
-                  <ToggleSwitch
-                    id="yoga_included"
-                    checked={methods.watch('yoga_included')}
-                    onChange={(checked) =>
-                      methods.setValue('yoga_included', checked, {
-                        shouldValidate: true,
-                      })
-                    }
-                  />
-                  <span className="text-xs text-gray-500">
-                    {methods.watch('yoga_included') ? 'Yes' : 'No'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
                   <span className="text-sm text-gray-600">
                     Meditation Included
                   </span>
@@ -363,12 +341,6 @@ export default function CreatePlan({
               <div>
                 <div className="text-sm text-gray-500">Fees</div>
                 <div className="font-medium">{rowData?.plan?.fees ?? '-'}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500">Yoga Included</div>
-                <div className="font-medium">
-                  {rowData?.plan?.yoga_included ? 'Yes' : 'No'}
-                </div>
               </div>
               <div>
                 <div className="text-sm text-gray-500">Meditation Included</div>

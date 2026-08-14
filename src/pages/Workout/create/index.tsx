@@ -326,8 +326,8 @@ export default function CreateAdmin({
       intensity_level: '',
       category: '',
       category_id: undefined,
-      subcategory: '',
-      subcategory_id: undefined,
+      subcategory_ids: [],
+      video_source: 'file',
       video_url: '',
       video_file: '',
       thumbnail: '',
@@ -344,8 +344,8 @@ export default function CreateAdmin({
       intensity_level: '',
       category: '',
       category_id: undefined,
-      subcategory: '',
-      subcategory_id: undefined,
+      subcategory_ids: [],
+      video_source: 'file',
       video_url: '',
       video_file: '',
       thumbnail: '',
@@ -409,15 +409,17 @@ export default function CreateAdmin({
       intensity_level: rowData?.intensity_level ?? '',
       category: resolvedCategoryName ?? '',
       category_id: derivedCategoryId ?? undefined,
-      subcategory:
+      subcategory_ids:
         derivedSubcategoryId !== undefined && derivedSubcategoryId !== null
-          ? (resolvedSubcategoryName ?? '')
+          ? [{ id: derivedSubcategoryId, name: resolvedSubcategoryName ?? '' }]
+          : [],
+      video_source: rowData?.video_source === 'url' ? 'url' : 'file',
+      video_url:
+        rowData?.video_source === 'url'
+          ? (rowData?.external_video_url ?? rowData?.video_url ?? '')
           : '',
-      subcategory_id:
-        derivedSubcategoryId !== undefined && derivedSubcategoryId !== null
-          ? derivedSubcategoryId
-          : undefined,
-      video_file: getFileName(rowData?.video_url) ?? '',
+      video_file:
+        rowData?.video_source === 'url' ? '' : (rowData?.video_url ?? ''),
       thumbnail: getFileName(rowData?.thumbnail_url) ?? '',
     } as any)
 
@@ -433,6 +435,7 @@ export default function CreateAdmin({
   useEffect(() => {
     if (!isDrawerOpen) {
       hydratedRowRef.current = null
+      categoryChangeRef.current = undefined
       setSelectedVideoName('')
       setCompressionProgress(null)
       setIsExistingVideoCleared(false)
@@ -456,9 +459,16 @@ export default function CreateAdmin({
     resolver: zodResolver(formSchema),
     mode: 'onChange',
     reValidateMode: 'onChange',
+    defaultValues: {
+      subcategory_ids: [],
+      video_source: 'file',
+      video_url: '',
+      video_file: '',
+    },
   })
   const { handleSubmit, watch, setError, clearErrors } = methods
   const watchedVideoFile = watch('video_file')
+  const watchedVideoSource = watch('video_source')
   const selectedCategoryId = watch('category_id')
 
   const subcategoryOptions = useMemo(() => {
@@ -538,16 +548,11 @@ export default function CreateAdmin({
       return
     }
     if (categoryChangeRef.current !== selectedCategoryId) {
-      methods.setValue('subcategory', '' as any, {
+      methods.setValue('subcategory_ids', [] as any, {
         shouldValidate: true,
         shouldDirty: true,
       })
-      methods.setValue('subcategory_id', undefined as any, {
-        shouldValidate: true,
-        shouldDirty: true,
-      })
-      // Clear subcategory error when category changes
-      clearErrors('subcategory_id')
+      clearErrors('subcategory_ids')
       categoryChangeRef.current = selectedCategoryId
     }
   }, [methods, selectedCategoryId, clearErrors])
@@ -586,15 +591,19 @@ export default function CreateAdmin({
         notDataMessage: 'No categories found',
       },
       {
-        name: 'subcategory',
-        label: 'Subcategory',
-        id: 'subcategory_id',
-        type: 'custom_search_select',
-        placeholder: 'Search subcategory',
+        name: 'subcategory_ids',
+        label: 'Subcategories',
+        id: 'subcategory_ids',
+        type: 'multi_select',
+        placeholder: 'Select subcategories',
         desc: 'name',
         descId: 'id',
         required: true,
         data: subcategoryOptions,
+        getData: () => subcategoryOptions,
+        async: false,
+        initialLoad: true,
+        isMultiple: true,
         notDataMessage: 'No subcategories found',
       },
       {
@@ -628,38 +637,63 @@ export default function CreateAdmin({
         },
       },
       {
-        name: 'video_file',
-        label: 'Video File',
-        labelAddon: videoDurationMs
-          ? formatVideoDurationLabel(videoDurationMs)
-          : '',
-        id: 'video_file',
-        type: 'file_upload',
-        placeholder: 'Upload video file',
+        name: 'video_source',
+        label: 'Video Source',
+        id: 'video_source',
+        type: 'radio',
         required: true,
-        accept: 'video/*',
-        supportedExtensions: [
-          'video/mp4',
-          'video/quicktime',
-          'video/x-msvideo',
+        data: [
+          { id: 1, value: 'file', radioLabel: 'Upload video file' },
+          { id: 2, value: 'url', radioLabel: 'Use video URL' },
         ],
-        acceptedFiles: 'MP4, MOV, AVI',
-        fileSize: 0,
-        selectedFiles:
-          selectedVideoName ||
-          watchedVideoFile?.name ||
-          (!isExistingVideoCleared ? getFileName(rowData?.video_url) : ''),
-        subName: 'video_file',
-        handleCallBack: handleVideoCompression,
-        handleDeleteFile: () => {
-          methods.setValue('video_file', '')
-          methods.setValue('video_url', '')
-          setVideoDurationMs(null)
-          setCompressionProgress(null)
-          setSelectedVideoName('')
-          setIsExistingVideoCleared(true)
-        },
       },
+      ...(watchedVideoSource === 'url'
+        ? [
+            {
+              ...textField(
+                'video_url',
+                'Video URL',
+                'Enter YouTube or direct video URL',
+                true
+              ),
+            },
+          ]
+        : [
+            {
+              name: 'video_file',
+              label: 'Video File',
+              labelAddon: videoDurationMs
+                ? formatVideoDurationLabel(videoDurationMs)
+                : '',
+              id: 'video_file',
+              type: 'file_upload',
+              placeholder: 'Upload video file',
+              required: true,
+              accept: 'video/*',
+              supportedExtensions: [
+                'video/mp4',
+                'video/quicktime',
+                'video/x-msvideo',
+              ],
+              acceptedFiles: 'MP4, MOV, AVI',
+              fileSize: 0,
+              selectedFiles:
+                selectedVideoName ||
+                watchedVideoFile?.name ||
+                (!isExistingVideoCleared && rowData?.video_source !== 'url'
+                  ? getFileName(rowData?.video_url)
+                  : ''),
+              subName: 'video_file',
+              handleCallBack: handleVideoCompression,
+              handleDeleteFile: () => {
+                methods.setValue('video_file', '')
+                setVideoDurationMs(null)
+                setCompressionProgress(null)
+                setSelectedVideoName('')
+                setIsExistingVideoCleared(true)
+              },
+            },
+          ]),
     ],
     [
       categoryOptions,
@@ -672,6 +706,7 @@ export default function CreateAdmin({
       subcategoryOptions,
       videoDurationMs,
       watchedVideoFile,
+      watchedVideoSource,
     ]
   )
 
@@ -751,68 +786,82 @@ export default function CreateAdmin({
   }, [watchedVideoFile, rowData?.video_url, rowData?.duration_minutes])
 
   const onSubmit = async (details: any) => {
-    if (subcategoryOptions.length > 0 && !details?.subcategory_id) {
-      setError('subcategory_id', {
+    const selectedSubcategoryIds = Array(details?.subcategory_ids)
+      .flat(Infinity)
+      .map((item: any) => item?.id ?? item)
+      .map((item: any) => Number(item))
+      .filter((item: number) => Number.isInteger(item) && item > 0)
+      .filter(
+        (item: number, index: number, items: number[]) =>
+          items.indexOf(item) === index
+      )
+
+    if (subcategoryOptions.length > 0 && selectedSubcategoryIds.length === 0) {
+      setError('subcategory_ids', {
         type: 'manual',
-        message: 'Subcategory is required.',
+        message: 'Select at least one subcategory.',
       })
       return
     }
 
     const hasNewVideoFile = details?.video_file instanceof File
-    const hasExistingVideoUrl =
-      typeof details?.video_file === 'string' && details.video_file !== ''
+    const hasExistingVideoFile =
+      rowData?.video_source !== 'url' &&
+      typeof details?.video_file === 'string' &&
+      details.video_file !== '' &&
+      !isExistingVideoCleared
+    const externalVideoUrl = String(details?.video_url ?? '').trim()
 
-    // If user deleted video → both will be false
-    if (!hasNewVideoFile && !hasExistingVideoUrl) {
-      setError('video_file', { type: 'manual', message: 'Video is required.' })
+    if (
+      details?.video_source === 'file' &&
+      !hasNewVideoFile &&
+      !hasExistingVideoFile
+    ) {
+      setError('video_file', {
+        type: 'manual',
+        message: 'Upload a video file.',
+      })
       return
     }
 
-    clearErrors('video_file')
+    if (details?.video_source === 'url' && !externalVideoUrl) {
+      setError('video_url', {
+        type: 'manual',
+        message: 'Enter a YouTube or video URL.',
+      })
+      return
+    }
+
+    clearErrors(['video_file', 'video_url', 'subcategory_ids'])
 
     const fd = new FormData()
     fd.append('workout[name]', details?.name ?? '')
     fd.append('workout[description]', details?.description ?? '')
     fd.append('workout[intensity_level]', details?.intensity_level ?? '')
-
-    const categoryIdForPayload = details?.subcategory_id ?? details?.category_id
-
-    fd.append(
-      'workout[category_id]',
-      categoryIdForPayload ? String(categoryIdForPayload) : ''
+    fd.append('workout[category_id]', String(details?.category_id ?? ''))
+    selectedSubcategoryIds.forEach((subcategoryId: string | number) =>
+      fd.append('workout[subcategory_ids][]', String(subcategoryId))
     )
 
-    // CASE 1: user uploaded new video
-    if (hasNewVideoFile) {
+    if (details?.video_source === 'file' && hasNewVideoFile) {
       fd.append('video', details.video_file)
+    } else if (details?.video_source === 'url') {
+      fd.append('workout[video_url]', externalVideoUrl)
     }
 
-    // CASE 2: keep existing video (edit mode, not deleted)
-    else if (hasExistingVideoUrl) {
-      fd.append('workout[video_url]', details.video_file)
-    }
-
-    // Thumbnail handling
     const thumbVal = details?.thumbnail
-
-    // CASE 1: New thumbnail uploaded
     if (thumbVal instanceof File) {
       fd.append('workout[thumbnail]', thumbVal)
     }
 
-    // CASE 2: Thumbnail manually removed
-    else if (thumbVal === '') {
-      fd.append('workout[thumbnail]', null as any)
-    }
-
-    // Duration
-    if (videoDurationMs !== null) {
+    if (videoDurationMs !== null && details?.video_source === 'file') {
       const totalSeconds = Math.max(0, Math.floor(videoDurationMs / 1000))
       const minutes = Math.floor(totalSeconds / 60)
       const seconds = totalSeconds % 60
-      const paddedSeconds = seconds.toString().padStart(2, '0')
-      fd.append('workout[duration_minutes]', `${minutes}.${paddedSeconds}`)
+      fd.append(
+        'workout[duration_minutes]',
+        `${minutes}.${seconds.toString().padStart(2, '0')}`
+      )
     }
 
     if (rowData?.id) {

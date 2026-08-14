@@ -157,7 +157,6 @@ export const planFormSchema = z.object({
       .min(0, 'Fees cannot be negative')
       .positive('Fees must be greater than 0')
   ),
-  yoga_included: z.boolean().default(false),
   meditation_included: z.boolean().default(false),
   thumbnail: z.any().optional().nullable(),
 })
