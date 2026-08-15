@@ -152,7 +152,7 @@ export default function InactiveUsers() {
     const worksheet = XLSX.utils.json_to_sheet(exportData)
     const workbook = XLSX.utils.book_new()
 
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Inactive Users')
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Inactive Clients')
 
     const excelBuffer = XLSX.write(workbook, {
       bookType: 'xlsx',
@@ -204,7 +204,7 @@ export default function InactiveUsers() {
   }
 
   const basicData = {
-    title: 'Users',
+    title: 'Inactive Clients',
     icon: 'user',
   }
 
@@ -264,19 +264,13 @@ export default function InactiveUsers() {
                 >
                   Client
                 </button>
-                <button
-                  type="button"
-                  className={`px-3 py-2 -mb-px text-gray-600`}
-                  onClick={() => navigate('/users/nutritionist')}
-                >
-                  Nutritionist
-                </button>
+
                 <button
                   type="button"
                   className={`px-3 py-2 -mb-px border-b-2 border-blue-600 text-blue-600`}
                   onClick={() => navigate('/admin/inactive-users')}
                 >
-                  Inactive Users
+                  Inactive Clients
                 </button>
               </div>
             </div>

@@ -22,6 +22,7 @@ import {
   removeWorkoutTemplateExercises,
 } from './api'
 import WorkoutTemplateDayForm from './DayForm'
+import CopyExercisesDialog, { CopyTargetType } from './CopyExercisesDialog'
 
 const getWorkoutSelectableId = (item: any) =>
   item?.workout_id || item?.workout?.id || item?.id || item?.workoutId
@@ -83,6 +84,10 @@ function AssignTabContent({
 }: any) {
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<any[]>([])
   const [removedExerciseIds, setRemovedExerciseIds] = useState<any[]>([])
+  const [selectedSectionKeys, setSelectedSectionKeys] = useState<string[]>([])
+  const [sectionCopyType, setSectionCopyType] = useState<CopyTargetType | null>(
+    null
+  )
   const { enqueueSnackbar } = useSnackbarManager()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
@@ -149,6 +154,10 @@ function AssignTabContent({
     }))
   }, [exercises])
 
+  const selectedSectionExerciseIds = groupedAssignedExercises
+    .filter((group) => selectedSectionKeys.includes(group.legend))
+    .flatMap((group) => group.items.map((exercise: any) => exercise.id))
+
   return (
     <>
       {loading && (
@@ -191,6 +200,34 @@ function AssignTabContent({
                     Remove Exercise
                   </button>
                 )}
+              {!isNutritionist && selectedSectionExerciseIds.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    {selectedSectionKeys.length} section
+                    {selectedSectionKeys.length === 1 ? '' : 's'} selected
+                  </span>
+                  {(
+                    [
+                      'same_template',
+                      'other_template',
+                      'client',
+                    ] as CopyTargetType[]
+                  ).map((target) => (
+                    <button
+                      key={target}
+                      type="button"
+                      className="px-3 py-1 text-xs border rounded border-blue-200 text-blue-700 hover:bg-blue-50"
+                      onClick={() => setSectionCopyType(target)}
+                    >
+                      {target === 'same_template'
+                        ? 'Copy to Same Template'
+                        : target === 'other_template'
+                          ? 'Copy to Other Template'
+                          : 'Copy to Client'}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           {exercises.length > 0 ? (
@@ -201,7 +238,21 @@ function AssignTabContent({
                   className="border border-gray-300 rounded-xl p-4 bg-white"
                 >
                   <legend className="px-2 text-md font-semibold text-gray-600">
-                    {group.legend}
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedSectionKeys.includes(group.legend)}
+                        onChange={() =>
+                          setSelectedSectionKeys((current) =>
+                            current.includes(group.legend)
+                              ? current.filter((key) => key !== group.legend)
+                              : [...current, group.legend]
+                          )
+                        }
+                        className="h-4 w-4 accent-blue-600"
+                      />
+                      {group.legend}
+                    </label>
                   </legend>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-3 place-items-stretch">
@@ -279,6 +330,21 @@ function AssignTabContent({
             </div>
           ) : (
             <div className="text-sm text-gray-600">No exercises assigned.</div>
+          )}
+          {sectionCopyType && (
+            <CopyExercisesDialog
+              open={!!sectionCopyType}
+              onClose={() => setSectionCopyType(null)}
+              sourceTemplateId={wp?.workout_template_id}
+              sourceDays={[wp]}
+              selectedSourceDayIds={[wp?.id]}
+              sourceExerciseIds={selectedSectionExerciseIds}
+              targetType={sectionCopyType}
+              onSuccess={async () => {
+                setSelectedSectionKeys([])
+                await refreshDetails?.()
+              }}
+            />
           )}
         </>
       )}
@@ -375,7 +441,9 @@ export default function WorkoutPlanDetails() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<
     number | string | undefined
   >(undefined)
-  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('')
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<
+    Array<number | string>
+  >([])
   const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
   const [subcategoryLookup, setSubcategoryLookup] = useState<
     Record<string, any>
@@ -387,18 +455,17 @@ export default function WorkoutPlanDetails() {
   const userSelectionTouchedRef = useRef(false)
   const wp = data?.workout_template_day || data || {}
 
-  const categoryAutocompleteValue = useMemo(() => {
-    if (!selectedCategoryId) return ''
-    const match = categoryOptions.find(
-      (cat: any) => String(cat?.id) === String(selectedCategoryId)
-    )
-    if (match?.name) return match.name
-    return selectedCategoryName
-  }, [categoryOptions, selectedCategoryId, selectedCategoryName])
+  const selectedCategoryItems = useMemo(
+    () =>
+      categoryOptions.filter((cat: any) =>
+        selectedCategoryIds.map(String).includes(String(cat?.id))
+      ),
+    [categoryOptions, selectedCategoryIds]
+  )
 
   useEffect(() => {
     setSelectedCategoryId(undefined)
-    setSelectedCategoryName('')
+    setSelectedCategoryIds([])
     setSelectedSubcategories([])
     prefillAppliedRef.current = false
     drawerSelectionInitializedRef.current = false
@@ -421,7 +488,7 @@ export default function WorkoutPlanDetails() {
     setWpSearch('')
     setWpPage(1)
     setSelectedCategoryId(undefined)
-    setSelectedCategoryName('')
+    setSelectedCategoryIds([])
     setSelectedSubcategories([])
     setWorkoutFiltersEnabled(false)
     prefillAppliedRef.current = false
@@ -615,20 +682,11 @@ export default function WorkoutPlanDetails() {
     if (!assignOpen) return
     if (!previouslySubmittedSelection || prefillAppliedRef.current) return
 
-    const { categoryId, categoryName, subcategories } =
-      previouslySubmittedSelection
+    const { categoryId, subcategories } = previouslySubmittedSelection
 
     if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
+      setSelectedCategoryIds([categoryId])
       setSelectedCategoryId(categoryId)
-
-      const resolvedCategoryName =
-        categoryName && categoryName.length > 0
-          ? categoryName
-          : (categoryOptions.find(
-              (cat: any) => String(cat?.id) === String(categoryId)
-            )?.name ?? '')
-
-      setSelectedCategoryName(resolvedCategoryName)
     }
 
     if (Array.isArray(subcategories) && subcategories.length > 0) {
@@ -754,8 +812,8 @@ export default function WorkoutPlanDetails() {
       search: wpSearch,
     }
 
-    if (workoutFiltersEnabled && selectedCategoryId) {
-      params.category_id = selectedCategoryId
+    if (workoutFiltersEnabled && selectedCategoryIds.length) {
+      params.category_ids = selectedCategoryIds.join(',')
     }
 
     if (workoutFiltersEnabled && selectedSubcategoryIds.length) {
@@ -776,6 +834,7 @@ export default function WorkoutPlanDetails() {
     wpPerPage,
     wpSearch,
     selectedCategoryId,
+    selectedCategoryIds,
     selectedSubcategoryIds,
     workoutFiltersEnabled,
   ])
@@ -1223,7 +1282,7 @@ export default function WorkoutPlanDetails() {
       setSelectedWorkouts([])
       setWorkoutCounts({})
       setSelectedCategoryId(undefined)
-      setSelectedCategoryName('')
+      setSelectedCategoryIds([])
       setSelectedSubcategories([])
       setWorkoutFiltersEnabled(false)
       prefillAppliedRef.current = false
@@ -1378,22 +1437,37 @@ export default function WorkoutPlanDetails() {
                     desc="name"
                     descId="id"
                     type="custom_search_select"
+                    isMultiple={true}
+                    selectedItems={selectedCategoryItems}
                     data={formattedCategoryOptions}
-                    value={categoryAutocompleteValue}
+                    value={''}
                     name="assign_category"
                     onChange={(option: any) => {
-                      const id = option?.id ?? option?.value ?? ''
-                      const name =
-                        option?.name ?? option?.label ?? option?.value ?? ''
-                      const prevIdKey = String(selectedCategoryId ?? '')
-                      const nextIdKey = String(id || '')
+                      const options = Array.isArray(option)
+                        ? option
+                        : option
+                          ? [option]
+                          : []
+                      const ids = options
+                        .map((item: any) => item?.id ?? item?.value)
+                        .filter(
+                          (value: any) =>
+                            value !== undefined &&
+                            value !== null &&
+                            value !== ''
+                        )
+                      const prevIdKey = selectedCategoryIds
+                        .map(String)
+                        .sort()
+                        .join('|')
+                      const nextIdKey = ids.map(String).sort().join('|')
                       const categoryActuallyChanged = prevIdKey !== nextIdKey
 
-                      setSelectedCategoryId(id || undefined)
-                      setSelectedCategoryName(capitalizeWords(name || ''))
+                      setSelectedCategoryIds(ids)
+                      setSelectedCategoryId(ids[0] || undefined)
                       setSelectedSubcategories([])
                       setWpPage(1)
-                      if (id) {
+                      if (ids.length) {
                         setWorkoutFiltersEnabled(true)
                       }
                       if (assignOpen && categoryActuallyChanged) {
@@ -1420,8 +1494,13 @@ export default function WorkoutPlanDetails() {
                     getData={async (key?: string) => {
                       if (!selectedCategoryId) return []
 
-                      const raw =
-                        await getWorkoutPlanSubcategories(selectedCategoryId)
+                      const raw = (
+                        await Promise.all(
+                          selectedCategoryIds.map((categoryId) =>
+                            getWorkoutPlanSubcategories(categoryId)
+                          )
+                        )
+                      ).flat()
 
                       let options = Array.isArray(raw) ? raw : []
 

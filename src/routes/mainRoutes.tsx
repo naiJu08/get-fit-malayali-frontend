@@ -234,6 +234,38 @@ export default function MainRoutes() {
       <Route
         element={
           <UserRoute slug_key="ADMIN_USER">
+            <AdminUser />
+          </UserRoute>
+        }
+        path="/users/physiotherapist"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AdminUser />
+          </UserRoute>
+        }
+        path="/users/yogist"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AdminUser />
+          </UserRoute>
+        }
+        path="/users/sales"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AdminUser />
+          </UserRoute>
+        }
+        path="/users/marketing"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
             <UserDetails />
           </UserRoute>
         }
@@ -246,6 +278,38 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/users/nutritionist/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/physiotherapist/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/sales/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:id"
       />
       <Route
         element={

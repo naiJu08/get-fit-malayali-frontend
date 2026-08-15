@@ -26,7 +26,13 @@ export default function YogaTemplateForm({
   const methods = useForm<YogaTemplateValues>({
     resolver: zodResolver(yogaTemplateSchema),
     mode: 'onChange',
-    defaultValues: { name: '', duration_days: 7, description: '' },
+    defaultValues: {
+      name: '',
+      description: '',
+      intensity_level: 'Moderate',
+      duration_days: 7,
+      notes: '',
+    },
   })
   const { handleSubmit, reset } = methods
   const { enqueueSnackbar } = useSnackbarManager()
@@ -35,8 +41,10 @@ export default function YogaTemplateForm({
     if (!isOpen) return
     reset({
       name: rowData?.name || '',
-      duration_days: Number(rowData?.duration_days || 7),
       description: rowData?.description || '',
+      intensity_level: rowData?.intensity_level || 'Moderate',
+      duration_days: Number(rowData?.duration_days || 7),
+      notes: rowData?.notes || '',
     })
   }, [isOpen, rowData, reset])
 
@@ -45,8 +53,10 @@ export default function YogaTemplateForm({
     const capitalizedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
     const data = new FormData()
     data.append('yoga_template[name]', capitalizedName)
+    data.append('yoga_template[description]', values.description)
+    data.append('yoga_template[intensity_level]', values.intensity_level)
     data.append('yoga_template[duration_days]', String(values.duration_days))
-    data.append('yoga_template[description]', values.description || '')
+    data.append('yoga_template[notes]', values.notes || '')
     const response: any =
       edit && rowData?.id
         ? await updateYogaTemplate({ id: rowData.id, data })
@@ -65,23 +75,45 @@ export default function YogaTemplateForm({
   const fields: any[] = [
     {
       name: 'name',
-      label: 'Name',
+      label: 'Template Name',
       type: 'text',
       placeholder: 'Enter template name',
       required: true,
     },
     {
-      name: 'duration_days',
-      label: 'Duration (Days)',
-      type: 'number',
-      placeholder: 'Enter duration in days',
+      name: 'description',
+      label: 'Description',
+      type: 'textarea',
+      placeholder: 'Enter template description',
       required: true,
     },
     {
-      name: 'description',
-      label: 'Guideline Content',
+      name: 'intensity_level',
+      label: 'Intensity Level',
+      id: 'intensity_level',
+      type: 'custom_select',
+      placeholder: 'Select intensity level',
+      desc: 'name',
+      descId: 'id',
+      required: true,
+      data: [
+        { id: 'Low', name: 'Low' },
+        { id: 'Moderate', name: 'Moderate' },
+        { id: 'High', name: 'High' },
+      ],
+    },
+    {
+      name: 'duration_days',
+      label: 'Days',
+      type: 'number',
+      placeholder: 'Enter number of days',
+      required: true,
+    },
+    {
+      name: 'notes',
+      label: 'Notes (Optional)',
       type: 'textarea',
-      placeholder: 'Enter guideline content',
+      placeholder: 'Add any notes for this template',
     },
   ]
 

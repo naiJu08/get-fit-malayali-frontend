@@ -5,6 +5,35 @@ export const handleViewPermission = (key: string) => {
   return [`view_${key}`, `view_all_${key}`, `view_team_${key}`]
 }
 
+export type RouteModule =
+  | 'users'
+  | 'workout'
+  | 'yoga'
+  | 'meditation'
+  | 'diet'
+  | 'finance'
+  | 'core'
+
+// Central module access map. Keep page permissions here so role changes stay consistent.
+export const MODULE_ACCESS: Record<RouteModule, string[]> = {
+  users: ['superadmin', 'nutritionist'],
+  workout: ['superadmin', 'nutritionist', 'physiotherapist'],
+  yoga: ['superadmin', 'nutritionist', 'yogist'],
+  meditation: ['superadmin', 'nutritionist'],
+  diet: ['superadmin', 'nutritionist'],
+  finance: ['superadmin'],
+  core: [
+    'superadmin',
+    'admin',
+    'nutritionist',
+    'user',
+    'physiotherapist',
+    'yogist',
+    'sales',
+    'marketing',
+  ],
+}
+
 export interface RouterMenuProps {
   id: number
   path?: string
@@ -14,6 +43,7 @@ export interface RouterMenuProps {
   key: string
   slug?: string
   permission_slugs: string | string[]
+  module?: RouteModule
   slugOptions?: string[]
   breadcrumb?: string[]
   isDetails?: boolean
@@ -69,7 +99,8 @@ const DASHBOARD: RouterMenuProps = {
   icon: 'dashboard-icon',
   label: 'Dashboard',
   key: 'dashboard',
-  permission_slugs: ['superadmin', 'nutritionist', 'user'],
+  module: 'core',
+  permission_slugs: MODULE_ACCESS.core,
   // permission_slugs: [
   //   domainTypes['EMPLOYEE'],
   //   domainTypes['ORGANISATION'],
@@ -94,10 +125,22 @@ const USER_PROFILE: RouterMenuProps = {
 const FITNESS: RouterMenuProps = {
   id: 200,
   parent_id: null,
-  label: 'Fitness',
-  key: 'fitness',
+  label: 'Workout Module',
+  key: 'workout-module',
   icon: 'workout',
-  permission_slugs: ['superadmin', 'nutritionist'],
+  module: 'workout',
+  permission_slugs: MODULE_ACCESS.workout,
+  isSidebarMenu: true,
+}
+
+const YOGA_MODULE: RouterMenuProps = {
+  id: 201,
+  parent_id: null,
+  label: 'Yoga Module',
+  key: 'yoga-module',
+  icon: 'yoga-icon',
+  module: 'yoga',
+  permission_slugs: MODULE_ACCESS.yoga,
   isSidebarMenu: true,
 }
 
@@ -130,10 +173,68 @@ const ADMIN_USER: RouterMenuProps = {
   parent_id: null,
   label: 'Users',
   key: 'admin-user',
-  permission_slugs: ['superadmin', 'nutritionist'],
+  module: 'users',
+  permission_slugs: MODULE_ACCESS.users,
   breadcrumb: ['ADMIN_USER', 'ADMIN_USER_DETAILS'],
   isSidebarMenu: true,
 }
+const USER_ROLE_MENUS: RouterMenuProps[] = [
+  {
+    id: 3,
+    path: '/users',
+    parent_id: 2,
+    label: 'Clients',
+    key: 'client-users',
+    permission_slugs: MODULE_ACCESS.users,
+    isSidebarMenu: true,
+  },
+  {
+    id: 4,
+    path: '/users/nutritionist',
+    parent_id: 2,
+    label: 'Nutritionists',
+    key: 'nutritionist-users',
+    permission_slugs: ['superadmin'],
+    isSidebarMenu: true,
+  },
+  {
+    id: 5,
+    path: '/users/physiotherapist',
+    parent_id: 2,
+    label: 'Physiotherapists',
+    key: 'physiotherapist-users',
+    permission_slugs: ['superadmin'],
+    isSidebarMenu: true,
+  },
+  {
+    id: 6,
+    path: '/users/yogist',
+    parent_id: 2,
+    label: 'Yogists',
+    key: 'yogist-users',
+    permission_slugs: ['superadmin'],
+    isSidebarMenu: true,
+  },
+  {
+    id: 7,
+    path: '/users/sales',
+    parent_id: 2,
+    label: 'Sales',
+    key: 'sales-users',
+    permission_slugs: ['superadmin'],
+    isSidebarMenu: true,
+  },
+  {
+    id: 8,
+    path: '/users/marketing',
+    parent_id: 2,
+    label: 'Marketing',
+    key: 'marketing-users',
+    permission_slugs: ['superadmin'],
+    isSidebarMenu: true,
+  },
+]
+
 const PLANS: RouterMenuProps = {
   id: 21,
   path: '/plans',
@@ -154,7 +255,8 @@ const CATEGORIES: RouterMenuProps = {
   key: 'categories',
   icon: 'category-icon',
   breadcrumb: ['CATEGORIES'],
-  permission_slugs: ['superadmin', 'nutritionist'],
+  module: 'workout',
+  permission_slugs: MODULE_ACCESS.workout,
   slugOptions: ['CATEGORIES'],
   isSidebarMenu: true,
 }
@@ -177,7 +279,8 @@ const WORKOUT_TEMPLATE: RouterMenuProps = {
   key: 'workout-templates',
   icon: 'workout',
   breadcrumb: ['WORKOUT_TEMPLATE'],
-  permission_slugs: ['superadmin', 'nutritionist'],
+  module: 'workout',
+  permission_slugs: MODULE_ACCESS.workout,
   slugOptions: [
     'WORKOUT_TEMPLATE',
     'WORKOUT_TEMPLATE_DETAILS',
@@ -206,12 +309,13 @@ const WORKOUT_TEMPLATE_DAY: RouterMenuProps = {
 const YOGA_TEMPLATE: RouterMenuProps = {
   id: 224,
   path: '/yoga-templates',
-  parent_id: 200,
+  parent_id: 201,
   label: 'Yoga Templates',
   key: 'yoga-templates',
   icon: 'yoga',
   breadcrumb: ['YOGA_TEMPLATE'],
-  permission_slugs: ['superadmin', 'nutritionist'],
+  module: 'yoga',
+  permission_slugs: MODULE_ACCESS.yoga,
   slugOptions: ['YOGA_TEMPLATE', 'YOGA_TEMPLATE_DETAILS', 'YOGA_TEMPLATE_DAY'],
   isSidebarMenu: true,
 }
@@ -288,27 +392,30 @@ const WORKOUT: RouterMenuProps = {
   label: 'Exercises',
   key: 'workout',
   icon: 'workout',
-  permission_slugs: ['superadmin', 'nutritionist'],
+  module: 'workout',
+  permission_slugs: MODULE_ACCESS.workout,
   isSidebarMenu: true,
 }
 const YOGA: RouterMenuProps = {
   id: 46,
   path: '/yoga',
-  parent_id: 200,
+  parent_id: 201,
   label: 'Yoga',
   key: 'yoga',
   icon: 'yoga-icon',
-  permission_slugs: ['superadmin', 'nutritionist'],
+  module: 'yoga',
+  permission_slugs: MODULE_ACCESS.yoga,
   isSidebarMenu: true,
 }
 const MEDITATION: RouterMenuProps = {
   id: 47,
   path: '/meditation',
-  parent_id: 200,
+  parent_id: null,
   label: 'Meditation',
   key: 'meditation',
   icon: 'meditation-icon',
-  permission_slugs: ['superadmin', 'nutritionist'],
+  module: 'meditation',
+  permission_slugs: MODULE_ACCESS.meditation,
   isSidebarMenu: true,
 }
 
@@ -568,8 +675,10 @@ const PAYMENT_HISTORY: RouterMenuProps = {
 export const router_config: { [key: string]: RouterMenuProps } = {
   DASHBOARD,
   ADMIN_USER,
+  ...Object.fromEntries(USER_ROLE_MENUS.map((item) => [item.key, item])),
   PLANS,
   FITNESS,
+  YOGA_MODULE,
   DIET_NUTRITION,
   FINANCE,
   ASSESSMENT_CATEGORY,
