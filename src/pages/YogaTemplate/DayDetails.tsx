@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 
-import { useQuery } from '@tanstack/react-query'
 import { AutoComplete } from 'qbs-core'
 
 import Icons from '../../components/common/icons'
@@ -13,14 +12,13 @@ import { TabItemProps } from '../../common/types'
 import { useYogaList } from '../Yoga/api'
 import { useAuthStore } from '../../store/authStore'
 import { TabContainer } from '../../components/common'
-import apiUrl from '../../apis/api.url'
-import { getData } from '../../apis/api.helpers'
 import {
   getYogaTemplateDay,
   addYogaTemplateExercises,
   removeYogaTemplateExercises,
 } from './api'
 import YogaTemplateDayForm from './DayForm'
+import CopyExercisesDialog, { CopyTargetType } from './CopyExercisesDialog'
 
 const getYogaSelectableId = (item: any) =>
   item?.yoga_id || item?.yoga?.id || item?.id || item?.yogaId
@@ -82,6 +80,10 @@ function AssignTabContent({
 }: any) {
   const [selectedExerciseIds, setSelectedExerciseIds] = useState<any[]>([])
   const [removedExerciseIds, setRemovedExerciseIds] = useState<any[]>([])
+  const [selectedSectionKeys, setSelectedSectionKeys] = useState<string[]>([])
+  const [sectionCopyType, setSectionCopyType] = useState<CopyTargetType | null>(
+    null
+  )
   const { enqueueSnackbar } = useSnackbarManager()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
@@ -120,21 +122,14 @@ function AssignTabContent({
     const groups = new Map<string, any[]>()
 
     exercises.forEach((ex: any) => {
-      const catName =
-        ex?.category?.main_category?.name ??
-        ex?.category?.name ??
-        ex?.yoga?.category?.main_category?.name ??
-        ex?.yoga?.category_name ??
-        'Others'
-
       const subName =
         ex?.category?.name ??
         ex?.yoga?.category?.name ??
         ex?.yoga?.subcategory_name ??
         ex?.yoga?.subcategory?.name ??
-        'Others'
+        'Uncategorized'
 
-      const legendText = `${catName} - ${subName}`
+      const legendText = subName
 
       if (!groups.has(legendText)) groups.set(legendText, [])
       groups.get(legendText)!.push(ex)
@@ -145,6 +140,10 @@ function AssignTabContent({
       items,
     }))
   }, [exercises])
+
+  const selectedSectionExerciseIds = groupedAssignedExercises
+    .filter((group) => selectedSectionKeys.includes(group.legend))
+    .flatMap((group) => group.items.map((exercise: any) => exercise.id))
 
   return (
     <>
@@ -188,6 +187,34 @@ function AssignTabContent({
                     Remove Exercise
                   </button>
                 )}
+              {!isNutritionist && selectedSectionExerciseIds.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs text-gray-500">
+                    {selectedSectionKeys.length} section
+                    {selectedSectionKeys.length === 1 ? '' : 's'} selected
+                  </span>
+                  {(
+                    [
+                      'same_template',
+                      'other_template',
+                      'client',
+                    ] as CopyTargetType[]
+                  ).map((target) => (
+                    <button
+                      key={target}
+                      type="button"
+                      className="px-3 py-1 text-xs border rounded border-blue-200 text-blue-700 hover:bg-blue-50"
+                      onClick={() => setSectionCopyType(target)}
+                    >
+                      {target === 'same_template'
+                        ? 'Copy to Same Template'
+                        : target === 'other_template'
+                          ? 'Copy to Other Template'
+                          : 'Copy to Client'}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           {exercises.length > 0 ? (
@@ -198,7 +225,21 @@ function AssignTabContent({
                   className="border border-gray-300 rounded-xl p-4 bg-white"
                 >
                   <legend className="px-2 text-md font-semibold text-gray-600">
-                    {group.legend}
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedSectionKeys.includes(group.legend)}
+                        onChange={() =>
+                          setSelectedSectionKeys((current) =>
+                            current.includes(group.legend)
+                              ? current.filter((key) => key !== group.legend)
+                              : [...current, group.legend]
+                          )
+                        }
+                        className="h-4 w-4 accent-blue-600"
+                      />
+                      {group.legend}
+                    </label>
                   </legend>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8 gap-3 place-items-stretch">
@@ -277,6 +318,21 @@ function AssignTabContent({
           ) : (
             <div className="text-sm text-gray-600">No exercises assigned.</div>
           )}
+          {sectionCopyType && (
+            <CopyExercisesDialog
+              open={!!sectionCopyType}
+              onClose={() => setSectionCopyType(null)}
+              sourceTemplateId={wp?.yoga_template_id}
+              sourceDays={[wp]}
+              selectedSourceDayIds={[wp?.id]}
+              sourceExerciseIds={selectedSectionExerciseIds}
+              targetType={sectionCopyType}
+              onSuccess={async () => {
+                setSelectedSectionKeys([])
+                await refreshDetails?.()
+              }}
+            />
+          )}
         </>
       )}
     </>
@@ -312,71 +368,21 @@ export default function YogaPlanDetails() {
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
 
-  const { data: categoriesResponse } = useQuery(
-    ['yoga_categories_for_assign'],
-    () => getData(apiUrl.CATEGORIES),
-    {
-      staleTime: 5 * 60 * 1000,
-    }
-  )
-
-  const normalizedCategories = useMemo(() => {
-    const categories =
-      (categoriesResponse as any)?.categories ??
-      (categoriesResponse as any)?.category ??
-      categoriesResponse
-    if (Array.isArray(categories)) return categories
-    return []
-  }, [categoriesResponse])
-
   const categoryOptions = useMemo(
-    () =>
-      normalizedCategories.map((cat: any) => ({
-        id: cat?.id,
-        name: cat?.name,
-        subcategories: Array.isArray(cat?.subcategories)
-          ? cat.subcategories
-          : [],
-      })),
-    [normalizedCategories]
+    () => [
+      { id: 'basic', name: 'Basic', subcategories: [] },
+      { id: 'intermediate', name: 'Intermediate', subcategories: [] },
+      { id: 'advanced', name: 'Advanced', subcategories: [] },
+    ],
+    []
   )
-
-  const subcategoryParentMap = useMemo(() => {
-    const map: Record<
-      string,
-      {
-        categoryId: number | string | undefined
-        categoryName: string
-        label: string
-      }
-    > = {}
-
-    categoryOptions.forEach((cat: any) => {
-      const subs = Array.isArray(cat?.subcategories) ? cat.subcategories : []
-
-      subs.forEach((sub: any) => {
-        const subId = sub?.id ?? sub?.value
-        if (subId === undefined || subId === null) return
-
-        map[String(subId)] = {
-          categoryId: cat?.id,
-          categoryName: cat?.name ?? '',
-          label: sub?.value ?? sub?.name ?? sub?.label ?? '',
-        }
-      })
-    })
-
-    return map
-  }, [categoryOptions])
 
   const [selectedCategoryId, setSelectedCategoryId] = useState<
     number | string | undefined
   >(undefined)
-  const [selectedCategoryName, setSelectedCategoryName] = useState<string>('')
-  const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
-  const [subcategoryLookup, setSubcategoryLookup] = useState<
-    Record<string, any>
-  >({})
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<
+    Array<number | string>
+  >([])
   const [yogaFiltersEnabled, setYogaFiltersEnabled] = useState(false)
   const prefillAppliedRef = useRef(false)
   const drawerSelectionInitializedRef = useRef(false)
@@ -384,19 +390,17 @@ export default function YogaPlanDetails() {
   const userSelectionTouchedRef = useRef(false)
   const wp = data?.yoga_template_day || data || {}
 
-  const categoryAutocompleteValue = useMemo(() => {
-    if (!selectedCategoryId) return ''
-    const match = categoryOptions.find(
-      (cat: any) => String(cat?.id) === String(selectedCategoryId)
-    )
-    if (match?.name) return match.name
-    return selectedCategoryName
-  }, [categoryOptions, selectedCategoryId, selectedCategoryName])
+  const selectedCategoryItems = useMemo(
+    () =>
+      categoryOptions.filter((cat: any) =>
+        selectedCategoryIds.map(String).includes(String(cat?.id))
+      ),
+    [categoryOptions, selectedCategoryIds]
+  )
 
   useEffect(() => {
     setSelectedCategoryId(undefined)
-    setSelectedCategoryName('')
-    setSelectedSubcategories([])
+    setSelectedCategoryIds([])
     prefillAppliedRef.current = false
     drawerSelectionInitializedRef.current = false
   }, [wp?.id])
@@ -418,8 +422,7 @@ export default function YogaPlanDetails() {
     setWpSearch('')
     setWpPage(1)
     setSelectedCategoryId(undefined)
-    setSelectedCategoryName('')
-    setSelectedSubcategories([])
+    setSelectedCategoryIds([])
     setYogaFiltersEnabled(false)
     prefillAppliedRef.current = false
     drawerSelectionInitializedRef.current = false
@@ -459,189 +462,40 @@ export default function YogaPlanDetails() {
   }, [id])
 
   const previouslySubmittedSelection = useMemo(() => {
-    if (!Array.isArray(wp?.exercises) || wp.exercises.length === 0) return null
+    const exercise = Array.isArray(wp?.exercises) ? wp.exercises[0] : null
+    const rawCategory = exercise?.category ?? exercise?.yoga?.category
+    const categoryId =
+      rawCategory && typeof rawCategory === 'object'
+        ? rawCategory.id
+        : rawCategory
+    const categoryName =
+      rawCategory && typeof rawCategory === 'object'
+        ? rawCategory.name
+        : rawCategory
+          ? String(rawCategory)
+              .toLowerCase()
+              .replace(/\b\w/g, (char) => char.toUpperCase())
+          : ''
 
-    const buckets: Record<
-      string,
-      {
-        categoryId: number | string | undefined
-        categoryName: string
-        subs: Map<string, { id: any; value: string }>
-      }
-    > = {}
-
-    const getSubcategoryIdFromExercise = (exercise: any) => {
-      const candidates = [
-        exercise?.subcategory_id,
-        exercise?.category?.id,
-        exercise?.category_id,
-        exercise?.yoga?.subcategory_id,
-        exercise?.yoga?.subcategory?.id,
-        exercise?.yoga?.category?.id,
-        exercise?.yoga?.category_id,
-      ]
-
-      return candidates.find(
-        (candidate) =>
-          candidate !== undefined && candidate !== null && candidate !== ''
-      )
-    }
-
-    const getCategoryInfoFromExercise = (exercise: any) => {
-      const sources = [
-        exercise?.category?.main_category,
-        exercise?.yoga?.category?.main_category,
-        exercise?.category?.parent,
-        exercise?.yoga?.category?.parent,
-      ].filter(Boolean)
-
-      const primary = sources[0] as any
-
-      const idCandidates = [
-        primary?.id,
-        exercise?.category?.main_category_id,
-        exercise?.yoga?.category?.main_category_id,
-        exercise?.category?.parent_id,
-        exercise?.yoga?.category?.parent_id,
-        exercise?.yoga?.main_category_id,
-      ]
-
-      const categoryId = idCandidates.find(
-        (candidate) =>
-          candidate !== undefined && candidate !== null && candidate !== ''
-      )
-
-      const categoryName =
-        primary?.name ??
-        exercise?.category?.main_category?.name ??
-        exercise?.category?.main_category_name ??
-        exercise?.yoga?.category?.main_category?.name ??
-        exercise?.yoga?.category?.parent?.name ??
-        ''
-
-      return {
-        categoryId,
-        categoryName,
-      }
-    }
-
-    const getSubcategoryLabelFromExercise = (exercise: any) =>
-      exercise?.category?.name ??
-      exercise?.yoga?.subcategory?.name ??
-      exercise?.yoga?.category?.name ??
-      exercise?.yoga?.subcategory_name ??
-      exercise?.category_name ??
-      ''
-
-    wp.exercises.forEach((exercise: any) => {
-      const subId = getSubcategoryIdFromExercise(exercise)
-      if (subId === undefined) return
-
-      const mapMeta = subcategoryParentMap[String(subId)]
-      const catInfo = mapMeta?.categoryId
-        ? {
-            categoryId: mapMeta.categoryId,
-            categoryName: mapMeta.categoryName,
-          }
-        : getCategoryInfoFromExercise(exercise)
-
-      if (
-        catInfo.categoryId === undefined ||
-        catInfo.categoryId === null ||
-        catInfo.categoryId === ''
-      )
-        return
-
-      const bucketKey = String(catInfo.categoryId)
-      if (!buckets[bucketKey]) {
-        buckets[bucketKey] = {
-          categoryId: catInfo.categoryId,
-          categoryName: catInfo.categoryName || '',
-          subs: new Map(),
-        }
-      }
-
-      const label =
-        getSubcategoryLabelFromExercise(exercise) || mapMeta?.label || ''
-
-      buckets[bucketKey].subs.set(String(subId), {
-        id: subId,
-        value: label || mapMeta?.label || '',
-      })
-    })
-
-    const bucketList = Object.values(buckets)
-    if (!bucketList.length) return null
-
-    bucketList.sort((a, b) => b.subs.size - a.subs.size)
-    const preferred = bucketList[0]
-
-    if (!preferred.categoryId) return null
-
-    return {
-      categoryId: preferred.categoryId,
-      categoryName: preferred.categoryName,
-      subcategories: Array.from(preferred.subs.values()),
-    }
-  }, [wp?.exercises, subcategoryParentMap])
-
-  // Derive selected subcategory IDs from multi-select
-  const selectedSubcategoryIds = useMemo(
-    () =>
-      (selectedSubcategories || [])
-        .map((s: any) => s?.id)
-        .filter((id: any) => id != null),
-    [selectedSubcategories]
-  )
-
-  const updateSubcategoryLookup = useCallback((options: any[]) => {
-    if (!Array.isArray(options) || options.length === 0) return
-    setSubcategoryLookup((prev) => {
-      const next = { ...prev }
-      options.forEach((opt) => {
-        const key = opt?.id ?? opt?.value
-        if (key !== undefined && key !== null) {
-          next[String(key)] = opt
-        }
-      })
-      return next
-    })
-  }, [])
+    if (!categoryId) return null
+    return { categoryId, categoryName, subcategories: [] }
+  }, [wp?.exercises])
 
   useEffect(() => {
     if (!assignOpen) return
     if (!previouslySubmittedSelection || prefillAppliedRef.current) return
 
-    const { categoryId, categoryName, subcategories } =
-      previouslySubmittedSelection
+    const { categoryId } = previouslySubmittedSelection
 
     if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
+      setSelectedCategoryIds([categoryId])
       setSelectedCategoryId(categoryId)
-
-      const resolvedCategoryName =
-        categoryName && categoryName.length > 0
-          ? categoryName
-          : (categoryOptions.find(
-              (cat: any) => String(cat?.id) === String(categoryId)
-            )?.name ?? '')
-
-      setSelectedCategoryName(resolvedCategoryName)
-    }
-
-    if (Array.isArray(subcategories) && subcategories.length > 0) {
-      setSelectedSubcategories(subcategories)
-      updateSubcategoryLookup(subcategories)
     }
 
     // Enable filters when pre-filling selection
     setYogaFiltersEnabled(true)
     prefillAppliedRef.current = true
-  }, [
-    assignOpen,
-    previouslySubmittedSelection,
-    categoryOptions,
-    updateSubcategoryLookup,
-  ])
+  }, [assignOpen, previouslySubmittedSelection, categoryOptions])
 
   const assignedRepsMap = useMemo(() => {
     const map = new Map<string, number>()
@@ -708,40 +562,6 @@ export default function YogaPlanDetails() {
     [assignedRepsMap]
   )
 
-  const normalizedSelectedSubcategories = useMemo(() => {
-    if (!selectedSubcategories?.length) return []
-    return selectedSubcategories
-      .map((item: any) => {
-        if (!item) return null
-        const key = item?.id ?? item?.value ?? item
-        if (key === undefined || key === null) return null
-        const cached = subcategoryLookup[String(key)]
-        if (cached) return cached
-        const label =
-          item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
-        return {
-          id: key,
-          value: label,
-        }
-      })
-      .filter(Boolean)
-  }, [selectedSubcategories, subcategoryLookup])
-
-  const deriveSubcategorySelection = useCallback((value?: any | any[]) => {
-    if (!value) return []
-    const list = Array.isArray(value) ? value : [value]
-    return list
-      .map((item) => {
-        if (!item) return null
-        const id = item?.id ?? item?.value ?? item
-        if (id === undefined || id === null) return null
-        const label =
-          item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
-        return { id, value: label }
-      })
-      .filter(Boolean)
-  }, [])
-
   // Build params for yogas API including category and subcategory filters
   const yogaListParams = useMemo(() => {
     const params: any = {
@@ -750,19 +570,14 @@ export default function YogaPlanDetails() {
       search: wpSearch,
     }
 
-    if (yogaFiltersEnabled && selectedCategoryId) {
-      params.category_id = selectedCategoryId
-    }
-
-    if (yogaFiltersEnabled && selectedSubcategoryIds.length) {
-      params.subcategory_ids = selectedSubcategoryIds.join(',')
+    if (yogaFiltersEnabled && selectedCategoryIds.length) {
+      params.category = selectedCategoryIds.join(',')
     }
 
     console.log('🔍 Yoga API Params:', {
       params,
       yogaFiltersEnabled,
       selectedCategoryId,
-      selectedSubcategoryIds,
       assignOpen,
     })
 
@@ -772,7 +587,7 @@ export default function YogaPlanDetails() {
     wpPerPage,
     wpSearch,
     selectedCategoryId,
-    selectedSubcategoryIds,
+    selectedCategoryIds,
     yogaFiltersEnabled,
   ])
 
@@ -893,29 +708,22 @@ export default function YogaPlanDetails() {
   }
 
   const getYogaGroupLabels = (w: any) => {
-    const main =
-      w?.category?.main_category?.name ??
-      w?.category?.parent?.name ??
-      w?.category?.main_category_name ??
-      w?.category?.parent_name ??
-      w?.yoga?.category?.main_category?.name ??
-      w?.yoga?.category?.parent?.name ??
+    const rawCategory =
       w?.category?.name ??
+      w?.category ??
       w?.category_name ??
-      'Others'
-
-    const sub =
-      w?.subcategory?.name ??
-      w?.subcategory_name ??
-      w?.yoga?.subcategory?.name ??
-      w?.yoga?.subcategory_name ??
       w?.yoga?.category?.name ??
-      w?.category?.name ??
-      'Others'
+      w?.yoga?.category ??
+      w?.yoga?.category_name
+    const categoryName = rawCategory
+      ? String(rawCategory)
+          .toLowerCase()
+          .replace(/\b\w/g, (char) => char.toUpperCase())
+      : 'Uncategorized'
 
     return {
-      main: String(main || 'Others'),
-      sub: String(sub || 'Others'),
+      main: 'Yoga',
+      sub: categoryName,
     }
   }
 
@@ -955,7 +763,7 @@ export default function YogaPlanDetails() {
     return Array.from(groups.values()).map((group) => ({
       name: group.sub,
       mainName: group.main,
-      legend: `${group.main} - ${group.sub}`,
+      legend: group.sub,
       items: group.items,
     }))
   }, [yogas])
@@ -989,7 +797,7 @@ export default function YogaPlanDetails() {
     return Array.from(groups.entries())
       .map(([key, value]) => ({
         name: value.sub,
-        legend: `${value.main} - ${value.sub}`,
+        legend: value.sub,
         mainName: value.main,
         items: value.items,
         priority: priorities.get(key) ?? 9999,
@@ -1213,8 +1021,7 @@ export default function YogaPlanDetails() {
       setSelectedYogas([])
       setYogaCounts({})
       setSelectedCategoryId(undefined)
-      setSelectedCategoryName('')
-      setSelectedSubcategories([])
+      setSelectedCategoryIds([])
       setYogaFiltersEnabled(false)
       prefillAppliedRef.current = false
       drawerSelectionInitializedRef.current = false
@@ -1368,84 +1175,39 @@ export default function YogaPlanDetails() {
                     desc="name"
                     descId="id"
                     type="custom_search_select"
+                    isMultiple={true}
+                    selectedItems={selectedCategoryItems}
                     data={formattedCategoryOptions}
-                    value={categoryAutocompleteValue}
+                    value={''}
                     name="assign_category"
                     onChange={(option: any) => {
-                      const id = option?.id ?? option?.value ?? ''
-                      const name =
-                        option?.name ?? option?.label ?? option?.value ?? ''
-                      const prevIdKey = String(selectedCategoryId ?? '')
-                      const nextIdKey = String(id || '')
+                      const options = Array.isArray(option)
+                        ? option
+                        : option
+                          ? [option]
+                          : []
+                      const ids = options
+                        .map((item: any) => item?.id ?? item?.value)
+                        .filter(
+                          (value: any) =>
+                            value !== undefined &&
+                            value !== null &&
+                            value !== ''
+                        )
+                      const prevIdKey = selectedCategoryIds
+                        .map(String)
+                        .sort()
+                        .join('|')
+                      const nextIdKey = ids.map(String).sort().join('|')
                       const categoryActuallyChanged = prevIdKey !== nextIdKey
 
-                      setSelectedCategoryId(id || undefined)
-                      setSelectedCategoryName(capitalizeWords(name || ''))
-                      setSelectedSubcategories([])
+                      setSelectedCategoryIds(ids)
+                      setSelectedCategoryId(ids[0] || undefined)
                       setWpPage(1)
-                      if (id) {
+                      if (ids.length) {
                         setYogaFiltersEnabled(true)
                       }
                       if (assignOpen && categoryActuallyChanged) {
-                        userSelectionTouchedRef.current = false
-                        selectAllNextYogasRef.current = true
-                        setSelectedYogas([])
-                      }
-                    }}
-                  />
-                </div>
-                <div className="flex-1 min-w-[200px]">
-                  <AutoComplete
-                    placeholder="Select subcategories"
-                    desc="value"
-                    descId="id"
-                    type="auto_suggestion"
-                    isMultiple={true}
-                    selectedItems={normalizedSelectedSubcategories}
-                    value={''}
-                    async={true}
-                    initialLoad={true}
-                    paginationEnabled={false}
-                    name="assign_subcategories"
-                    getData={async (key?: string) => {
-                      if (!selectedCategoryId) return []
-
-                      const raw: any[] = []
-
-                      let options = Array.isArray(raw) ? raw : []
-
-                      if (key) {
-                        const lower = String(key).toLowerCase()
-                        options = options.filter((o: any) =>
-                          String(o.value || '')
-                            .toLowerCase()
-                            .includes(lower)
-                        )
-                      }
-
-                      updateSubcategoryLookup(options)
-
-                      return options
-                    }}
-                    onChange={(value?: any | any[]) => {
-                      const normalized = deriveSubcategorySelection(value)
-                      const prevKey = (selectedSubcategories || [])
-                        .map((item: any) => String(item?.id ?? ''))
-                        .filter(Boolean)
-                        .sort()
-                        .join('|')
-                      const nextKey = (normalized || [])
-                        .map((item: any) => String(item?.id ?? ''))
-                        .filter(Boolean)
-                        .sort()
-                        .join('|')
-
-                      setSelectedSubcategories(normalized)
-                      if (normalized.length > 0) {
-                        setYogaFiltersEnabled(true)
-                      }
-
-                      if (assignOpen && prevKey !== nextKey) {
                         userSelectionTouchedRef.current = false
                         selectAllNextYogasRef.current = true
                         setSelectedYogas([])
@@ -1504,14 +1266,7 @@ export default function YogaPlanDetails() {
             {!yogasLoading && yogas.length > 0 && (
               <div className="flex flex-col gap-4">
                 {groupedYogas.map((group) => {
-                  const first = group.items?.[0]
-                  const categoryName =
-                    first?.category?.main_category?.name ??
-                    first?.category_name ??
-                    'Others'
-                  const legendText = categoryName
-                    ? `${categoryName} - ${group.name}`
-                    : group.name
+                  const legendText = group.name
 
                   return (
                     <fieldset
@@ -1684,14 +1439,7 @@ export default function YogaPlanDetails() {
           {selectedYogas.length > 0 ? (
             <div className="flex flex-col gap-4">
               {groupedSelectedYogas.map((group) => {
-                const first = group.items?.[0]
-                const categoryName =
-                  first?.category?.main_category?.name ??
-                  first?.category_name ??
-                  'Others'
-                const legendText = categoryName
-                  ? `${categoryName} - ${group.name}`
-                  : group.name
+                const legendText = group.name
 
                 return (
                   <fieldset

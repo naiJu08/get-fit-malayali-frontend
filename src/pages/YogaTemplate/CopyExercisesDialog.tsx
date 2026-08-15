@@ -16,8 +16,9 @@ type Props = {
   sourceTemplateId: string | number
   sourceDays: any[]
   selectedSourceDayIds: Array<string | number>
+  sourceExerciseIds?: Array<string | number>
   targetType: CopyTargetType
-  onSuccess?: () => void
+  onSuccess?: () => void | Promise<void>
 }
 
 const targetLabels = {
@@ -32,6 +33,7 @@ export default function CopyExercisesDialog({
   sourceTemplateId,
   sourceDays,
   selectedSourceDayIds,
+  sourceExerciseIds = [],
   targetType,
   onSuccess,
 }: Props) {
@@ -43,6 +45,7 @@ export default function CopyExercisesDialog({
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
   const [selectedClientTarget, setSelectedClientTarget] = useState<any>(null)
+  const [replaceExisting, setReplaceExisting] = useState(true)
   const { enqueueSnackbar } = useSnackbarManager()
 
   const sourceCount = selectedSourceDayIds.length
@@ -64,8 +67,21 @@ export default function CopyExercisesDialog({
     setError('')
     setSearch('')
     setSelectedClientTarget(null)
+    setReplaceExisting(true)
     if (targetType === 'same_template') {
-      setTargets(sourceDays)
+      if (sourceDays.length > 1) {
+        setTargets(sourceDays)
+      } else {
+        setLoading(true)
+        getData(
+          `${apiUrl.YOGA_TEMPLATES}/${sourceTemplateId}?page=1&per_page=100`
+        )
+          .then((response: any) =>
+            setTargets((response?.yoga_template ?? response)?.days || [])
+          )
+          .catch(() => setError('Failed to load yoga template days'))
+          .finally(() => setLoading(false))
+      }
       return
     }
     if (targetType === 'other_template') {
@@ -130,10 +146,27 @@ export default function CopyExercisesDialog({
       .finally(() => setLoading(false))
   }, [selectedParentId, targetType])
 
+  useEffect(() => {
+    if (targetType !== 'client' || !replaceExisting) return
+    setSelectedTargetIds((current) =>
+      current.filter(
+        (id) =>
+          !targets.find(
+            (day) => String(day.id) === String(id) && day.replace_blocked
+          )
+      )
+    )
+  }, [replaceExisting, targetType, targets])
+
   const parentOptions = targetType === 'same_template' ? [] : parents
   const dayOptions =
     targetType === 'same_template' || selectedParentId
-      ? filteredTargets.filter((day: any) => day?.id != null)
+      ? filteredTargets.filter(
+          (day: any) =>
+            day?.id != null &&
+            (!day?.target_date ||
+              day.target_date >= new Date().toISOString().slice(0, 10))
+        )
       : []
   const canSubmit =
     selectedTargetIds.length >= sourceCount &&
@@ -170,6 +203,10 @@ export default function CopyExercisesDialog({
           source_day_ids: selectedSourceDayIds,
           target_day_ids: selectedTargetIds,
           target_type: targetType,
+          ...(sourceExerciseIds.length
+            ? { source_exercise_ids: sourceExerciseIds }
+            : {}),
+          replace_existing: replaceExisting,
           ...(targetType === 'other_template'
             ? { target_template_id: selectedParentId }
             : {}),
@@ -186,12 +223,13 @@ export default function CopyExercisesDialog({
           `${targetLabels[targetType]} completed successfully.`,
         { variant: 'success' }
       )
-      onSuccess?.()
+      await onSuccess?.()
       onClose()
     } catch (e: any) {
-      setError(
+      const message =
         e?.response?.data?.errors?.join(', ') || 'Failed to copy exercises'
-      )
+      enqueueSnackbar(message, { variant: 'error' })
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -399,10 +437,45 @@ export default function CopyExercisesDialog({
                     Select target days
                   </p>
                   <p className="mt-1 text-xs text-gray-500">
-                    Source exercises will replace the exercises in each selected
-                    target day.
+                    Choose how copied exercises should be handled in the
+                    selected target days.
                   </p>
                 </div>
+                <button
+                  type="button"
+                  aria-pressed={replaceExisting}
+                  aria-label={
+                    replaceExisting
+                      ? 'Replace existing exercises'
+                      : 'Append to existing exercises'
+                  }
+                  onClick={() => setReplaceExisting((value) => !value)}
+                  className={
+                    'inline-flex min-h-9 shrink-0 items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-blue-300 ' +
+                    (replaceExisting
+                      ? 'border-blue-600 bg-blue-600 text-white hover:bg-blue-700'
+                      : 'border-gray-300 bg-white text-gray-700 hover:border-blue-400 hover:bg-blue-50')
+                  }
+                >
+                  <span>
+                    {replaceExisting
+                      ? 'Replace existing exercises'
+                      : 'Append to existing exercises'}
+                  </span>
+                  <span
+                    className={
+                      'relative h-5 w-9 shrink-0 rounded-full transition-colors ' +
+                      (replaceExisting ? 'bg-white/30' : 'bg-gray-200')
+                    }
+                  >
+                    <span
+                      className={
+                        'absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ' +
+                        (replaceExisting ? 'translate-x-4' : 'translate-x-0')
+                      }
+                    />
+                  </span>
+                </button>
                 <span
                   className={`rounded-full px-3 py-1.5 text-xs font-semibold ${selectionValid ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'}`}
                 >
@@ -420,15 +493,19 @@ export default function CopyExercisesDialog({
                     const isSourceDay =
                       targetType === 'same_template' &&
                       selectedSourceDayIds.map(String).includes(String(day.id))
+                    const replaceBlocked =
+                      targetType === 'client' &&
+                      replaceExisting &&
+                      day?.replace_blocked
                     const checked = selectedTargetIds.includes(String(day.id))
                     return (
                       <label
                         key={day.id}
-                        className={`group flex cursor-pointer items-center gap-3 rounded-lg border bg-white px-3 py-3 transition ${isSourceDay ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400' : checked ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/40'}`}
+                        className={`group flex cursor-pointer items-center gap-3 rounded-lg border bg-white px-3 py-3 transition ${isSourceDay || replaceBlocked ? 'cursor-not-allowed border-gray-200 bg-gray-100 text-gray-400' : checked ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/40'}`}
                       >
                         <input
                           type="checkbox"
-                          disabled={isSourceDay}
+                          disabled={isSourceDay || replaceBlocked}
                           checked={checked}
                           onChange={() => toggleTarget(day.id)}
                           className="h-4 w-4 accent-blue-600"
@@ -441,6 +518,9 @@ export default function CopyExercisesDialog({
                             Day {day.day_number}
                             {day.target_date ? ` · ${day.target_date}` : ''}
                             {isSourceDay ? ' · Source day' : ''}
+                            {replaceBlocked
+                              ? ' · Today has started; append only'
+                              : ''}
                           </span>
                         </span>
                         {checked && <span className="text-blue-600">✓</span>}

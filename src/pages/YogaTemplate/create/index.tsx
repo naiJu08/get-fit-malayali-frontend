@@ -90,8 +90,11 @@ export default function YogaTemplateForm({
     {
       name: 'intensity_level',
       label: 'Intensity Level',
+      id: 'intensity_level',
       type: 'custom_select',
       placeholder: 'Select intensity level',
+      desc: 'name',
+      descId: 'id',
       required: true,
       data: [
         { id: 'Low', name: 'Low' },
