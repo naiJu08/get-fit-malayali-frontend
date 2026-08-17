@@ -414,10 +414,10 @@ export default function CategoryDetails() {
                     descId: 'id',
                     required: true,
                     data: [
-                      { id: 'Warm Up', name: 'Warm Up' },
-                      { id: 'Workout Round 1', name: 'Workout Round 1' },
-                      { id: 'Workout Round 2', name: 'Workout Round 2' },
-                      { id: 'Cool Down', name: 'Cool Down' },
+                      { id: 1, name: 'Warmup' },
+                      { id: 2, name: 'Workout Round 1' },
+                      { id: 3, name: 'Workout Round 2' },
+                      { id: 4, name: 'Cool Down' },
                     ],
                   },
                   {
