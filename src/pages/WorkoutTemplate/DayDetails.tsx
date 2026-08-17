@@ -398,6 +398,9 @@ export default function WorkoutPlanDetails() {
     return []
   }, [categoriesResponse])
 
+  const capitalizeWords = (text: string) =>
+    text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
+
   const categoryOptions = useMemo(
     () =>
       normalizedCategories.map((cat: any) => ({
@@ -427,10 +430,17 @@ export default function WorkoutPlanDetails() {
         const subId = sub?.id ?? sub?.value
         if (subId === undefined || subId === null) return
 
+        const catName = capitalizeWords(cat?.name ?? '')
+        const subName = capitalizeWords(
+          sub?.value ?? sub?.name ?? sub?.label ?? ''
+        )
+        const formattedLabel =
+          catName && subName ? `${catName} - ${subName}` : subName
+
         map[String(subId)] = {
           categoryId: cat?.id,
-          categoryName: cat?.name ?? '',
-          label: sub?.value ?? sub?.name ?? sub?.label ?? '',
+          categoryName: catName,
+          label: formattedLabel,
         }
       })
     })
@@ -455,12 +465,19 @@ export default function WorkoutPlanDetails() {
   const userSelectionTouchedRef = useRef(false)
   const wp = data?.workout_template_day || data || {}
 
+  const formattedCategoryOptions = useMemo(() => {
+    return (categoryOptions || []).map((c: any) => ({
+      ...c,
+      name: capitalizeWords(c.name),
+    }))
+  }, [categoryOptions])
+
   const selectedCategoryItems = useMemo(
     () =>
-      categoryOptions.filter((cat: any) =>
+      formattedCategoryOptions.filter((cat: any) =>
         selectedCategoryIds.map(String).includes(String(cat?.id))
       ),
-    [categoryOptions, selectedCategoryIds]
+    [formattedCategoryOptions, selectedCategoryIds]
   )
 
   useEffect(() => {
@@ -779,15 +796,21 @@ export default function WorkoutPlanDetails() {
         if (key === undefined || key === null) return null
         const cached = subcategoryLookup[String(key)]
         if (cached) return cached
+        const mapMeta = subcategoryParentMap[String(key)]
         const label =
-          item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
+          mapMeta?.label ??
+          item?.value ??
+          item?.name ??
+          item?.label ??
+          item?.desc ??
+          ''
         return {
           id: key,
           value: label,
         }
       })
       .filter(Boolean)
-  }, [selectedSubcategories, subcategoryLookup])
+  }, [selectedSubcategories, subcategoryLookup, subcategoryParentMap])
 
   const deriveSubcategorySelection = useCallback((value?: any | any[]) => {
     if (!value) return []
@@ -1330,14 +1353,6 @@ export default function WorkoutPlanDetails() {
     setDragIndex(null)
     setDragGroup(null)
   }
-  const capitalizeWords = (text: string) =>
-    text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
-  const formattedCategoryOptions = useMemo(() => {
-    return (categoryOptions || []).map((c: any) => ({
-      ...c,
-      name: capitalizeWords(c.name),
-    }))
-  }, [categoryOptions])
 
   return (
     <div className="p-4">
@@ -1492,17 +1507,36 @@ export default function WorkoutPlanDetails() {
                     paginationEnabled={false}
                     name="assign_subcategories"
                     getData={async (key?: string) => {
-                      if (!selectedCategoryId) return []
+                      if (
+                        !selectedCategoryIds ||
+                        selectedCategoryIds.length === 0
+                      )
+                        return []
 
-                      const raw = (
-                        await Promise.all(
-                          selectedCategoryIds.map((categoryId) =>
-                            getWorkoutPlanSubcategories(categoryId)
-                          )
+                      const results = await Promise.all(
+                        selectedCategoryIds.map((categoryId) =>
+                          getWorkoutPlanSubcategories(categoryId)
                         )
-                      ).flat()
+                      )
+                      const raw = results.flat()
 
                       let options = Array.isArray(raw) ? raw : []
+
+                      options.sort((a: any, b: any) => {
+                        const nameA = String(
+                          a.subName || a.value || ''
+                        ).toLowerCase()
+                        const nameB = String(
+                          b.subName || b.value || ''
+                        ).toLowerCase()
+                        if (nameA < nameB) return -1
+                        if (nameA > nameB) return 1
+                        const catA = String(a.catName || '').toLowerCase()
+                        const catB = String(b.catName || '').toLowerCase()
+                        if (catA < catB) return -1
+                        if (catA > catB) return 1
+                        return 0
+                      })
 
                       if (key) {
                         const lower = String(key).toLowerCase()
