@@ -53,6 +53,7 @@ const TextField: React.FC<TextFieldProps> = ({
   isTotal,
   handleDisableAction,
   allowPositiveOnly,
+  digitsOnly,
   errorFlag,
   toLowercase,
 }) => {
@@ -109,6 +110,13 @@ const TextField: React.FC<TextFieldProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e?.target.value
 
+    if (digitsOnly) {
+      if (!/^\d*$/.test(inputValue)) return
+      if (maxLength && inputValue.length > maxLength) return
+      onChange?.(e)
+      return
+    }
+
     if (type === 'number' && allowPositiveOnly) {
       if (
         inputValue === '' ||
@@ -122,6 +130,23 @@ const TextField: React.FC<TextFieldProps> = ({
     }
   }
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (digitsOnly) {
+      const allowedKeys = [
+        'Backspace',
+        'Delete',
+        'ArrowLeft',
+        'ArrowRight',
+        'Tab',
+        'Home',
+        'End',
+      ]
+      if (allowedKeys.includes(e.key)) return
+      if (!/[0-9]/.test(e.key)) {
+        e.preventDefault()
+      }
+      return
+    }
+
     if (!allowPositiveOnly) return
     const allowedKeys = [
       'Backspace',
@@ -146,6 +171,22 @@ const TextField: React.FC<TextFieldProps> = ({
     }
   }
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    if (digitsOnly) {
+      const paste = e.clipboardData.getData('text')
+      if (!/^\d*$/.test(paste)) {
+        e.preventDefault()
+        return
+      }
+      const target = e.target as HTMLInputElement
+      const selectedLength =
+        (target.selectionEnd ?? 0) - (target.selectionStart ?? 0)
+      const nextLength = target.value.length - selectedLength + paste.length
+      if (maxLength && nextLength > maxLength) {
+        e.preventDefault()
+      }
+      return
+    }
+
     if (!allowPositiveOnly) return
     const paste = e.clipboardData.getData('text')
     if (!/^[0-9]*\.?[0-9]*$/.test(paste)) {
@@ -201,6 +242,7 @@ const TextField: React.FC<TextFieldProps> = ({
           onBlur={onBlur}
           type={type}
           maxLength={maxLength}
+          inputMode={digitsOnly ? 'numeric' : undefined}
           data-testid={id ?? name}
           autoComplete={autoComplete ? 'on' : 'off'}
           autoFocus={autoFocus}

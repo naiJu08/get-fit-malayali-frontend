@@ -333,6 +333,38 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
+        path="/users/physiotherapist/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/sales/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
         path="/users/:id/subscriptions"
       />
       <Route

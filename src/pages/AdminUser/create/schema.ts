@@ -35,12 +35,15 @@ const optionalNumberField = z.preprocess((value) => {
   return value
 }, z.number().min(10).max(999).optional())
 
+const nameFieldSchema = z
+  .string({ invalid_type_error: 'Required.' })
+  .min(1, { message: 'Required.' })
+  .max(25, { message: 'Name must not exceed 25 characters.' })
+  .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' })
+
 export const formSchema = z
   .object({
-    name: z
-      .string({ invalid_type_error: 'Required.' })
-      .min(1, { message: 'Required.' })
-      .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
+    name: nameFieldSchema,
     email: z
       .string()
       .min(5, { message: 'Required' })
@@ -165,10 +168,7 @@ export const formSchema = z
 // Nutritionist tab: only Name, Email, Password, Confirm Password, Phone, Role, Gender, and Date of birth are required
 export const formSchemaNutritionist = z
   .object({
-    name: z
-      .string({ invalid_type_error: 'Required.' })
-      .min(1, { message: 'Required.' })
-      .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
+    name: nameFieldSchema,
     email: z
       .string()
       .min(5, { message: 'Required' })
@@ -251,10 +251,7 @@ export const formSchemaNutritionist = z
 
 export const formSchemaNutritionistEdit = z
   .object({
-    name: z
-      .string({ invalid_type_error: 'Required.' })
-      .min(1, { message: 'Required.' })
-      .refine(noLeadingSpaces, { message: 'Leading spaces are not allowed' }),
+    name: nameFieldSchema,
     email: z
       .string()
       .min(5, { message: 'Required' })

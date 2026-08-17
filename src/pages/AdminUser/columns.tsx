@@ -16,7 +16,13 @@ export const getColumns = ({
 }:
   | {
       onNameClick?: (row: any) => void
-      activeRole?: 'user' | 'nutritionist'
+      activeRole?:
+        | 'user'
+        | 'nutritionist'
+        | 'physiotherapist'
+        | 'yogist'
+        | 'sales'
+        | 'marketing'
     }
   | AdminListResponse
   | any) => {
@@ -280,8 +286,13 @@ export const getColumns = ({
         }
       }
     }
-
   const isNutritionist = activeRole === 'nutritionist'
+  const isPhysiotherapist = activeRole === 'physiotherapist'
+  const isYogist = activeRole === 'yogist'
+  const isSales = activeRole === 'sales'
+  const isMarketing = activeRole === 'marketing'
+  const isFlatRole = isPhysiotherapist || isYogist || isSales || isMarketing
+  const isUserRole = activeRole === 'user'
 
   const column: any[] = [
     {
@@ -320,7 +331,24 @@ export const getColumns = ({
     },
   ]
 
-  if (!isNutritionist) {
+  if (isFlatRole) {
+    column.push(
+      {
+        title: 'Gender',
+        field: 'gender',
+        renderCell: createRenderCell('gender', 'capitalize'),
+        customCell: true,
+        ...defaultColumnProps,
+      }
+      // {
+      //   title: 'Created At',
+      //   field: 'created_at',
+      //   renderCell: createRenderCell('created_at', 'fulldate'),
+      //   customCell: true,
+      //   ...defaultColumnProps,
+      // }
+    )
+  } else if (!isNutritionist) {
     column.push(
       {
         title: 'DOB',
@@ -444,7 +472,7 @@ export const getColumns = ({
     ...defaultColumnProps,
   })
 
-  if (!isNutritionist) {
+  if (isUserRole) {
     column.push({
       title: 'BMI',
       field: 'bmi',
