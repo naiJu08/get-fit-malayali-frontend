@@ -7,7 +7,6 @@ import { FormProvider, useForm } from 'react-hook-form'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
-import { useSnackbarManager } from '../../../components/common/snackbar'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
 import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
@@ -321,8 +320,6 @@ export default function CreateAdmin({
   setEditViewIndicator,
   activeRole,
 }: Props) {
-  const { enqueueSnackbar } = useSnackbarManager()
-
   const textField = (
     name: string,
     label: string,
@@ -363,7 +360,7 @@ export default function CreateAdmin({
   const isNutritionistTab =
     activeRole !== 'user' && activeRole !== 'inactive-user'
   const formBuilderProps = [
-    { ...textField('name', 'Name', 'Enter full name', true) },
+    { ...textField('name', 'Name', 'Enter full name', true), maxLength: 25 },
     {
       ...textField('email', 'Email', 'Enter email', true),
       type: 'email',
@@ -387,8 +384,10 @@ export default function CreateAdmin({
     },
     {
       ...textField('phone', 'Phone Number', 'Enter phone number', true),
-      type: 'number',
+      type: 'text',
       allowPositiveOnly: true,
+      digitsOnly: true,
+      maxLength: 10,
     },
 
     {
@@ -804,12 +803,6 @@ export default function CreateAdmin({
     reValidateMode: 'onChange',
   })
   const { handleSubmit } = methods
-  const handleInvalidSubmit = (formErrors: any) => {
-    const firstError = Object.values(formErrors || {})[0] as any
-    if (firstError?.message) {
-      enqueueSnackbar(String(firstError.message), { variant: 'error' })
-    }
-  }
   // Prefill role based on active tab when creating (not edit/view)
   useEffect(() => {
     if (isDrawerOpen && !edit && !viewMode) {
@@ -1323,9 +1316,7 @@ export default function CreateAdmin({
         actionLabel={viewMode ? 'Edit' : 'Save'}
         actionLoader={isCreating || isUpdating}
         onSubmit={
-          viewMode
-            ? handleChangeMode
-            : handleSubmit((data) => onSubmit(data), handleInvalidSubmit)
+          viewMode ? handleChangeMode : handleSubmit((data) => onSubmit(data))
         }
         secondaryAction={() => handleClearAndClose()}
         secondaryActionLabel="Cancel"

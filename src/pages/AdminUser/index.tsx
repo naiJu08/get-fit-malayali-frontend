@@ -69,6 +69,9 @@ const ROLE_HEADER_LABELS: Record<UserRole, string> = {
   'inactive-user': 'Inactive Clients',
 }
 
+const getSuccessMessage = (response: any, fallback: string) =>
+  response?.message || response?.data?.message || fallback
+
 export default function AdminUser() {
   const navigate = useNavigate()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
@@ -407,8 +410,10 @@ export default function AdminUser() {
   const handleDeleteUser = () => {
     setloader(true)
     deleteAdmin(deleteUserId)
-      .then(() => {
-        enqueueSnackbar('User deleted successfully', { variant: 'success' })
+      .then((res) => {
+        enqueueSnackbar(getSuccessMessage(res, 'User deleted successfully'), {
+          variant: 'success',
+        })
         setloader(false)
         setDeleteUserModal(false)
         refetch()

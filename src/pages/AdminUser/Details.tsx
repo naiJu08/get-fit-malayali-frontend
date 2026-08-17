@@ -19,6 +19,32 @@ import DietHistory from './Details/DietHistory'
 import { useAuthStore } from '../../store/authStore'
 import CreateAdmin from './create'
 
+type DetailRole =
+  | 'user'
+  | 'nutritionist'
+  | 'physiotherapist'
+  | 'yogist'
+  | 'sales'
+  | 'marketing'
+
+const DETAIL_ROLE_PATHS: Record<DetailRole, string> = {
+  user: '/users',
+  nutritionist: '/users/nutritionist',
+  physiotherapist: '/users/physiotherapist',
+  yogist: '/users/yogist',
+  sales: '/users/sales',
+  marketing: '/users/marketing',
+}
+
+const DETAIL_ROLE_LABELS: Record<DetailRole, string> = {
+  user: 'User',
+  nutritionist: 'Nutritionist',
+  physiotherapist: 'Physiotherapist',
+  yogist: 'Yogist',
+  sales: 'Sales',
+  marketing: 'Marketing',
+}
+
 export default function UserDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -53,18 +79,52 @@ export default function UserDetails() {
   }, [refreshUserDetails, id])
 
   const user = data?.user || data || {}
+  const detailRole = useMemo<DetailRole>(() => {
+    const path = location.pathname || ''
+    if (path.startsWith('/users/nutritionist')) return 'nutritionist'
+    if (path.startsWith('/users/physiotherapist')) return 'physiotherapist'
+    if (path.startsWith('/users/yogist')) return 'yogist'
+    if (path.startsWith('/users/sales')) return 'sales'
+    if (path.startsWith('/users/marketing')) return 'marketing'
+    return 'user'
+  }, [location.pathname])
   const isNutritionist = (() => {
     const r = user?.role
     if (r === 2 || r === '2') return true
     const s = String(r || '').toLowerCase()
-    return s === 'nutritionist'
+    return s === 'nutritionist' || detailRole === 'nutritionist'
   })()
+  const isPhysiotherapist = (() => {
+    const r = user?.role
+    if (r === 4 || r === '4') return true
+    const s = String(r || '').toLowerCase()
+    return s === 'physiotherapist' || detailRole === 'physiotherapist'
+  })()
+  const isYogist = (() => {
+    const r = user?.role
+    if (r === 5 || r === '5') return true
+    const s = String(r || '').toLowerCase()
+    return s === 'yogist' || detailRole === 'yogist'
+  })()
+  const isSales = (() => {
+    const r = user?.role
+    if (r === 6 || r === '6') return true
+    const s = String(r || '').toLowerCase()
+    return s === 'sales' || detailRole === 'sales'
+  })()
+  const isMarketing = (() => {
+    const r = user?.role
+    if (r === 7 || r === '7') return true
+    const s = String(r || '').toLowerCase()
+    return s === 'marketing' || detailRole === 'marketing'
+  })()
+  const isFlatRole = isPhysiotherapist || isYogist || isSales || isMarketing
 
   useEffect(() => {
     let mounted = true
 
     const run = async () => {
-      if (!user?.id || isNutritionist) return
+      if (!user?.id || isNutritionist || isFlatRole) return
       if (!user?.subscribed_plan) return
       try {
         const overview = await getActivePlanOverview(user.id)
@@ -84,13 +144,11 @@ export default function UserDetails() {
     return () => {
       mounted = false
     }
-  }, [user?.id, isNutritionist])
+  }, [user?.id, isNutritionist, isFlatRole])
 
   const pathBase = useMemo(() => {
-    return location.pathname.startsWith('/users/nutritionist')
-      ? '/users/nutritionist'
-      : '/users'
-  }, [location.pathname])
+    return DETAIL_ROLE_PATHS[detailRole]
+  }, [detailRole])
 
   // URL-driven active tab
   const urlTab = useMemo(() => {
@@ -111,13 +169,11 @@ export default function UserDetails() {
     | 'additional-info'
 
   useEffect(() => {
-    if (location.pathname === `/users/${id}`) {
-      navigate(`/users/${id}/details`, { replace: true })
-    } else if (location.pathname === `/users/nutritionist/${id}`) {
-      navigate(`/users/nutritionist/${id}/details`, { replace: true })
+    if (location.pathname === `${pathBase}/${id}`) {
+      navigate(`${pathBase}/${id}/details`, { replace: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, id, navigate])
+  }, [location.pathname, id, navigate, pathBase])
 
   const tabs = useMemo(
     () => [
@@ -127,22 +183,24 @@ export default function UserDetails() {
             { id: 'clients', label: 'Clients' },
             { id: 'diet-history', label: 'Diet history' },
           ]
-        : [
-            { id: 'subscriptions', label: 'Subscriptions' },
-            { id: 'body', label: 'Body measurements' },
-            // { id: 'body-composition', label: 'Body composition' },
-            { id: 'vitals', label: 'Vitals' },
-            { id: 'reminders', label: 'Reminder settings' },
-            { id: 'recipes', label: 'Recipes' },
-            { id: 'additional-info', label: 'Nutritional assessment' },
-            { id: 'subscription-history', label: 'Subscription history' },
-            { id: 'diet-history', label: 'Diet history' },
-            ...(loginRole !== 'nutritionist'
-              ? [{ id: 'reports', label: 'Reports' }]
-              : []),
-          ]),
+        : isFlatRole
+          ? []
+          : [
+              { id: 'subscriptions', label: 'Subscriptions' },
+              { id: 'body', label: 'Body measurements' },
+              // { id: 'body-composition', label: 'Body composition' },
+              { id: 'vitals', label: 'Vitals' },
+              { id: 'reminders', label: 'Reminder settings' },
+              { id: 'recipes', label: 'Recipes' },
+              { id: 'additional-info', label: 'Nutritional assessment' },
+              { id: 'subscription-history', label: 'Subscription history' },
+              { id: 'diet-history', label: 'Diet history' },
+              ...(loginRole !== 'nutritionist'
+                ? [{ id: 'reports', label: 'Reports' }]
+                : []),
+            ]),
     ],
-    [isNutritionist, loginRole]
+    [isNutritionist, isFlatRole, loginRole]
   )
 
   const handleTabClick = (item: { id: string | number; label: string }) => {
@@ -179,13 +237,7 @@ export default function UserDetails() {
             {/* Name row */}
             <div className="flex items-center">
               <button
-                onClick={() =>
-                  navigate(
-                    pathBase === '/users/nutritionist'
-                      ? '/users/nutritionist'
-                      : '/users'
-                  )
-                }
+                onClick={() => navigate(pathBase)}
                 className="rounded-lg hover:bg-gray-100 transition"
                 aria-label="Back"
               >
@@ -215,7 +267,7 @@ export default function UserDetails() {
 
               <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 capitalize">
                 <span className="font-medium">Role:</span>
-                <span>{isNutritionist ? 'Nutritionist' : 'User'}</span>
+                <span>{DETAIL_ROLE_LABELS[detailRole]}</span>
               </div>
             </div>
           </div>
@@ -232,10 +284,15 @@ export default function UserDetails() {
               loading={loading}
               error={error}
               isNutritionist={isNutritionist}
+              isPhysiotherapist={isPhysiotherapist}
+              isYogist={isYogist}
+              isSales={isSales}
+              isMarketing={isMarketing}
+              detailRole={detailRole}
               onEdit={() => setEditModalOpen(true)}
             />
           </Tab>
-          {!isNutritionist && (
+          {!isNutritionist && !isFlatRole && (
             <Tab id="subscriptions">
               <Subscriptions
                 id={String(id)}
@@ -246,7 +303,7 @@ export default function UserDetails() {
               />
             </Tab>
           )}
-          {!isNutritionist && (
+          {!isNutritionist && !isFlatRole && (
             <Tab id="body">
               <BodyMeasurements user={user} subscriptionId={subscriptionId} />
             </Tab>
@@ -256,35 +313,37 @@ export default function UserDetails() {
               <BodyComposition user={user} subscriptionId={subscriptionId} />
             </Tab>
           )} */}
-          {!isNutritionist && (
+          {!isNutritionist && !isFlatRole && (
             <Tab id="vitals">
               <Vitals user={user} subscriptionId={subscriptionId} />
             </Tab>
           )}
-          {!isNutritionist && (
+          {!isNutritionist && !isFlatRole && (
             <Tab id="reminders">
               <ReminderSettings userId={user?.id} />
             </Tab>
           )}
-          {!isNutritionist && (
+          {!isNutritionist && !isFlatRole && (
             <Tab id="recipes">
               <RecipesTab userId={user?.id} />
             </Tab>
           )}
-          {!isNutritionist && (
+          {!isNutritionist && !isFlatRole && (
             <Tab id="additional-info">
               <AdditionalInfo user={user} subscriptionId={subscriptionId} />
             </Tab>
           )}
-          {!isNutritionist && (
+          {!isNutritionist && !isFlatRole && (
             <Tab id="subscription-history">
               <SubscriptionHistory />
             </Tab>
           )}
-          <Tab id="diet-history">
-            <DietHistory subscriptionId={subscriptionId} />
-          </Tab>
-          {!isNutritionist && loginRole !== 'nutritionist' && (
+          {!isFlatRole && (
+            <Tab id="diet-history">
+              <DietHistory subscriptionId={subscriptionId} />
+            </Tab>
+          )}
+          {!isNutritionist && !isFlatRole && loginRole !== 'nutritionist' && (
             <Tab id="reports">
               <Reports user={user} subscriptionId={subscriptionId} />
             </Tab>
@@ -303,7 +362,7 @@ export default function UserDetails() {
         handleRefresh={() => refreshUserDetails()}
         edit
         rowData={{ user }}
-        activeRole={isNutritionist ? 'nutritionist' : 'user'}
+        activeRole={detailRole}
       />
     </>
   )
