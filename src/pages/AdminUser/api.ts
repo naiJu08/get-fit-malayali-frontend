@@ -24,6 +24,11 @@ const buildUrlWithParams = (
   return `${baseUrl}${parseQueryParams(params)}`
 }
 
+const getSuccessMessage = (response: any, fallback: string) => {
+  const payload = response?.data ?? response
+  return payload?.message || response?.message || fallback
+}
+
 const fetchData = async (input: QueryParams) => {
   const url = buildUrlWithParams(apiUrl.ADMIN_USER, {
     ...input,
@@ -178,24 +183,10 @@ export const createAdmin = (input: any) => {
 export const useCreateAdmin = (handleSubmission: (data: any) => void) => {
   const { enqueueSnackbar } = useSnackbarManager()
   return useMutation(createAdmin, {
-    onSuccess: (res: any, variables: any) => {
-      handleSubmission(res.data)
-
-      // Try to detect role from request payload first, then from response
-      const roleFromPayload = variables?.user?.role
-      const roleFromResponse =
-        res?.data?.user?.role ?? res?.data?.user?.group?.id ?? res?.data?.role
-      const role = roleFromPayload ?? roleFromResponse
-
-      const isNutritionist =
-        role === 2 ||
-        role === '2' ||
-        (typeof role === 'string' && role.toLowerCase() === 'nutritionist')
-
-      const message = isNutritionist
-        ? 'Nutritionist created successfully'
-        : 'Client created successfully'
-
+    onSuccess: (res: any) => {
+      const payload = res?.data ?? res
+      handleSubmission(payload)
+      const message = getSuccessMessage(res, 'Created successfully')
       enqueueSnackbar(message, { variant: 'success' })
     },
 
@@ -228,8 +219,9 @@ export const useUpdateAdmin = (handleSubmission: (data: any) => void) => {
   const { enqueueSnackbar } = useSnackbarManager()
   return useMutation(updateTask, {
     onSuccess: (res: any) => {
-      handleSubmission(res.data)
-      const message = res?.data?.message || res?.message
+      const payload = res?.data ?? res
+      handleSubmission(payload)
+      const message = getSuccessMessage(res, 'Updated successfully')
 
       enqueueSnackbar(message, { variant: 'success' })
     },
