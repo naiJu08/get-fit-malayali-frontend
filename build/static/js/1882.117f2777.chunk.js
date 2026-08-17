@@ -1,0 +1,2 @@
+"use strict";(self.webpackChunkdiversity_mark_reactjs_admin_portal=self.webpackChunkdiversity_mark_reactjs_admin_portal||[]).push([[1882],{41882:(s,e,a)=>{a.r(e),a.d(e,{default:()=>r});var t=a(27929);function r(){return(0,t.jsxs)("div",{className:"p-6",children:[(0,t.jsx)("h1",{className:"text-2xl font-bold mb-2 text-primaryText",children:"Discounts"}),(0,t.jsx)("p",{className:"text-neutral-600",children:"This is a sample Discounts page."})]})}}}]);
+//# sourceMappingURL=1882.117f2777.chunk.js.map
