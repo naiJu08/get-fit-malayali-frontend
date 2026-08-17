@@ -390,12 +390,22 @@ export default function YogaPlanDetails() {
   const userSelectionTouchedRef = useRef(false)
   const wp = data?.yoga_template_day || data || {}
 
+  const capitalizeWords = (text: string) =>
+    text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
+
+  const formattedCategoryOptions = useMemo(() => {
+    return (categoryOptions || []).map((c: any) => ({
+      ...c,
+      name: capitalizeWords(c.name),
+    }))
+  }, [categoryOptions])
+
   const selectedCategoryItems = useMemo(
     () =>
-      categoryOptions.filter((cat: any) =>
+      formattedCategoryOptions.filter((cat: any) =>
         selectedCategoryIds.map(String).includes(String(cat?.id))
       ),
-    [categoryOptions, selectedCategoryIds]
+    [formattedCategoryOptions, selectedCategoryIds]
   )
 
   useEffect(() => {
@@ -1068,14 +1078,6 @@ export default function YogaPlanDetails() {
     setDragIndex(null)
     setDragGroup(null)
   }
-  const capitalizeWords = (text: string) =>
-    text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
-  const formattedCategoryOptions = useMemo(() => {
-    return (categoryOptions || []).map((c: any) => ({
-      ...c,
-      name: capitalizeWords(c.name),
-    }))
-  }, [categoryOptions])
 
   return (
     <div className="p-4">
