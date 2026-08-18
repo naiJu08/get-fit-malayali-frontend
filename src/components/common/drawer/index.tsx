@@ -30,6 +30,7 @@ type Props = {
   viewMode?: any
   unmountOnClose?: boolean
   accentHeader?: boolean
+  zIndex?: number
 }
 
 export default function CustomDrawer(props: Props) {
@@ -53,6 +54,7 @@ export default function CustomDrawer(props: Props) {
     viewMode,
     unmountOnClose,
     accentHeader,
+    zIndex,
   } = props
 
   const { isDark } = useThemeStore()
@@ -87,12 +89,16 @@ export default function CustomDrawer(props: Props) {
     <div>
       <Drawer
         className={`customDrawer ${
-          headerActionProps && headerActionProps?.length > 0
+          zIndex || (headerActionProps && headerActionProps?.length > 0)
             ? ''
             : 'drawer-zindex '
         } ${isDark ? 'dark' : ''}`}
         anchor="right"
         open={open}
+        sx={{ zIndex: zIndex ?? undefined }}
+        ModalProps={{
+          sx: zIndex ? { zIndex } : undefined,
+        }}
       >
         <div
           ref={drawerRef}

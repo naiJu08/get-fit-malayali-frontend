@@ -54,6 +54,9 @@ const DUPLICATE_DIET_TEMPLATE = '/diet_plan_templates/duplicate'
 const TEMPLATE_CATEGORIES = '/diet_template_categories'
 const NUTRITIONIST_DASHBOARD = '/nutritionist/dashboard'
 const ASSESSSMENT_CATEGORY = '/admin/assessment_categories'
+const MARKETING_FORMS = '/marketing_forms'
+const MARKETING_CAMPAIGNS = '/marketing_campaigns'
+const MARKETING_SALES_TEAM = '/marketing/sales_team'
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
   ASSESSOR_LIST_URL,
@@ -109,6 +112,9 @@ const apiUrl: { [key: string]: string } = {
   TEMPLATE_CATEGORIES,
   NUTRITIONIST_DASHBOARD,
   ASSESSSMENT_CATEGORY,
+  MARKETING_FORMS,
+  MARKETING_CAMPAIGNS,
+  MARKETING_SALES_TEAM,
 }
 
 export default apiUrl

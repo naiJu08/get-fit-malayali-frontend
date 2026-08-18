@@ -80,6 +80,14 @@ const DietTemplateCategories = lazy(
   () => import('../pages/DietTemplateCategories')
 )
 const AssessmentCategory = lazy(() => import('../pages/AssessmentCategory'))
+const MarketingForms = lazy(() => import('../pages/Marketing/Forms'))
+const MarketingFormEditor = lazy(() => import('../pages/Marketing/FormEditor'))
+const MarketingCampaigns = lazy(() => import('../pages/Marketing/Campaigns'))
+const MarketingCampaignDetails = lazy(
+  () => import('../pages/Marketing/CampaignDetails')
+)
+const PublicCampaign = lazy(() => import('../pages/Marketing/PublicCampaign'))
+
 const AssessmentCategoryDetails = lazy(
   () => import('../pages/AssessmentCategory/Details')
 )
@@ -125,6 +133,13 @@ const routes: any = [
   { slug: 'MEAL_TIMING', component: <MealTimingMain /> },
   { slug: 'MEAL_TIMING_DETAILS', component: <MealTimingDetails /> },
   { slug: 'ASSESSMENT_CATEGORY', component: <AssessmentCategory /> },
+  { slug: 'MARKETING_FORMS', component: <MarketingForms /> },
+  { slug: 'MARKETING_FORM_EDITOR', component: <MarketingFormEditor /> },
+  { slug: 'MARKETING_CAMPAIGNS', component: <MarketingCampaigns /> },
+  {
+    slug: 'MARKETING_CAMPAIGN_DETAILS',
+    component: <MarketingCampaignDetails />,
+  },
   {
     slug: 'ASSESSMENT_CATEGORY_DETAILS',
     component: <AssessmentCategoryDetails />,
@@ -206,6 +221,48 @@ export default function MainRoutes() {
         path="*"
       />
 
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_FORMS">
+            <MarketingForms />
+          </UserRoute>
+        }
+        path="/marketing/forms"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_FORM_EDITOR">
+            <MarketingFormEditor />
+          </UserRoute>
+        }
+        path="/marketing/forms/:id/edit"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_FORM_EDITOR">
+            <MarketingFormEditor />
+          </UserRoute>
+        }
+        path="/marketing/forms/new"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGNS">
+            <MarketingCampaigns />
+          </UserRoute>
+        }
+        path="/marketing/campaigns"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/marketing/campaigns/:id"
+      />
+
+      <Route element={<PublicCampaign />} path="/public/campaigns/:token" />
       {/* Explicit routes for sidebar sample pages */}
       <Route
         element={
