@@ -672,6 +672,51 @@ const PAYMENT_HISTORY: RouterMenuProps = {
   isSidebarMenu: true,
 }
 
+const MARKETING: RouterMenuProps = {
+  id: 700,
+  parent_id: null,
+  label: 'Marketing',
+  key: 'marketing',
+  icon: 'customer-icon',
+  permission_slugs: ['superadmin', 'admin', 'marketing', 'sales'],
+  isSidebarMenu: true,
+}
+const MARKETING_FORMS: RouterMenuProps = {
+  id: 701,
+  path: '/marketing/forms',
+  parent_id: 700,
+  label: 'Forms',
+  key: 'marketing-forms',
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
+  isSidebarMenu: true,
+}
+const MARKETING_CAMPAIGNS: RouterMenuProps = {
+  id: 702,
+  path: '/marketing/campaigns',
+  parent_id: 700,
+  label: 'Campaigns',
+  key: 'marketing-campaigns',
+  permission_slugs: ['superadmin', 'admin', 'marketing', 'sales'],
+  isSidebarMenu: true,
+}
+const MARKETING_CAMPAIGN_DETAILS: RouterMenuProps = {
+  id: 703,
+  path: '/marketing/campaigns/:id',
+  parent_id: null,
+  label: 'Campaign details',
+  key: 'marketing-campaign-details',
+  permission_slugs: ['superadmin', 'admin', 'marketing', 'sales'],
+}
+
+const MARKETING_FORM_EDITOR: RouterMenuProps = {
+  id: 704,
+  path: '/marketing/forms/:id/edit',
+  parent_id: null,
+  label: 'Form editor',
+  key: 'marketing-form-editor',
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
+}
+
 export const router_config: { [key: string]: RouterMenuProps } = {
   DASHBOARD,
   ADMIN_USER,
@@ -681,6 +726,11 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   YOGA_MODULE,
   DIET_NUTRITION,
   FINANCE,
+  MARKETING,
+  MARKETING_FORMS,
+  MARKETING_CAMPAIGNS,
+  MARKETING_CAMPAIGN_DETAILS,
+  MARKETING_FORM_EDITOR,
   ASSESSMENT_CATEGORY,
   ASSESSMENT_CATEGORY_DETAILS,
   NOTIFICATIONS,
