@@ -143,10 +143,6 @@ export default function DetailsInfo({
                   label="Age"
                   value={formatAge(user?.date_of_birth)}
                 />
-                <DetailItem
-                  label="Age"
-                  value={formatAge(user?.date_of_birth)}
-                />
                 <DetailItem label="Gender" value={mapGender(user?.gender)} />
                 {hasValue(user?.state) && (
                   <DetailItem
