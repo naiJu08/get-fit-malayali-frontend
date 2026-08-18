@@ -45,6 +45,13 @@ const medicalConditionOptions: MedicalConditionOption[] = [
   { id: 'Other', name: 'Other' },
 ]
 
+const workScheduleOptions = [
+  { id: 'Day shift', name: 'Day shift' },
+  { id: 'Night shift', name: 'Night shift' },
+  { id: 'Rotational shift', name: 'Rotational shift' },
+  { id: 'Flexible', name: 'Flexible' },
+]
+
 const foodAllergyOptions: FoodAllergyOption[] = [
   { id: 'None', name: 'None' },
   { id: 'Peanuts', name: 'Peanuts' },
@@ -359,6 +366,7 @@ export default function CreateAdmin({
 
   const isNutritionistTab =
     activeRole !== 'user' && activeRole !== 'inactive-user'
+  const isClientTab = activeRole === 'user'
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter full name', true), maxLength: 25 },
     {
@@ -448,7 +456,7 @@ export default function CreateAdmin({
     //   initialLoad: true,
     //   hidden: !edit,
     // },
-    ...(!isNutritionistTab
+    ...(isClientTab
       ? [
           {
             ...textField('height', 'Height (cm)', 'Enter height in cm', true),
@@ -565,7 +573,21 @@ export default function CreateAdmin({
             isMultiple: true,
           },
           { ...textField('state', 'State', 'Enter state') },
-          { ...textField('ethnicity', 'Nationality', 'e.g., Indian') },
+          { ...textField('country', 'Country', 'Enter country') },
+          { ...textField('language', 'Language', 'Enter language') },
+          {
+            name: 'work_schedule',
+            label: 'Work Schedule',
+            id: 'work_schedule',
+            desc: 'name',
+            descId: 'id',
+            data: workScheduleOptions,
+            type: 'custom_select',
+            placeholder: 'Select work schedule',
+            async: false,
+            initialLoad: true,
+          },
+          { ...textField('occupation', 'Occupation', 'Enter occupation') },
         ]
       : []),
   ]
@@ -597,6 +619,10 @@ export default function CreateAdmin({
       food_allergies: [],
       state: '',
       ethnicity: '',
+      country: '',
+      language: '',
+      work_schedule: '',
+      occupation: '',
       status: '',
     } as any)
     handleClose()
@@ -623,6 +649,10 @@ export default function CreateAdmin({
       food_allergies: [],
       state: '',
       ethnicity: '',
+      country: '',
+      language: '',
+      work_schedule: '',
+      occupation: '',
       status: '',
     } as any)
 
@@ -756,6 +786,10 @@ export default function CreateAdmin({
             ? rowData?.user?.ethnicity.charAt(0).toUpperCase() +
               rowData?.user?.ethnicity.slice(1).toLowerCase()
             : '',
+          country: rowData?.user?.country ?? rowData?.user?.ethnicity ?? '',
+          language: rowData?.user?.language ?? '',
+          work_schedule: rowData?.user?.work_schedule ?? '',
+          occupation: rowData?.user?.occupation ?? '',
           status: deriveStatusLabel(rowData?.user?.status),
         } as any)
       }
@@ -790,6 +824,10 @@ export default function CreateAdmin({
       food_allergies: [],
       state: '',
       ethnicity: '',
+      country: '',
+      language: '',
+      work_schedule: '',
+      occupation: '',
       status: '',
     } as any,
     resolver: zodResolver(
@@ -1054,7 +1092,14 @@ export default function CreateAdmin({
         })(),
         food_allergies: foodAllergiesToPayload(details?.food_allergies),
         state: details?.state ?? '',
-        ethnicity: details?.ethnicity ?? '',
+        ethnicity: details?.ethnicity ?? details?.country ?? '',
+        country: details?.country ?? details?.ethnicity ?? '',
+        language: details?.language ?? '',
+        work_schedule:
+          typeof details?.work_schedule === 'object'
+            ? (details?.work_schedule?.name ?? details?.work_schedule?.id ?? '')
+            : (details?.work_schedule ?? ''),
+        occupation: details?.occupation ?? '',
         ...(statusValue !== undefined ? { status: statusValue } : {}),
       },
     }

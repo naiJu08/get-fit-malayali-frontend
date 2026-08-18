@@ -331,8 +331,22 @@ export const getColumns = ({
     },
   ]
 
-  if (isFlatRole) {
+  if (isFlatRole || isNutritionist) {
     column.push(
+      {
+        title: 'DOB',
+        field: 'date_of_birth',
+        renderCell: createRenderCell('date_of_birth', 'dob'),
+        customCell: true,
+        ...defaultColumnProps,
+      },
+      {
+        title: 'Age',
+        field: 'age',
+        renderCell: createRenderCell('age', 'age'),
+        customCell: true,
+        ...defaultColumnProps,
+      },
       {
         title: 'Gender',
         field: 'gender',
@@ -348,7 +362,7 @@ export const getColumns = ({
       //   ...defaultColumnProps,
       // }
     )
-  } else if (!isNutritionist) {
+  } else if (isUserRole) {
     column.push(
       {
         title: 'DOB',
@@ -368,13 +382,6 @@ export const getColumns = ({
         title: 'Language',
         field: 'language',
         renderCell: createRenderCell('language', 'capitalize'),
-        customCell: true,
-        ...defaultColumnProps,
-      },
-      {
-        title: 'Assigned Team',
-        field: 'assigned_team',
-        renderCell: createRenderCell('assigned_team', 'assigned-team'),
         customCell: true,
         ...defaultColumnProps,
       },
@@ -451,13 +458,6 @@ export const getColumns = ({
         title: 'Occupation',
         field: 'occupation',
         renderCell: createRenderCell('occupation', 'occupation'),
-        customCell: true,
-        ...defaultColumnProps,
-      },
-      {
-        title: 'Source Enquiry',
-        field: 'source_enquiry',
-        renderCell: createRenderCell('source_enquiry', 'source-enquiry'),
         customCell: true,
         ...defaultColumnProps,
       }

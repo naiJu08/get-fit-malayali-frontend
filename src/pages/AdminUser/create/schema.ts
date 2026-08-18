@@ -150,6 +150,10 @@ export const formSchema = z
     food_allergies: foodAllergiesFieldSchema.optional(),
     state: z.string().optional(),
     ethnicity: z.string().optional(),
+    language: z.string().optional(),
+    country: z.string().optional(),
+    work_schedule: z.string().optional(),
+    occupation: z.string().optional(),
     status: z.union([z.number(), z.string()]).optional(),
   })
   .refine(
