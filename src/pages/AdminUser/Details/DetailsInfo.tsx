@@ -32,6 +32,11 @@ function formatDate(d: any) {
   const m = moment(d)
   return m.isValid() ? m.format('DD-MM-YYYY') : String(d)
 }
+function formatAge(dob: any) {
+  if (!dob) return '--'
+  const m = moment(dob)
+  return m.isValid() ? String(moment().diff(m, 'years')) : '--'
+}
 function formatInterestedPlans(plans: any) {
   if (!Array.isArray(plans) || plans.length === 0) return '--'
   return plans
@@ -130,6 +135,18 @@ export default function DetailsInfo({
             <DetailItem label="Role" value={mapRole(user?.role)} /> */}
             {isFlatRole ? (
               <>
+                <DetailItem
+                  label="Date of Birth"
+                  value={formatDate(user?.date_of_birth)}
+                />
+                <DetailItem
+                  label="Age"
+                  value={formatAge(user?.date_of_birth)}
+                />
+                <DetailItem
+                  label="Age"
+                  value={formatAge(user?.date_of_birth)}
+                />
                 <DetailItem label="Gender" value={mapGender(user?.gender)} />
                 {hasValue(user?.state) && (
                   <DetailItem
@@ -181,10 +198,22 @@ export default function DetailsInfo({
                   value={capitalizeWord(user?.food_allergies)}
                 />
                 <DetailItem
-                  label="Nationality"
-                  value={capitalizeWord(user?.ethnicity)}
+                  label="Country"
+                  value={capitalizeWord(user?.country ?? user?.ethnicity)}
+                />
+                <DetailItem
+                  label="Language"
+                  value={capitalizeWord(user?.language)}
                 />
                 <DetailItem label="State" value={capitalizeWord(user?.state)} />
+                <DetailItem
+                  label="Work Schedule"
+                  value={capitalizeWord(user?.work_schedule)}
+                />
+                <DetailItem
+                  label="Occupation"
+                  value={capitalizeWord(user?.occupation)}
+                />
                 {detailRole === 'user' && (
                   <DetailItem label="BMI" value={safeStr(user?.bmi)} />
                 )}
