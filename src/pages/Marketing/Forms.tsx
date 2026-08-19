@@ -378,9 +378,15 @@ export function Builder({
                     placeholder="e.g. Free consultation enquiry"
                     value={field.value || ''}
                     onChange={(e) => {
-                      field.onChange(e)
+                      const val = e.target.value
+                      const capitalized =
+                        val.charAt(0).toUpperCase() + val.slice(1)
+                      field.onChange({
+                        ...e,
+                        target: { ...e.target, value: capitalized },
+                      })
                       setBasicError('')
-                      setEditing({ ...editing, name: e.target.value })
+                      setEditing({ ...editing, name: capitalized })
                     }}
                     errors={errors}
                     required
@@ -893,7 +899,20 @@ export default function Forms() {
       {
         title: 'Name',
         field: 'name',
-        renderCell: (r: any) => ({ cell: r.name, toolTip: r.name }),
+        renderCell: (r: any) => ({
+          cell: (
+            <button
+              type="button"
+              className="text-blue-600 hover:underline text-left"
+              onClick={() => navigate('/marketing/forms/' + r.id)}
+            >
+              {r.name
+                ? r.name.charAt(0).toUpperCase() + r.name.slice(1)
+                : r.name}
+            </button>
+          ),
+          toolTip: r.name,
+        }),
         customCell: true,
         sortable: false,
         resizable: true,
@@ -964,6 +983,12 @@ export default function Forms() {
           columnToggle
           externalActions
           actionProps={[
+            {
+              title: 'View',
+              toolTip: 'View',
+              icon: <Icons name="view" />,
+              action: (row: any) => navigate('/marketing/forms/' + row.id),
+            },
             {
               title: 'Edit',
               toolTip: 'Edit',
