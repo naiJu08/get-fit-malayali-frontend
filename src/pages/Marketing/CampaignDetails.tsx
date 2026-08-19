@@ -5,8 +5,13 @@ import { useParams, useNavigate } from 'react-router-dom'
 import Button from '../../components/common/buttons/Button'
 import ListingHeader from '../../components/common/ListingTiles'
 import SmartTable from '../../components/common/table/SmartTable'
+import Tab from '../../components/common/tab/Tab'
+import { TabContainer } from '../../components/common'
+import Icons from '../../components/common/icons'
+import InfoBox from '../../components/app/alertBox/infoBox'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import {
+  useMarketingCampaign,
   useCampaignLeads,
   createMarketingLead,
   updateMarketingLead,
@@ -14,19 +19,70 @@ import {
   assignMarketingLead,
   createLeadActivity,
 } from './api'
+
+function DetailItem({ label, value }: { label: string; value: any }) {
+  return (
+    <div className="border rounded-lg p-3 bg-white">
+      <div className="text-xs text-gray-500 mb-1">{label}</div>
+      <div className="text-sm">{value || '--'}</div>
+    </div>
+  )
+}
+
+function formatDate(d: any) {
+  if (!d) return '--'
+  try {
+    return new Date(d).toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    })
+  } catch {
+    return String(d)
+  }
+}
+
+function displayStatus(value: any) {
+  return String(value || 'draft')
+    .replace(/_/g, ' ')
+    .replace(/^./, (letter) => letter.toUpperCase())
+}
+
+function statusColor(value: any) {
+  const s = String(value || '').toLowerCase()
+  if (s === 'active') return 'bg-green-50 text-green-700'
+  if (s === 'draft') return 'bg-yellow-50 text-yellow-700'
+  if (s === 'inactive') return 'bg-gray-100 text-gray-600'
+  return 'bg-gray-100 text-gray-600'
+}
+
 export default function CampaignDetails() {
   const { id } = useParams()
   const nav = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
-  const { data, isFetching, refetch } = useCampaignLeads(id, {
+
+  const { data: campaignData, isLoading: campaignLoading } =
+    useMarketingCampaign(id)
+  const campaign = campaignData?.marketing_campaign
+
+  const [activeTab, setActiveTab] = useState<'details' | 'leads'>('details')
+
+  const [leadsParams, setLeadsParams] = useState({
     page: 1,
     per_page: 100,
+    search: '',
   })
+  const {
+    data: leadsData,
+    isFetching: leadsFetching,
+    refetch: refetchLeads,
+  } = useCampaignLeads(id, leadsParams)
   const [editing, setEditing] = useState<any>(null)
   const [activity, setActivity] = useState<any>(null)
   const [assigning, setAssigning] = useState<any>(null)
   const { data: team } = useQuery(['sales_team'], getSalesTeam)
-  const rows = data?.leads || []
+
+  const rows = leadsData?.leads || []
   const columns: any[] = [
     {
       title: 'Name',
@@ -81,6 +137,11 @@ export default function CampaignDetails() {
       isVisible: true,
     },
   ]
+
+  const handleTabClick = (item: { id: string | number; label: string }) => {
+    setActiveTab(String(item.id) as 'details' | 'leads')
+  }
+
   const save = async () => {
     try {
       if (editing.id)
@@ -92,7 +153,7 @@ export default function CampaignDetails() {
       else await createMarketingLead({ campaignId: id, data: editing })
       enqueueSnackbar('Lead saved successfully', { variant: 'success' })
       setEditing(null)
-      refetch()
+      refetchLeads()
     } catch (e: any) {
       enqueueSnackbar(
         e?.response?.data?.errors?.join(', ') || 'Unable to save lead',
@@ -100,66 +161,222 @@ export default function CampaignDetails() {
       )
     }
   }
+
+  const copyLink = async () => {
+    if (!campaign) return
+    try {
+      const publicUrl = new URL(
+        `/public/campaigns/${campaign.public_token}`,
+        window.location.origin
+      ).toString()
+      await navigator.clipboard.writeText(publicUrl)
+      enqueueSnackbar('Public link copied', { variant: 'success' })
+    } catch (error: any) {
+      enqueueSnackbar(error?.message || 'Unable to copy link', {
+        variant: 'error',
+      })
+    }
+  }
+
   return (
     <div className="p-4">
-      <div className="mb-3">
-        <Button
-          label="Back to campaigns"
-          outlined
-          onClick={() => nav('/marketing/campaigns')}
-        />
+      {/* Header card */}
+      <div className="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+        <div>
+          <div className="flex items-center">
+            <button
+              onClick={() => nav('/marketing/campaigns')}
+              className="rounded-lg hover:bg-gray-100 transition"
+              aria-label="Back"
+            >
+              <Icons name="left-arrow-icon" />
+            </button>
+
+            <h1 className="text-xl font-semibold text-gray-900">
+              {campaignLoading ? 'Loading...' : campaign?.name || 'Campaign'}
+            </h1>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 mt-2 text-sm ml-3">
+            {campaign?.status && (
+              <div
+                className={`flex items-center gap-1 px-3 py-1 rounded-lg ${statusColor(campaign.status)}`}
+              >
+                <span className="font-medium">Status:</span>
+                <span className="capitalize">
+                  {displayStatus(campaign.status)}
+                </span>
+              </div>
+            )}
+
+            {campaign?.marketing_form?.name && (
+              <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-700">
+                <span className="font-medium">Form:</span>
+                <span>{campaign.marketing_form.name}</span>
+              </div>
+            )}
+
+            {campaign?.leads_count !== undefined && (
+              <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-purple-50 text-purple-700">
+                <span className="font-medium">Leads:</span>
+                <span>{campaign.leads_count}</span>
+              </div>
+            )}
+
+            {campaign?.starts_on && (
+              <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-gray-50 text-gray-700">
+                <span className="font-medium">Period:</span>
+                <span>
+                  {campaign.starts_on}
+                  {campaign.ends_on ? ` – ${campaign.ends_on}` : ''}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-      <ListingHeader
-        data={{ title: 'Campaign Leads', icon: 'customer-icon' }}
-        onActionClick={() =>
-          setEditing({
-            first_name: '',
-            last_name: '',
-            email: '',
-            phone: '',
-            status: 'new_lead',
-            notes: '',
-          })
-        }
-        actionProps={{ actionTitle: 'Add lead' }}
-        checkPermission
-      />
-      <SmartTable
-        data={rows}
-        dataRowKey="id"
-        columns={columns}
-        search
-        searchPlaceholder="Search leads"
-        isLoading={isFetching}
-        height={calcWindowHeight(rows.length ? 200 : 218)}
-        emptyTitle="No leads to display"
-        pagination
-        paginationProps={{
-          onPagination: () => undefined,
-          total: data?.meta?.total_count || rows.length,
-          currentPage: data?.meta?.current_page || 1,
-          rowsPerPage: 100,
-          onRowsPerPage: () => undefined,
-          totalPages: data?.meta?.total_pages || 1,
-        }}
-        actionProps={[
-          {
-            title: 'Edit',
-            icon: <span>✎</span>,
-            action: (row) => setEditing(row),
-          },
-          {
-            title: 'Assign',
-            icon: <span>↗</span>,
-            action: (row) => setAssigning(row),
-          },
-          {
-            title: 'Track',
-            icon: <span>•</span>,
-            action: (row) => setActivity(row),
-          },
-        ]}
-      />
+
+      {campaignLoading && (
+        <div className="p-6">
+          <InfoBox content="Loading campaign details..." />
+        </div>
+      )}
+
+      {!campaignLoading && !campaign && (
+        <div className="p-6">
+          <InfoBox content="Campaign not found." />
+        </div>
+      )}
+
+      {!campaignLoading && campaign && (
+        <TabContainer
+          data={[
+            { id: 'details', label: 'Details' },
+            { id: 'leads', label: 'Leads' },
+          ]}
+          activeTab={activeTab}
+          onClick={handleTabClick}
+        >
+          <Tab id="details">
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <DetailItem label="Name" value={campaign.name} />
+                <DetailItem label="Description" value={campaign.description} />
+                <DetailItem
+                  label="Status"
+                  value={
+                    <span className="capitalize">
+                      {displayStatus(campaign.status)}
+                    </span>
+                  }
+                />
+                <DetailItem
+                  label="Form"
+                  value={campaign.marketing_form?.name || '--'}
+                />
+                <DetailItem
+                  label="Total Leads"
+                  value={campaign.leads_count || 0}
+                />
+                <DetailItem
+                  label="Start Date"
+                  value={formatDate(campaign.starts_on)}
+                />
+                <DetailItem
+                  label="End Date"
+                  value={formatDate(campaign.ends_on)}
+                />
+                <DetailItem
+                  label="Created At"
+                  value={formatDate(campaign.created_at)}
+                />
+              </div>
+              {campaign.public_url && (
+                <div className="border rounded-lg p-3 bg-white">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs text-gray-500">Public Link</span>
+                    <button
+                      onClick={copyLink}
+                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                    >
+                      <Icons name="external-link" />
+                      Copy link
+                    </button>
+                  </div>
+                  <div className="text-sm text-gray-700 break-all">
+                    {campaign.public_url}
+                  </div>
+                </div>
+              )}
+            </div>
+          </Tab>
+          <Tab id="leads">
+            <ListingHeader
+              data={{ title: 'Campaign Leads', icon: 'customer-icon' }}
+              onActionClick={() =>
+                setEditing({
+                  first_name: '',
+                  last_name: '',
+                  email: '',
+                  phone: '',
+                  status: 'new_lead',
+                  notes: '',
+                })
+              }
+              actionProps={{ actionTitle: 'Add lead' }}
+              checkPermission
+            />
+            <SmartTable
+              data={rows}
+              dataRowKey="id"
+              columns={columns}
+              search
+              searchPlaceholder="Search leads"
+              searchValue={leadsParams.search}
+              onSearchChange={(value: string) =>
+                setLeadsParams({ ...leadsParams, search: value, page: 1 })
+              }
+              isLoading={leadsFetching}
+              height={calcWindowHeight(rows.length ? 200 : 218)}
+              emptyTitle="No leads to display"
+              pagination
+              paginationProps={{
+                onPagination: (page: number) =>
+                  setLeadsParams({ ...leadsParams, page }),
+                total: leadsData?.meta?.total_count || rows.length,
+                currentPage: leadsData?.meta?.current_page || 1,
+                rowsPerPage: leadsParams.per_page,
+                onRowsPerPage: (per_page: string | number) =>
+                  setLeadsParams({
+                    ...leadsParams,
+                    per_page: Number(per_page),
+                    page: 1,
+                  }),
+                totalPages: leadsData?.meta?.total_pages || 1,
+                dropOptions: [10, 20, 50, 100],
+              }}
+              actionProps={[
+                {
+                  title: 'Edit',
+                  icon: <span>✎</span>,
+                  action: (row: any) => setEditing(row),
+                },
+                {
+                  title: 'Assign',
+                  icon: <span>↗</span>,
+                  action: (row: any) => setAssigning(row),
+                },
+                {
+                  title: 'Track',
+                  icon: <span>•</span>,
+                  action: (row: any) => setActivity(row),
+                },
+              ]}
+            />
+          </Tab>
+        </TabContainer>
+      )}
+
       {editing && (
         <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
           <div className="bg-white rounded p-5 w-full max-w-lg space-y-2">
@@ -224,7 +441,7 @@ export default function CampaignDetails() {
                   variant: 'success',
                 })
                 setAssigning(null)
-                refetch()
+                refetchLeads()
               }}
             >
               <option>Select team member</option>
@@ -282,7 +499,7 @@ export default function CampaignDetails() {
                   })
                   enqueueSnackbar('Activity added', { variant: 'success' })
                   setActivity(null)
-                  refetch()
+                  refetchLeads()
                 }}
               />
             </div>
