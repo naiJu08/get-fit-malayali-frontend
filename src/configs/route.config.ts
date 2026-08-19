@@ -675,7 +675,7 @@ const PAYMENT_HISTORY: RouterMenuProps = {
 const MARKETING: RouterMenuProps = {
   id: 700,
   parent_id: null,
-  label: 'Marketing',
+  label: 'Marketing Module',
   key: 'marketing',
   icon: 'customer-icon',
   permission_slugs: ['superadmin', 'admin', 'marketing', 'sales'],

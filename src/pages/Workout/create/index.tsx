@@ -27,17 +27,6 @@ const toTitleCase = (value?: string) => {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
-const PRESET_SUBCATEGORY_MAP: Record<string, number> = {
-  warmup: 1,
-  'warm up': 1,
-  'workout 1': 2,
-  'workout round 1': 2,
-  'workout 2': 3,
-  'workout round 2': 3,
-  'cool down': 4,
-  cooldown: 4,
-}
-
 const ffmpeg = new FFmpeg()
 let isFfmpegLoaded = false
 
@@ -495,37 +484,12 @@ export default function CreateAdmin({
       ? category.subcategories
       : []
 
-    const existingOptions = categorySubs.map((sub: any) => {
-      const name = toTitleCase(sub?.name)
-      const nameKey = name.toLowerCase().trim()
-      const mappedId = PRESET_SUBCATEGORY_MAP[nameKey] ?? sub?.id
-      return {
-        id: mappedId,
-        name,
-      }
-    })
-
-    const presetItems = [
-      { id: 1, name: 'Warmup' },
-      { id: 2, name: 'Workout 1' },
-      { id: 3, name: 'Workout 2' },
-      { id: 4, name: 'Cool Down' },
-    ]
-
-    const merged = [...existingOptions]
-
-    presetItems.forEach((preset) => {
-      const exists = merged.some(
-        (opt) =>
-          opt.id === preset.id ||
-          opt.name.toLowerCase() === preset.name.toLowerCase()
-      )
-      if (!exists) {
-        merged.push(preset)
-      }
-    })
-
-    return merged
+    return categorySubs
+      .filter((sub: any) => sub?.id !== undefined && sub?.id !== null)
+      .map((sub: any) => ({
+        id: sub.id,
+        name: toTitleCase(sub?.name),
+      }))
   }, [categoryOptions, selectedCategoryId])
 
   const categoryChangeRef = useRef<any>()
@@ -834,24 +798,28 @@ export default function CreateAdmin({
   const onSubmit = async (details: any) => {
     const selectedSubcategoryIds = Array(details?.subcategory_ids)
       .flat(Infinity)
-      .map((item: any) => {
-        const idVal = item?.id ?? item
-        const nameKey = String(
-          item?.name ?? item?.label ?? item?.value ?? item ?? ''
-        )
-          .toLowerCase()
-          .trim()
-        if (PRESET_SUBCATEGORY_MAP[nameKey]) {
-          return PRESET_SUBCATEGORY_MAP[nameKey]
-        }
-        return idVal
-      })
+      .map((item: any) => item?.id ?? item)
       .map((item: any) => Number(item))
       .filter((item: number) => Number.isInteger(item) && item > 0)
       .filter(
         (item: number, index: number, items: number[]) =>
           items.indexOf(item) === index
       )
+
+    const validSubcategoryIds = new Set(
+      subcategoryOptions.map((option: any) => Number(option.id))
+    )
+    const hasInvalidSubcategory = selectedSubcategoryIds.some(
+      (subcategoryId: number) => !validSubcategoryIds.has(subcategoryId)
+    )
+
+    if (hasInvalidSubcategory) {
+      setError('subcategory_ids', {
+        type: 'manual',
+        message: 'Select valid subcategories for the selected category.',
+      })
+      return
+    }
 
     if (subcategoryOptions.length > 0 && selectedSubcategoryIds.length === 0) {
       setError('subcategory_ids', {
