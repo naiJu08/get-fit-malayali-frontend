@@ -112,6 +112,24 @@ export default function CreateAdmin({
   const { handleSubmit, watch, setError, clearErrors } = methods
   const watchedVideoFile = watch('video_file')
   const watchedVideoSource = watch('video_source')
+  const watchedVideoUrl = watch('video_url')
+  const prevVideoSourceRef = useRef(watchedVideoSource)
+
+  useEffect(() => {
+    if (prevVideoSourceRef.current !== watchedVideoSource) {
+      prevVideoSourceRef.current = watchedVideoSource
+      setVideoDurationMs(null)
+      if (watchedVideoSource === 'url') {
+        methods.setValue('video_file', '')
+        setSelectedVideoName('')
+        setCompressionProgress(null)
+        setIsCompressingVideo(false)
+        setIsExistingVideoCleared(true)
+      } else {
+        methods.setValue('video_url', '')
+      }
+    }
+  }, [watchedVideoSource, methods])
   // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
   // useEffect(() => {
@@ -388,6 +406,50 @@ export default function CreateAdmin({
       setVideoDurationMs(fallbackMs)
     }
 
+    if (watchedVideoSource === 'url') {
+      const urlToCheck = watchedVideoUrl || rowData?.video_url
+      if (urlToCheck && /^https?:\/\//.test(urlToCheck)) {
+        const isExternalPlatform =
+          /youtube\.com|youtu\.be|vimeo\.com|drive\.google\.com|dropbox\.com/i.test(
+            urlToCheck
+          )
+        if (!isExternalPlatform) {
+          const videoElement = document.createElement('video')
+          videoElement.preload = 'metadata'
+          videoElement.crossOrigin = 'anonymous'
+          videoElement.src = urlToCheck
+
+          const handleLoadedMetadata = () => {
+            const durationSeconds = videoElement.duration
+            if (!Number.isNaN(durationSeconds)) {
+              setVideoDurationMs(durationSeconds * 1000)
+            } else {
+              setVideoDurationMs(null)
+            }
+          }
+
+          const handleError = () => {
+            setVideoDurationMs(null)
+          }
+
+          videoElement.addEventListener('loadedmetadata', handleLoadedMetadata)
+          videoElement.addEventListener('error', handleError)
+
+          return () => {
+            videoElement.removeEventListener(
+              'loadedmetadata',
+              handleLoadedMetadata
+            )
+            videoElement.removeEventListener('error', handleError)
+          }
+        }
+        setVideoDurationMs(null)
+        return
+      }
+      setVideoDurationMs(null)
+      return
+    }
+
     if (!watchedVideoFile) {
       if (rowData?.video_url) {
         const videoElement = document.createElement('video')
@@ -455,7 +517,13 @@ export default function CreateAdmin({
     }
 
     fallbackFromExistingDuration()
-  }, [watchedVideoFile, rowData?.video_url, rowData?.duration_minutes])
+  }, [
+    watchedVideoFile,
+    watchedVideoSource,
+    watchedVideoUrl,
+    rowData?.video_url,
+    rowData?.duration_minutes,
+  ])
 
   const extractSelectValue = (val: any) => {
     if (!val) return ''
@@ -500,10 +568,15 @@ export default function CreateAdmin({
     fd.append('yoga[description]', details?.description ?? '')
     fd.append('yoga[intensity_level]', details?.intensity_level ?? '')
     fd.append('yoga[category]', extractSelectValue(details?.category))
-    if (details?.video_source === 'file' && hasNewVideoFile)
+    if (details?.video_source === 'file' && hasNewVideoFile) {
       fd.append('video', currentVideoName)
-    else if (details?.video_source === 'url')
+      fd.append('yoga[video_source]', 'file')
+    } else if (details?.video_source === 'url') {
       fd.append('yoga[video_url]', externalVideoUrl)
+      fd.append('yoga[video_source]', 'url')
+    } else if (details?.video_source === 'file' && hasExistingVideoFile) {
+      fd.append('yoga[video_source]', 'file')
+    }
 
     // Thumbnail handling - only append if changed
     const thumbVal = details?.thumbnail
@@ -528,7 +601,9 @@ export default function CreateAdmin({
     // Note: When thumbnail is deleted (thumbVal === ''), we don't append the key at all
 
     // Duration
-    if (videoDurationMs !== null) {
+    if (details?.video_source === 'url') {
+      fd.append('yoga[duration_minutes]', '')
+    } else if (videoDurationMs !== null) {
       const totalSeconds = Math.max(0, Math.floor(videoDurationMs / 1000))
       const minutes = Math.floor(totalSeconds / 60)
       const seconds = totalSeconds % 60
@@ -708,7 +783,8 @@ export default function CreateAdmin({
                 {videoDurationMs !== null &&
                   (watchedVideoFile instanceof File ||
                     (typeof watchedVideoFile === 'string' &&
-                      watchedVideoFile !== '')) && (
+                      watchedVideoFile !== '') ||
+                    watchedVideoSource === 'url') && (
                     <div className="text-sm text-primaryText">
                       {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
                     </div>

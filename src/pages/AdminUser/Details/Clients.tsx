@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Button from '../../../components/common/buttons/Button'
 import Icons from '../../../components/common/icons'
 import SmartTable from '../../../components/common/table/SmartTable'
@@ -27,9 +27,14 @@ const formatTitleCase = (value?: string | null) => {
     .join(' ')
 }
 
-export default function Clients({ user }: { user: any }) {
+export default function Clients({
+  user,
+  showAssignButton = true,
+}: {
+  user: any
+  showAssignButton?: boolean
+}) {
   const navigate = useNavigate()
-  const location = useLocation()
   const [clientsPage, setClientsPage] = useState(1)
   const [clientsPageSize, setClientsPageSize] = useState(10)
   const isNutritionistSuspended = (() => {
@@ -132,13 +137,7 @@ export default function Clients({ user }: { user: any }) {
     const userId = row?.user_id ?? row?.user?.id ?? row?.user?.user_id
     if (!userId) return
 
-    // Determine the correct base path based on current location
-    const isNutritionistContext = location.pathname.startsWith(
-      '/users/nutritionist'
-    )
-    const basePath = isNutritionistContext ? '/users/nutritionist' : '/users'
-
-    navigate(`${basePath}/${userId}/details`)
+    navigate(`/users/${userId}/details`)
   }
 
   const handleUnassignClient = async (row: any) => {
@@ -166,7 +165,7 @@ export default function Clients({ user }: { user: any }) {
 
   return (
     <>
-      {!isNutritionistSuspended && (
+      {!isNutritionistSuspended && showAssignButton && (
         <div className="flex justify-end mb-3">
           <Button
             className="primaryButton"

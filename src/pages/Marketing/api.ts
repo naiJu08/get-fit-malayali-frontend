@@ -29,6 +29,12 @@ export const useMarketingCampaigns = (params: any) =>
   useQuery(['marketing_campaigns', params], () =>
     list(apiUrl.MARKETING_CAMPAIGNS, params)
   )
+export const useMarketingCampaign = (id: any) =>
+  useQuery(
+    ['marketing_campaign', id],
+    () => getData(apiUrl.MARKETING_CAMPAIGNS + '/' + id),
+    { enabled: Boolean(id) }
+  )
 export const createMarketingCampaign = (data: any) =>
   postData(apiUrl.MARKETING_CAMPAIGNS, { marketing_campaign: data })
 export const updateMarketingCampaign = ({ id, data }: any) =>

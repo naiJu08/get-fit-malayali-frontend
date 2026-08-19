@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AutoComplete } from 'qbs-core'
 
-import Button from '../../components/common/buttons/Button'
 import Checkbox from '../../components/common/inputs/Checkbox'
 import TextArea from '../../components/common/inputs/TextArea'
 import TextField from '../../components/common/inputs/TextField'
@@ -116,10 +115,30 @@ export default function PublicCampaign() {
       return
     }
 
+    const capitalize = (val: any) => {
+      if (typeof val !== 'string' || !val.trim()) return val
+      const trimmed = val.trim()
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+    }
+
+    const payload: Record<string, any> = { ...values }
+    Object.keys(payload).forEach((k) => {
+      const lower = k.toLowerCase()
+      if (
+        (lower.includes('name') ||
+          lower.includes('first') ||
+          lower.includes('last')) &&
+        typeof payload[k] === 'string' &&
+        payload[k].trim()
+      ) {
+        payload[k] = capitalize(payload[k])
+      }
+    })
+
     try {
       setSubmitting(true)
       setSubmitError('')
-      await submitPublicLead(token, values)
+      await submitPublicLead(token, payload)
       setSent(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
     } catch (requestError: any) {
@@ -257,72 +276,57 @@ export default function PublicCampaign() {
 
   return (
     <div
-      className="relative min-h-screen overflow-hidden px-4 py-8 sm:px-6 sm:py-12"
-      style={{ backgroundColor: theme.page_background || '#f1f7f5' }}
+      className="relative min-h-screen overflow-y-auto px-4 py-8 sm:px-6 sm:py-10"
+      style={{
+        backgroundColor: theme.page_background || '#eef2f1',
+      }}
     >
       <style>{`@keyframes success-pop{0%{opacity:0;transform:scale(.72)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}@keyframes success-draw{from{stroke-dashoffset:48}to{stroke-dashoffset:0}}@keyframes soft-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      <div
-        className="pointer-events-none absolute -left-24 top-20 h-72 w-72 rounded-full opacity-20 blur-3xl"
-        style={{ backgroundColor: accent }}
-      />
-      <div className="pointer-events-none absolute -right-20 bottom-10 h-80 w-80 rounded-full bg-white/70 blur-3xl" />
 
       <main
-        className="relative mx-auto max-w-4xl"
+        className="relative mx-auto max-w-2xl"
         style={{ animation: 'soft-rise .45s ease-out both' }}
       >
         <form
           onSubmit={submit}
           noValidate
-          className="overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-2xl shadow-slate-300/40"
+          className="min-h-[1000px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-md"
           style={{ backgroundColor: theme.background || '#ffffff' }}
         >
           {definition.header?.image_url ? (
-            <div className="relative h-52 overflow-hidden sm:h-72">
+            <div className="relative h-44 overflow-hidden sm:h-48">
               <img
                 src={definition.header.image_url}
                 className="h-full w-full object-cover"
                 alt=""
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-transparent" />
             </div>
           ) : (
             <div className="h-2" style={{ backgroundColor: accent }} />
           )}
 
-          <div className="px-5 py-7 sm:px-10 sm:py-10">
+          <div className="p-8 sm:p-12">
             {!sent ? (
               <>
-                <div className="mb-8 border-b border-slate-100 pb-7">
-                  <div
-                    className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
-                    style={{ color: accent, backgroundColor: `${accent}12` }}
-                  >
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: accent }}
-                    />{' '}
-                    Secure enquiry form
-                  </div>
+                <div className="mb-7">
                   <h1
-                    className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl"
-                    style={{ color: accent }}
+                    className="text-3xl font-bold tracking-tight text-slate-900"
+                    style={{ color: accent || '#176b5b' }}
                   >
                     {definition.header?.title || campaign.name}
                   </h1>
-                  <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500 sm:text-base">
-                    {definition.header?.subtitle || campaign.description}
-                  </p>
-                  <p className="mt-4 text-xs text-slate-400">
-                    <span className="text-error">*</span> Required fields
-                  </p>
+                  {(definition.header?.subtitle || campaign.description) && (
+                    <p className="mt-3 text-base text-slate-500">
+                      {definition.header?.subtitle || campaign.description}
+                    </p>
+                  )}
                 </div>
 
                 <div
                   className={
                     definition.layout === 'two'
-                      ? 'grid gap-x-6 gap-y-6 md:grid-cols-2'
-                      : 'grid gap-y-6'
+                      ? 'grid gap-x-6 gap-y-5 md:grid-cols-2'
+                      : 'grid gap-y-5'
                   }
                 >
                   {fields.map((field: any) => (
@@ -333,7 +337,7 @@ export default function PublicCampaign() {
                 {submitError && (
                   <div
                     role="alert"
-                    className="mt-7 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"
+                    className="mt-6 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"
                   >
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-bold">
                       !
@@ -342,40 +346,40 @@ export default function PublicCampaign() {
                   </div>
                 )}
 
-                <div className="mt-9 border-t border-slate-100 pt-6">
-                  <div className="flex flex-col-reverse items-center justify-between gap-4 sm:flex-row">
-                    <p className="text-center text-xs leading-5 text-slate-400 sm:text-left">
-                      Your information is securely submitted to our team.
-                    </p>
-                    <Button
-                      label={submitting ? 'Submitting...' : 'Submit form'}
-                      type="submit"
-                      isLoading={submitting}
-                      disabled={submitting}
-                      className="!h-12 !min-w-[160px] !rounded-xl !px-6"
-                    />
-                  </div>
+                <div className="mt-10">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full h-12 rounded-lg text-white font-semibold text-base transition hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ backgroundColor: accent || '#176b5b' }}
+                  >
+                    {submitting ? 'Submitting...' : 'Submit enquiry'}
+                  </button>
+                  <p className="mt-6 text-center text-xs text-slate-400">
+                    {definition.footer?.text ||
+                      'We respect your privacy. Your information is safe with us.'}
+                  </p>
                 </div>
               </>
             ) : (
               <section
-                className="flex min-h-[440px] flex-col items-center justify-center py-10 text-center"
+                className="flex min-h-[350px] flex-col items-center justify-center py-8 text-center"
                 aria-live="polite"
               >
                 <div
-                  className="relative flex h-24 w-24 items-center justify-center rounded-full"
+                  className="relative flex h-20 w-20 items-center justify-center rounded-full"
                   style={{
                     backgroundColor: `${accent}14`,
                     animation: 'success-pop .55s cubic-bezier(.2,.8,.2,1) both',
                   }}
                 >
                   <div
-                    className="flex h-16 w-16 items-center justify-center rounded-full shadow-lg"
+                    className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg"
                     style={{ backgroundColor: accent }}
                   >
                     <svg
-                      width="34"
-                      height="34"
+                      width="30"
+                      height="30"
                       viewBox="0 0 34 34"
                       fill="none"
                       aria-hidden="true"
@@ -396,34 +400,28 @@ export default function PublicCampaign() {
                 </div>
                 <div style={{ animation: 'soft-rise .45s .2s ease-out both' }}>
                   <p
-                    className="mt-7 text-xs font-bold uppercase tracking-[0.22em]"
+                    className="mt-5 text-xs font-bold uppercase tracking-[0.22em]"
                     style={{ color: accent }}
                   >
                     Submission received
                   </p>
-                  <h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
+                  <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
                     Thank you!
                   </h1>
-                  <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-500 sm:text-base">
+                  <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-slate-500 sm:text-sm">
                     Your details have been submitted successfully. Our team will
                     review your enquiry and contact you soon.
                   </p>
-                  <div className="mx-auto mt-7 inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-xs font-medium text-slate-500">
+                  <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
                     <span className="h-2 w-2 rounded-full bg-emerald-500" /> You
                     may safely close this page
                   </div>
                 </div>
               </section>
             )}
-
-            {definition.footer?.text && (
-              <p className="mt-7 text-center text-xs leading-5 text-slate-400">
-                {definition.footer.text}
-              </p>
-            )}
           </div>
         </form>
-        <p className="mt-5 text-center text-xs text-slate-400">
+        <p className="mt-3 text-center text-xs text-slate-400">
           Powered by Get Fit Malayali
         </p>
       </main>
