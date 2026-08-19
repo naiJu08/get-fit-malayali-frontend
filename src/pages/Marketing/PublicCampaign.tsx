@@ -275,41 +275,48 @@ export default function PublicCampaign() {
   }
 
   return (
-    <div className="relative w-full min-h-screen overflow-y-auto p-0 bg-white">
+    <div
+      className="relative min-h-screen overflow-y-auto px-4 py-8 sm:px-6 sm:py-10"
+      style={{
+        backgroundColor: theme.page_background || '#eef2f1',
+      }}
+    >
       <style>{`@keyframes success-pop{0%{opacity:0;transform:scale(.72)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}@keyframes success-draw{from{stroke-dashoffset:48}to{stroke-dashoffset:0}}@keyframes soft-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
 
       <main
-        className="relative mx-auto max-w-3xl"
+        className="relative mx-auto max-w-2xl"
         style={{ animation: 'soft-rise .45s ease-out both' }}
       >
         <form
           onSubmit={submit}
           noValidate
-          className="overflow-hidden rounded-2xl border border-slate-200/80 shadow-sm"
-          style={{ backgroundColor: theme.background || '#f5f8f7' }}
+          className="min-h-[1000px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-md"
+          style={{ backgroundColor: theme.background || '#ffffff' }}
         >
           {definition.header?.image_url ? (
-            <div className="relative h-40 overflow-hidden sm:h-48">
+            <div className="relative h-44 overflow-hidden sm:h-48">
               <img
                 src={definition.header.image_url}
                 className="h-full w-full object-cover"
                 alt=""
               />
             </div>
-          ) : null}
+          ) : (
+            <div className="h-2" style={{ backgroundColor: accent }} />
+          )}
 
-          <div className="p-5 sm:p-6">
+          <div className="p-8 sm:p-12">
             {!sent ? (
               <>
-                <div className="mb-4">
+                <div className="mb-7">
                   <h1
-                    className="text-xl font-bold tracking-tight sm:text-2xl"
+                    className="text-3xl font-bold tracking-tight text-slate-900"
                     style={{ color: accent || '#176b5b' }}
                   >
                     {definition.header?.title || campaign.name}
                   </h1>
                   {(definition.header?.subtitle || campaign.description) && (
-                    <p className="mt-1 text-xs sm:text-sm text-slate-500">
+                    <p className="mt-3 text-base text-slate-500">
                       {definition.header?.subtitle || campaign.description}
                     </p>
                   )}
@@ -318,8 +325,8 @@ export default function PublicCampaign() {
                 <div
                   className={
                     definition.layout === 'two'
-                      ? 'grid gap-x-4 gap-y-4 md:grid-cols-2'
-                      : 'grid gap-y-4'
+                      ? 'grid gap-x-6 gap-y-5 md:grid-cols-2'
+                      : 'grid gap-y-5'
                   }
                 >
                   {fields.map((field: any) => (
@@ -330,7 +337,7 @@ export default function PublicCampaign() {
                 {submitError && (
                   <div
                     role="alert"
-                    className="mt-4 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700"
+                    className="mt-6 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"
                   >
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-bold">
                       !
@@ -339,16 +346,16 @@ export default function PublicCampaign() {
                   </div>
                 )}
 
-                <div className="mt-5">
+                <div className="mt-10">
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full h-11 rounded-xl text-white font-semibold text-sm transition hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full h-12 rounded-lg text-white font-semibold text-base transition hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
                     style={{ backgroundColor: accent || '#176b5b' }}
                   >
                     {submitting ? 'Submitting...' : 'Submit enquiry'}
                   </button>
-                  <p className="mt-3 text-center text-xs text-slate-400">
+                  <p className="mt-6 text-center text-xs text-slate-400">
                     {definition.footer?.text ||
                       'We respect your privacy. Your information is safe with us.'}
                   </p>

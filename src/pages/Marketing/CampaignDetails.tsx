@@ -864,25 +864,23 @@ export default function CampaignDetails() {
         small={false}
         className="max-w-4xl w-full"
         body={
-          <div className="w-full h-[580px] overflow-y-auto bg-white p-0">
-            {campaign?.public_token ? (
-              <iframe
-                src={`/public/campaigns/${campaign.public_token}`}
-                className="w-full h-full border-0 bg-white"
-                title="Add lead form"
-              />
-            ) : campaign?.public_url ? (
-              <iframe
-                src={campaign.public_url}
-                className="w-full h-full border-0 bg-white"
-                title="Add lead form"
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center p-6 text-gray-500">
-                Public form is not available for this campaign.
-              </div>
-            )}
-          </div>
+          campaign?.public_token ? (
+            <iframe
+              src={`/public/campaigns/${campaign.public_token}`}
+              className="w-full h-[700px] border-0"
+              title="Add lead form"
+            />
+          ) : campaign?.public_url ? (
+            <iframe
+              src={campaign.public_url}
+              className="w-full h-[700px] border-0"
+              title="Add lead form"
+            />
+          ) : (
+            <div className="flex h-40 items-center justify-center p-6 text-gray-500">
+              Public form is not available for this campaign.
+            </div>
+          )
         }
       />
     </div>
