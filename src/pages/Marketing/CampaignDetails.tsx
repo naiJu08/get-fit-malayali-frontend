@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { FormProvider, useForm } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
 import { useSnackbarManager } from '../../components/common/snackbar'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import Button from '../../components/common/buttons/Button'
-import ListingHeader from '../../components/common/ListingTiles'
 import SmartTable from '../../components/common/table/SmartTable'
 import Tab from '../../components/common/tab/Tab'
-import { TabContainer } from '../../components/common'
+import { DialogModal, TabContainer } from '../../components/common'
+import FormBuilder from '../../components/app/formBuilder'
 import Icons from '../../components/common/icons'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import { calcWindowHeight } from '../../utilities/calcHeight'
+import { getApiErrorMessage } from '../../utilities/commonUtilities'
 import {
   useMarketingCampaign,
   useCampaignLeads,
@@ -19,6 +21,55 @@ import {
   assignMarketingLead,
   createLeadActivity,
 } from './api'
+
+const leadStatusOptions = [
+  { id: 'new_lead', name: 'New Lead' },
+  { id: 'contacted', name: 'Contacted' },
+  { id: 'qualified', name: 'Qualified' },
+  { id: 'converted', name: 'Converted' },
+  { id: 'lost', name: 'Lost' },
+]
+
+const emptyLead = () => ({
+  first_name: '',
+  last_name: '',
+  email: '',
+  phone: '',
+  status: 'New Lead',
+  status_value: 'new_lead',
+  notes: '',
+})
+
+const displayLeadStatus = (val?: string) => {
+  const match = leadStatusOptions.find(
+    (o) =>
+      o.id === val || o.name.toLowerCase() === String(val || '').toLowerCase()
+  )
+  if (match) return match.name
+  return String(val || 'new_lead')
+    .replace(/_/g, ' ')
+    .replace(/^./, (letter) => letter.toUpperCase())
+}
+
+const getCampaignFormFields = (campaign: any) => {
+  if (!campaign) return []
+  const rawForm = campaign.form || campaign.marketing_form
+  if (!rawForm) return []
+
+  let definition = rawForm
+  if (typeof rawForm.definition === 'string') {
+    try {
+      definition = JSON.parse(rawForm.definition)
+    } catch {
+      definition = {}
+    }
+  } else if (rawForm.definition) {
+    definition = rawForm.definition
+  }
+
+  const fields = definition.fields || rawForm.fields || []
+  return Array.isArray(fields) ? fields : []
+}
 
 function DetailItem({ label, value }: { label: string; value: any }) {
   return (
@@ -59,13 +110,25 @@ function statusColor(value: any) {
 export default function CampaignDetails() {
   const { id } = useParams()
   const nav = useNavigate()
+  const location = useLocation()
   const { enqueueSnackbar } = useSnackbarManager()
 
   const { data: campaignData, isLoading: campaignLoading } =
     useMarketingCampaign(id)
   const campaign = campaignData?.marketing_campaign
 
-  const [activeTab, setActiveTab] = useState<'details' | 'leads'>('details')
+  const activeTab = useMemo(() => {
+    const parts = location.pathname.split('/').filter(Boolean)
+    const last = parts[parts.length - 1]
+    if (last === 'leads') return 'leads'
+    return 'details'
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (location.pathname === `/marketing/campaigns/${id}`) {
+      nav(`/marketing/campaigns/${id}/details`, { replace: true })
+    }
+  }, [location.pathname, id, nav])
 
   const [leadsParams, setLeadsParams] = useState({
     page: 1,
@@ -78,9 +141,387 @@ export default function CampaignDetails() {
     refetch: refetchLeads,
   } = useCampaignLeads(id, leadsParams)
   const [editing, setEditing] = useState<any>(null)
+  const [savingLead, setSavingLead] = useState(false)
   const [activity, setActivity] = useState<any>(null)
   const [assigning, setAssigning] = useState<any>(null)
   const { data: team } = useQuery(['sales_team'], getSalesTeam)
+
+  const methods = useForm({ mode: 'onChange', defaultValues: emptyLead() })
+
+  const dynamicFormFields = useMemo(() => {
+    const rawFields = getCampaignFormFields(campaign)
+    if (!rawFields.length) {
+      return [
+        {
+          name: 'first_name',
+          label: 'First name',
+          type: 'text',
+          required: true,
+          placeholder: 'Enter first name',
+        },
+        {
+          name: 'last_name',
+          label: 'Last name',
+          type: 'text',
+          placeholder: 'Enter last name',
+        },
+        {
+          name: 'email',
+          label: 'Email',
+          type: 'email',
+          placeholder: 'Enter email',
+        },
+        {
+          name: 'phone',
+          label: 'Phone number',
+          type: 'text',
+          placeholder: 'Enter phone number',
+        },
+      ]
+    }
+
+    return rawFields.map((field: any) => {
+      const fieldKey = field.key || field.name || field.id
+      const rawType = String(field.type || 'text').toLowerCase()
+      const fieldType = rawType === 'phone' ? 'text' : rawType
+
+      if (
+        fieldType === 'select' ||
+        fieldType === 'custom_select' ||
+        fieldType === 'dropdown'
+      ) {
+        const optionsData = (field.options || []).map((opt: any) => {
+          if (typeof opt === 'object' && opt !== null) {
+            return {
+              id: String(opt.id || opt.value || opt.name),
+              name: String(opt.name || opt.label || opt.value),
+            }
+          }
+          return { id: String(opt), name: String(opt) }
+        })
+
+        return {
+          name: `${fieldKey}_label`,
+          id: fieldKey,
+          label: field.label || fieldKey,
+          type: 'custom_select',
+          desc: 'name',
+          descId: 'id',
+          data: optionsData,
+          required: Boolean(field.required),
+          placeholder: field.placeholder || `Select ${field.label || fieldKey}`,
+        }
+      }
+
+      return {
+        name: fieldKey,
+        label: field.label || fieldKey,
+        type: fieldType === 'textarea' ? 'textarea' : 'text',
+        required: Boolean(field.required),
+        placeholder: field.placeholder || `Enter ${field.label || fieldKey}`,
+      }
+    })
+  }, [campaign])
+
+  const leadFormFields: any[] = useMemo(() => {
+    const fields = [...dynamicFormFields]
+
+    const hasStatus = fields.some(
+      (f: any) =>
+        f.name === 'status' || f.id === 'status' || f.id === 'status_value'
+    )
+    if (!hasStatus) {
+      fields.push({
+        name: 'status',
+        id: 'status_value',
+        label: 'Status',
+        type: 'custom_select',
+        desc: 'name',
+        descId: 'id',
+        data: leadStatusOptions,
+        required: true,
+        placeholder: 'Select status',
+      })
+    }
+
+    const hasNotes = fields.some(
+      (f: any) => f.name === 'notes' || f.id === 'notes'
+    )
+    if (!hasNotes) {
+      fields.push({
+        name: 'notes',
+        label: 'Notes',
+        type: 'textarea',
+        placeholder: 'Enter notes',
+      })
+    }
+
+    return fields
+  }, [dynamicFormFields])
+
+  const openLead = (row?: any) => {
+    const defaultValues: any = {
+      status: 'New Lead',
+      status_value: 'new_lead',
+      notes: '',
+    }
+
+    leadFormFields.forEach((f: any) => {
+      const key = f.id || f.name
+      if (key && !(key in defaultValues)) {
+        defaultValues[key] = ''
+      }
+    })
+
+    if (row) {
+      Object.keys(row).forEach((k) => {
+        if (k === 'status') {
+          defaultValues.status = displayLeadStatus(row.status)
+          defaultValues.status_value = String(
+            row.status || 'new_lead'
+          ).toLowerCase()
+        } else {
+          defaultValues[k] = row[k] ?? ''
+        }
+      })
+    }
+
+    setEditing(row || defaultValues)
+    methods.reset(defaultValues)
+  }
+
+  const closeLead = () => {
+    setEditing(null)
+    methods.reset(emptyLead())
+  }
+
+  const saveLead = async () => {
+    const valid = await methods.trigger()
+    const values: any = methods.getValues()
+
+    let missingRequired = false
+    leadFormFields.forEach((f: any) => {
+      if (f.required) {
+        const val = values[f.id || f.name]
+        if (!val || String(val).trim() === '') {
+          missingRequired = true
+          methods.setError(f.name, {
+            type: 'manual',
+            message: `${f.label || 'This field'} is required`,
+          })
+        }
+      }
+    })
+
+    if (!valid || missingRequired) {
+      enqueueSnackbar('Complete all required lead fields', {
+        variant: 'error',
+      })
+      return
+    }
+
+    const capitalize = (val: any) => {
+      if (typeof val !== 'string' || !val.trim()) return val
+      const trimmed = val.trim()
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+    }
+
+    try {
+      setSavingLead(true)
+      const payload: any = { ...values }
+
+      Object.keys(payload).forEach((k) => {
+        const lower = k.toLowerCase()
+        if (
+          (lower.includes('name') ||
+            lower.includes('first') ||
+            lower.includes('last')) &&
+          typeof payload[k] === 'string' &&
+          payload[k].trim()
+        ) {
+          payload[k] = capitalize(payload[k])
+        }
+      })
+
+      payload.status =
+        values.status_value || String(values.status || 'new_lead').toLowerCase()
+
+      leadFormFields.forEach((f: any) => {
+        if (f.type === 'custom_select' && f.id) {
+          payload[f.id] = values[f.id] || values[f.name]
+        }
+      })
+
+      if (editing?.id) {
+        await updateMarketingLead({
+          campaignId: id,
+          id: editing.id,
+          data: payload,
+        })
+      } else {
+        await createMarketingLead({ campaignId: id, data: payload })
+      }
+
+      enqueueSnackbar(
+        editing?.id ? 'Lead updated successfully' : 'Lead created successfully',
+        { variant: 'success' }
+      )
+      closeLead()
+      refetchLeads()
+    } catch (e: any) {
+      enqueueSnackbar(getApiErrorMessage(e, 'Unable to save lead'), {
+        variant: 'error',
+      })
+    } finally {
+      setSavingLead(false)
+    }
+  }
+
+  const [assigningLoader, setAssigningLoader] = useState(false)
+  const assignMethods = useForm({
+    mode: 'onChange',
+    defaultValues: { sales_user: '', assigned_to_id: '' },
+  })
+
+  const assignFormFields: any[] = useMemo(
+    () => [
+      {
+        name: 'sales_user',
+        id: 'assigned_to_id',
+        label: 'Sales team member',
+        type: 'custom_select',
+        desc: 'name',
+        descId: 'id',
+        data: team?.users || [],
+        required: true,
+        placeholder: 'Select team member',
+      },
+    ],
+    [team?.users]
+  )
+
+  const openAssignModal = (row: any) => {
+    setAssigning(row)
+    const userMatch = (team?.users || []).find(
+      (u: any) => String(u.id) === String(row?.assigned_to?.id)
+    )
+    assignMethods.reset({
+      sales_user: userMatch ? userMatch.name : '',
+      assigned_to_id: userMatch ? String(userMatch.id) : '',
+    })
+  }
+
+  const handleAssign = async () => {
+    const valid = await assignMethods.trigger()
+    const values: any = assignMethods.getValues()
+    const targetId = values.assigned_to_id || values.sales_user
+
+    if (!valid || !targetId) {
+      enqueueSnackbar('Select a sales team member', { variant: 'error' })
+      return
+    }
+    try {
+      setAssigningLoader(true)
+      await assignMarketingLead({
+        campaignId: id,
+        id: assigning.id,
+        assigned_to_id: targetId,
+      })
+      enqueueSnackbar('Lead assigned successfully', { variant: 'success' })
+      setAssigning(null)
+      refetchLeads()
+    } catch (e: any) {
+      enqueueSnackbar(getApiErrorMessage(e, 'Unable to assign lead'), {
+        variant: 'error',
+      })
+    } finally {
+      setAssigningLoader(false)
+    }
+  }
+
+  const [activityLoader, setActivityLoader] = useState(false)
+  const activityMethods = useForm({
+    mode: 'onChange',
+    defaultValues: {
+      activity_type_label: 'Contacted',
+      activity_type: 'contacted',
+      notes: '',
+    },
+  })
+
+  const activityOptions = [
+    { id: 'contacted', name: 'Contacted' },
+    { id: 'qualified', name: 'Qualified' },
+    { id: 'note', name: 'Note' },
+    { id: 'converted', name: 'Converted' },
+    { id: 'lost', name: 'Lost' },
+  ]
+
+  const activityFormFields: any[] = useMemo(
+    () => [
+      {
+        name: 'activity_type_label',
+        id: 'activity_type',
+        label: 'Activity type',
+        type: 'custom_select',
+        desc: 'name',
+        descId: 'id',
+        data: activityOptions,
+        required: true,
+        placeholder: 'Select activity type',
+      },
+      {
+        name: 'notes',
+        label: 'Notes',
+        type: 'textarea',
+        placeholder: 'Enter notes',
+      },
+    ],
+    []
+  )
+
+  const openActivityModal = (row: any) => {
+    setActivity(row)
+    activityMethods.reset({
+      activity_type_label: 'Contacted',
+      activity_type: 'contacted',
+      notes: '',
+    })
+  }
+
+  const handleSaveActivity = async () => {
+    const valid = await activityMethods.trigger()
+    const values: any = activityMethods.getValues()
+    const actType = values.activity_type || 'contacted'
+
+    if (!valid) {
+      enqueueSnackbar('Complete the required activity fields', {
+        variant: 'error',
+      })
+      return
+    }
+
+    try {
+      setActivityLoader(true)
+      await createLeadActivity({
+        campaignId: id,
+        id: activity.id,
+        data: {
+          activity_type: actType,
+          notes: values.notes || '',
+        },
+      })
+      enqueueSnackbar('Activity added successfully', { variant: 'success' })
+      setActivity(null)
+      refetchLeads()
+    } catch (e: any) {
+      enqueueSnackbar(getApiErrorMessage(e, 'Unable to add activity'), {
+        variant: 'error',
+      })
+    } finally {
+      setActivityLoader(false)
+    }
+  }
 
   const rows = leadsData?.leads || []
   const columns: any[] = [
@@ -139,27 +580,7 @@ export default function CampaignDetails() {
   ]
 
   const handleTabClick = (item: { id: string | number; label: string }) => {
-    setActiveTab(String(item.id) as 'details' | 'leads')
-  }
-
-  const save = async () => {
-    try {
-      if (editing.id)
-        await updateMarketingLead({
-          campaignId: id,
-          id: editing.id,
-          data: editing,
-        })
-      else await createMarketingLead({ campaignId: id, data: editing })
-      enqueueSnackbar('Lead saved successfully', { variant: 'success' })
-      setEditing(null)
-      refetchLeads()
-    } catch (e: any) {
-      enqueueSnackbar(
-        e?.response?.data?.errors?.join(', ') || 'Unable to save lead',
-        { variant: 'error' }
-      )
-    }
+    nav(`/marketing/campaigns/${id}/${item.id}`)
   }
 
   const copyLink = async () => {
@@ -173,6 +594,18 @@ export default function CampaignDetails() {
       enqueueSnackbar('Public link copied', { variant: 'success' })
     } catch (error: any) {
       enqueueSnackbar(error?.message || 'Unable to copy link', {
+        variant: 'error',
+      })
+    }
+  }
+
+  const [showAddLeadModal, setShowAddLeadModal] = useState(false)
+
+  const openAddLead = () => {
+    if (campaign?.public_token || campaign?.public_url) {
+      setShowAddLeadModal(true)
+    } else {
+      enqueueSnackbar('Public form link is not available for this campaign', {
         variant: 'error',
       })
     }
@@ -203,9 +636,7 @@ export default function CampaignDetails() {
                 className={`flex items-center gap-1 px-3 py-1 rounded-lg ${statusColor(campaign.status)}`}
               >
                 <span className="font-medium">Status:</span>
-                <span className="capitalize">
-                  {displayStatus(campaign.status)}
-                </span>
+                <span>{displayStatus(campaign.status)}</span>
               </div>
             )}
 
@@ -224,8 +655,8 @@ export default function CampaignDetails() {
             )}
 
             {campaign?.starts_on && (
-              <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-gray-50 text-gray-700">
-                <span className="font-medium">Period:</span>
+              <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-gray-100 text-gray-700">
+                <span className="font-medium">Dates:</span>
                 <span>
                   {campaign.starts_on}
                   {campaign.ends_on ? ` – ${campaign.ends_on}` : ''}
@@ -311,21 +742,6 @@ export default function CampaignDetails() {
             </div>
           </Tab>
           <Tab id="leads">
-            <ListingHeader
-              data={{ title: 'Campaign Leads', icon: 'customer-icon' }}
-              onActionClick={() =>
-                setEditing({
-                  first_name: '',
-                  last_name: '',
-                  email: '',
-                  phone: '',
-                  status: 'new_lead',
-                  notes: '',
-                })
-              }
-              actionProps={{ actionTitle: 'Add lead' }}
-              checkPermission
-            />
             <SmartTable
               data={rows}
               dataRowKey="id"
@@ -335,6 +751,9 @@ export default function CampaignDetails() {
               searchValue={leadsParams.search}
               onSearchChange={(value: string) =>
                 setLeadsParams({ ...leadsParams, search: value, page: 1 })
+              }
+              createButton={
+                <Button label="Add lead" icon="plus" onClick={openAddLead} />
               }
               isLoading={leadsFetching}
               height={calcWindowHeight(rows.length ? 200 : 218)}
@@ -355,21 +774,25 @@ export default function CampaignDetails() {
                 totalPages: leadsData?.meta?.total_pages || 1,
                 dropOptions: [10, 20, 50, 100],
               }}
+              externalActions
               actionProps={[
                 {
                   title: 'Edit',
-                  icon: <span>✎</span>,
-                  action: (row: any) => setEditing(row),
+                  toolTip: 'Edit lead',
+                  icon: <Icons name="edit" />,
+                  action: (row: any) => openLead(row),
                 },
                 {
                   title: 'Assign',
-                  icon: <span>↗</span>,
-                  action: (row: any) => setAssigning(row),
+                  toolTip: 'Assign lead to sales member',
+                  icon: <Icons name="external-link" />,
+                  action: (row: any) => openAssignModal(row),
                 },
                 {
                   title: 'Track',
-                  icon: <span>•</span>,
-                  action: (row: any) => setActivity(row),
+                  toolTip: 'Add tracking activity',
+                  icon: <Icons name="eye" />,
+                  action: (row: any) => openActivityModal(row),
                 },
               ]}
             />
@@ -377,135 +800,91 @@ export default function CampaignDetails() {
         </TabContainer>
       )}
 
-      {editing && (
-        <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded p-5 w-full max-w-lg space-y-2">
-            <h2 className="font-semibold">Lead</h2>
-            {['first_name', 'last_name', 'email', 'phone'].map((k) => (
-              <input
-                key={k}
-                className="border rounded p-2 w-full"
-                placeholder={k.replace('_', ' ')}
-                value={editing[k] || ''}
-                onChange={(e) =>
-                  setEditing({ ...editing, [k]: e.target.value })
-                }
-              />
-            ))}
-            <select
-              className="border rounded p-2 w-full"
-              value={editing.status}
-              onChange={(e) =>
-                setEditing({ ...editing, status: e.target.value })
-              }
-            >
-              {['new_lead', 'contacted', 'qualified', 'converted', 'lost'].map(
-                (x) => (
-                  <option key={x}>{x}</option>
-                )
-              )}
-            </select>
-            <textarea
-              className="border rounded p-2 w-full"
-              placeholder="Notes"
-              value={editing.notes || ''}
-              onChange={(e) =>
-                setEditing({ ...editing, notes: e.target.value })
-              }
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                label="Cancel"
-                outlined
-                primary={false}
-                onClick={() => setEditing(null)}
-              />
-              <Button label="Save" onClick={save} />
+      <DialogModal
+        isOpen={Boolean(editing)}
+        onClose={closeLead}
+        title={editing?.id ? 'Edit lead' : 'Add lead'}
+        actionLabel="Save"
+        actionLoader={savingLead}
+        onSubmit={saveLead}
+        secondaryAction={closeLead}
+        secondaryActionLabel="Cancel"
+        small={false}
+        body={
+          <FormProvider {...methods}>
+            <FormBuilder data={leadFormFields} edit spacing />
+          </FormProvider>
+        }
+      />
+
+      <DialogModal
+        isOpen={Boolean(assigning)}
+        onClose={() => setAssigning(null)}
+        title="Assign to sales"
+        actionLabel="Assign"
+        actionLoader={assigningLoader}
+        onSubmit={handleAssign}
+        secondaryAction={() => setAssigning(null)}
+        secondaryActionLabel="Cancel"
+        className="max-w-lg w-full"
+        body={
+          <FormProvider {...assignMethods}>
+            <div className="w-full space-y-4 min-h-[220px] pb-24">
+              <FormBuilder data={assignFormFields} edit />
             </div>
-          </div>
-        </div>
-      )}
-      {assigning && (
-        <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded p-5 w-full max-w-sm">
-            <h2 className="font-semibold mb-3">Assign to sales</h2>
-            <select
-              className="border rounded p-2 w-full"
-              onChange={async (e) => {
-                await assignMarketingLead({
-                  campaignId: id,
-                  id: assigning.id,
-                  assigned_to_id: e.target.value,
-                })
-                enqueueSnackbar('Lead assigned successfully', {
-                  variant: 'success',
-                })
-                setAssigning(null)
-                refetchLeads()
-              }}
-            >
-              <option>Select team member</option>
-              {(team?.users || []).map((u: any) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      )}
-      {activity && (
-        <div className="fixed inset-0 z-40 bg-black/40 flex items-center justify-center p-4">
-          <div className="bg-white rounded p-5 w-full max-w-sm">
-            <h2 className="font-semibold">Add tracking activity</h2>
-            <select
-              className="border rounded p-2 w-full my-2"
-              value={activity.type || 'contacted'}
-              onChange={(e) =>
-                setActivity({ ...activity, type: e.target.value })
-              }
-            >
-              {['contacted', 'qualified', 'note', 'converted', 'lost'].map(
-                (x) => (
-                  <option key={x}>{x}</option>
-                )
-              )}
-            </select>
-            <textarea
-              className="border rounded p-2 w-full"
-              placeholder="Notes"
-              value={activity.notes || ''}
-              onChange={(e) =>
-                setActivity({ ...activity, notes: e.target.value })
-              }
-            />
-            <div className="flex justify-end gap-2 mt-3">
-              <Button
-                label="Cancel"
-                outlined
-                primary={false}
-                onClick={() => setActivity(null)}
-              />
-              <Button
-                label="Save activity"
-                onClick={async () => {
-                  await createLeadActivity({
-                    campaignId: id,
-                    id: activity.id,
-                    data: {
-                      activity_type: activity.type,
-                      notes: activity.notes,
-                    },
-                  })
-                  enqueueSnackbar('Activity added', { variant: 'success' })
-                  setActivity(null)
-                  refetchLeads()
-                }}
-              />
+          </FormProvider>
+        }
+      />
+
+      <DialogModal
+        isOpen={Boolean(activity)}
+        onClose={() => setActivity(null)}
+        title="Add tracking activity"
+        actionLabel="Save activity"
+        actionLoader={activityLoader}
+        onSubmit={handleSaveActivity}
+        secondaryAction={() => setActivity(null)}
+        secondaryActionLabel="Cancel"
+        className="max-w-lg w-full"
+        body={
+          <FormProvider {...activityMethods}>
+            <div className="w-full space-y-4 min-h-[220px] pb-16">
+              <FormBuilder data={activityFormFields} edit />
             </div>
+          </FormProvider>
+        }
+      />
+
+      <DialogModal
+        isOpen={showAddLeadModal}
+        onClose={() => {
+          setShowAddLeadModal(false)
+          refetchLeads()
+        }}
+        small={false}
+        className="max-w-4xl w-full"
+        body={
+          <div className="w-full h-[580px] overflow-y-auto bg-white p-0">
+            {campaign?.public_token ? (
+              <iframe
+                src={`/public/campaigns/${campaign.public_token}`}
+                className="w-full h-full border-0 bg-white"
+                title="Add lead form"
+              />
+            ) : campaign?.public_url ? (
+              <iframe
+                src={campaign.public_url}
+                className="w-full h-full border-0 bg-white"
+                title="Add lead form"
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center p-6 text-gray-500">
+                Public form is not available for this campaign.
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        }
+      />
     </div>
   )
 }

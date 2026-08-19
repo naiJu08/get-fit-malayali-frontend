@@ -12,6 +12,7 @@ import Button from '../../components/common/buttons/Button'
 import SearchInput from '../../components/common/inputs/SearchInput'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useSnackbarManager } from '../../components/common/snackbar'
+import { getApiErrorMessage } from '../../utilities/commonUtilities'
 import {
   useMarketingCampaigns,
   useMarketingForms,
@@ -43,6 +44,13 @@ const displayStatus = (value: any) =>
   String(value || 'draft')
     .replace(/_/g, ' ')
     .replace(/^./, (letter) => letter.toUpperCase())
+const statusColor = (value: any) => {
+  const s = String(value || '').toLowerCase()
+  if (s === 'active') return 'bg-green-50 text-green-700 border-green-200'
+  if (s === 'draft') return 'bg-yellow-50 text-yellow-700 border-yellow-200'
+  if (s === 'inactive') return 'bg-gray-100 text-gray-600 border-gray-200'
+  return 'bg-gray-100 text-gray-600 border-gray-200'
+}
 const escapeHtml = (value: any) =>
   String(value ?? '').replace(
     /[&<>\"']/g,
@@ -159,16 +167,27 @@ export default function Campaigns() {
   }
   const save = async () => {
     const valid = await methods.trigger()
-    if (!valid || !selectedForm?.id) {
+    const values: any = methods.getValues()
+    const rawName = String(values.name || '').trim()
+
+    if (!rawName) {
+      methods.setError('name', {
+        type: 'manual',
+        message: 'Campaign name is required',
+      })
+    }
+
+    if (!valid || !rawName || !selectedForm?.id) {
       enqueueSnackbar(
-        !selectedForm?.id
-          ? 'Attach a form before saving'
-          : 'Complete the required campaign fields',
+        !rawName
+          ? 'Campaign name is required'
+          : !selectedForm?.id
+            ? 'Attach a form before saving'
+            : 'Complete the required campaign fields',
         { variant: 'error' }
       )
       return
     }
-    const values: any = methods.getValues()
     if (
       values.starts_on &&
       values.ends_on &&
@@ -179,10 +198,11 @@ export default function Campaigns() {
       })
       return
     }
+    const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
     try {
       setSaving(true)
       const payload = {
-        name: values.name,
+        name: formattedName,
         description: values.description,
         status:
           values.status_value || String(values.status || 'draft').toLowerCase(),
@@ -202,7 +222,7 @@ export default function Campaigns() {
       close()
       refetch()
     } catch (error: any) {
-      enqueueSnackbar(error?.message || 'Unable to save campaign', {
+      enqueueSnackbar(getApiErrorMessage(error, 'Unable to save campaign'), {
         variant: 'error',
       })
     } finally {
@@ -236,7 +256,7 @@ export default function Campaigns() {
       await navigator.clipboard.writeText(publicUrl)
       enqueueSnackbar('Public link copied', { variant: 'success' })
     } catch (error: any) {
-      enqueueSnackbar(error?.message || 'Unable to copy public link', {
+      enqueueSnackbar(getApiErrorMessage(error, 'Unable to copy public link'), {
         variant: 'error',
       })
     }
@@ -276,18 +296,6 @@ export default function Campaigns() {
         isVisible: true,
       },
       {
-        title: 'Status',
-        field: 'status',
-        renderCell: (row: any) => ({
-          cell: <span>{displayStatus(row.status)}</span>,
-          toolTip: displayStatus(row.status),
-        }),
-        customCell: true,
-        sortable: false,
-        resizable: true,
-        isVisible: true,
-      },
-      {
         title: 'Leads',
         field: 'leads_count',
         renderCell: (row: any) => ({
@@ -311,6 +319,26 @@ export default function Campaigns() {
             row.starts_on && row.ends_on
               ? `${row.starts_on} – ${row.ends_on}`
               : 'No dates',
+        }),
+        customCell: true,
+        sortable: false,
+        resizable: true,
+        isVisible: true,
+      },
+      {
+        title: 'Status',
+        field: 'status',
+        renderCell: (row: any) => ({
+          cell: (
+            <span
+              className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border capitalize ${statusColor(
+                row.status
+              )}`}
+            >
+              {displayStatus(row.status)}
+            </span>
+          ),
+          toolTip: displayStatus(row.status),
         }),
         customCell: true,
         sortable: false,
@@ -384,11 +412,18 @@ export default function Campaigns() {
               variant: 'danger',
               action: async (row: any) => {
                 if (window.confirm('Delete campaign?')) {
-                  await deleteMarketingCampaign(row.id)
-                  enqueueSnackbar('Campaign deleted successfully', {
-                    variant: 'success',
-                  })
-                  refetch()
+                  try {
+                    await deleteMarketingCampaign(row.id)
+                    enqueueSnackbar('Campaign deleted successfully', {
+                      variant: 'success',
+                    })
+                    refetch()
+                  } catch (error: any) {
+                    enqueueSnackbar(
+                      getApiErrorMessage(error, 'Unable to delete campaign'),
+                      { variant: 'error' }
+                    )
+                  }
                 }
               },
             },

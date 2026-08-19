@@ -177,6 +177,11 @@ const FormBuilder: React.FC<Props> = (props) => {
               name={`${field.name}`}
               control={control}
               key={`${updatekey}${field.name}`}
+              rules={
+                field.required
+                  ? { required: `${field.label || 'This field'} is required` }
+                  : undefined
+              }
               render={({ field: { onChange, value } }) => (
                 <TextField
                   label={field.label}
@@ -286,6 +291,11 @@ const FormBuilder: React.FC<Props> = (props) => {
               name={`${field.name}`}
               control={control}
               key={`${updatekey}${field.name}`}
+              rules={
+                field.required
+                  ? { required: `${field.label || 'This field'} is required` }
+                  : undefined
+              }
               render={({ field: { onChange, value } }) => (
                 <Textarea
                   label={field.label}
@@ -519,6 +529,11 @@ const FormBuilder: React.FC<Props> = (props) => {
             name={`${field.name}`}
             control={control}
             key={`${updatekey}${field.name}`}
+            rules={
+              field.required
+                ? { required: `${field.label || 'This field'} is required` }
+                : undefined
+            }
             render={({ field: { value } }) => (
               <AutoComplete
                 key={`${updatekey}${field.name}`}

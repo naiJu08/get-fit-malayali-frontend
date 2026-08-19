@@ -261,6 +261,22 @@ export default function MainRoutes() {
         }
         path="/marketing/campaigns/:id"
       />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/marketing/campaigns/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/marketing/campaigns/:id/leads"
+      />
 
       <Route element={<PublicCampaign />} path="/public/campaigns/:token" />
       {/* Explicit routes for sidebar sample pages */}
@@ -495,6 +511,38 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/users/nutritionist/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/physiotherapist/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/sales/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:id/clients"
       />
       <Route
         element={
