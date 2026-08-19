@@ -40,16 +40,16 @@ const emptyLead = () => ({
   notes: '',
 })
 
-const displayLeadStatus = (val?: string) => {
-  const match = leadStatusOptions.find(
-    (o) =>
-      o.id === val || o.name.toLowerCase() === String(val || '').toLowerCase()
-  )
-  if (match) return match.name
-  return String(val || 'new_lead')
-    .replace(/_/g, ' ')
-    .replace(/^./, (letter) => letter.toUpperCase())
-}
+// const displayLeadStatus = (val?: string) => {
+//   const match = leadStatusOptions.find(
+//     (o) =>
+//       o.id === val || o.name.toLowerCase() === String(val || '').toLowerCase()
+//   )
+//   if (match) return match.name
+//   return String(val || 'new_lead')
+//     .replace(/_/g, ' ')
+//     .replace(/^./, (letter) => letter.toUpperCase())
+// }
 
 const getCampaignFormFields = (campaign: any) => {
   if (!campaign) return []
@@ -259,36 +259,36 @@ export default function CampaignDetails() {
     return fields
   }, [dynamicFormFields])
 
-  const openLead = (row?: any) => {
-    const defaultValues: any = {
-      status: 'New Lead',
-      status_value: 'new_lead',
-      notes: '',
-    }
+  // const openLead = (row?: any) => {
+  //   const defaultValues: any = {
+  //     status: 'New Lead',
+  //     status_value: 'new_lead',
+  //     notes: '',
+  //   }
 
-    leadFormFields.forEach((f: any) => {
-      const key = f.id || f.name
-      if (key && !(key in defaultValues)) {
-        defaultValues[key] = ''
-      }
-    })
+  //   leadFormFields.forEach((f: any) => {
+  //     const key = f.id || f.name
+  //     if (key && !(key in defaultValues)) {
+  //       defaultValues[key] = ''
+  //     }
+  //   })
 
-    if (row) {
-      Object.keys(row).forEach((k) => {
-        if (k === 'status') {
-          defaultValues.status = displayLeadStatus(row.status)
-          defaultValues.status_value = String(
-            row.status || 'new_lead'
-          ).toLowerCase()
-        } else {
-          defaultValues[k] = row[k] ?? ''
-        }
-      })
-    }
+  //   if (row) {
+  //     Object.keys(row).forEach((k) => {
+  //       if (k === 'status') {
+  //         defaultValues.status = displayLeadStatus(row.status)
+  //         defaultValues.status_value = String(
+  //           row.status || 'new_lead'
+  //         ).toLowerCase()
+  //       } else {
+  //         defaultValues[k] = row[k] ?? ''
+  //       }
+  //     })
+  //   }
 
-    setEditing(row || defaultValues)
-    methods.reset(defaultValues)
-  }
+  //   setEditing(row || defaultValues)
+  //   methods.reset(defaultValues)
+  // }
 
   const closeLead = () => {
     setEditing(null)
@@ -480,14 +480,14 @@ export default function CampaignDetails() {
     []
   )
 
-  const openActivityModal = (row: any) => {
-    setActivity(row)
-    activityMethods.reset({
-      activity_type_label: 'Contacted',
-      activity_type: 'contacted',
-      notes: '',
-    })
-  }
+  // const openActivityModal = (row: any) => {
+  //   setActivity(row)
+  //   activityMethods.reset({
+  //     activity_type_label: 'Contacted',
+  //     activity_type: 'contacted',
+  //     notes: '',
+  //   })
+  // }
 
   const handleSaveActivity = async () => {
     const valid = await activityMethods.trigger()
@@ -776,24 +776,24 @@ export default function CampaignDetails() {
               }}
               externalActions
               actionProps={[
-                {
+                /* {
                   title: 'Edit',
                   toolTip: 'Edit lead',
                   icon: <Icons name="edit" />,
                   action: (row: any) => openLead(row),
-                },
+                }, */
                 {
                   title: 'Assign',
                   toolTip: 'Assign lead to sales member',
                   icon: <Icons name="external-link" />,
                   action: (row: any) => openAssignModal(row),
                 },
-                {
+                /* {
                   title: 'Track',
                   toolTip: 'Add tracking activity',
                   icon: <Icons name="eye" />,
                   action: (row: any) => openActivityModal(row),
-                },
+                }, */
               ]}
             />
           </Tab>
