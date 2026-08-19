@@ -184,7 +184,7 @@ export default function UserDetails() {
             { id: 'diet-history', label: 'Diet history' },
           ]
         : isFlatRole
-          ? []
+          ? [{ id: 'clients', label: 'Clients' }]
           : [
               { id: 'subscriptions', label: 'Subscriptions' },
               { id: 'body', label: 'Body measurements' },
@@ -348,7 +348,7 @@ export default function UserDetails() {
               <Reports user={user} subscriptionId={subscriptionId} />
             </Tab>
           )}
-          {isNutritionist && (
+          {(isNutritionist || isFlatRole) && (
             <Tab id="clients">
               <Clients user={user} />
             </Tab>
