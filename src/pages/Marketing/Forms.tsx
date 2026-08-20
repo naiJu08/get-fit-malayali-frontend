@@ -280,10 +280,10 @@ export function Builder({
       <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-20 shadow-sm">
         <div>
           <div className="text-[11px] text-gray-400 font-medium tracking-wide uppercase">
-            Marketing / Reusable forms
+            Marketing /Forms
           </div>
           <h2 className="text-lg font-bold text-gray-900">
-            {editing.id ? 'Edit reusable form' : 'Create reusable form'}
+            {editing.id ? 'Edit Form' : 'Create reusable form'}
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -1244,18 +1244,6 @@ export default function Forms() {
         isVisible: true,
       },
       {
-        title: 'Status',
-        field: 'status',
-        renderCell: (r: any) => ({
-          cell: <span className="capitalize">{r.status}</span>,
-          toolTip: r.status,
-        }),
-        customCell: true,
-        sortable: false,
-        resizable: true,
-        isVisible: true,
-      },
-      {
         title: 'Campaigns',
         field: 'campaigns_count',
         renderCell: (r: any) => ({
@@ -1267,13 +1255,45 @@ export default function Forms() {
         resizable: true,
         isVisible: true,
       },
+      {
+        title: 'Status',
+        field: 'status',
+        renderCell: (r: any) => {
+          const statusColor = (() => {
+            switch (r.status?.toLowerCase()) {
+              case 'active':
+                return 'bg-green-100 text-green-800'
+              case 'draft':
+                return 'bg-yellow-100 text-yellow-800'
+              case 'inactive':
+                return 'bg-red-100 text-red-800'
+              default:
+                return 'bg-gray-100 text-gray-800'
+            }
+          })()
+          return {
+            cell: (
+              <span
+                className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${statusColor}`}
+              >
+                {r.status}
+              </span>
+            ),
+            toolTip: r.status,
+          }
+        },
+        customCell: true,
+        sortable: false,
+        resizable: true,
+        isVisible: true,
+      },
     ],
     []
   )
   return (
     <div>
       <ListingHeader
-        data={{ title: 'Reusable Forms', icon: 'category-header-icon' }}
+        data={{ title: 'Forms', icon: 'document-icon' }}
         onActionClick={() => navigate('/marketing/forms/new')}
         actionProps={{ actionTitle: 'Create form' }}
         checkPermission
