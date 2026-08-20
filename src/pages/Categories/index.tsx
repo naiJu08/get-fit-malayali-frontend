@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import SmartTable from '../../components/common/table/SmartTable'
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -28,6 +29,7 @@ export default function CategoriesMain() {
   const navigate = useNavigate()
   const location = useLocation()
   const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
   const [columns, setColumns] = useState<TableColumns[]>([])
@@ -106,6 +108,10 @@ export default function CategoriesMain() {
     try {
       setDeletingWorkout(true)
       await deleteCategories(String(rowData.id))
+      queryClient.invalidateQueries(['categories_list'])
+      queryClient.invalidateQueries(['workout_categories'])
+      queryClient.invalidateQueries(['workout-filter-categories'])
+      queryClient.invalidateQueries(['workout_categories_for_assign'])
       enqueueSnackbar('Category deleted successfully', { variant: 'success' })
       setDeleteWorkoutModal(false)
       setWorkoutToDelete(null)

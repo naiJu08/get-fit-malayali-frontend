@@ -294,6 +294,30 @@ export default function MainRoutes() {
       <Route
         element={
           <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:userId/campaigns/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:userId/campaigns/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:userId/campaigns/:id/leads"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
             <MarketingLeadDetails />
           </UserRoute>
         }

@@ -116,13 +116,14 @@ function statusColor(value: any) {
 }
 
 export default function CampaignDetails() {
-  const { id } = useParams()
+  const { id, userId, user_id } = useParams()
+  const activeUserId = userId || user_id
   const nav = useNavigate()
   const location = useLocation()
   const { enqueueSnackbar } = useSnackbarManager()
 
   const { data: campaignData, isLoading: campaignLoading } =
-    useMarketingCampaign(id)
+    useMarketingCampaign(id, activeUserId)
   const campaign = campaignData?.marketing_campaign
 
   const activeTab = useMemo(() => {
@@ -133,10 +134,13 @@ export default function CampaignDetails() {
   }, [location.pathname])
 
   useEffect(() => {
-    if (location.pathname === `/marketing/campaigns/${id}`) {
-      nav(`/marketing/campaigns/${id}/details`, { replace: true })
+    const basePath = activeUserId
+      ? `/users/marketing/${activeUserId}/campaigns/${id}`
+      : `/marketing/campaigns/${id}`
+    if (location.pathname === basePath) {
+      nav(`${basePath}/details`, { replace: true })
     }
-  }, [location.pathname, id, nav])
+  }, [location.pathname, id, activeUserId, nav])
 
   const [leadsParams, setLeadsParams] = useState({
     page: 1,
@@ -147,7 +151,7 @@ export default function CampaignDetails() {
     data: leadsData,
     isFetching: leadsFetching,
     refetch: refetchLeads,
-  } = useCampaignLeads(id, leadsParams)
+  } = useCampaignLeads(id, leadsParams, activeUserId)
   const [editing, setEditing] = useState<any>(null)
   const [savingLead, setSavingLead] = useState(false)
   const [activity, setActivity] = useState<any>(null)
@@ -625,7 +629,13 @@ export default function CampaignDetails() {
         <div>
           <div className="flex items-center">
             <button
-              onClick={() => nav('/marketing/campaigns')}
+              onClick={() => {
+                if (activeUserId) {
+                  nav(`/users/marketing/${activeUserId}/campaigns`)
+                } else {
+                  nav('/marketing/campaigns')
+                }
+              }}
               className="rounded-lg hover:bg-gray-100 transition"
               aria-label="Back"
             >
@@ -686,121 +696,178 @@ export default function CampaignDetails() {
         </div>
       )}
 
-      {!campaignLoading && campaign && (
-        <TabContainer
-          data={[
-            { id: 'details', label: 'Details' },
-            { id: 'leads', label: 'Leads' },
-          ]}
-          activeTab={activeTab}
-          onClick={handleTabClick}
-        >
-          <Tab id="details">
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <DetailItem label="Name" value={campaign.name} />
-                <DetailItem label="Description" value={campaign.description} />
-                <DetailItem
-                  label="Status"
-                  value={
-                    <span className="capitalize">
-                      {displayStatus(campaign.status)}
-                    </span>
-                  }
-                />
-                <DetailItem
-                  label="Form"
-                  value={campaign.marketing_form?.name || '--'}
-                />
-                <DetailItem
-                  label="Total Leads"
-                  value={campaign.leads_count || 0}
-                />
-                <DetailItem
-                  label="Start Date"
-                  value={formatDate(campaign.starts_on)}
-                />
-                <DetailItem
-                  label="End Date"
-                  value={formatDate(campaign.ends_on)}
-                />
-                <DetailItem
-                  label="Created At"
-                  value={formatDate(campaign.created_at)}
-                />
-              </div>
-              {campaign.public_url && (
-                <div className="border rounded-lg p-3 bg-white">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs text-gray-500">Public Link</span>
-                    <button
-                      onClick={copyLink}
-                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                    >
-                      <Icons name="external-link" />
-                      Copy link
-                    </button>
-                  </div>
-                  <div className="text-sm text-gray-700 break-all">
-                    {campaign.public_url}
-                  </div>
-                </div>
-              )}
+      {!campaignLoading &&
+        campaign &&
+        (activeUserId ? (
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DetailItem label="Name" value={campaign.name} />
+              <DetailItem label="Description" value={campaign.description} />
+              <DetailItem
+                label="Status"
+                value={
+                  <span className="capitalize">
+                    {displayStatus(campaign.status)}
+                  </span>
+                }
+              />
+              <DetailItem
+                label="Form"
+                value={campaign.marketing_form?.name || '--'}
+              />
+              <DetailItem
+                label="Total Leads"
+                value={campaign.leads_count || 0}
+              />
+              <DetailItem
+                label="Start Date"
+                value={formatDate(campaign.starts_on)}
+              />
+              <DetailItem
+                label="End Date"
+                value={formatDate(campaign.ends_on)}
+              />
+              <DetailItem
+                label="Created At"
+                value={formatDate(campaign.created_at)}
+              />
             </div>
-          </Tab>
-          <Tab id="leads">
-            <SmartTable
-              data={rows}
-              dataRowKey="id"
-              columns={columns}
-              search
-              searchPlaceholder="Search leads"
-              searchValue={leadsParams.search}
-              onSearchChange={(value: string) =>
-                setLeadsParams({ ...leadsParams, search: value, page: 1 })
-              }
-              createButton={
-                <Button label="Add lead" icon="plus" onClick={openAddLead} />
-              }
-              isLoading={leadsFetching}
-              height={calcWindowHeight(rows.length ? 200 : 218)}
-              emptyTitle="No leads to display"
-              pagination
-              paginationProps={{
-                onPagination: (page: number) =>
-                  setLeadsParams({ ...leadsParams, page }),
-                total: leadsData?.meta?.total_count || rows.length,
-                currentPage: leadsData?.meta?.current_page || 1,
-                rowsPerPage: leadsParams.per_page,
-                onRowsPerPage: (per_page: string | number) =>
-                  setLeadsParams({
-                    ...leadsParams,
-                    per_page: Number(per_page),
-                    page: 1,
-                  }),
-                totalPages: leadsData?.meta?.total_pages || 1,
-                dropOptions: [10, 20, 50, 100],
-              }}
-              externalActions
-              actionProps={[
-                {
-                  title: 'View Details',
-                  toolTip: 'View lead details',
-                  icon: <Icons name="eye" />,
-                  action: (row: any) =>
-                    nav(`/marketing/campaigns/${id}/leads/${row.id}`),
-                },
-                {
-                  title: 'Assign',
-                  toolTip: 'Assign lead to sales member',
-                  icon: <Icons name="external-link" />,
-                  action: (row: any) => openAssignModal(row),
-                },
-              ]}
-            />
-          </Tab>
-        </TabContainer>
-      )}
+            {campaign.public_url && (
+              <div className="border rounded-lg p-3 bg-white">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-gray-500">Public Link</span>
+                  <button
+                    onClick={copyLink}
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    <Icons name="external-link" />
+                    Copy link
+                  </button>
+                </div>
+                <div className="text-sm text-gray-700 break-all">
+                  {campaign.public_url}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <TabContainer
+            data={[
+              { id: 'details', label: 'Details' },
+              { id: 'leads', label: 'Leads' },
+            ]}
+            activeTab={activeTab}
+            onClick={handleTabClick}
+          >
+            <Tab id="details">
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <DetailItem label="Name" value={campaign.name} />
+                  <DetailItem
+                    label="Description"
+                    value={campaign.description}
+                  />
+                  <DetailItem
+                    label="Status"
+                    value={
+                      <span className="capitalize">
+                        {displayStatus(campaign.status)}
+                      </span>
+                    }
+                  />
+                  <DetailItem
+                    label="Form"
+                    value={campaign.marketing_form?.name || '--'}
+                  />
+                  <DetailItem
+                    label="Total Leads"
+                    value={campaign.leads_count || 0}
+                  />
+                  <DetailItem
+                    label="Start Date"
+                    value={formatDate(campaign.starts_on)}
+                  />
+                  <DetailItem
+                    label="End Date"
+                    value={formatDate(campaign.ends_on)}
+                  />
+                  <DetailItem
+                    label="Created At"
+                    value={formatDate(campaign.created_at)}
+                  />
+                </div>
+                {campaign.public_url && (
+                  <div className="border rounded-lg p-3 bg-white">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs text-gray-500">Public Link</span>
+                      <button
+                        onClick={copyLink}
+                        className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        <Icons name="external-link" />
+                        Copy link
+                      </button>
+                    </div>
+                    <div className="text-sm text-gray-700 break-all">
+                      {campaign.public_url}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Tab>
+            <Tab id="leads">
+              <SmartTable
+                data={rows}
+                dataRowKey="id"
+                columns={columns}
+                search
+                searchPlaceholder="Search leads"
+                searchValue={leadsParams.search}
+                onSearchChange={(value: string) =>
+                  setLeadsParams({ ...leadsParams, search: value, page: 1 })
+                }
+                createButton={
+                  <Button label="Add lead" icon="plus" onClick={openAddLead} />
+                }
+                isLoading={leadsFetching}
+                height={calcWindowHeight(rows.length ? 310 : 330)}
+                emptyTitle="No leads to display"
+                pagination
+                paginationProps={{
+                  onPagination: (page: number) =>
+                    setLeadsParams({ ...leadsParams, page }),
+                  total: leadsData?.meta?.total_count || rows.length,
+                  currentPage: leadsData?.meta?.current_page || 1,
+                  rowsPerPage: leadsParams.per_page,
+                  onRowsPerPage: (per_page: string | number) =>
+                    setLeadsParams({
+                      ...leadsParams,
+                      per_page: Number(per_page),
+                      page: 1,
+                    }),
+                  totalPages: leadsData?.meta?.total_pages || 1,
+                  dropOptions: [10, 20, 50, 100],
+                }}
+                externalActions
+                actionProps={[
+                  {
+                    title: 'View',
+                    toolTip: 'View lead details',
+                    icon: <Icons name="eye" />,
+                    action: (row: any) =>
+                      nav(`/marketing/campaigns/${id}/leads/${row.id}`),
+                  },
+                  {
+                    title: 'Assign',
+                    toolTip: 'Assign lead to sales member',
+                    icon: <Icons name="external-link" />,
+                    action: (row: any) => openAssignModal(row),
+                  },
+                ]}
+              />
+            </Tab>
+          </TabContainer>
+        ))}
 
       <DialogModal
         isOpen={Boolean(editing)}

@@ -16,6 +16,7 @@ import AdditionalInfo from './Details/AdditionalInfo'
 import RecipesTab from './Details/Recipe.tsx/Recipes'
 import SubscriptionHistory from './Details/SubscriptionHistory'
 import DietHistory from './Details/DietHistory'
+import UserCampaigns from './Details/UserCampaigns'
 import { useAuthStore } from '../../store/authStore'
 import CreateAdmin from './create'
 
@@ -371,7 +372,7 @@ export default function UserDetails() {
           )}
           {isMarketing && (
             <Tab id="campaigns">
-              <div className="min-h-[200px]" />
+              <UserCampaigns user={user} />
             </Tab>
           )}
         </TabContainer>

@@ -532,8 +532,11 @@ const SmartTable: React.FC<SmartTableProps> = ({
 
       {/* Table Content */}
       <div
-        className="overflow-y-scroll overflow-x-auto flex-1 relative"
-        style={{ maxHeight: typeof height === 'number' ? height : undefined }}
+        className="overflow-y-auto overflow-x-auto flex-1 relative"
+        style={{
+          maxHeight:
+            typeof height === 'number' ? `${height}px` : (height ?? undefined),
+        }}
       >
         <table className="min-w-full table-fixed">
           {header}

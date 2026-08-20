@@ -29,10 +29,21 @@ export const useMarketingCampaigns = (params: any) =>
   useQuery(['marketing_campaigns', params], () =>
     list(apiUrl.MARKETING_CAMPAIGNS, params)
   )
-export const useMarketingCampaign = (id: any) =>
+export const useUserMarketingCampaigns = (userId: any, params: any) =>
   useQuery(
-    ['marketing_campaign', id],
-    () => getData(apiUrl.MARKETING_CAMPAIGNS + '/' + id),
+    ['user_marketing_campaigns', userId, params],
+    () => list(`/admin/users/${userId}/marketing_campaigns`, params),
+    { enabled: Boolean(userId) }
+  )
+export const useMarketingCampaign = (id: any, userId?: any) =>
+  useQuery(
+    ['marketing_campaign', id, userId],
+    () => {
+      if (userId && userId !== 'undefined') {
+        return getData(`/admin/users/${userId}/marketing_campaigns/${id}`)
+      }
+      return getData(apiUrl.MARKETING_CAMPAIGNS + '/' + id)
+    },
     { enabled: Boolean(id) }
   )
 export const createMarketingCampaign = (data: any) =>
@@ -45,11 +56,18 @@ export const deleteMarketingCampaign = (id: any) =>
   deleteData(apiUrl.MARKETING_CAMPAIGNS + '/' + id)
 export const getCampaignPublicLink = (id: any) =>
   getData(apiUrl.MARKETING_CAMPAIGNS + '/' + id + '/public_link')
-export const useCampaignLeads = (id: any, params: any) =>
+export const useCampaignLeads = (id: any, params: any, userId?: any) =>
   useQuery(
-    ['marketing_leads', id, params],
-    () =>
-      list(apiUrl.MARKETING_CAMPAIGNS + '/' + id + '/marketing_leads', params),
+    ['marketing_leads', id, params, userId],
+    () => {
+      if (userId && userId !== 'undefined') {
+        return list(`/admin/users/${userId}/marketing_campaigns/${id}`, params)
+      }
+      return list(
+        apiUrl.MARKETING_CAMPAIGNS + '/' + id + '/marketing_leads',
+        params
+      )
+    },
     { enabled: Boolean(id) }
   )
 export const useMarketingLead = (campaignId: any, leadId: any) =>

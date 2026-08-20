@@ -352,7 +352,7 @@ export default function Campaigns() {
   return (
     <div>
       <ListingHeader
-        data={{ title: 'Campaigns', icon: 'customer-icon' }}
+        data={{ title: 'Campaigns', icon: 'campaign-header-icon' }}
         onActionClick={() => open()}
         actionProps={{ actionTitle: 'Create campaign' }}
         checkPermission
