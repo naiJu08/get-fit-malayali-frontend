@@ -57,6 +57,7 @@ const ASSESSSMENT_CATEGORY = '/admin/assessment_categories'
 const MARKETING_FORMS = '/marketing_forms'
 const MARKETING_CAMPAIGNS = '/marketing_campaigns'
 const MARKETING_SALES_TEAM = '/marketing/sales_team'
+const USER_MARKETING_FORMS = '/admin/users'
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
   ASSESSOR_LIST_URL,
@@ -115,6 +116,7 @@ const apiUrl: { [key: string]: string } = {
   MARKETING_FORMS,
   MARKETING_CAMPAIGNS,
   MARKETING_SALES_TEAM,
+  USER_MARKETING_FORMS,
 }
 
 export default apiUrl

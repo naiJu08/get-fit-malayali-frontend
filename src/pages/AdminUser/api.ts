@@ -608,3 +608,32 @@ export const useInactiveUsers = (input: QueryParams) => {
     }
   )
 }
+
+export const getUserMarketingForms = (userId: string, params: any) => {
+  const url = `${apiUrl.USER_MARKETING_FORMS}/${userId}/marketing_forms${parseQueryParams(params || {})}`
+  return getData(url)
+}
+
+export const useUserMarketingForms = (userId: string, params: any) => {
+  return useQuery(
+    ['user_marketing_forms', userId, params],
+    () => getUserMarketingForms(userId, params),
+    { enabled: Boolean(userId) }
+  )
+}
+
+export const getUserMarketingForm = (userId: string, formId: string) => {
+  const url = `${apiUrl.USER_MARKETING_FORMS}/${userId}/marketing_forms/${formId}`
+  return getData(url)
+}
+
+export const useUserMarketingForm = (
+  userId: string | null,
+  formId: string | null
+) => {
+  return useQuery(
+    ['user_marketing_form', userId, formId],
+    () => getUserMarketingForm(userId!, formId!),
+    { enabled: Boolean(userId && formId) }
+  )
+}
