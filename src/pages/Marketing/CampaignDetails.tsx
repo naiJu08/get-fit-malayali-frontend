@@ -30,6 +30,14 @@ const leadStatusOptions = [
   { id: 'lost', name: 'Lost' },
 ]
 
+const activityOptions = [
+  { id: 'contacted', name: 'Contacted' },
+  { id: 'qualified', name: 'Qualified' },
+  { id: 'note', name: 'Note' },
+  { id: 'converted', name: 'Converted' },
+  { id: 'lost', name: 'Lost' },
+]
+
 const emptyLead = () => ({
   first_name: '',
   last_name: '',
@@ -449,14 +457,6 @@ export default function CampaignDetails() {
     },
   })
 
-  const activityOptions = [
-    { id: 'contacted', name: 'Contacted' },
-    { id: 'qualified', name: 'Qualified' },
-    { id: 'note', name: 'Note' },
-    { id: 'converted', name: 'Converted' },
-    { id: 'lost', name: 'Lost' },
-  ]
-
   const activityFormFields: any[] = useMemo(
     () => [
       {
@@ -529,7 +529,14 @@ export default function CampaignDetails() {
       title: 'Name',
       field: 'first_name',
       renderCell: (r: any) => ({
-        cell: r.first_name + ' ' + (r.last_name || ''),
+        cell: (
+          <button
+            onClick={() => nav(`/marketing/campaigns/${id}/leads/${r.id}`)}
+            className="text-blue-600 hover:underline text-left"
+          >
+            {r.first_name + ' ' + (r.last_name || '')}
+          </button>
+        ),
         toolTip: r.first_name,
       }),
       customCell: true,
@@ -776,24 +783,19 @@ export default function CampaignDetails() {
               }}
               externalActions
               actionProps={[
-                /* {
-                  title: 'Edit',
-                  toolTip: 'Edit lead',
-                  icon: <Icons name="edit" />,
-                  action: (row: any) => openLead(row),
-                }, */
+                {
+                  title: 'View Details',
+                  toolTip: 'View lead details',
+                  icon: <Icons name="eye" />,
+                  action: (row: any) =>
+                    nav(`/marketing/campaigns/${id}/leads/${row.id}`),
+                },
                 {
                   title: 'Assign',
                   toolTip: 'Assign lead to sales member',
                   icon: <Icons name="external-link" />,
                   action: (row: any) => openAssignModal(row),
                 },
-                /* {
-                  title: 'Track',
-                  toolTip: 'Add tracking activity',
-                  icon: <Icons name="eye" />,
-                  action: (row: any) => openActivityModal(row),
-                }, */
               ]}
             />
           </Tab>

@@ -118,7 +118,9 @@ export default function UserDetails() {
     const s = String(r || '').toLowerCase()
     return s === 'marketing' || detailRole === 'marketing'
   })()
-  const isFlatRole = isPhysiotherapist || isYogist || isSales || isMarketing
+  const isSalesOrMarketing = isSales || isMarketing
+  const isFlatWithClients = isPhysiotherapist || isYogist
+  const isFlatRole = isFlatWithClients || isSalesOrMarketing
 
   useEffect(() => {
     let mounted = true
@@ -167,6 +169,8 @@ export default function UserDetails() {
     | 'reports'
     | 'reminders'
     | 'additional-info'
+    | 'forms'
+    | 'campaigns'
 
   useEffect(() => {
     if (location.pathname === `${pathBase}/${id}`) {
@@ -183,24 +187,31 @@ export default function UserDetails() {
             { id: 'clients', label: 'Clients' },
             { id: 'diet-history', label: 'Diet history' },
           ]
-        : isFlatRole
-          ? [{ id: 'clients', label: 'Clients' }]
-          : [
-              { id: 'subscriptions', label: 'Subscriptions' },
-              { id: 'body', label: 'Body measurements' },
-              // { id: 'body-composition', label: 'Body composition' },
-              { id: 'vitals', label: 'Vitals' },
-              { id: 'reminders', label: 'Reminder settings' },
-              { id: 'recipes', label: 'Recipes' },
-              { id: 'additional-info', label: 'Nutritional assessment' },
-              { id: 'subscription-history', label: 'Subscription history' },
-              { id: 'diet-history', label: 'Diet history' },
-              ...(loginRole !== 'nutritionist'
-                ? [{ id: 'reports', label: 'Reports' }]
-                : []),
-            ]),
+        : isMarketing
+          ? [
+              { id: 'forms', label: 'Forms' },
+              { id: 'campaigns', label: 'Campaigns' },
+            ]
+          : isFlatWithClients
+            ? [{ id: 'clients', label: 'Clients' }]
+            : isSales
+              ? []
+              : [
+                  { id: 'subscriptions', label: 'Subscriptions' },
+                  { id: 'body', label: 'Body measurements' },
+                  // { id: 'body-composition', label: 'Body composition' },
+                  { id: 'vitals', label: 'Vitals' },
+                  { id: 'reminders', label: 'Reminder settings' },
+                  { id: 'recipes', label: 'Recipes' },
+                  { id: 'additional-info', label: 'Nutritional assessment' },
+                  { id: 'subscription-history', label: 'Subscription history' },
+                  { id: 'diet-history', label: 'Diet history' },
+                  ...(loginRole !== 'nutritionist'
+                    ? [{ id: 'reports', label: 'Reports' }]
+                    : []),
+                ]),
     ],
-    [isNutritionist, isFlatRole, loginRole]
+    [isNutritionist, isMarketing, isFlatWithClients, isSales, loginRole]
   )
 
   const handleTabClick = (item: { id: string | number; label: string }) => {
@@ -348,9 +359,19 @@ export default function UserDetails() {
               <Reports user={user} subscriptionId={subscriptionId} />
             </Tab>
           )}
-          {(isNutritionist || isFlatRole) && (
+          {(isNutritionist || isFlatWithClients) && (
             <Tab id="clients">
               <Clients user={user} />
+            </Tab>
+          )}
+          {isMarketing && (
+            <Tab id="forms">
+              <div className="min-h-[200px]" />
+            </Tab>
+          )}
+          {isMarketing && (
+            <Tab id="campaigns">
+              <div className="min-h-[200px]" />
             </Tab>
           )}
         </TabContainer>
