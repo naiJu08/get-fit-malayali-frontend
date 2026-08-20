@@ -82,6 +82,9 @@ const DietTemplateCategories = lazy(
 const AssessmentCategory = lazy(() => import('../pages/AssessmentCategory'))
 const MarketingForms = lazy(() => import('../pages/Marketing/Forms'))
 const MarketingFormEditor = lazy(() => import('../pages/Marketing/FormEditor'))
+const MarketingFormDetails = lazy(
+  () => import('../pages/Marketing/FormDetails')
+)
 const MarketingCampaigns = lazy(() => import('../pages/Marketing/Campaigns'))
 const MarketingCampaignDetails = lazy(
   () => import('../pages/Marketing/CampaignDetails')
@@ -247,6 +250,14 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/marketing/forms/new"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_FORMS">
+            <MarketingFormDetails />
+          </UserRoute>
+        }
+        path="/marketing/forms/:id"
       />
       <Route
         element={
