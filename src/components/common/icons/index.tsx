@@ -17,6 +17,7 @@ import BadgeCheckIcon from './BadgeCheck'
 import BuildingIcon from './Building'
 import BarchartIcon from './Barchart'
 import CalendarIcon from './Calendar'
+import CampaignHeaderIcon from './CampaignHeaderIcon'
 import CancelIcon from './Cancel'
 import CardsIcon from './CardsIcon'
 import CartIcon from './Cart'
@@ -549,6 +550,9 @@ const Icons: React.FC<IconsProps> = ({
         return <CategoryIcon />
       case 'category-header-icon':
         return <CategoryHeaderIcon />
+      case 'campaign-header-icon':
+      case 'campaign-icon':
+        return <CampaignHeaderIcon />
       case 'template-icon':
         return <TemplateIcon />
       case 'template-icon-white':

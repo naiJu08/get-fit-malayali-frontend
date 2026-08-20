@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
-import { useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import {
   getData,
@@ -76,8 +75,13 @@ export const useCreateCategories = (
   successMessage = 'Categories created successfully'
 ) => {
   const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
   return useMutation(createCategories, {
     onSuccess: (res: any) => {
+      queryClient.invalidateQueries(['categories_list'])
+      queryClient.invalidateQueries(['workout_categories'])
+      queryClient.invalidateQueries(['workout-filter-categories'])
+      queryClient.invalidateQueries(['workout_categories_for_assign'])
       handleSubmission(res)
       enqueueSnackbar(successMessage, { variant: 'success' })
     },
@@ -104,8 +108,13 @@ export const useUpdateCategories = (
   successMessage = 'Category updated successfully'
 ) => {
   const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
   return useMutation(updateCategories, {
     onSuccess: (res: any) => {
+      queryClient.invalidateQueries(['categories_list'])
+      queryClient.invalidateQueries(['workout_categories'])
+      queryClient.invalidateQueries(['workout-filter-categories'])
+      queryClient.invalidateQueries(['workout_categories_for_assign'])
       handleSubmission(res)
       enqueueSnackbar(successMessage, { variant: 'success' })
     },

@@ -268,12 +268,9 @@ export default function CreateAdmin({
   //   }
   //   : undefined
 
-  const { data: categoriesResponse } = useQuery(
+  const { data: categoriesResponse, refetch: refetchCategories } = useQuery(
     ['workout_categories'],
-    () => getData(apiUrl.CATEGORIES),
-    {
-      staleTime: 5 * 60 * 1000,
-    }
+    () => getData(apiUrl.CATEGORIES)
   )
 
   const normalizedCategories = useMemo(() => {
@@ -448,8 +445,9 @@ export default function CreateAdmin({
   useEffect(() => {
     if (!isDrawerOpen) return
 
+    refetchCategories()
     loadFfmpeg().catch(() => null)
-  }, [isDrawerOpen])
+  }, [isDrawerOpen, refetchCategories])
 
   const onSuccess = () => {
     handleSubmission()
