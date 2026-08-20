@@ -196,24 +196,26 @@ export default function FormDetails() {
 
   return (
     <div className="p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <button
-          type="button"
-          onClick={() => navigate('/marketing/forms')}
-          aria-label="Back"
-        >
-          <Icons name="left-arrow-icon" />
-        </button>
-        <h1 className="text-xl font-semibold">
-          Form Details -{' '}
-          {form.name
-            ? form.name.charAt(0).toUpperCase() + form.name.slice(1)
-            : form.name}
-        </h1>
-      </div>
-      <div className="flex justify-end mb-4">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/marketing/forms')}
+            aria-label="Back"
+          >
+            <Icons name="left-arrow-icon" />
+          </button>
+          <h1 className="text-xl font-semibold">
+            Form Details -{' '}
+            {form.name
+              ? form.name.charAt(0).toUpperCase() + form.name.slice(1)
+              : form.name}
+          </h1>
+        </div>
         <Button
           label="Edit form"
+          icon="edit"
+          className="bg-primaryGreen"
           onClick={() => navigate('/marketing/forms/' + id + '/edit')}
         />
       </div>
