@@ -52,6 +52,27 @@ export const useCampaignLeads = (id: any, params: any) =>
       list(apiUrl.MARKETING_CAMPAIGNS + '/' + id + '/marketing_leads', params),
     { enabled: Boolean(id) }
   )
+export const useMarketingLead = (campaignId: any, leadId: any) =>
+  useQuery(
+    ['marketing_lead', campaignId, leadId],
+    async () => {
+      if (campaignId && campaignId !== 'undefined') {
+        try {
+          return await getData(
+            apiUrl.MARKETING_CAMPAIGNS +
+              '/' +
+              campaignId +
+              '/marketing_leads/' +
+              leadId
+          )
+        } catch (err) {
+          // fallback if generic endpoint exists
+        }
+      }
+      return await getData('/marketing_leads/' + leadId)
+    },
+    { enabled: Boolean(leadId) }
+  )
 export const createMarketingLead = ({ campaignId, data }: any) =>
   postData(apiUrl.MARKETING_CAMPAIGNS + '/' + campaignId + '/marketing_leads', {
     marketing_lead: data,

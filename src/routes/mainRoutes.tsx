@@ -89,6 +89,9 @@ const MarketingCampaigns = lazy(() => import('../pages/Marketing/Campaigns'))
 const MarketingCampaignDetails = lazy(
   () => import('../pages/Marketing/CampaignDetails')
 )
+const MarketingLeadDetails = lazy(
+  () => import('../pages/Marketing/LeadDetails')
+)
 const PublicCampaign = lazy(() => import('../pages/Marketing/PublicCampaign'))
 
 const AssessmentCategoryDetails = lazy(
@@ -288,6 +291,38 @@ export default function MainRoutes() {
         }
         path="/marketing/campaigns/:id/leads"
       />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
+        path="/marketing/campaigns/:campaignId/leads/:leadId"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
+        path="/marketing/campaigns/:campaignId/leads/:leadId/:tab"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
+        path="/marketing/leads/:leadId"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
+        path="/marketing/leads/:leadId/:tab"
+      />
 
       <Route element={<PublicCampaign />} path="/public/campaigns/:token" />
       {/* Explicit routes for sidebar sample pages */}
@@ -442,6 +477,22 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/users/marketing/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:id/forms"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:id/campaigns"
       />
       <Route
         element={
