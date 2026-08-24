@@ -19,6 +19,7 @@ import DietHistory from './Details/DietHistory'
 import UserCampaigns from './Details/UserCampaigns'
 import { useAuthStore } from '../../store/authStore'
 import CreateAdmin from './create'
+import MarketingFormsTab from './Details/MarketingFormsTab'
 
 type DetailRole =
   | 'user'
@@ -367,7 +368,7 @@ export default function UserDetails() {
           )}
           {isMarketing && (
             <Tab id="forms">
-              <div className="min-h-[200px]" />
+              <MarketingFormsTab userId={String(id)} />
             </Tab>
           )}
           {isMarketing && (

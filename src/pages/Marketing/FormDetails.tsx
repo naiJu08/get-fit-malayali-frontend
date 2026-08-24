@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import Icons from '../../components/common/icons'
 import Tab from '../../components/common/tab/Tab'
 import { TabContainer } from '../../components/common'
@@ -9,6 +9,7 @@ import TextArea from '../../components/common/inputs/TextArea'
 import Checkbox from '../../components/common/inputs/Checkbox'
 import { AutoComplete } from 'qbs-core'
 import { useMarketingForm } from './api'
+import { useUserMarketingForm } from '../AdminUser/api'
 
 const statusColors: Record<string, string> = {
   active: 'bg-green-100 text-green-700',
@@ -182,7 +183,17 @@ function FormPreview({ definition }: { definition: any }) {
 export default function FormDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { data, isLoading } = useMarketingForm(id)
+  const location = useLocation()
+  const userId = (location.state as any)?.userId || null
+  const { data: adminData, isLoading: adminLoading } = useUserMarketingForm(
+    userId,
+    id || null
+  )
+  const { data: directData, isLoading: directLoading } = useMarketingForm(
+    userId ? undefined : id
+  )
+  const data = userId ? adminData : directData
+  const isLoading = userId ? adminLoading : directLoading
   const [activeTab, setActiveTab] = useState<'details' | 'preview'>('details')
 
   const form = data?.marketing_form || data
@@ -200,7 +211,11 @@ export default function FormDetails() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => navigate('/marketing/forms')}
+            onClick={() =>
+              userId
+                ? navigate('/users/marketing/' + userId + '/forms')
+                : navigate('/marketing/forms')
+            }
             aria-label="Back"
           >
             <Icons name="left-arrow-icon" />
