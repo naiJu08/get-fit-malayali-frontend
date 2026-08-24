@@ -41,7 +41,8 @@ export default function Clients({
     const status = user?.status
     if (status === 1 || status === '1') return true
     if (typeof status === 'string') {
-      return status.toLowerCase() === 'suspended'
+      const s = status.toLowerCase()
+      return s === 'suspended' || s === 'deactivated' || s === 'inactive'
     }
     return false
   })()
@@ -62,7 +63,15 @@ export default function Clients({
       field: 'user_name',
       customCell: true,
       renderCell: (row: any) => ({
-        cell: formatTitleCase(row?.user_name),
+        cell: (
+          <button
+            type="button"
+            className="text-blue-600 hover:underline text-left"
+            onClick={() => handleViewClient(row)}
+          >
+            {formatTitleCase(row?.user_name)}
+          </button>
+        ),
         toolTip: formatTitleCase(row?.user_name),
       }),
       sortable: false,
@@ -75,7 +84,7 @@ export default function Clients({
       customCell: true,
       renderCell: (row: any) => ({
         cell: row?.assigned_at
-          ? moment(row.assigned_at).format('YYYY-MM-DD HH:mm')
+          ? moment(row.assigned_at).format('DD-MM-YYYY HH:mm')
           : '',
         toolTip: row?.assigned_at,
       }),
@@ -118,16 +127,18 @@ export default function Clients({
         admin_id: user.id,
         user_id: selectedClient.id,
       })
-      try {
-        enqueueSnackbar(res?.message || 'Client assigned successfully', {
-          variant: 'success',
-        })
-      } catch {}
+      enqueueSnackbar(res?.message || 'Client assigned successfully', {
+        variant: 'success',
+      })
       setAssignOpen(false)
       setSelectedClient(null)
-      try {
-        await refetchAssigned()
-      } catch {}
+      await refetchAssigned()
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.errors?.[0] ||
+        err?.response?.data?.message ||
+        'Failed to assign client'
+      enqueueSnackbar(msg, { variant: 'error' })
     } finally {
       setAssigning(false)
     }
@@ -145,19 +156,16 @@ export default function Clients({
     try {
       setUnassigning(true)
       const res = await deleteAssignedClient(row.id)
-      try {
-        enqueueSnackbar(res?.message || 'Client unassigned successfully', {
-          variant: 'success',
-        })
-      } catch {}
+      enqueueSnackbar(res?.message || 'Client unassigned successfully', {
+        variant: 'success',
+      })
       await refetchAssigned()
     } catch (err: any) {
-      try {
-        enqueueSnackbar(
-          err?.response?.data?.message || 'Failed to unassign client',
-          { variant: 'error' }
-        )
-      } catch {}
+      const msg =
+        err?.response?.data?.errors?.[0] ||
+        err?.response?.data?.message ||
+        'Failed to unassign client'
+      enqueueSnackbar(msg, { variant: 'error' })
     } finally {
       setUnassigning(false)
     }

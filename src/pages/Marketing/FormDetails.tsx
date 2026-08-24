@@ -10,6 +10,7 @@ import Checkbox from '../../components/common/inputs/Checkbox'
 import { AutoComplete } from 'qbs-core'
 import { useMarketingForm } from './api'
 import { useUserMarketingForm } from '../AdminUser/api'
+import { useAuthStore } from '../../store/authStore'
 
 const statusColors: Record<string, string> = {
   active: 'bg-green-100 text-green-700',
@@ -184,6 +185,8 @@ export default function FormDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isSuperAdmin = loginRole === 'superadmin'
   const userId = (location.state as any)?.userId || null
   const { data: adminData, isLoading: adminLoading } = useUserMarketingForm(
     userId,
@@ -227,12 +230,14 @@ export default function FormDetails() {
               : form.name}
           </h1>
         </div>
-        <Button
-          label="Edit form"
-          icon="edit"
-          className="bg-primaryGreen"
-          onClick={() => navigate('/marketing/forms/' + id + '/edit')}
-        />
+        {!isSuperAdmin && (
+          <Button
+            label="Edit form"
+            icon="edit"
+            className="bg-primaryGreen"
+            onClick={() => navigate('/marketing/forms/' + id + '/edit')}
+          />
+        )}
       </div>
       <TabContainer
         data={[

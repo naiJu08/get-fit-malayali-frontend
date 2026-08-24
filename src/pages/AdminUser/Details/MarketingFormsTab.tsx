@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import SmartTable from '../../../components/common/table/SmartTable'
 import Icons from '../../../components/common/icons'
-import { calcWindowHeight } from '../../../utilities/calcHeight'
 import { useUserMarketingForms } from '../api'
+import { calcWindowHeight } from '../../../utilities/calcHeight'
 
 export default function MarketingFormsTab({ userId }: { userId: string }) {
   const navigate = useNavigate()
@@ -104,7 +104,13 @@ export default function MarketingFormsTab({ userId }: { userId: string }) {
         setParams({ ...params, search: value, page: 1 })
       }
       isLoading={isFetching}
-      height={rows.length === 0 ? calcWindowHeight(218) : calcWindowHeight(150)}
+      height={calcWindowHeight(260)}
+      // height={
+      //   rows?.length === 0
+      //     ? calcWindowHeight(200)
+      //     : calcWindowHeight(270)
+      // }
+
       emptyTitle="No forms to display"
       pagination
       paginationProps={{
