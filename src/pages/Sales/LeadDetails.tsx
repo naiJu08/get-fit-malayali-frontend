@@ -1,0 +1,592 @@
+import { useEffect, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { FormProvider, useForm } from 'react-hook-form'
+import { useNavigate, useParams } from 'react-router-dom'
+import Button from '../../components/common/buttons/Button'
+import { DialogModal, TabContainer } from '../../components/common'
+import FormBuilder from '../../components/app/formBuilder'
+import Icons from '../../components/common/icons'
+import Tab from '../../components/common/tab/Tab'
+import InfoBox from '../../components/app/alertBox/infoBox'
+import { useSnackbarManager } from '../../components/common/snackbar'
+import { getApiErrorMessage } from '../../utilities/commonUtilities'
+import {
+  acceptSalesLead,
+  convertSalesLead,
+  createSalesInteraction,
+  generateSalesConfirmation,
+  useSalesLead,
+} from './api'
+
+const confirmationTemplate = `As per our discussion, I’ve noted the following points. Please go through them and confirm if everything is correct. Once you confirm, I’ll plan your customized diet and workout accordingly.
+
+Height:
+Weight:
+Medical condition:
+Cuisine preference:
+Diet type:
+Food allergies:
+Food dislikes:
+Fitness Goal:
+Starting date:`
+
+const activityOptions = [
+  { id: 'call', name: 'Call' },
+  { id: 'email', name: 'Email' },
+  { id: 'whatsapp', name: 'WhatsApp' },
+  { id: 'meeting', name: 'Meeting' },
+  { id: 'note', name: 'Note' },
+  { id: 'contacted', name: 'Contacted' },
+  { id: 'qualified', name: 'Qualified' },
+  { id: 'lost', name: 'Lost' },
+]
+
+const parseNotes = (value: any) => {
+  if (!value) return null
+  if (typeof value === 'object') return value
+  try {
+    const parsed = JSON.parse(value)
+    return parsed && typeof parsed === 'object' ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+const statusLabel = (value: any) =>
+  ({
+    assigned: 'Assigned',
+    accepted: 'Accepted',
+    contacted: 'Contacted',
+    qualified: 'Qualified',
+    lost: 'Lost',
+    confirmation_pending: 'Confirmation pending',
+    client_accepted: 'Client accepted',
+    converted: 'Converted',
+    new_lead: 'Assigned',
+    client_confirmation: 'Confirmation pending',
+  })[String(value)] || String(value || 'Assigned')
+
+export default function SalesLeadDetails() {
+  const { id = '' } = useParams()
+  const navigate = useNavigate()
+  const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
+  const { data, isLoading, refetch } = useSalesLead(id)
+  const lead = data?.lead
+  const [activeTab, setActiveTab] = useState('details')
+  const [activityModal, setActivityModal] = useState(false)
+  const [confirmationModal, setConfirmationModal] = useState(false)
+  const [conversionModal, setConversionModal] = useState(false)
+  const [activityLoader, setActivityLoader] = useState(false)
+  const [confirmationLoader, setConfirmationLoader] = useState(false)
+  const [conversionLoader, setConversionLoader] = useState(false)
+
+  const activityMethods = useForm({
+    defaultValues: {
+      activity_type_label: 'Call',
+      activity_type: 'call',
+      notes: '',
+    },
+  })
+  const confirmationMethods = useForm({
+    defaultValues: { message: confirmationTemplate },
+  })
+  const conversionMethods = useForm({
+    defaultValues: {
+      name: '',
+      phone: '',
+      email: '',
+      date_of_birth: '',
+      gender: '',
+    },
+  })
+
+  useEffect(() => {
+    if (!lead) return
+    confirmationMethods.setValue(
+      'message',
+      lead.confirmation?.message || confirmationTemplate
+    )
+    conversionMethods.reset({
+      name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
+      phone: lead.phone || '',
+      email: lead.email || '',
+      date_of_birth: '',
+      gender: '',
+    })
+  }, [lead, confirmationMethods, conversionMethods])
+
+  const activityFields = useMemo(
+    () => [
+      {
+        name: 'activity_type_label',
+        id: 'activity_type',
+        label: 'Activity type',
+        type: 'custom_select',
+        desc: 'name',
+        descId: 'id',
+        data: activityOptions,
+        required: true,
+        placeholder: 'Select activity type',
+      },
+      {
+        name: 'notes',
+        label: 'Notes',
+        type: 'textarea',
+        placeholder: 'Add notes for this activity',
+      },
+    ],
+    []
+  )
+  const confirmationFields = useMemo(
+    () => [
+      {
+        name: 'message',
+        label: 'Confirmation message',
+        type: 'textarea',
+        required: true,
+        placeholder: 'Enter the confirmation message',
+      },
+    ],
+    []
+  )
+  const conversionFields = useMemo(
+    () => [
+      { name: 'name', label: 'Name', type: 'text', required: true },
+      { name: 'phone', label: 'Phone number', type: 'text', required: true },
+      { name: 'email', label: 'Email', type: 'text', required: true },
+      { name: 'date_of_birth', label: 'Date of birth', type: 'date' },
+      {
+        name: 'gender',
+        label: 'Gender',
+        type: 'custom_select',
+        desc: 'name',
+        descId: 'id',
+        data: [
+          { id: 'male', name: 'Male' },
+          { id: 'female', name: 'Female' },
+          { id: 'others', name: 'Other' },
+        ],
+        placeholder: 'Select gender',
+      },
+    ],
+    []
+  )
+
+  const action = async (callback: () => Promise<any>, success: string) => {
+    try {
+      await callback()
+      enqueueSnackbar(success, { variant: 'success' })
+      await refetch()
+      queryClient.invalidateQueries(['sales_leads'])
+    } catch (error: any) {
+      enqueueSnackbar(getApiErrorMessage(error, 'Unable to complete action'), {
+        variant: 'error',
+      })
+    }
+  }
+
+  const accept = () =>
+    action(() => acceptSalesLead(id), 'Lead accepted successfully')
+
+  const saveActivity = async () => {
+    const valid = await activityMethods.trigger()
+    if (!valid) {
+      enqueueSnackbar('Complete the required activity fields', {
+        variant: 'error',
+      })
+      return
+    }
+    try {
+      setActivityLoader(true)
+      const values = activityMethods.getValues()
+      await createSalesInteraction(id, {
+        activity_type: values.activity_type,
+        notes: values.notes || '',
+      })
+      enqueueSnackbar('Activity saved successfully', { variant: 'success' })
+      setActivityModal(false)
+      await refetch()
+      queryClient.invalidateQueries(['sales_leads'])
+    } catch (error: any) {
+      enqueueSnackbar(getApiErrorMessage(error, 'Unable to save activity'), {
+        variant: 'error',
+      })
+    } finally {
+      setActivityLoader(false)
+    }
+  }
+
+  const generateConfirmation = async () => {
+    const valid = await confirmationMethods.trigger()
+    if (!valid) {
+      enqueueSnackbar('Enter a confirmation message', { variant: 'error' })
+      return
+    }
+    try {
+      setConfirmationLoader(true)
+      await generateSalesConfirmation(
+        id,
+        confirmationMethods.getValues('message')
+      )
+      enqueueSnackbar('Confirmation link generated successfully', {
+        variant: 'success',
+      })
+      await refetch()
+      queryClient.invalidateQueries(['sales_leads'])
+    } catch (error: any) {
+      enqueueSnackbar(
+        getApiErrorMessage(error, 'Unable to generate confirmation link'),
+        { variant: 'error' }
+      )
+    } finally {
+      setConfirmationLoader(false)
+    }
+  }
+
+  const convert = async () => {
+    const valid = await conversionMethods.trigger()
+    if (!valid) {
+      enqueueSnackbar('Complete the required client fields', {
+        variant: 'error',
+      })
+      return
+    }
+    try {
+      setConversionLoader(true)
+      await convertSalesLead(id, conversionMethods.getValues())
+      enqueueSnackbar('Client created in pending state', { variant: 'success' })
+      setConversionModal(false)
+      await refetch()
+      queryClient.invalidateQueries(['sales_leads'])
+    } catch (error: any) {
+      enqueueSnackbar(getApiErrorMessage(error, 'Unable to convert lead'), {
+        variant: 'error',
+      })
+    } finally {
+      setConversionLoader(false)
+    }
+  }
+
+  const copyLink = async (url: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(url)
+      enqueueSnackbar(`${label} copied`, { variant: 'success' })
+    } catch {
+      enqueueSnackbar(`Unable to copy ${label.toLowerCase()}`, {
+        variant: 'error',
+      })
+    }
+  }
+
+  const formNotes = parseNotes(lead?.notes)
+  const leadName =
+    `${lead?.first_name || ''} ${lead?.last_name || ''}`.trim() || `Lead #${id}`
+
+  return (
+    <div className="p-4">
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('/sales/leads')}
+            aria-label="Back to leads"
+          >
+            <Icons name="left-arrow-icon" />
+          </button>
+          <div>
+            <h1 className="text-xl font-semibold text-primaryText">
+              Lead Details
+            </h1>
+            {lead && <p className="text-sm text-secondary mt-1">{leadName}</p>}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {lead && !lead.accepted && (
+            <Button label="Accept lead" icon="check-circle" onClick={accept} />
+          )}
+          {lead?.accepted &&
+            [
+              'accepted',
+              'contacted',
+              'qualified',
+              'confirmation_pending',
+            ].includes(lead.status) && (
+              <Button
+                label="Confirmation link"
+                icon="link"
+                outlined
+                onClick={() => setConfirmationModal(true)}
+              />
+            )}
+          {lead?.status === 'client_accepted' && !lead.client && (
+            <Button
+              label="Convert to client"
+              icon="user"
+              onClick={() => setConversionModal(true)}
+            />
+          )}
+        </div>
+      </div>
+      {isLoading && <InfoBox content="Loading lead details..." />}
+      {!isLoading && !lead && <InfoBox content="Lead not found." />}
+      {!isLoading && lead && (
+        <TabContainer
+          data={[
+            { id: 'details', label: 'Details' },
+            { id: 'activities', label: 'Activities' },
+          ]}
+          activeTab={activeTab}
+          onClick={(tab) => setActiveTab(String(tab.id))}
+        >
+          <Tab id="details">
+            <div className="space-y-4">
+              <section className="border border-formBorder rounded-lg bg-white p-4">
+                <div className="flex items-center justify-between border-b border-formBorder pb-3 mb-3">
+                  <h3 className="font-semibold text-primaryText">
+                    Lead details
+                  </h3>
+                  <span className="capitalize text-sm text-secondary">
+                    {statusLabel(lead.status)}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {[
+                    ['First name', lead.first_name],
+                    ['Last name', lead.last_name],
+                    ['Email', lead.email],
+                    ['Phone', lead.phone],
+                    ['Campaign', lead.campaign?.name],
+                    ['Assigned to', lead.assigned_to?.name],
+                  ].map(([label, value]) => (
+                    <div key={String(label)}>
+                      <div className="text-xs text-secondary">{label}</div>
+                      <div className="text-sm text-primaryText mt-1 break-words">
+                        {value || '--'}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <section className="border border-formBorder rounded-lg bg-white p-4">
+                <h3 className="font-semibold text-primaryText border-b border-formBorder pb-3 mb-3">
+                  Form shared details
+                </h3>
+                {formNotes ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {Object.entries(formNotes).map(([key, value]) => (
+                      <div
+                        key={key}
+                        className="rounded border border-formBorder p-3"
+                      >
+                        <div className="text-xs text-secondary capitalize">
+                          {key.replace(/_/g, ' ')}
+                        </div>
+                        <div className="text-sm text-primaryText mt-1 whitespace-pre-wrap">
+                          {Array.isArray(value)
+                            ? value.join(', ')
+                            : String(value ?? '--')}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-secondary whitespace-pre-wrap">
+                    {lead.notes || 'No form details available.'}
+                  </div>
+                )}
+              </section>
+              {lead.client && (
+                <section className="border border-formBorder rounded-lg bg-white p-4">
+                  <h3 className="font-semibold text-primaryText border-b border-formBorder pb-3 mb-3">
+                    Client account
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-secondary">Name</span>
+                      <div className="text-primaryText">{lead.client.name}</div>
+                    </div>
+                    <div>
+                      <span className="text-secondary">Email</span>
+                      <div className="text-primaryText">
+                        {lead.client.email}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-secondary">Status</span>
+                      <div className="text-primaryText capitalize">
+                        {lead.client.status}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-secondary">Profile</span>
+                      <div className="text-primaryText">
+                        {lead.client.profile_completed
+                          ? 'Completed'
+                          : 'Not completed'}
+                      </div>
+                    </div>
+                  </div>
+                  {lead.client.profile_completion_url && (
+                    <div className="mt-3">
+                      <Button
+                        label="Copy profile link"
+                        icon="link"
+                        outlined
+                        onClick={() =>
+                          copyLink(
+                            lead.client.profile_completion_url,
+                            'Profile completion link'
+                          )
+                        }
+                      />
+                    </div>
+                  )}
+                </section>
+              )}
+            </div>
+          </Tab>
+          <Tab id="activities">
+            <div className="space-y-4">
+              {lead.accepted ? (
+                <div className="flex justify-end">
+                  <Button
+                    label="Add interaction"
+                    icon="plus"
+                    onClick={() => {
+                      activityMethods.reset({
+                        activity_type_label: 'Call',
+                        activity_type: 'call',
+                        notes: '',
+                      })
+                      setActivityModal(true)
+                    }}
+                  />
+                </div>
+              ) : (
+                <InfoBox content="Accept the lead to record interactions and update its status." />
+              )}
+              {(lead.activities || []).length ? (
+                <div className="relative pl-5 border-l-2 border-formBorder space-y-4">
+                  {lead.activities.map((activity: any) => (
+                    <div key={activity.id} className="relative">
+                      <div className="absolute -left-[26px] top-1 h-3 w-3 rounded-full bg-primary border-2 border-white" />
+                      <div className="rounded border border-formBorder bg-cardWrapperBg p-3">
+                        <div className="flex justify-between gap-3">
+                          <span className="text-sm font-medium capitalize text-primaryText">
+                            {statusLabel(activity.activity_type)}
+                          </span>
+                          <span className="text-xs text-secondary">
+                            {activity.occurred_at
+                              ? new Date(activity.occurred_at).toLocaleString()
+                              : '--'}
+                          </span>
+                        </div>
+                        {activity.notes && (
+                          <div className="mt-2 whitespace-pre-wrap text-sm text-primaryText">
+                            {activity.notes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-sm text-secondary py-10">
+                  No activities recorded for this lead yet.
+                </div>
+              )}
+            </div>
+          </Tab>
+        </TabContainer>
+      )}
+      <DialogModal
+        isOpen={confirmationModal}
+        onClose={() => setConfirmationModal(false)}
+        title="Generate confirmation link"
+        subTitle="Write the message that the client will review and accept."
+        actionLabel="Generate link"
+        actionLoader={confirmationLoader}
+        onSubmit={generateConfirmation}
+        secondaryAction={() => setConfirmationModal(false)}
+        secondaryActionLabel="Cancel"
+        small={false}
+        className="w-full max-w-3xl"
+        body={
+          <div className="mx-auto w-full max-w-2xl">
+            <FormProvider {...confirmationMethods}>
+              <FormBuilder data={confirmationFields} edit spacing />
+            </FormProvider>
+            {lead?.confirmation?.public_url && (
+              <div className="mt-4 rounded-lg border border-formBorder bg-cardWrapperBg p-4">
+                <div className="text-xs font-medium text-secondary mb-1">
+                  Current public link
+                </div>
+                <div className="break-all text-sm text-primaryText">
+                  {lead.confirmation.public_url}
+                </div>
+                <div className="mt-3">
+                  <Button
+                    label="Copy link"
+                    icon="link"
+                    outlined
+                    onClick={() =>
+                      copyLink(
+                        lead.confirmation.public_url,
+                        'Confirmation link'
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        }
+      />
+      <DialogModal
+        isOpen={activityModal}
+        onClose={() => setActivityModal(false)}
+        title="Add interaction"
+        actionLabel="Save interaction"
+        actionLoader={activityLoader}
+        onSubmit={saveActivity}
+        secondaryAction={() => setActivityModal(false)}
+        secondaryActionLabel="Cancel"
+        body={
+          <FormProvider {...activityMethods}>
+            <FormBuilder data={activityFields} edit spacing />
+          </FormProvider>
+        }
+      />
+      <DialogModal
+        isOpen={conversionModal}
+        onClose={() => setConversionModal(false)}
+        title="Convert to client"
+        subTitle="Review the lead information before creating the pending client account."
+        actionLabel="Confirm and convert"
+        actionLoader={conversionLoader}
+        onSubmit={convert}
+        secondaryAction={() => setConversionModal(false)}
+        secondaryActionLabel="Cancel"
+        small={false}
+        className="w-full max-w-2xl"
+        body={
+          <div className="mx-auto w-full max-w-xl">
+            <div className="mb-5 rounded-lg border border-formBorder bg-cardWrapperBg p-4">
+              <div className="text-sm font-semibold text-primaryText">
+                Client account details
+              </div>
+              <div className="mt-1 text-xs text-secondary">
+                These values are prefilled from the lead and can be edited
+                before conversion.
+              </div>
+            </div>
+            <FormProvider {...conversionMethods}>
+              <FormBuilder data={conversionFields} edit spacing />
+            </FormProvider>
+          </div>
+        }
+      />
+    </div>
+  )
+}

@@ -93,6 +93,18 @@ const MarketingLeadDetails = lazy(
   () => import('../pages/Marketing/LeadDetails')
 )
 const PublicCampaign = lazy(() => import('../pages/Marketing/PublicCampaign'))
+const SalesPackages = lazy(() => import('../pages/Sales/Packages'))
+const SalesLeads = lazy(() => import('../pages/Sales/Leads'))
+const SalesLeadDetails = lazy(() => import('../pages/Sales/LeadDetails'))
+const SalesClients = lazy(() => import('../pages/Sales/Clients'))
+const SalesClientDetails = lazy(() => import('../pages/Sales/ClientDetails'))
+const SalesPayments = lazy(() => import('../pages/Sales/Payments'))
+const PublicLeadConfirmation = lazy(
+  () => import('../pages/Sales/PublicConfirmation')
+)
+const PublicClientRegistration = lazy(
+  () => import('../pages/Sales/PublicClientRegistration')
+)
 
 const AssessmentCategoryDetails = lazy(
   () => import('../pages/AssessmentCategory/Details')
@@ -142,6 +154,10 @@ const routes: any = [
   { slug: 'MARKETING_FORMS', component: <MarketingForms /> },
   { slug: 'MARKETING_FORM_EDITOR', component: <MarketingFormEditor /> },
   { slug: 'MARKETING_CAMPAIGNS', component: <MarketingCampaigns /> },
+  { slug: 'SALES_PACKAGES', component: <SalesPackages /> },
+  { slug: 'SALES_LEADS', component: <SalesLeads /> },
+  { slug: 'SALES_CLIENTS', component: <SalesClients /> },
+  { slug: 'SALES_PAYMENTS', component: <SalesPayments /> },
   {
     slug: 'MARKETING_CAMPAIGN_DETAILS',
     component: <MarketingCampaignDetails />,
@@ -325,6 +341,62 @@ export default function MainRoutes() {
       />
 
       <Route element={<PublicCampaign />} path="/public/campaigns/:token" />
+      <Route
+        element={<PublicLeadConfirmation />}
+        path="/public/lead-confirmations/:token"
+      />
+      <Route
+        element={<PublicClientRegistration />}
+        path="/public/client-registration/:token"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SALES_PACKAGES">
+            <SalesPackages />
+          </UserRoute>
+        }
+        path="/sales/packages"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SALES_LEADS">
+            <SalesLeads />
+          </UserRoute>
+        }
+        path="/sales/leads"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SALES_LEADS">
+            <SalesLeadDetails />
+          </UserRoute>
+        }
+        path="/sales/leads/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SALES_CLIENTS">
+            <SalesClients />
+          </UserRoute>
+        }
+        path="/sales/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SALES_CLIENTS">
+            <SalesClientDetails />
+          </UserRoute>
+        }
+        path="/sales/clients/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SALES_PAYMENTS">
+            <SalesPayments />
+          </UserRoute>
+        }
+        path="/sales/payments"
+      />
       {/* Explicit routes for sidebar sample pages */}
       <Route
         element={
