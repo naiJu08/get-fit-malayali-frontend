@@ -41,6 +41,26 @@ const activityOptions = [
   { id: 'lost', name: 'Lost' },
 ]
 
+const activityIcon = (type: string) => {
+  switch (type) {
+    case 'call':
+    case 'whatsapp':
+      return 'phone'
+    case 'email':
+      return 'email'
+    case 'meeting':
+      return 'calendar'
+    case 'contacted':
+      return 'activities'
+    case 'qualified':
+      return 'badge-check'
+    case 'lost':
+      return 'exclamation-circle'
+    default:
+      return 'add-notes'
+  }
+}
+
 const parseNotes = (value: any) => {
   if (!value) return null
   if (typeof value === 'object') return value
@@ -52,8 +72,9 @@ const parseNotes = (value: any) => {
   }
 }
 
-const statusLabel = (value: any) =>
-  ({
+const statusLabel = (value: any) => {
+  const key = String(value || 'assigned').toLowerCase()
+  const labels: Record<string, string> = {
     assigned: 'Assigned',
     accepted: 'Accepted',
     contacted: 'Contacted',
@@ -64,7 +85,33 @@ const statusLabel = (value: any) =>
     converted: 'Converted',
     new_lead: 'Assigned',
     client_confirmation: 'Confirmation pending',
-  })[String(value)] || String(value || 'Assigned')
+  }
+  return (
+    labels[key] ||
+    key.replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase())
+  )
+}
+
+const statusColor = (value: any) => {
+  switch (String(value || '').toLowerCase()) {
+    case 'accepted':
+    case 'client_accepted':
+    case 'converted':
+      return 'bg-green-100 text-green-800 border-green-200'
+    case 'contacted':
+    case 'assigned':
+    case 'new_lead':
+      return 'bg-blue-100 text-blue-800 border-blue-200'
+    case 'qualified':
+      return 'bg-purple-100 text-purple-800 border-purple-200'
+    case 'confirmation_pending':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+    case 'lost':
+      return 'bg-red-100 text-red-800 border-red-200'
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+}
 
 export default function SalesLeadDetails() {
   const { id = '' } = useParams()
@@ -73,13 +120,21 @@ export default function SalesLeadDetails() {
   const queryClient = useQueryClient()
   const { data, isLoading, refetch } = useSalesLead(id)
   const lead = data?.lead
-  const [activeTab, setActiveTab] = useState('details')
+  const [activeTab, setActiveTab] = useState(() => {
+    if (typeof window === 'undefined') return 'details'
+    return window.localStorage.getItem('sales-lead-tab-' + id) || 'details'
+  })
   const [activityModal, setActivityModal] = useState(false)
+  const [selectedActivityType, setSelectedActivityType] = useState('call')
   const [confirmationModal, setConfirmationModal] = useState(false)
   const [conversionModal, setConversionModal] = useState(false)
   const [activityLoader, setActivityLoader] = useState(false)
   const [confirmationLoader, setConfirmationLoader] = useState(false)
   const [conversionLoader, setConversionLoader] = useState(false)
+
+  useEffect(() => {
+    window.localStorage.setItem('sales-lead-tab-' + id, activeTab)
+  }, [activeTab, id])
 
   const activityMethods = useForm({
     defaultValues: {
@@ -133,6 +188,9 @@ export default function SalesLeadDetails() {
         name: 'notes',
         label: 'Notes',
         type: 'textarea',
+        rows: 12,
+        maxLength: 500,
+        fullWidth: true,
         placeholder: 'Add notes for this activity',
       },
     ],
@@ -285,47 +343,51 @@ export default function SalesLeadDetails() {
 
   return (
     <div className="p-4">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('/sales/leads')}
-            aria-label="Back to leads"
-          >
-            <Icons name="left-arrow-icon" />
-          </button>
-          <div>
-            <h1 className="text-xl font-semibold text-primaryText">
-              Lead Details
+      <div className="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate('/sales/leads')}
+              className="rounded-lg hover:bg-gray-100 transition"
+              aria-label="Back to leads"
+            >
+              <Icons name="left-arrow-icon" />
+            </button>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {isLoading ? 'Loading...' : leadName}
             </h1>
-            {lead && <p className="text-sm text-secondary mt-1">{leadName}</p>}
           </div>
-        </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {lead && !lead.accepted && (
-            <Button label="Accept lead" icon="check-circle" onClick={accept} />
-          )}
-          {lead?.accepted &&
-            [
-              'accepted',
-              'contacted',
-              'qualified',
-              'confirmation_pending',
-            ].includes(lead.status) && (
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {lead && !lead.accepted && (
               <Button
-                label="Confirmation link"
-                icon="link"
-                outlined
-                onClick={() => setConfirmationModal(true)}
+                label="Accept lead"
+                icon="check-circle"
+                onClick={accept}
               />
             )}
-          {lead?.status === 'client_accepted' && !lead.client && (
-            <Button
-              label="Convert to client"
-              icon="user"
-              onClick={() => setConversionModal(true)}
-            />
-          )}
+            {lead?.accepted &&
+              [
+                'accepted',
+                'contacted',
+                'qualified',
+                'confirmation_pending',
+              ].includes(lead.status) && (
+                <Button
+                  label="Confirmation link"
+                  icon="link"
+                  outlined
+                  onClick={() => setConfirmationModal(true)}
+                />
+              )}
+            {lead?.status === 'client_accepted' && !lead.client && (
+              <Button
+                label="Convert to client"
+                icon="user"
+                onClick={() => setConversionModal(true)}
+              />
+            )}
+          </div>
         </div>
       </div>
       {isLoading && <InfoBox content="Loading lead details..." />}
@@ -346,7 +408,12 @@ export default function SalesLeadDetails() {
                   <h3 className="font-semibold text-primaryText">
                     Lead details
                   </h3>
-                  <span className="capitalize text-sm text-secondary">
+                  <span
+                    className={
+                      'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ' +
+                      statusColor(lead.status)
+                    }
+                  >
                     {statusLabel(lead.status)}
                   </span>
                 </div>
@@ -358,6 +425,13 @@ export default function SalesLeadDetails() {
                     ['Phone', lead.phone],
                     ['Campaign', lead.campaign?.name],
                     ['Assigned to', lead.assigned_to?.name],
+                    ['Assigned by', lead.assigned_by?.name],
+                    [
+                      'Assigned date',
+                      lead.assigned_at
+                        ? new Date(lead.assigned_at).toLocaleString()
+                        : null,
+                    ],
                   ].map(([label, value]) => (
                     <div key={String(label)}>
                       <div className="text-xs text-secondary">{label}</div>
@@ -451,9 +525,10 @@ export default function SalesLeadDetails() {
               {lead.accepted ? (
                 <div className="flex justify-end">
                   <Button
-                    label="Add interaction"
+                    label="Add Interaction"
                     icon="plus"
                     onClick={() => {
+                      setSelectedActivityType('call')
                       activityMethods.reset({
                         activity_type_label: 'Call',
                         activity_type: 'call',
@@ -546,15 +621,80 @@ export default function SalesLeadDetails() {
       <DialogModal
         isOpen={activityModal}
         onClose={() => setActivityModal(false)}
-        title="Add interaction"
-        actionLabel="Save interaction"
+        title="Add Interaction"
+        actionLabel="Save Interaction"
         actionLoader={activityLoader}
         onSubmit={saveActivity}
         secondaryAction={() => setActivityModal(false)}
         secondaryActionLabel="Cancel"
+        small={false}
+        className="w-full max-w-3xl"
         body={
           <FormProvider {...activityMethods}>
-            <FormBuilder data={activityFields} edit spacing />
+            <div className="w-full space-y-6">
+              <input
+                type="hidden"
+                {...activityMethods.register('activity_type', {
+                  required: 'Activity type is required',
+                })}
+              />
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <label className="text-sm font-semibold text-primaryText">
+                    Activity type <span className="text-error">*</span>
+                  </label>
+                  <span className="text-xs text-secondary">
+                    Choose an activity
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+                  {activityOptions.map((option) => {
+                    const selected = selectedActivityType === option.id
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={
+                          'flex min-h-[60px] flex-col items-center justify-center gap-2 rounded-xl border p-2 text-[11px] font-medium transition ' +
+                          (selected
+                            ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                            : 'border-formBorder bg-white text-secondary hover:border-primary/50 hover:bg-gray-50')
+                        }
+                        onClick={() => {
+                          setSelectedActivityType(option.id)
+                          activityMethods.setValue('activity_type', option.id, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          })
+                          activityMethods.setValue(
+                            'activity_type_label',
+                            option.name
+                          )
+                        }}
+                      >
+                        <span
+                          className={
+                            'flex h-7 w-7 items-center justify-center rounded-full ' +
+                            (selected
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-500')
+                          }
+                        >
+                          <Icons
+                            name={activityIcon(option.id)}
+                            className="h-4 w-4"
+                          />
+                        </span>
+                        {option.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div className="border-t border-formBorder pt-5">
+                <FormBuilder data={[activityFields[1]]} edit spacing />
+              </div>
+            </div>
           </FormProvider>
         }
       />

@@ -10,6 +10,7 @@ import Icons from '../../components/common/icons'
 import DatePicker from '../../components/common/inputs/DatePicker'
 import Button from '../../components/common/buttons/Button'
 import SearchInput from '../../components/common/inputs/SearchInput'
+import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { getApiErrorMessage } from '../../utilities/commonUtilities'
@@ -87,7 +88,12 @@ const formPreviewHtml = (form: any) => {
 export default function Campaigns() {
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
-  const [params, setParams] = useState({ page: 1, per_page: 20, search: '' })
+  const [params, setParams] = useState({
+    page: 1,
+    per_page: 20,
+    search: '',
+    status: '',
+  })
   const [editing, setEditing] = useState<any>(null)
   const [selectedForm, setSelectedForm] = useState<any>(null)
   const [formDrawerOpen, setFormDrawerOpen] = useState(false)
@@ -95,9 +101,12 @@ export default function Campaigns() {
     page: 1,
     per_page: 6,
     search: '',
+    status: 'active',
   })
   const [dateRange, setDateRange] = useState<any[]>([null, null])
   const [saving, setSaving] = useState(false)
+  const [deleteRow, setDeleteRow] = useState<any>(null)
+  const [deleting, setDeleting] = useState(false)
   const { data, isFetching, refetch } = useMarketingCampaigns(params)
   const { data: formsData, isFetching: formsFetching } =
     useMarketingForms(formParams)
@@ -112,12 +121,14 @@ export default function Campaigns() {
         type: 'text',
         required: true,
         placeholder: 'e.g. New year wellness campaign',
+        maxLength: 100,
       },
       {
         name: 'description',
         label: 'Description',
         type: 'textarea',
         placeholder: 'Describe the purpose of this campaign',
+        maxLength: 500,
       },
       {
         name: 'status',
@@ -362,9 +373,27 @@ export default function Campaigns() {
           data={rows}
           dataRowKey="id"
           columns={columns}
+          toolbar
           search
           searchPlaceholder="Search campaigns"
           searchValue={params.search}
+          toolbarExtra={
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-600">Status</label>
+              <select
+                className="w-64 rounded-lg border border-gray-300 bg-white p-[11px] text-xs text-primaryText focus:border-gray-300 focus:outline-none focus:ring-0"
+                value={params.status}
+                onChange={(event) =>
+                  setParams({ ...params, status: event.target.value, page: 1 })
+                }
+              >
+                <option value="">All statuses</option>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          }
           onSearchChange={(value) =>
             setParams({ ...params, search: value, page: 1 })
           }
@@ -410,22 +439,7 @@ export default function Campaigns() {
               toolTip: 'Delete',
               icon: <Icons name="delete" />,
               variant: 'danger',
-              action: async (row: any) => {
-                if (window.confirm('Delete campaign?')) {
-                  try {
-                    await deleteMarketingCampaign(row.id)
-                    enqueueSnackbar('Campaign deleted successfully', {
-                      variant: 'success',
-                    })
-                    refetch()
-                  } catch (error: any) {
-                    enqueueSnackbar(
-                      getApiErrorMessage(error, 'Unable to delete campaign'),
-                      { variant: 'error' }
-                    )
-                  }
-                }
-              },
+              action: (row: any) => setDeleteRow(row),
             },
           ]}
         />
@@ -642,6 +656,31 @@ export default function Campaigns() {
           </div>
         </div>
       </CustomDrawer>
+      <ConfirmDeleteModal
+        isOpen={!!deleteRow}
+        onClose={() => setDeleteRow(null)}
+        title="Delete campaign?"
+        subTitle={`Delete ${deleteRow?.name || 'this campaign'}? This action cannot be undone.`}
+        loading={deleting}
+        onConfirm={async () => {
+          setDeleting(true)
+          try {
+            await deleteMarketingCampaign(deleteRow.id)
+            enqueueSnackbar('Campaign deleted successfully', {
+              variant: 'success',
+            })
+            setDeleteRow(null)
+            refetch()
+          } catch (error: any) {
+            enqueueSnackbar(
+              getApiErrorMessage(error, 'Unable to delete campaign'),
+              { variant: 'error' }
+            )
+          } finally {
+            setDeleting(false)
+          }
+        }}
+      />
     </div>
   )
 }

@@ -162,7 +162,7 @@ const FINANCE: RouterMenuProps = {
   label: 'Finance',
   key: 'finance',
   icon: 'paymentapproval-icon',
-  permission_slugs: ['superadmin'],
+  permission_slugs: ['superadmin', 'sales'],
   isSidebarMenu: true,
 }
 
@@ -245,7 +245,7 @@ const PLANS: RouterMenuProps = {
   key: 'plans',
   icon: 'plan',
   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
-  permission_slugs: ['superadmin', 'nutritionist'],
+  permission_slugs: ['superadmin', 'nutritionist', 'sales'],
   slugOptions: ['PLANS', 'PLAN_DETAILS', 'DIET_DETAILS'],
   isSidebarMenu: true,
 }
@@ -670,11 +670,12 @@ const PAYMENT_HISTORY: RouterMenuProps = {
   label: 'Payment History',
   icon: 'paymentapproval-icon',
   key: 'payment-history',
-  permission_slugs: ['superadmin'],
+  permission_slugs: ['superadmin', 'sales'],
   isSidebarMenu: true,
 }
 
 const MARKETING: RouterMenuProps = {
+  path: '/marketing',
   id: 700,
   parent_id: null,
   label: 'Marketing Module',
@@ -720,20 +721,12 @@ const MARKETING_FORM_EDITOR: RouterMenuProps = {
 }
 
 const SALES: RouterMenuProps = {
+  // path: '/sales',
   id: 800,
   parent_id: null,
   label: 'Sales Module',
   key: 'sales-module',
   icon: 'sales-icon',
-  permission_slugs: MODULE_ACCESS.sales,
-  isSidebarMenu: true,
-}
-const SALES_PACKAGES: RouterMenuProps = {
-  id: 801,
-  path: '/sales/packages',
-  parent_id: null,
-  label: 'Packages',
-  key: 'sales-packages',
   permission_slugs: MODULE_ACCESS.sales,
   isSidebarMenu: true,
 }
@@ -755,15 +748,6 @@ const SALES_CLIENTS: RouterMenuProps = {
   permission_slugs: MODULE_ACCESS.sales,
   isSidebarMenu: true,
 }
-const SALES_PAYMENTS: RouterMenuProps = {
-  id: 804,
-  path: '/sales/payments',
-  parent_id: 800,
-  label: 'Payments',
-  key: 'sales-payments',
-  permission_slugs: MODULE_ACCESS.sales,
-  isSidebarMenu: true,
-}
 
 export const router_config: { [key: string]: RouterMenuProps } = {
   DASHBOARD,
@@ -780,10 +764,8 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   MARKETING_CAMPAIGN_DETAILS,
   MARKETING_FORM_EDITOR,
   SALES,
-  SALES_PACKAGES,
   SALES_LEADS,
   SALES_CLIENTS,
-  SALES_PAYMENTS,
   ASSESSMENT_CATEGORY,
   ASSESSMENT_CATEGORY_DETAILS,
   NOTIFICATIONS,

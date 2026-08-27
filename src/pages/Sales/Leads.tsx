@@ -24,6 +24,27 @@ const statusLabels: Record<string, string> = {
 const displayStatus = (value: any) =>
   statusLabels[String(value)] || String(value || 'Assigned')
 
+const statusColor = (value: any) => {
+  switch (String(value || '').toLowerCase()) {
+    case 'accepted':
+    case 'client_accepted':
+    case 'converted':
+      return 'bg-green-100 text-green-800 border-green-200'
+    case 'contacted':
+    case 'assigned':
+    case 'new_lead':
+      return 'bg-blue-100 text-blue-800 border-blue-200'
+    case 'qualified':
+      return 'bg-purple-100 text-purple-800 border-purple-200'
+    case 'confirmation_pending':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+    case 'lost':
+      return 'bg-red-100 text-red-800 border-red-200'
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+}
+
 export default function SalesLeads() {
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
@@ -57,7 +78,7 @@ export default function SalesLeads() {
         renderCell: (row: any) => ({
           cell: (
             <button
-              className="text-primary hover:underline font-medium"
+              className="text-blue-600 hover:underline font-medium"
               onClick={() => navigate(`/sales/leads/${row.id}`)}
             >
               {`${row.first_name || ''} ${row.last_name || ''}`.trim() ||
@@ -78,24 +99,33 @@ export default function SalesLeads() {
         }),
         isVisible: true,
       },
+      { title: 'Phone', field: 'phone', isVisible: true },
       {
         title: 'Status',
         field: 'status',
         customCell: true,
         renderCell: (row: any) => ({
-          cell: <span className="capitalize">{displayStatus(row.status)}</span>,
+          cell: (
+            <span
+              className={
+                'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ' +
+                statusColor(row.status)
+              }
+            >
+              {displayStatus(row.status)}
+            </span>
+          ),
           toolTip: displayStatus(row.status),
         }),
         isVisible: true,
       },
-      { title: 'Phone', field: 'phone', isVisible: true },
       {
-        title: 'Created At',
-        field: 'created_at',
+        title: 'Assigned Date',
+        field: 'assigned_at',
         customCell: true,
         renderCell: (row: any) => ({
-          cell: row.created_at
-            ? new Date(row.created_at).toLocaleDateString()
+          cell: row.assigned_at
+            ? new Date(row.assigned_at).toLocaleDateString()
             : '--',
         }),
         isVisible: true,
@@ -107,7 +137,7 @@ export default function SalesLeads() {
   return (
     <div>
       <ListingHeader
-        data={{ title: 'Leads', icon: 'leads-icon' }}
+        data={{ title: 'Assigned Leads', icon: 'leads-icon' }}
         checkPermission={false}
       />
       <div className="p-4">
@@ -122,23 +152,28 @@ export default function SalesLeads() {
           onSearchChange={(search) => setParams({ ...params, search, page: 1 })}
           onSearch={() => refetch()}
           toolbarExtra={
-            <select
-              className="h-9 rounded border border-formBorder bg-white px-3 text-sm text-primaryText"
-              value={params.status}
-              onChange={(event) =>
-                setParams({ ...params, status: event.target.value, page: 1 })
-              }
-            >
-              <option value="">All statuses</option>
-              <option value="assigned">Assigned</option>
-              <option value="accepted">Accepted</option>
-              <option value="contacted">Contacted</option>
-              <option value="qualified">Qualified</option>
-              <option value="lost">Lost</option>
-              <option value="confirmation_pending">Confirmation pending</option>
-              <option value="client_accepted">Client accepted</option>
-              <option value="converted">Converted</option>
-            </select>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-600">Status</label>
+              <select
+                className="w-64 border border-gray-300 p-[11px] rounded-lg bg-white text-xs text-primaryText focus:outline-none focus:ring-0 focus:border-gray-300"
+                value={params.status}
+                onChange={(event) =>
+                  setParams({ ...params, status: event.target.value, page: 1 })
+                }
+              >
+                <option value="">All statuses</option>
+                <option value="assigned">Assigned</option>
+                <option value="accepted">Accepted</option>
+                <option value="contacted">Contacted</option>
+                <option value="qualified">Qualified</option>
+                <option value="lost">Lost</option>
+                <option value="confirmation_pending">
+                  Confirmation pending
+                </option>
+                <option value="client_accepted">Client accepted</option>
+                <option value="converted">Converted</option>
+              </select>
+            </div>
           }
           actionProps={[
             {

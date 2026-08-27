@@ -9,6 +9,10 @@ import apiUrl from '../../apis/api.url'
 import { parseQueryParams } from '../../utilities/parsers'
 const list = (url: string, params: any) =>
   getData(url + parseQueryParams(params || {}))
+export const useMarketingDashboard = (enabled = true) =>
+  useQuery(['marketing_dashboard'], () => getData('/marketing/dashboard'), {
+    enabled,
+  })
 export const useMarketingForms = (params: any) =>
   useQuery(['marketing_forms', params], () =>
     list(apiUrl.MARKETING_FORMS, params)

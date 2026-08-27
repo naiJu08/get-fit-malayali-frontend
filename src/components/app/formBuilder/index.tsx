@@ -309,6 +309,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                   errors={!isEditable() ? errors : undefined}
                   disabled={field?.disabled ?? isEditable()}
                   maxLength={field?.maxLength}
+                  rows={(field as any)?.rows}
                   wordCount={field?.wordCount}
                 />
               )}
@@ -906,7 +907,12 @@ const FormBuilder: React.FC<Props> = (props) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {data.map((field: FormBuilderProps) =>
             !field.hidden ? (
-              <div key={field.name}>{renderForm(field)}</div>
+              <div
+                key={field.name}
+                className={(field as any).fullWidth ? 'md:col-span-2' : ''}
+              >
+                {renderForm(field)}
+              </div>
             ) : null
           )}
         </div>
@@ -914,7 +920,12 @@ const FormBuilder: React.FC<Props> = (props) => {
         <>
           {data.map((field: FormBuilderProps) =>
             !field.hidden ? (
-              <div key={field.name}>{renderForm(field)}</div>
+              <div
+                key={field.name}
+                className={(field as any).fullWidth ? 'md:col-span-2' : ''}
+              >
+                {renderForm(field)}
+              </div>
             ) : null
           )}
         </>
