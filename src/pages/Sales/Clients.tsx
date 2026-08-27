@@ -7,6 +7,21 @@ import { useSnackbarManager } from '../../components/common/snackbar'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useSalesClients } from './api'
 
+const accountStatusColor = (value: any) => {
+  switch (String(value || '').toLowerCase()) {
+    case 'active':
+      return 'bg-green-100 text-green-800 border-green-200'
+    case 'pending':
+    case 'inactive':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+    case 'suspended':
+    case 'blocked':
+      return 'bg-red-100 text-red-800 border-red-200'
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+}
+
 export default function SalesClients() {
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
@@ -37,7 +52,13 @@ export default function SalesClients() {
         renderCell: (row: any) => ({
           cell: (
             <div>
-              <div className="font-medium text-primaryText">{row.name}</div>
+              <button
+                type="button"
+                className="text-blue-600 hover:underline font-medium text-left"
+                onClick={() => navigate('/sales/clients/' + row.id)}
+              >
+                {row.name || 'Client #' + row.id}
+              </button>
               <div className="text-xs text-secondary">{row.email || '--'}</div>
             </div>
           ),
@@ -51,7 +72,16 @@ export default function SalesClients() {
         field: 'status',
         customCell: true,
         renderCell: (row: any) => ({
-          cell: <span className="capitalize">{row.status || '--'}</span>,
+          cell: (
+            <span
+              className={
+                'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ' +
+                accountStatusColor(row.status)
+              }
+            >
+              {row.status || 'Unknown'}
+            </span>
+          ),
         }),
         isVisible: true,
       },
@@ -60,7 +90,18 @@ export default function SalesClients() {
         field: 'profile_completed',
         customCell: true,
         renderCell: (row: any) => ({
-          cell: row.profile_completed ? 'Completed' : 'Not completed',
+          cell: (
+            <span
+              className={
+                'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ' +
+                (row.profile_completed
+                  ? 'bg-green-100 text-green-800 border-green-200'
+                  : 'bg-yellow-100 text-yellow-800 border-yellow-200')
+              }
+            >
+              {row.profile_completed ? 'Completed' : 'Not completed'}
+            </span>
+          ),
         }),
         isVisible: true,
       },
@@ -71,7 +112,7 @@ export default function SalesClients() {
         renderCell: (row: any) => ({
           cell: row.profile_completion_url ? (
             <button
-              className="text-primary hover:underline inline-flex items-center gap-1"
+              className="text-blue-600 hover:underline inline-flex items-center gap-1"
               onClick={() => copy(row.profile_completion_url)}
             >
               <Icons name="link" /> Copy link
@@ -83,7 +124,7 @@ export default function SalesClients() {
         isVisible: true,
       },
     ],
-    [copy]
+    [copy, navigate]
   )
   return (
     <div>
@@ -104,6 +145,7 @@ export default function SalesClients() {
               action: (row: any) => navigate(`/sales/clients/${row.id}`),
             },
           ]}
+          externalActions
           toolbar
           search
           searchPlaceholder="Search clients"

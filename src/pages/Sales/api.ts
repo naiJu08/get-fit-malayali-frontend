@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { getData, postData } from '../../apis/api.helpers'
+import { getData, postData, updateFromData } from '../../apis/api.helpers'
 import { parseQueryParams } from '../../utilities/parsers'
 
 const list = (path: string, params: Record<string, any> = {}) =>
   getData(path + parseQueryParams(params))
 
-export const useSalesDashboard = () =>
-  useQuery(['sales_dashboard'], () => getData('/sales/dashboard'))
+export const useSalesDashboard = (enabled = true) =>
+  useQuery(['sales_dashboard'], () => getData('/sales/dashboard'), { enabled })
 
 export const useSalesPackages = (params: Record<string, any>) =>
   useQuery(['sales_packages', params], () => list('/sales/packages', params))
@@ -43,6 +43,15 @@ export const useSalesClient = (id?: string) =>
 
 export const createSalesPlanProposal = (clientId: string | number, data: any) =>
   postData(`/sales/clients/${clientId}/plan-proposals`, { proposal: data })
+
+export const updateSalesPlanProposal = (
+  clientId: string | number,
+  proposalId: string | number,
+  data: any
+) =>
+  updateFromData(`/sales/clients/${clientId}/plan-proposals/${proposalId}`, {
+    proposal: data,
+  })
 
 export const assignSalesClientStaff = (clientId: string | number, data: any) =>
   postData(`/sales/clients/${clientId}/assignments`, data)

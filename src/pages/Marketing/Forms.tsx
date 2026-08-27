@@ -26,6 +26,14 @@ type FormField = {
   helpText?: string
   options?: string[]
 }
+const FORM_NAME_MAX = 100
+const DESCRIPTION_MAX = 500
+const HEADER_TITLE_MAX = 100
+const HEADER_SUBTITLE_MAX = 200
+const FOOTER_NOTE_MAX = 300
+const FIELD_LABEL_MAX = 100
+const FIELD_TEXT_MAX = 300
+
 const statusOptions = [
   { id: 'draft', name: 'Draft' },
   { id: 'active', name: 'Active' },
@@ -428,18 +436,19 @@ export function Builder({
                         id="form-name"
                         name="form_name"
                         label="Form name"
+                        maxLength={FORM_NAME_MAX}
                         placeholder="e.g. Free consultation enquiry"
                         value={field.value || ''}
                         onChange={(e) => {
                           const val = e.target.value
                           const capitalized =
                             val.charAt(0).toUpperCase() + val.slice(1)
-                          field.onChange({
-                            ...e,
-                            target: { ...e.target, value: capitalized },
-                          })
+                          field.onChange(capitalized)
                           setBasicError('')
-                          setEditing({ ...editing, name: capitalized })
+                          setEditing((value: any) => ({
+                            ...value,
+                            name: capitalized,
+                          }))
                         }}
                         errors={errors}
                         required
@@ -469,6 +478,7 @@ export function Builder({
                   id="form-description"
                   name="form_description"
                   label="Internal description"
+                  maxLength={DESCRIPTION_MAX}
                   rows={3}
                   placeholder="Explain where this form should be used."
                   value={editing.description || ''}
@@ -521,6 +531,7 @@ export function Builder({
                       id="header-title"
                       name="header_title"
                       label="Header title"
+                      maxLength={HEADER_TITLE_MAX}
                       value={field.value || ''}
                       onChange={(e) => {
                         field.onChange(e)
@@ -540,6 +551,7 @@ export function Builder({
                   id="header-subtitle"
                   name="header_subtitle"
                   label="Header subtitle"
+                  maxLength={HEADER_SUBTITLE_MAX}
                   value={definition.header.subtitle}
                   onChange={(e) =>
                     updateDefinition({
@@ -597,6 +609,7 @@ export function Builder({
                   id="footer-note"
                   name="footer_note"
                   label="Footer note"
+                  maxLength={FOOTER_NOTE_MAX}
                   rows={2}
                   value={definition.footer?.text || ''}
                   onChange={(e) =>
@@ -975,6 +988,7 @@ export function Builder({
                     id="field-label"
                     name="field_label"
                     label="Label"
+                    maxLength={FIELD_LABEL_MAX}
                     value={selectedField.label}
                     onChange={(e) =>
                       updateField(selected, { label: e.target.value })
@@ -995,6 +1009,7 @@ export function Builder({
                     id="field-placeholder"
                     name="field_placeholder"
                     label="Placeholder"
+                    maxLength={FIELD_TEXT_MAX}
                     value={selectedField.placeholder || ''}
                     onChange={(e) =>
                       updateField(selected, { placeholder: e.target.value })
@@ -1004,6 +1019,7 @@ export function Builder({
                     id="field-help-text"
                     name="field_help_text"
                     label="Help text"
+                    maxLength={FIELD_TEXT_MAX}
                     rows={2}
                     value={selectedField.helpText || ''}
                     onChange={(e) =>
@@ -1054,6 +1070,7 @@ export function Builder({
                                   id={'field-option-' + optionIndex}
                                   name={'field_option_' + optionIndex}
                                   label=""
+                                  maxLength={FIELD_TEXT_MAX}
                                   value={option}
                                   onChange={(e) =>
                                     updateOption(
@@ -1213,7 +1230,12 @@ export function Builder({
 export default function Forms() {
   const { enqueueSnackbar } = useSnackbarManager()
   const navigate = useNavigate()
-  const [params, setParams] = useState({ page: 1, per_page: 20, search: '' })
+  const [params, setParams] = useState({
+    page: 1,
+    per_page: 20,
+    search: '',
+    status: '',
+  })
   const { data, isFetching, refetch } = useMarketingForms(params)
   const [deleteRow, setDeleteRow] = useState<any>(null)
   const [deleting, setDeleting] = useState(false)
@@ -1288,7 +1310,7 @@ export default function Forms() {
         isVisible: true,
       },
     ],
-    []
+    [navigate]
   )
   return (
     <div>
@@ -1303,9 +1325,27 @@ export default function Forms() {
           data={rows}
           dataRowKey="id"
           columns={columns}
+          toolbar
           search
           searchPlaceholder="Search forms"
           searchValue={params.search}
+          toolbarExtra={
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-gray-600">Status</label>
+              <select
+                className="w-64 rounded-lg border border-gray-300 bg-white p-[11px] text-xs text-primaryText focus:border-gray-300 focus:outline-none focus:ring-0"
+                value={params.status}
+                onChange={(event) =>
+                  setParams({ ...params, status: event.target.value, page: 1 })
+                }
+              >
+                <option value="">All statuses</option>
+                <option value="draft">Draft</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          }
           onSearchChange={(value) =>
             setParams({ ...params, search: value, page: 1 })
           }

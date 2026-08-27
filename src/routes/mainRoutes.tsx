@@ -93,12 +93,14 @@ const MarketingLeadDetails = lazy(
   () => import('../pages/Marketing/LeadDetails')
 )
 const PublicCampaign = lazy(() => import('../pages/Marketing/PublicCampaign'))
-const SalesPackages = lazy(() => import('../pages/Sales/Packages'))
+const MarketingDashboard = lazy(
+  () => import('../pages/dashboard/module-dashboard')
+)
+const SalesDashboard = lazy(() => import('../pages/dashboard/module-dashboard'))
 const SalesLeads = lazy(() => import('../pages/Sales/Leads'))
 const SalesLeadDetails = lazy(() => import('../pages/Sales/LeadDetails'))
 const SalesClients = lazy(() => import('../pages/Sales/Clients'))
 const SalesClientDetails = lazy(() => import('../pages/Sales/ClientDetails'))
-const SalesPayments = lazy(() => import('../pages/Sales/Payments'))
 const PublicLeadConfirmation = lazy(
   () => import('../pages/Sales/PublicConfirmation')
 )
@@ -151,13 +153,13 @@ const routes: any = [
   { slug: 'MEAL_TIMING', component: <MealTimingMain /> },
   { slug: 'MEAL_TIMING_DETAILS', component: <MealTimingDetails /> },
   { slug: 'ASSESSMENT_CATEGORY', component: <AssessmentCategory /> },
+  { slug: 'MARKETING', component: <MarketingDashboard mode="marketing" /> },
   { slug: 'MARKETING_FORMS', component: <MarketingForms /> },
   { slug: 'MARKETING_FORM_EDITOR', component: <MarketingFormEditor /> },
   { slug: 'MARKETING_CAMPAIGNS', component: <MarketingCampaigns /> },
-  { slug: 'SALES_PACKAGES', component: <SalesPackages /> },
+  { slug: 'SALES', component: <SalesDashboard mode="sales" /> },
   { slug: 'SALES_LEADS', component: <SalesLeads /> },
   { slug: 'SALES_CLIENTS', component: <SalesClients /> },
-  { slug: 'SALES_PAYMENTS', component: <SalesPayments /> },
   {
     slug: 'MARKETING_CAMPAIGN_DETAILS',
     component: <MarketingCampaignDetails />,
@@ -375,14 +377,6 @@ export default function MainRoutes() {
       />
       <Route
         element={
-          <UserRoute slug_key="SALES_PACKAGES">
-            <SalesPackages />
-          </UserRoute>
-        }
-        path="/sales/packages"
-      />
-      <Route
-        element={
           <UserRoute slug_key="SALES_LEADS">
             <SalesLeads />
           </UserRoute>
@@ -412,14 +406,6 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/sales/clients/:id"
-      />
-      <Route
-        element={
-          <UserRoute slug_key="SALES_PAYMENTS">
-            <SalesPayments />
-          </UserRoute>
-        }
-        path="/sales/payments"
       />
       {/* Explicit routes for sidebar sample pages */}
       <Route

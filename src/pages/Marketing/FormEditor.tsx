@@ -58,10 +58,15 @@ export default function FormEditor() {
         })
         return
       }
-      if (!editing.name.trim()) throw new Error('Form name is required')
+      // form_name is the source of truth for the form field. `editing.name` is UI state used by the editor and can lag behind it during typing.
+      const rawFormName = String(methods.getValues('form_name') || '').trim()
+      const formName = rawFormName
+        ? rawFormName.charAt(0).toUpperCase() + rawFormName.slice(1)
+        : ''
+      if (!formName) throw new Error('Form name is required')
       setSaving(true)
       const payload = {
-        name: editing.name,
+        name: formName,
         description: editing.description,
         status: editing.status,
         definition,

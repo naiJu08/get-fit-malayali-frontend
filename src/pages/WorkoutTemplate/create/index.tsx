@@ -49,7 +49,7 @@ export default function WorkoutTemplateForm({
   }, [isOpen, rowData, reset])
 
   const submit = async (values: WorkoutTemplateValues) => {
-    const rawName = values.name || ''
+    const rawName = String(values.name || '').trim()
     const capitalizedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
     const data = new FormData()
     data.append('workout_template[name]', capitalizedName)
@@ -78,6 +78,7 @@ export default function WorkoutTemplateForm({
       label: 'Template Name',
       type: 'text',
       placeholder: 'Enter template name',
+      maxLength: 100,
       required: true,
     },
     {
@@ -85,6 +86,7 @@ export default function WorkoutTemplateForm({
       label: 'Description',
       type: 'textarea',
       placeholder: 'Enter template description',
+      maxLength: 500,
       required: true,
     },
     {
@@ -114,6 +116,7 @@ export default function WorkoutTemplateForm({
       label: 'Notes (Optional)',
       type: 'textarea',
       placeholder: 'Enter additional notes',
+      maxLength: 500,
     },
   ]
 

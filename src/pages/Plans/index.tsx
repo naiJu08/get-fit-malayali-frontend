@@ -33,6 +33,8 @@ export default function Plans() {
   const { enqueueSnackbar } = useSnackbarManager()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
+  const isSales = roleName === 'sales'
+  const isPlanReadOnly = isNutritionist || isSales
   const [deleteItem] = useState('')
   const [status] = useState('')
   const [deleteModal, setDeleteModal] = useState(false)
@@ -284,7 +286,7 @@ export default function Plans() {
     icon: 'plan',
   }
   const openDrawer = () => {
-    if (isNutritionist) return
+    if (isPlanReadOnly) return
     setCreateOpen(true)
     setRowData({})
   }
@@ -329,11 +331,9 @@ export default function Plans() {
         <>
           <ListingHeader
             data={basicData}
-            onActionClick={!isNutritionist ? openDrawer : undefined}
-            actionProps={!isNutritionist ? headerProps : undefined}
-            checkPermission={
-              !isNutritionist && checkPermissions('Employee', 'create')
-            }
+            onActionClick={!isPlanReadOnly ? openDrawer : undefined}
+            actionProps={!isSales ? headerProps : undefined}
+            checkPermission={!isSales && checkPermissions('Employee', 'create')}
           />
           <div className=" p-4">
             <SmartTable
@@ -409,63 +409,72 @@ export default function Plans() {
                 dropOptions: [10, 20, 30, 50, 100],
               }}
               actionProps={
-                isNutritionist
-                  ? []
-                  : [
+                isSales
+                  ? [
                       {
                         icon: <Icons name="eye" />,
                         action: (row: any) => navigate(`/plans/${row?.id}`),
                         title: 'View',
                         toolTip: 'View',
                       },
-                      {
-                        icon: <Icons name="edit" />,
-                        action: (row: any) => handleEditPlan(row),
-                        title: 'Edit',
-                        toolTip: 'Edit',
-                      },
-                      {
-                        title: 'Deactivate',
-                        action: (row: any) => handleToggleStatus(row),
-                        icon: <Icons name="deactivate-icon" />,
-                        toolTip: 'Deactivate',
-                        variant: 'danger',
-                        hide: (row: any) => {
-                          const v = row?.active
-                          const isActive =
-                            (typeof v === 'boolean' && v === true) ||
-                            (typeof v === 'number' && v === 1) ||
-                            (typeof v === 'string' &&
-                              (v === '1' || v.toLowerCase() === 'true'))
-                          return !isActive
-                        },
-                      },
-                      {
-                        title: 'Activate',
-                        action: (row: any) => handleToggleStatus(row),
-                        icon: <Icons name="activate-icon" />,
-                        toolTip: 'Activate',
-                        variant: 'success',
-                        hide: (row: any) => {
-                          const v = row?.active
-                          const isActive =
-                            (typeof v === 'boolean' && v === true) ||
-                            (typeof v === 'number' && v === 1) ||
-                            (typeof v === 'string' &&
-                              (v === '1' || v.toLowerCase() === 'true'))
-                          return isActive
-                        },
-                      },
-                      {
-                        icon: <Icons name="delete" />,
-                        action: (row: any) => {
-                          setPlanToDelete(row)
-                          setDeletePlanModal(true)
-                        },
-                        title: 'Delete',
-                        toolTip: 'Delete',
-                      },
                     ]
+                  : isNutritionist
+                    ? []
+                    : [
+                        {
+                          icon: <Icons name="eye" />,
+                          action: (row: any) => navigate(`/plans/${row?.id}`),
+                          title: 'View',
+                          toolTip: 'View',
+                        },
+                        {
+                          icon: <Icons name="edit" />,
+                          action: (row: any) => handleEditPlan(row),
+                          title: 'Edit',
+                          toolTip: 'Edit',
+                        },
+                        {
+                          title: 'Deactivate',
+                          action: (row: any) => handleToggleStatus(row),
+                          icon: <Icons name="deactivate-icon" />,
+                          toolTip: 'Deactivate',
+                          variant: 'danger',
+                          hide: (row: any) => {
+                            const v = row?.active
+                            const isActive =
+                              (typeof v === 'boolean' && v === true) ||
+                              (typeof v === 'number' && v === 1) ||
+                              (typeof v === 'string' &&
+                                (v === '1' || v.toLowerCase() === 'true'))
+                            return !isActive
+                          },
+                        },
+                        {
+                          title: 'Activate',
+                          action: (row: any) => handleToggleStatus(row),
+                          icon: <Icons name="activate-icon" />,
+                          toolTip: 'Activate',
+                          variant: 'success',
+                          hide: (row: any) => {
+                            const v = row?.active
+                            const isActive =
+                              (typeof v === 'boolean' && v === true) ||
+                              (typeof v === 'number' && v === 1) ||
+                              (typeof v === 'string' &&
+                                (v === '1' || v.toLowerCase() === 'true'))
+                            return isActive
+                          },
+                        },
+                        {
+                          icon: <Icons name="delete" />,
+                          action: (row: any) => {
+                            setPlanToDelete(row)
+                            setDeletePlanModal(true)
+                          },
+                          title: 'Delete',
+                          toolTip: 'Delete',
+                        },
+                      ]
               }
               columnToggle
               externalActions={true}
