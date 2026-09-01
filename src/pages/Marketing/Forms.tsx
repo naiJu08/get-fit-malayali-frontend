@@ -25,6 +25,8 @@ type FormField = {
   placeholder?: string
   helpText?: string
   options?: string[]
+  maxLength?: number
+  digitsOnly?: boolean
 }
 const FORM_NAME_MAX = 100
 const DESCRIPTION_MAX = 500
@@ -73,6 +75,7 @@ export const defaultDefinition = {
       type: 'text',
       required: true,
       placeholder: 'Enter your first name',
+      maxLength: 25,
     },
     {
       key: 'email',
@@ -86,6 +89,8 @@ export const defaultDefinition = {
       label: 'Phone',
       type: 'phone',
       placeholder: 'Your phone number',
+      maxLength: 10,
+      digitsOnly: true,
     },
   ],
 }
@@ -265,6 +270,8 @@ export function Builder({
         disabled
         value=""
         onChange={() => undefined}
+        maxLength={field.maxLength}
+        digitsOnly={field.digitsOnly}
       />
     )
   }
