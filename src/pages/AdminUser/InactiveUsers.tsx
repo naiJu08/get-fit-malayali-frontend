@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
-import { DialogModal, TextField } from '../../components/common'
+import { DialogModal, TabContainer, TextField } from '../../components/common'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 // import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
@@ -255,25 +255,25 @@ export default function InactiveUsers() {
 
           {/* Role Tabs */}
           <div className="px-4">
-            <div className="flex items-center justify-between">
-              <div className="flex gap-4 border-b">
-                <button
-                  type="button"
-                  className={`px-3 py-2 -mb-px text-gray-600`}
-                  onClick={() => navigate('/users')}
-                >
-                  Client
-                </button>
-
-                <button
-                  type="button"
-                  className={`px-3 py-2 -mb-px border-b-2 border-blue-600 text-blue-600`}
-                  onClick={() => navigate('/admin/inactive-users')}
-                >
-                  Inactive Clients
-                </button>
-              </div>
-            </div>
+            <TabContainer
+              data={[
+                { id: 'clients', label: 'Clients' },
+                { id: 'assigned-clients', label: 'Assigned Clients' },
+                { id: 'inactive-clients', label: 'Inactive Clients' },
+              ]}
+              activeTab="inactive-clients"
+              onClick={(tab) =>
+                navigate(
+                  tab.id === 'clients'
+                    ? '/users'
+                    : tab.id === 'assigned-clients'
+                      ? '/users/nutritionist/assigned-clients'
+                      : '/admin/inactive-users'
+                )
+              }
+            >
+              {null}
+            </TabContainer>
           </div>
 
           <div className="p-4">

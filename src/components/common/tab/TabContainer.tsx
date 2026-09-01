@@ -89,11 +89,13 @@ const TabContainer: React.FC<TabProps> = ({
           </>
         ))}
       </div>
-      <div className="">
-        <div className="tab-section py-4 rounded overflow-hidden">
-          <Wrapper activeTab={activeTab}>{children}</Wrapper>
+      {children ? (
+        <div className="">
+          <div className="tab-section py-4 rounded overflow-hidden">
+            <Wrapper activeTab={activeTab}>{children}</Wrapper>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   )
 }

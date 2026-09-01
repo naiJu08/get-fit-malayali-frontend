@@ -499,6 +499,7 @@ export default function LeadDetails() {
                   label="Add Activity"
                   icon="plus"
                   onClick={openActivityModal}
+                  className="hidden"
                 />
               </div>
 
