@@ -211,7 +211,13 @@ export default function SalesLeadDetails() {
   const conversionFields = useMemo(
     () => [
       { name: 'name', label: 'Name', type: 'text', required: true },
-      { name: 'phone', label: 'Phone number', type: 'text', required: true },
+      {
+        name: 'phone',
+        label: 'Phone number',
+        type: 'text',
+        required: true,
+        maxLength: 10,
+      },
       { name: 'email', label: 'Email', type: 'text', required: true },
       { name: 'date_of_birth', label: 'Date of birth', type: 'date' },
       {
@@ -487,9 +493,31 @@ export default function SalesLeadDetails() {
                       </div>
                     </div>
                     <div>
+                      <span className="text-secondary">Phone</span>
+                      <div className="text-primaryText">
+                        {lead.client.phone || '--'}
+                      </div>
+                    </div>
+                    <div>
                       <span className="text-secondary">Status</span>
                       <div className="text-primaryText capitalize">
                         {lead.client.status}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-secondary">Gender</span>
+                      <div className="text-primaryText capitalize">
+                        {lead.client.gender || '--'}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-secondary">Date of birth</span>
+                      <div className="text-primaryText">
+                        {lead.client.date_of_birth
+                          ? new Date(
+                              lead.client.date_of_birth
+                            ).toLocaleDateString()
+                          : '--'}
                       </div>
                     </div>
                     <div>
@@ -498,6 +526,14 @@ export default function SalesLeadDetails() {
                         {lead.client.profile_completed
                           ? 'Completed'
                           : 'Not completed'}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-secondary">Converted at</span>
+                      <div className="text-primaryText">
+                        {lead.client.converted_at
+                          ? new Date(lead.client.converted_at).toLocaleString()
+                          : '--'}
                       </div>
                     </div>
                   </div>
