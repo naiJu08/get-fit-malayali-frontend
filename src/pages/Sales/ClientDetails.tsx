@@ -342,6 +342,81 @@ export default function SalesClientDetails() {
       </section>
 
       <section className="rounded-lg border border-formBorder bg-white p-4">
+        <div className="mb-4 border-b border-formBorder pb-3">
+          <h2 className="font-semibold text-primaryText">
+            Assignment follow-up
+          </h2>
+          <p className="mt-1 text-xs text-secondary">
+            Track service-team progress until the package is confirmed.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <div className="text-xs text-secondary">Package status</div>
+            <div className="mt-1 font-medium capitalize">
+              {client.workflow?.package_confirmation_status || 'Pending'}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-secondary">Next follow-up</div>
+            <div className="mt-1 text-sm">
+              {client.workflow?.next_follow_up?.scheduled_at
+                ? formatDate(client.workflow.next_follow_up.scheduled_at)
+                : 'None scheduled'}
+            </div>
+          </div>
+          <div>
+            <div className="text-xs text-secondary">Follow-up note</div>
+            <div className="mt-1 text-sm">
+              {client.workflow?.next_follow_up?.notes || '--'}
+            </div>
+          </div>
+        </div>
+        {client.assignments?.length ? (
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[600px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-formBorder text-xs text-secondary">
+                  <th className="p-2">Service</th>
+                  <th className="p-2">Assigned staff</th>
+                  <th className="p-2">Progress</th>
+                  <th className="p-2">Next call</th>
+                </tr>
+              </thead>
+              <tbody>
+                {client.assignments.map((assignment: any) => (
+                  <tr
+                    key={assignment.id}
+                    className="border-b border-formBorder last:border-0"
+                  >
+                    <td className="p-2 capitalize">
+                      {assignment.role || '--'}
+                    </td>
+                    <td className="p-2">{assignment.staff_name || '--'}</td>
+                    <td className="p-2 capitalize">
+                      {(assignment.workflow_status || 'pending').replace(
+                        /_/g,
+                        ' '
+                      )}
+                    </td>
+                    <td className="p-2">
+                      {assignment.next_follow_up?.scheduled_at
+                        ? formatDate(assignment.next_follow_up.scheduled_at)
+                        : '--'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="mt-3 text-sm text-secondary">
+            No service assignments yet.
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-lg border border-formBorder bg-white p-4">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-formBorder pb-3">
           <div>
             <h2 className="font-semibold text-primaryText">

@@ -101,6 +101,10 @@ const SalesLeads = lazy(() => import('../pages/Sales/Leads'))
 const SalesLeadDetails = lazy(() => import('../pages/Sales/LeadDetails'))
 const SalesClients = lazy(() => import('../pages/Sales/Clients'))
 const SalesClientDetails = lazy(() => import('../pages/Sales/ClientDetails'))
+const AssignedClients = lazy(() => import('../pages/AssignedClients'))
+const AssignedClientDetails = lazy(
+  () => import('../pages/AssignedClients/Details')
+)
 const PublicLeadConfirmation = lazy(
   () => import('../pages/Sales/PublicConfirmation')
 )
@@ -374,6 +378,54 @@ export default function MainRoutes() {
       <Route
         element={<PublicClientRegistration />}
         path="/public/client-registration/:token"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClients />
+          </UserRoute>
+        }
+        path="/users/nutritionist/assigned-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClients />
+          </UserRoute>
+        }
+        path="/users/physiotherapist/assigned-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClients />
+          </UserRoute>
+        }
+        path="/users/yogist/assigned-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClientDetails />
+          </UserRoute>
+        }
+        path="/users/nutritionist/assigned-clients/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClientDetails />
+          </UserRoute>
+        }
+        path="/users/physiotherapist/assigned-clients/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClientDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/assigned-clients/:id"
       />
       <Route
         element={

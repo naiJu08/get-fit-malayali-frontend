@@ -60,7 +60,7 @@ export const useAdminUser = (input: QueryParams) => {
   return useQuery(
     ['admin_user_list', input, roleName],
     () =>
-      roleName === 'nutritionist'
+      ['nutritionist', 'physiotherapist', 'yogist'].includes(roleName || '')
         ? fetchNutritionistUsers(input)
         : fetchData(input),
     {

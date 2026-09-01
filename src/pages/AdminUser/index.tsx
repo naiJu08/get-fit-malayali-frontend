@@ -5,7 +5,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
-import { DialogModal, TextField } from '../../components/common'
+import { DialogModal, TabContainer, TextField } from '../../components/common'
 import Button from '../../components/common/buttons/Button'
 // import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
@@ -75,6 +75,11 @@ const getSuccessMessage = (response: any, fallback: string) =>
 export default function AdminUser() {
   const navigate = useNavigate()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isServiceStaffLogin = [
+    'nutritionist',
+    'physiotherapist',
+    'yogist',
+  ].includes(loginRole || '')
   const location = useLocation()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
@@ -442,28 +447,68 @@ export default function AdminUser() {
           {/* Clients keep the Client / Inactive Clients tabs; other roles are standalone pages. */}
           <div className="px-4">
             <div className="flex items-center justify-between">
-              {activeRole === 'user' ? (
-                <div className="flex gap-4 border-b">
-                  <button
-                    type="button"
-                    className={
-                      'px-3 py-2 -mb-px ' +
-                      (activeRole === 'user'
-                        ? 'border-b-2 border-blue-600 text-blue-600'
-                        : 'text-gray-600')
-                    }
-                    onClick={() => navigate('/users')}
-                  >
-                    Client
-                  </button>
-                  <button
-                    type="button"
-                    className={'px-3 py-2 -mb-px text-gray-600'}
-                    onClick={() => navigate('/admin/inactive-users')}
-                  >
-                    Inactive Clients
-                  </button>
-                </div>
+              {isServiceStaffLogin ? (
+                <TabContainer
+                  data={[
+                    { id: 'clients', label: 'Clients' },
+                    { id: 'assigned-clients', label: 'Assigned Clients' },
+                    { id: 'inactive-clients', label: 'Inactive Clients' },
+                  ]}
+                  activeTab="clients"
+                  onClick={(tab) =>
+                    navigate(
+                      tab.id === 'clients'
+                        ? '/users'
+                        : tab.id === 'inactive-clients'
+                          ? '/admin/inactive-users'
+                          : '/users/' + loginRole + '/assigned-clients'
+                    )
+                  }
+                >
+                  {null}
+                </TabContainer>
+              ) : activeRole === 'user' ? (
+                <TabContainer
+                  data={[
+                    { id: 'clients', label: 'Client' },
+                    { id: 'assigned-clients', label: 'Assigned Clients' },
+                    { id: 'inactive-clients', label: 'Inactive Clients' },
+                  ]}
+                  activeTab="clients"
+                  onClick={(tab) =>
+                    navigate(
+                      tab.id === 'clients'
+                        ? '/users'
+                        : tab.id === 'inactive-clients'
+                          ? '/admin/inactive-users'
+                          : '/users/nutritionist/assigned-clients'
+                    )
+                  }
+                >
+                  {null}
+                </TabContainer>
+              ) : ['nutritionist', 'physiotherapist', 'yogist'].includes(
+                  activeRole
+                ) && loginRole === activeRole ? (
+                <TabContainer
+                  data={[
+                    { id: 'clients', label: 'Clients' },
+                    { id: 'assigned-clients', label: 'Assigned Clients' },
+                    { id: 'inactive-clients', label: 'Inactive Clients' },
+                  ]}
+                  activeTab="clients"
+                  onClick={(tab) =>
+                    navigate(
+                      tab.id === 'clients'
+                        ? '/users'
+                        : tab.id === 'inactive-clients'
+                          ? '/admin/inactive-users'
+                          : '/users/' + activeRole + '/assigned-clients'
+                    )
+                  }
+                >
+                  {null}
+                </TabContainer>
               ) : (
                 <div />
               )}
