@@ -30,6 +30,7 @@ import apiUrl from '../../../apis/api.url'
 import { getData } from '../../../apis/api.helpers'
 import { getWorkoutPlanSubcategories } from '../../Plans/Details/WorkoutPlan/api'
 import DayDetailTabsSection from './DayDetailTabsSection'
+import { ClientWorkflowDetails } from '../../AssignedClients/WorkflowPanels'
 import jsPDF from 'jspdf'
 
 type DayDetailTab = 'diet' | 'workout' | 'yoga' | 'meditation'
@@ -54,12 +55,16 @@ export default function Subscriptions({
   loading,
   error,
   onRefresh,
+  workflowAssignment,
+  onWorkflowRefresh,
 }: {
   id: string
   user: any
   loading: boolean
   error: string
   onRefresh: (data?: any) => void
+  workflowAssignment?: any
+  onWorkflowRefresh?: () => Promise<any>
 }) {
   const plans = Array.isArray(user?.interested_plans)
     ? user.interested_plans.filter((p: any) => p?.active)
@@ -134,7 +139,7 @@ export default function Subscriptions({
       window.location.reload()
     }
   }, [])
-  const shouldLoadPlans = drawerOpen
+  const shouldLoadPlans = drawerOpen || Boolean(workflowAssignment)
   const shouldLoadWorkouts = assignOpen
   const shouldLoadYoga = yogaAssignOpen
   const shouldLoadMeditations = medAssignOpen
@@ -2928,6 +2933,44 @@ export default function Subscriptions({
       )}
       {!loading && !error && (
         <div className="flex flex-col gap-4">
+          {workflowAssignment && (
+            <div className="flex flex-wrap items-center gap-2">
+              {(workflowAssignment.assignments || [workflowAssignment]).map(
+                (item: any) => (
+                  <span
+                    key={item.id}
+                    className="inline-flex items-center gap-1 rounded-full border border-primaryBlue/30 bg-blue-50 px-3 py-1 text-xs font-medium text-primaryBlue"
+                  >
+                    <span className="capitalize">{item.role || 'service'}</span>
+                    <span className="text-gray-600">
+                      · {item.staff_name || 'Assigned'}
+                    </span>
+                    <span
+                      className={
+                        item.workflow_status === 'pending'
+                          ? 'rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700'
+                          : 'rounded-full px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700'
+                      }
+                    >
+                      {item.workflow_status === 'pending'
+                        ? 'Not accepted'
+                        : 'Accepted'}
+                    </span>
+                  </span>
+                )
+              )}
+            </div>
+          )}
+          {workflowAssignment && onWorkflowRefresh && (
+            <ClientWorkflowDetails
+              assignment={workflowAssignment}
+              assignmentId={workflowAssignment.id}
+              role={loginRole || 'nutritionist'}
+              plans={allPlans}
+              showWorkflowActions={loginRole !== 'superadmin'}
+              onRefresh={onWorkflowRefresh}
+            />
+          )}
           {loginRole !== 'nutritionist' &&
             !hasPlanOverview &&
             !subscribedPlan && (
