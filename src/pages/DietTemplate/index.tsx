@@ -250,7 +250,7 @@ export default function DietTemplateMain() {
         icon: <Icons name="eye" />,
         action: (row: any) => navigate(`/diet-template/${row?.id}`),
         title: 'View',
-        toolTip: 'View Details',
+        toolTip: 'View',
       },
       {
         icon: <Icons name="edit" />,

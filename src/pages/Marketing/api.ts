@@ -63,9 +63,17 @@ export const getCampaignPublicLink = (id: any) =>
 export const useCampaignLeads = (id: any, params: any, userId?: any) =>
   useQuery(
     ['marketing_leads', id, params, userId],
-    () => {
+    async () => {
       if (userId && userId !== 'undefined') {
-        return list(`/admin/users/${userId}/marketing_campaigns/${id}`, params)
+        try {
+          const res = await list(
+            `/admin/users/${userId}/marketing_campaigns/${id}`,
+            params
+          )
+          if (res && (res.leads || res.marketing_leads)) return res
+        } catch {
+          // fallback
+        }
       }
       return list(
         apiUrl.MARKETING_CAMPAIGNS + '/' + id + '/marketing_leads',

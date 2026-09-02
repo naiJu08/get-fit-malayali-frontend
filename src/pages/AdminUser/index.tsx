@@ -553,7 +553,7 @@ export default function AdminUser() {
                       navigate(`${base}/${row?.id}`)
                     },
                     title: 'View',
-                    toolTip: 'View Details',
+                    toolTip: 'View',
                   },
                   {
                     icon: <Icons name="edit" />,

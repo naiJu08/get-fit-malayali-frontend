@@ -350,7 +350,7 @@ export default function InactiveUsers() {
                     navigate(`/users/${row?.id}/details`)
                   },
                   title: 'View',
-                  toolTip: 'View Details',
+                  toolTip: 'View',
                 },
               ]}
               searchValue={pageParams?.search}

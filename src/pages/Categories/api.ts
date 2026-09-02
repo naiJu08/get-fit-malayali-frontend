@@ -120,17 +120,16 @@ export const useUpdateCategories = (
     },
 
     onError: (error: any) => {
-      // enqueueSnackbar(getErrorMessage(error.response.data.error), {
-      //   variant: 'error',
-      // })
-      enqueueSnackbar(
-        error?.response?.data?.detail
-          ? getErrorMessage(error?.response?.data?.detail)
-          : error?.response?.data?.message,
-        {
-          variant: 'error',
-        }
-      )
+      const serverError =
+        error?.response?.data?.errors ??
+        error?.response?.data?.detail ??
+        error?.response?.data?.message ??
+        error?.response?.error ??
+        error
+
+      enqueueSnackbar(getErrorMessage(serverError), {
+        variant: 'error',
+      })
     },
   })
 }
