@@ -7,8 +7,13 @@ import { Icon } from '../../../components/common'
 import { useUserSubscriptionHistory } from '../api'
 import { calcWindowHeight } from '../../../utilities/calcHeight'
 
-const SubscriptionHistory = () => {
-  const { id } = useParams<{ id: string }>()
+interface SubscriptionHistoryProps {
+  userId?: string | number
+}
+
+const SubscriptionHistory = ({ userId }: SubscriptionHistoryProps) => {
+  const { id: routeUserId } = useParams<{ id: string }>()
+  const id = userId ?? routeUserId
   const navigate = useNavigate()
 
   // State for search, pagination, and sorting

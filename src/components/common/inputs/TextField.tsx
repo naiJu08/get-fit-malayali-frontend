@@ -117,6 +117,8 @@ const TextField: React.FC<TextFieldProps> = ({
       return
     }
 
+    if (maxLength && inputValue.length > maxLength) return
+
     if (type === 'number' && allowPositiveOnly) {
       if (
         inputValue === '' ||
@@ -182,6 +184,20 @@ const TextField: React.FC<TextFieldProps> = ({
         (target.selectionEnd ?? 0) - (target.selectionStart ?? 0)
       const nextLength = target.value.length - selectedLength + paste.length
       if (maxLength && nextLength > maxLength) {
+        e.preventDefault()
+      }
+      return
+    }
+
+    if (maxLength) {
+      const target = e.target as HTMLInputElement
+      const selectedLength =
+        (target.selectionEnd ?? 0) - (target.selectionStart ?? 0)
+      const nextLength =
+        target.value.length -
+        selectedLength +
+        e.clipboardData.getData('text').length
+      if (nextLength > maxLength) {
         e.preventDefault()
       }
       return

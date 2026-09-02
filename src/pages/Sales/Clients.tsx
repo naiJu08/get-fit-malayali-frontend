@@ -79,7 +79,9 @@ export default function SalesClients() {
                 accountStatusColor(row.status)
               }
             >
-              {row.status || 'Unknown'}
+              {row.status
+                ? row.status.charAt(0).toUpperCase() + row.status.slice(1)
+                : 'Unknown'}
             </span>
           ),
         }),
@@ -112,10 +114,10 @@ export default function SalesClients() {
         renderCell: (row: any) => ({
           cell: row.profile_completion_url ? (
             <button
-              className="text-blue-600 hover:underline inline-flex items-center gap-1"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100 active:scale-95"
               onClick={() => copy(row.profile_completion_url)}
             >
-              <Icons name="link" /> Copy link
+              <Icons name="link" className="h-3.5 w-3.5" /> Copy link
             </button>
           ) : (
             'Completed'

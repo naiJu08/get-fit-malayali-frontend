@@ -68,6 +68,21 @@ const ROLE_HEADER_LABELS: Record<UserRole, string> = {
   marketing: 'Marketing',
   'inactive-user': 'Inactive Clients',
 }
+const getRoleFromPath = (path: string): UserRole => {
+  const matchedRole = (
+    [
+      'nutritionist',
+      'physiotherapist',
+      'yogist',
+      'sales',
+      'marketing',
+    ] as UserRole[]
+  ).find(
+    (role) =>
+      path === ROLE_PATHS[role] || path.startsWith(ROLE_PATHS[role] + '/')
+  )
+  return matchedRole || 'user'
+}
 
 const getSuccessMessage = (response: any, fallback: string) =>
   response?.message || response?.data?.message || fallback
@@ -108,7 +123,7 @@ export default function AdminUser() {
   } | null>(null)
 
   const params = useParams()
-  const [activeRole, setActiveRole] = useState<UserRole>('user')
+  const activeRole = getRoleFromPath(location.pathname)
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
@@ -119,24 +134,8 @@ export default function AdminUser() {
     search: search,
     ordering: ordering,
     ...filters,
+    role: activeRole,
   }
-  useEffect(() => {
-    const path = location.pathname || ''
-    const role = (
-      [
-        'nutritionist',
-        'physiotherapist',
-        'yogist',
-        'sales',
-        'marketing',
-        'inactive-user',
-        'user',
-      ] as UserRole[]
-    ).find((key) => path.startsWith(ROLE_PATHS[key]))
-    setActiveRole(role || 'user')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname])
-
   // Reset pagination when route/section changes so we always start from page 1
   useEffect(() => {
     setPageParams({
@@ -196,14 +195,6 @@ export default function AdminUser() {
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRole])
-
-  // If logged-in role is nutritionist, ensure the tab stays on 'user'
-  useEffect(() => {
-    if (loginRole === 'nutritionist' && activeRole !== 'user') {
-      setActiveRole('user')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loginRole])
 
   // Ensure role filter follows active tab
   useEffect(() => {
@@ -447,13 +438,31 @@ export default function AdminUser() {
           {/* Clients keep the Client / Inactive Clients tabs; other roles are standalone pages. */}
           <div className="px-4">
             <div className="flex items-center justify-between">
-              {isServiceStaffLogin ? (
+              {activeRole === 'user' ? (
                 <TabContainer
-                  data={[
-                    { id: 'clients', label: 'Clients' },
-                    { id: 'assigned-clients', label: 'Assigned Clients' },
-                    { id: 'inactive-clients', label: 'Inactive Clients' },
-                  ]}
+                  data={
+                    isServiceStaffLogin
+                      ? [
+                          { id: 'clients', label: 'Client' },
+                          { id: 'assigned-clients', label: 'Assigned Clients' },
+                          { id: 'inactive-clients', label: 'Inactive Clients' },
+                        ]
+                      : [
+                          { id: 'clients', label: 'Client' },
+                          { id: 'inactive-clients', label: 'Inactive Clients' },
+                        ]
+                  }
+                  action={
+                    loginRole !== 'nutritionist' &&
+                    checkPermissions('Employee', 'create') ? (
+                      <Button
+                        className="bg-primaryGreen whitespace-nowrap px-3"
+                        label={'Create ' + ROLE_LABELS[activeRole]}
+                        icon={'plus'}
+                        onClick={openDrawer}
+                      />
+                    ) : null
+                  }
                   activeTab="clients"
                   onClick={(tab) =>
                     navigate(
@@ -467,60 +476,21 @@ export default function AdminUser() {
                 >
                   {null}
                 </TabContainer>
-              ) : activeRole === 'user' ? (
-                <TabContainer
-                  data={[
-                    { id: 'clients', label: 'Client' },
-                    { id: 'assigned-clients', label: 'Assigned Clients' },
-                    { id: 'inactive-clients', label: 'Inactive Clients' },
-                  ]}
-                  activeTab="clients"
-                  onClick={(tab) =>
-                    navigate(
-                      tab.id === 'clients'
-                        ? '/users'
-                        : tab.id === 'inactive-clients'
-                          ? '/admin/inactive-users'
-                          : '/users/nutritionist/assigned-clients'
-                    )
-                  }
-                >
-                  {null}
-                </TabContainer>
-              ) : ['nutritionist', 'physiotherapist', 'yogist'].includes(
-                  activeRole
-                ) && loginRole === activeRole ? (
-                <TabContainer
-                  data={[
-                    { id: 'clients', label: 'Clients' },
-                    { id: 'assigned-clients', label: 'Assigned Clients' },
-                    { id: 'inactive-clients', label: 'Inactive Clients' },
-                  ]}
-                  activeTab="clients"
-                  onClick={(tab) =>
-                    navigate(
-                      tab.id === 'clients'
-                        ? '/users'
-                        : tab.id === 'inactive-clients'
-                          ? '/admin/inactive-users'
-                          : '/users/' + activeRole + '/assigned-clients'
-                    )
-                  }
-                >
-                  {null}
-                </TabContainer>
               ) : (
                 <div />
               )}
 
-              {loginRole !== 'nutritionist' &&
+              {activeRole !== 'user' &&
+                loginRole !== 'nutritionist' &&
                 checkPermissions('Employee', 'create') && (
-                  <Button
-                    className="bg-primaryGreen mt-4"
-                    label={'Create ' + ROLE_LABELS[activeRole]}
-                    icon={'plus'}
-                    onClick={openDrawer}
-                  />
+                  <div className="mt-4 flex-shrink-0">
+                    <Button
+                      className="bg-primaryGreen whitespace-nowrap px-3"
+                      label={'Create ' + ROLE_LABELS[activeRole]}
+                      icon={'plus'}
+                      onClick={openDrawer}
+                    />
+                  </div>
                 )}
             </div>
           </div>

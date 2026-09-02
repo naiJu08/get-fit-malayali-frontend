@@ -194,12 +194,14 @@ export default function CampaignDetails() {
           type: 'text',
           required: true,
           placeholder: 'Enter first name',
+          maxLength: 25,
         },
         {
           name: 'last_name',
           label: 'Last name',
           type: 'text',
           placeholder: 'Enter last name',
+          maxLength: 25,
         },
         {
           name: 'email',
@@ -212,6 +214,8 @@ export default function CampaignDetails() {
           label: 'Phone number',
           type: 'text',
           placeholder: 'Enter phone number',
+          maxLength: 10,
+          digitsOnly: true,
         },
       ]
     }
@@ -249,13 +253,18 @@ export default function CampaignDetails() {
         }
       }
 
-      return {
+      const isPhone = fieldType === 'phone' || fieldKey === 'phone'
+      const isName = fieldKey === 'first_name' || fieldKey === 'last_name'
+      const base = {
         name: fieldKey,
         label: field.label || fieldKey,
         type: fieldType === 'textarea' ? 'textarea' : 'text',
         required: Boolean(field.required),
         placeholder: field.placeholder || `Enter ${field.label || fieldKey}`,
       }
+      if (isPhone) return { ...base, maxLength: 10, digitsOnly: true }
+      if (isName) return { ...base, maxLength: 25 }
+      return base
     })
   }, [campaign])
 
@@ -657,8 +666,14 @@ export default function CampaignDetails() {
       title: 'Assigned to',
       field: 'assigned_to.name',
       renderCell: (r: any) => ({
-        cell: r.assigned_to?.name || 'Unassigned',
-        toolTip: r.assigned_to?.name || 'Unassigned',
+        cell: r.assigned_to?.name
+          ? r.assigned_to.name.charAt(0).toUpperCase() +
+            r.assigned_to.name.slice(1)
+          : 'Unassigned',
+        toolTip: r.assigned_to?.name
+          ? r.assigned_to.name.charAt(0).toUpperCase() +
+            r.assigned_to.name.slice(1)
+          : 'Unassigned',
       }),
       customCell: true,
       sortable: false,
