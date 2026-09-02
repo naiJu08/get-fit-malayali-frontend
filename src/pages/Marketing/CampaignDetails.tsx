@@ -666,8 +666,14 @@ export default function CampaignDetails() {
       title: 'Assigned to',
       field: 'assigned_to.name',
       renderCell: (r: any) => ({
-        cell: r.assigned_to?.name || 'Unassigned',
-        toolTip: r.assigned_to?.name || 'Unassigned',
+        cell: r.assigned_to?.name
+          ? r.assigned_to.name.charAt(0).toUpperCase() +
+            r.assigned_to.name.slice(1)
+          : 'Unassigned',
+        toolTip: r.assigned_to?.name
+          ? r.assigned_to.name.charAt(0).toUpperCase() +
+            r.assigned_to.name.slice(1)
+          : 'Unassigned',
       }),
       customCell: true,
       sortable: false,
