@@ -67,19 +67,23 @@ export default function CategoriesMain() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const totalCount = data?.meta?.total_count
+  const calculatedTotalPages =
+    typeof totalCount === 'number'
+      ? Math.max(1, Math.ceil(totalCount / Number(pageParams?.per_page ?? 10)))
+      : null
+
   useEffect(() => {
-    const totalPages = data?.meta?.total_pages
-    if (typeof totalPages === 'number' && totalPages > 0) {
-      if ((pageParams?.page ?? 1) > totalPages) {
-        setPageParams({ ...pageParams, page: totalPages })
+    if (calculatedTotalPages !== null && !isFetching) {
+      if ((pageParams?.page ?? 1) > calculatedTotalPages) {
+        setPageParams({ ...pageParams, page: calculatedTotalPages })
       } else if ((pageParams?.page ?? 1) < 1) {
         setPageParams({ ...pageParams, page: 1 })
       }
-    } else if ((pageParams?.page ?? 1) < 1) {
-      setPageParams({ ...pageParams, page: 1 })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.meta?.total_pages])
+  }, [calculatedTotalPages, isFetching])
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,
@@ -253,19 +257,10 @@ export default function CategoriesMain() {
               paginationProps={{
                 onPagination: onChangePage,
                 total: data?.meta?.total_count ?? 0,
-                currentPage:
-                  typeof data?.meta?.current_page === 'number'
-                    ? (data?.meta?.current_page as number)
-                    : (pageParams?.page ?? 1),
+                currentPage: pageParams?.page ?? 1,
                 rowsPerPage: Number(pageParams?.per_page ?? 10),
                 onRowsPerPage: onChangeRowsPerPage,
-                totalPages: Math.max(
-                  1,
-                  Math.ceil(
-                    (Number(data?.meta?.total_count ?? 0) || 0) /
-                      Number(pageParams?.per_page ?? 10)
-                  )
-                ),
+                totalPages: calculatedTotalPages ?? 1,
                 dropOptions: [10, 20, 30, 50, 100],
               }}
               actionProps={
