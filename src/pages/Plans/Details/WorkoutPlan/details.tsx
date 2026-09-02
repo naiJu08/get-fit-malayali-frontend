@@ -21,6 +21,7 @@ import { useAddExercises } from './api'
 import { TabContainer } from '../../../../components/common'
 import apiUrl from '../../../../apis/api.url'
 import { getData } from '../../../../apis/api.helpers'
+import { formatDurationMinutes } from '../../../../utilities/format'
 import WorkoutPlanForm from './create'
 
 const getWorkoutSelectableId = (item: any) =>
@@ -251,9 +252,7 @@ function AssignTabContent({
                               </span>
                               <span className="items-center gap-1 rounded-sm bg-green-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                                 <Icons name="clock" className="w-3 h-3" />
-                                {ex?.duration_minutes
-                                  ? `${ex.duration_minutes}s`
-                                  : '--'}
+                                {formatDurationMinutes(ex?.duration_minutes)}
                               </span>
                             </div>
                           </div>
@@ -1599,10 +1598,10 @@ export default function WorkoutPlanDetails() {
                                   </span>
                                   <span className="items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                                     <Icons name="clock" className="w-3 h-3" />
-                                    {w?.duration_minutes ||
-                                    w?.workout?.duration_minutes
-                                      ? `${w?.duration_minutes || w?.workout?.duration_minutes}s`
-                                      : '--'}
+                                    {formatDurationMinutes(
+                                      w?.duration_minutes ||
+                                        w?.workout?.duration_minutes
+                                    )}
                                   </span>
                                 </div>
                               </div>

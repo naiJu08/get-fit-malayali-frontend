@@ -39,6 +39,9 @@ export const getErrorMessage = (error: any): string => {
   // Some APIs return an array of validation errors
   if (Array.isArray(error) && error.length > 0) {
     const first = error[0]
+    if (typeof first === 'string') {
+      return error.join(', ')
+    }
     if (first?.ctx?.error) {
       if (Array.isArray(first.ctx.error)) {
         return first.ctx.error.join(', ')
@@ -51,21 +54,25 @@ export const getErrorMessage = (error: any): string => {
       }
       return String(first.msg)
     }
-    // Fall back to stringifying the array
-    return String(error)
+    // Fall back to stringifying the array elements
+    return error
+      .map((e: any) => (typeof e === 'string' ? e : String(e)))
+      .join(', ')
   }
 
   if (error && typeof error === 'object') {
-    if (Array.isArray(error)) {
-      return String(error)
+    if (error.errors) {
+      return getErrorMessage(error.errors)
     }
     if (error.message) {
       if (Array.isArray(error.message)) {
         return error.message.join(', ')
       }
-      return error.message
+      return String(error.message)
     }
-    // console.log('error.msg',error?.0?.msg)
+    if (error.error && typeof error.error === 'string') {
+      return error.error
+    }
   }
 
   return 'An unexpected error occurred'
