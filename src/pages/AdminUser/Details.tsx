@@ -26,10 +26,7 @@ import {
   acceptAssignedClient,
   useAssignedClientForUser,
 } from '../AssignedClients/api'
-import {
-  ClientWorkflowDetails,
-  ClientWorkflowFollowUps,
-} from '../AssignedClients/WorkflowPanels'
+import { ClientWorkflowFollowUps } from '../AssignedClients/WorkflowPanels'
 
 type DetailRole =
   | 'user'
@@ -100,13 +97,15 @@ export default function UserDetails() {
     if (path.startsWith('/users/marketing')) return 'marketing'
     return 'user'
   }, [location.pathname])
+  const isSuperAdmin = loginRole === 'superadmin'
   const isServiceClient =
     ['nutritionist', 'physiotherapist', 'yogist'].includes(loginRole || '') &&
     detailRole === 'user'
+  const isWorkflowViewer = isServiceClient || isSuperAdmin
   const { data: workflowAssignment, refetch: refetchWorkflow } =
     useAssignedClientForUser(
-      isServiceClient ? user?.id : undefined,
-      isServiceClient ? loginRole : undefined
+      isWorkflowViewer ? user?.id : undefined,
+      isWorkflowViewer ? (isSuperAdmin ? 'superadmin' : loginRole) : undefined
     )
   const { enqueueSnackbar } = useSnackbarManager()
   const [acceptingClient, setAcceptingClient] = useState(false)
@@ -270,10 +269,14 @@ export default function UserDetails() {
                     ...(loginRole !== 'nutritionist'
                       ? [{ id: 'reports', label: 'Reports' }]
                       : []),
+                    ...(isSuperAdmin
+                      ? [{ id: 'follow-ups', label: 'Follow-ups' }]
+                      : []),
                   ]),
     ],
     [
       isServiceClient,
+      isSuperAdmin,
       isNutritionist,
       isMarketing,
       isFlatWithClients,
@@ -351,7 +354,7 @@ export default function UserDetails() {
                 </div>
               </div>
             </div>
-            {isServiceClient &&
+            {isWorkflowViewer &&
               workflowAssignment?.workflow_status === 'pending' && (
                 <Button
                   primary
@@ -381,16 +384,8 @@ export default function UserDetails() {
               detailRole={detailRole}
               onEdit={() => setEditModalOpen(true)}
             />
-            {isServiceClient && workflowAssignment && (
-              <ClientWorkflowDetails
-                assignment={workflowAssignment}
-                assignmentId={workflowAssignment.id}
-                role={loginRole || 'nutritionist'}
-                onRefresh={() => refetchWorkflow()}
-              />
-            )}
           </Tab>
-          {isServiceClient && workflowAssignment && (
+          {isWorkflowViewer && workflowAssignment && (
             <Tab id="follow-ups">
               <ClientWorkflowFollowUps
                 assignment={workflowAssignment}
@@ -407,6 +402,17 @@ export default function UserDetails() {
                 loading={loading}
                 error={error}
                 onRefresh={(fresh: any) => fresh && setData(fresh)}
+                workflowAssignment={
+                  isWorkflowViewer ? workflowAssignment : undefined
+                }
+                onWorkflowRefresh={
+                  isWorkflowViewer
+                    ? async () => {
+                        await refetchWorkflow()
+                        await refreshUserDetails()
+                      }
+                    : undefined
+                }
               />
             </Tab>
           )}
