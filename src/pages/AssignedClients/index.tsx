@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
@@ -34,9 +35,9 @@ const statusLabel = (value?: string) =>
 
 export default function AssignedClients() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const location = useLocation()
   const role = roleFromPath(location.pathname)
-  const label = ROLE_LABELS[role]
   const [params, setParams] = useState({ page: 1, per_page: 20, search: '' })
   const { data, isFetching, refetch } = useAssignedClientWorkflow(role, params)
   const { enqueueSnackbar } = useSnackbarManager()
@@ -50,7 +51,19 @@ export default function AssignedClients() {
       enqueueSnackbar(response?.message || 'Client accepted successfully', {
         variant: 'success',
       })
-      await refetch()
+      const refreshed = await refetch()
+      await queryClient.invalidateQueries({
+        queryKey: ['admin_user_list'],
+        refetchType: 'all',
+      })
+
+      const totalPages = Math.max(
+        Number(refreshed.data?.meta?.total_pages) || 1,
+        1
+      )
+      if (params.page > totalPages) {
+        setParams({ ...params, page: totalPages })
+      }
     } catch (error: any) {
       enqueueSnackbar(
         getErrorMessage(error) ||
@@ -66,25 +79,19 @@ export default function AssignedClients() {
   const columns = useMemo(
     () => [
       {
-        title: 'Client',
+        title: 'Name',
         field: 'user_name',
         customCell: true,
+        link: true,
+        rowClick: (row: any) => navigate(location.pathname + '/' + row.id),
         renderCell: (row: any) => ({
-          cell: (
-            <div>
-              <div className="font-medium text-gray-900">
-                {row.user_name || '--'}
-              </div>
-              <div className="text-xs text-secondary">
-                {row.user_email || '--'}
-              </div>
-            </div>
-          ),
-          toolTip: row.user_email || '',
+          cell: row.user_name || '--',
+          toolTip: row.user_name || '',
         }),
         isVisible: true,
       },
-      { title: 'Phone', field: 'user_phone', isVisible: true },
+      { title: 'Phone Number', field: 'user_phone', isVisible: true },
+      { title: 'Email', field: 'user_email', isVisible: true },
       {
         title: 'Anticipated package',
         field: 'anticipated_package',
@@ -120,34 +127,36 @@ export default function AssignedClients() {
         isVisible: true,
       },
     ],
-    []
+    [location.pathname, navigate]
   )
 
   return (
     <div>
       <ListingHeader
-        data={{ title: label + ' Assigned Clients', icon: 'user' }}
+        data={{ title: 'Clients', icon: 'user' }}
         checkPermission={false}
       />
-      <TabContainer
-        data={[
-          { id: 'clients', label: 'Clients' },
-          { id: 'assigned-clients', label: 'Assigned Clients' },
-          { id: 'inactive-clients', label: 'Inactive Clients' },
-        ]}
-        activeTab="assigned-clients"
-        onClick={(tab) =>
-          navigate(
-            tab.id === 'clients'
-              ? '/users'
-              : tab.id === 'inactive-clients'
-                ? '/admin/inactive-users'
-                : '/users/' + role + '/assigned-clients'
-          )
-        }
-      >
-        {null}
-      </TabContainer>
+      <div className="px-4">
+        <TabContainer
+          data={[
+            { id: 'clients', label: 'Client' },
+            { id: 'assigned-clients', label: 'Assigned Clients' },
+            { id: 'inactive-clients', label: 'Inactive Clients' },
+          ]}
+          activeTab="assigned-clients"
+          onClick={(tab) =>
+            navigate(
+              tab.id === 'clients'
+                ? '/users'
+                : tab.id === 'inactive-clients'
+                  ? '/admin/inactive-users'
+                  : '/users/' + role + '/assigned-clients'
+            )
+          }
+        >
+          {null}
+        </TabContainer>
+      </div>
       <div className="p-4">
         <SmartTable
           data={clients}
@@ -158,7 +167,8 @@ export default function AssignedClients() {
               title: 'View',
               toolTip: 'View assigned client',
               icon: <Icons name="eye" />,
-              action: (row: any) => navigate(location.pathname + '/' + row.id),
+              action: (row: any) =>
+                navigate('/users/' + row.user_id + '/details'),
             },
             {
               title: 'Accept',
@@ -170,6 +180,7 @@ export default function AssignedClients() {
               disabled: (row: any) => acceptingId === row.id,
             },
           ]}
+          externalActions
           toolbar
           search
           searchPlaceholder="Search assigned clients"

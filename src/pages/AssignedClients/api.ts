@@ -11,7 +11,7 @@ export const useAssignedClientWorkflow = (
 ) =>
   useQuery(
     ['assigned_client_workflow', role, params],
-    () => list({ ...params, role }),
+    () => list({ ...params, role, status: 'pending' }),
     {
       select: (data: any) => ({
         items: data?.assigned_clients || [],
@@ -25,6 +25,30 @@ export const useAssignedClientDetail = (id?: string) =>
     ['assigned_client_workflow_detail', id],
     () => getData('/assigned_clients/' + id),
     { enabled: Boolean(id) }
+  )
+
+export const useAssignedClientForUser = (
+  userId?: string | number,
+  role?: string
+) =>
+  useQuery(
+    ['assigned_client_workflow_client', userId, role],
+    async () => {
+      const response = await getData(
+        '/assigned_clients' +
+          parseQueryParams({
+            user_id: userId,
+            role,
+            include_all: true,
+            per_page: 1,
+          })
+      )
+      const assignment = response?.assigned_clients?.[0]
+      if (!assignment?.id) return null
+      const detail = await getData('/assigned_clients/' + assignment.id)
+      return detail?.assigned_client || null
+    },
+    { enabled: Boolean(userId && role) }
   )
 
 export const acceptAssignedClient = (id: string | number) =>

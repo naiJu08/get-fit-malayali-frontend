@@ -4,7 +4,12 @@ import { useNavigate } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
-import { DialogModal, TabContainer, TextField } from '../../components/common'
+import {
+  Button,
+  DialogModal,
+  TabContainer,
+  TextField,
+} from '../../components/common'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 // import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
@@ -25,9 +30,18 @@ import { getInactiveUserColumns } from './inactiveUserColumns'
 import Icons from '../../components/common/icons'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
+import { useAuthStore } from '../../store/authStore'
 
 export default function InactiveUsers() {
   const navigate = useNavigate()
+  const loginRole = useAuthStore((state) =>
+    state.roleData?.name?.toLowerCase?.()
+  )
+  const isServiceStaffLogin = [
+    'nutritionist',
+    'physiotherapist',
+    'yogist',
+  ].includes(loginRole || '')
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
   const [deleteItem, setDeleteItem] = useState('')
@@ -204,7 +218,7 @@ export default function InactiveUsers() {
   }
 
   const basicData = {
-    title: 'Inactive Clients',
+    title: 'Clients',
     icon: 'user',
   }
 
@@ -256,18 +270,33 @@ export default function InactiveUsers() {
           {/* Role Tabs */}
           <div className="px-4">
             <TabContainer
-              data={[
-                { id: 'clients', label: 'Clients' },
-                { id: 'assigned-clients', label: 'Assigned Clients' },
-                { id: 'inactive-clients', label: 'Inactive Clients' },
-              ]}
+              data={
+                isServiceStaffLogin
+                  ? [
+                      { id: 'clients', label: 'Client' },
+                      { id: 'assigned-clients', label: 'Assigned Clients' },
+                      { id: 'inactive-clients', label: 'Inactive Clients' },
+                    ]
+                  : [
+                      { id: 'clients', label: 'Client' },
+                      { id: 'inactive-clients', label: 'Inactive Clients' },
+                    ]
+              }
+              action={
+                <Button
+                  className="bg-primaryGreen whitespace-nowrap px-3"
+                  label="Download Excel"
+                  icon="download"
+                  onClick={handleDownloadExcel}
+                />
+              }
               activeTab="inactive-clients"
               onClick={(tab) =>
                 navigate(
                   tab.id === 'clients'
                     ? '/users'
                     : tab.id === 'assigned-clients'
-                      ? '/users/nutritionist/assigned-clients'
+                      ? '/users/' + loginRole + '/assigned-clients'
                       : '/admin/inactive-users'
                 )
               }
@@ -288,15 +317,6 @@ export default function InactiveUsers() {
                 </div>
               </div>
             </div> */}
-            <div className="flex justify-end mb-3">
-              <button
-                onClick={handleDownloadExcel}
-                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-              >
-                <Icons name="download" />
-                Download Excel
-              </button>
-            </div>
             <SmartTable
               data={data?.items ?? []}
               dataRowKey="id"

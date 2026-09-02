@@ -375,6 +375,7 @@ export interface TabProps {
   data: TabItemProps[]
   activeTab: string | number
   onClick: (item: TabItemProps) => void
+  action?: React.ReactNode
 
   children: React.ReactNode
 }
