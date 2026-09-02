@@ -359,6 +359,22 @@ export default function MainRoutes() {
             <MarketingLeadDetails />
           </UserRoute>
         }
+        path="/users/marketing/:userId/campaigns/:campaignId/leads/:leadId"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:userId/campaigns/:campaignId/leads/:leadId/:tab"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
         path="/marketing/leads/:leadId"
       />
       <Route

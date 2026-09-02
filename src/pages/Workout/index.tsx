@@ -425,7 +425,7 @@ export default function WorkoutMain() {
                         icon: <Icons name="eye" />,
                         action: (row) => navigate(`/workout/${row?.id}`),
                         title: 'View',
-                        toolTip: 'View Details',
+                        toolTip: 'View',
                       },
                       {
                         icon: <Icons name="edit" />,
