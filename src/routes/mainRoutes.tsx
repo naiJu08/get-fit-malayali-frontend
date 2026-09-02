@@ -5,6 +5,7 @@ import { Route, Routes } from 'react-router-dom'
 // import TabularLoader from '../components/common/tabularLoader'
 import { router_config } from '../configs/route.config'
 import ResetPassword from '../pages/userManagement/resetPasswords'
+import AssignedClients from '../pages/AssignedClients'
 // import ResetPassword from '../pages/userManagement/resetpassword'
 import ChildRoute from './components/childRoute'
 // import ChildRoute from './components/childRoute'
@@ -101,7 +102,6 @@ const SalesLeads = lazy(() => import('../pages/Sales/Leads'))
 const SalesLeadDetails = lazy(() => import('../pages/Sales/LeadDetails'))
 const SalesClients = lazy(() => import('../pages/Sales/Clients'))
 const SalesClientDetails = lazy(() => import('../pages/Sales/ClientDetails'))
-const AssignedClients = lazy(() => import('../pages/AssignedClients'))
 const AssignedClientDetails = lazy(
   () => import('../pages/AssignedClients/Details')
 )
@@ -627,6 +627,14 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/users/marketing/:id/campaigns"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/:id/follow-ups"
       />
       <Route
         element={

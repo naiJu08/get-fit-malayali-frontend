@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 
 import Icons from '../../components/common/icons'
+import Button from '../../components/common/buttons/Button'
 import { getAdminDetails, getActivePlanOverview } from './api'
 import { Tab, TabContainer } from '../../components/common/tab'
 import DetailsInfo from './Details/DetailsInfo'
@@ -20,6 +21,15 @@ import UserCampaigns from './Details/UserCampaigns'
 import { useAuthStore } from '../../store/authStore'
 import CreateAdmin from './create'
 import MarketingFormsTab from './Details/MarketingFormsTab'
+import { useSnackbarManager } from '../../components/common/snackbar'
+import {
+  acceptAssignedClient,
+  useAssignedClientForUser,
+} from '../AssignedClients/api'
+import {
+  ClientWorkflowDetails,
+  ClientWorkflowFollowUps,
+} from '../AssignedClients/WorkflowPanels'
 
 type DetailRole =
   | 'user'
@@ -90,6 +100,38 @@ export default function UserDetails() {
     if (path.startsWith('/users/marketing')) return 'marketing'
     return 'user'
   }, [location.pathname])
+  const isServiceClient =
+    ['nutritionist', 'physiotherapist', 'yogist'].includes(loginRole || '') &&
+    detailRole === 'user'
+  const { data: workflowAssignment, refetch: refetchWorkflow } =
+    useAssignedClientForUser(
+      isServiceClient ? user?.id : undefined,
+      isServiceClient ? loginRole : undefined
+    )
+  const { enqueueSnackbar } = useSnackbarManager()
+  const [acceptingClient, setAcceptingClient] = useState(false)
+
+  const acceptClient = async () => {
+    if (!workflowAssignment?.id) return
+    try {
+      setAcceptingClient(true)
+      const response = await acceptAssignedClient(workflowAssignment.id)
+      enqueueSnackbar(response?.message || 'Client accepted successfully', {
+        variant: 'success',
+      })
+      await refetchWorkflow()
+    } catch (error: any) {
+      enqueueSnackbar(
+        error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          'Unable to accept client',
+        { variant: 'error' }
+      )
+    } finally {
+      setAcceptingClient(false)
+    }
+  }
+
   const isNutritionist = (() => {
     const r = user?.role
     if (r === 2 || r === '2') return true
@@ -171,6 +213,7 @@ export default function UserDetails() {
     | 'reports'
     | 'reminders'
     | 'additional-info'
+    | 'follow-ups'
     | 'forms'
     | 'campaigns'
 
@@ -184,36 +227,59 @@ export default function UserDetails() {
   const tabs = useMemo(
     () => [
       { id: 'details', label: 'Details' },
-      ...(isNutritionist
+      ...(isServiceClient
         ? [
-            { id: 'clients', label: 'Clients' },
+            { id: 'subscriptions', label: 'Subscriptions' },
+            { id: 'body', label: 'Body measurements' },
+            { id: 'vitals', label: 'Vitals' },
+            { id: 'reminders', label: 'Reminder settings' },
+            { id: 'recipes', label: 'Recipes' },
+            { id: 'additional-info', label: 'Nutritional assessment' },
+            { id: 'subscription-history', label: 'Subscription history' },
             { id: 'diet-history', label: 'Diet history' },
+            { id: 'reports', label: 'Reports' },
+            { id: 'follow-ups', label: 'Follow-ups' },
           ]
-        : isMarketing
+        : isNutritionist
           ? [
-              { id: 'forms', label: 'Forms' },
-              { id: 'campaigns', label: 'Campaigns' },
+              { id: 'clients', label: 'Clients' },
+              { id: 'diet-history', label: 'Diet history' },
             ]
-          : isFlatWithClients
-            ? [{ id: 'clients', label: 'Clients' }]
-            : isSales
-              ? []
-              : [
-                  { id: 'subscriptions', label: 'Subscriptions' },
-                  { id: 'body', label: 'Body measurements' },
-                  // { id: 'body-composition', label: 'Body composition' },
-                  { id: 'vitals', label: 'Vitals' },
-                  { id: 'reminders', label: 'Reminder settings' },
-                  { id: 'recipes', label: 'Recipes' },
-                  { id: 'additional-info', label: 'Nutritional assessment' },
-                  { id: 'subscription-history', label: 'Subscription history' },
-                  { id: 'diet-history', label: 'Diet history' },
-                  ...(loginRole !== 'nutritionist'
-                    ? [{ id: 'reports', label: 'Reports' }]
-                    : []),
-                ]),
+          : isMarketing
+            ? [
+                { id: 'forms', label: 'Forms' },
+                { id: 'campaigns', label: 'Campaigns' },
+              ]
+            : isFlatWithClients
+              ? [{ id: 'clients', label: 'Clients' }]
+              : isSales
+                ? []
+                : [
+                    { id: 'subscriptions', label: 'Subscriptions' },
+                    { id: 'body', label: 'Body measurements' },
+                    // { id: 'body-composition', label: 'Body composition' },
+                    { id: 'vitals', label: 'Vitals' },
+                    { id: 'reminders', label: 'Reminder settings' },
+                    { id: 'recipes', label: 'Recipes' },
+                    { id: 'additional-info', label: 'Nutritional assessment' },
+                    {
+                      id: 'subscription-history',
+                      label: 'Subscription history',
+                    },
+                    { id: 'diet-history', label: 'Diet history' },
+                    ...(loginRole !== 'nutritionist'
+                      ? [{ id: 'reports', label: 'Reports' }]
+                      : []),
+                  ]),
     ],
-    [isNutritionist, isMarketing, isFlatWithClients, isSales, loginRole]
+    [
+      isServiceClient,
+      isNutritionist,
+      isMarketing,
+      isFlatWithClients,
+      isSales,
+      loginRole,
+    ]
   )
 
   const handleTabClick = (item: { id: string | number; label: string }) => {
@@ -246,43 +312,54 @@ export default function UserDetails() {
         {/* User Information Breadcrumb */}
         {/* User Header */}
         <div className="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-          <div>
-            {/* Name row */}
-            <div className="flex items-center">
-              <button
-                onClick={() => navigate(pathBase)}
-                className="rounded-lg hover:bg-gray-100 transition"
-                aria-label="Back"
-              >
-                <Icons name="left-arrow-icon" />
-              </button>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              {/* Name row */}
+              <div className="flex items-center">
+                <button
+                  onClick={() => navigate(pathBase)}
+                  className="rounded-lg hover:bg-gray-100 transition"
+                  aria-label="Back"
+                >
+                  <Icons name="left-arrow-icon" />
+                </button>
 
-              <h1 className="text-xl font-semibold text-gray-900">
-                {user?.name || 'User'}
-              </h1>
-            </div>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  {user?.name || 'User'}
+                </h1>
+              </div>
 
-            {/* User meta info */}
-            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm ml-3">
-              {user?.email && (
-                <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-green-50 text-green-700">
-                  <span className="font-medium">Email:</span>
-                  <span>{user.email}</span>
+              {/* User meta info */}
+              <div className="flex flex-wrap items-center gap-3 mt-2 text-sm ml-3">
+                {user?.email && (
+                  <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-green-50 text-green-700">
+                    <span className="font-medium">Email:</span>
+                    <span>{user.email}</span>
+                  </div>
+                )}
+
+                {user?.phone && (
+                  <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-purple-50 text-purple-700">
+                    <span className="font-medium">Phone:</span>
+                    <span>{user.phone}</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 capitalize">
+                  <span className="font-medium">Role:</span>
+                  <span>{DETAIL_ROLE_LABELS[detailRole]}</span>
                 </div>
-              )}
-
-              {user?.phone && (
-                <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-purple-50 text-purple-700">
-                  <span className="font-medium">Phone:</span>
-                  <span>{user.phone}</span>
-                </div>
-              )}
-
-              <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 capitalize">
-                <span className="font-medium">Role:</span>
-                <span>{DETAIL_ROLE_LABELS[detailRole]}</span>
               </div>
             </div>
+            {isServiceClient &&
+              workflowAssignment?.workflow_status === 'pending' && (
+                <Button
+                  primary
+                  label="Accept client"
+                  onClick={acceptClient}
+                  isLoading={acceptingClient}
+                />
+              )}
           </div>
         </div>
 
@@ -304,7 +381,24 @@ export default function UserDetails() {
               detailRole={detailRole}
               onEdit={() => setEditModalOpen(true)}
             />
+            {isServiceClient && workflowAssignment && (
+              <ClientWorkflowDetails
+                assignment={workflowAssignment}
+                assignmentId={workflowAssignment.id}
+                role={loginRole || 'nutritionist'}
+                onRefresh={() => refetchWorkflow()}
+              />
+            )}
           </Tab>
+          {isServiceClient && workflowAssignment && (
+            <Tab id="follow-ups">
+              <ClientWorkflowFollowUps
+                assignment={workflowAssignment}
+                assignmentId={workflowAssignment.id}
+                onRefresh={() => refetchWorkflow()}
+              />
+            </Tab>
+          )}
           {!isNutritionist && !isFlatRole && (
             <Tab id="subscriptions">
               <Subscriptions
@@ -356,11 +450,13 @@ export default function UserDetails() {
               <DietHistory subscriptionId={subscriptionId} />
             </Tab>
           )}
-          {!isNutritionist && !isFlatRole && loginRole !== 'nutritionist' && (
-            <Tab id="reports">
-              <Reports user={user} subscriptionId={subscriptionId} />
-            </Tab>
-          )}
+          {!isNutritionist &&
+            !isFlatRole &&
+            (loginRole !== 'nutritionist' || isServiceClient) && (
+              <Tab id="reports">
+                <Reports user={user} subscriptionId={subscriptionId} />
+              </Tab>
+            )}
           {(isNutritionist || isFlatWithClients) && (
             <Tab id="clients">
               <Clients user={user} />

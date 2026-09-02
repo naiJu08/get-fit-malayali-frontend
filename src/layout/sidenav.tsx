@@ -134,13 +134,14 @@ export default function Sidenav() {
       const candidates = candidatePathsForItem(item as RouterMenuProps)
       if (
         item.key === 'client-users' &&
+        String(roleData?.name || '').toLowerCase() === 'superadmin' &&
         ROLE_USER_PATHS.some((base) => pathMatches(pathname, base))
       ) {
         return false
       }
       return candidates.some((candidate) => pathMatches(pathname, candidate))
     },
-    [pathname, candidatePathsForItem, pathMatches]
+    [pathname, candidatePathsForItem, pathMatches, roleData?.name]
   )
 
   const verifyChildLink = useCallback(

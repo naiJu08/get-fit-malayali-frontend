@@ -29,7 +29,7 @@ const TabContainer: React.FC<TabProps> = ({
   data,
   onClick,
   children,
-
+  action,
   activeTab,
 }) => {
   const generateClassName = (tab: TabItemProps): string => {
@@ -67,31 +67,29 @@ const TabContainer: React.FC<TabProps> = ({
     }
   }
   return (
-    <div className="w-full ">
-      <div className="w-full relative border-b border-formBorder  tab-scroll flex px-5 bg-white  gap-2 ">
-        {data.map((tab: TabItemProps) => (
-          <>
-            {/* {checkMultiplePermission(tab?.id as string) && ( */}
-            {!tab.hide && (
-              <div
-                key={tab.id}
-                className={` transition-all relative z-10 duration-100 text-sm font-medium p-2.5 ${generateClassName(
-                  tab
-                )} border-b-2 `}
-                onClick={() => {
-                  handleClick(tab)
-                }}
-              >
-                <p className="w-max ">{tab.label}</p>
-              </div>
-            )}
-            {/* )} */}
-          </>
-        ))}
+    <div className="w-full">
+      <div className="flex w-full items-center gap-3 border-b border-formBorder bg-white px-5">
+        <div className="tab-scroll flex min-w-0 flex-1 gap-2">
+          {data.map((tab: TabItemProps) => (
+            <React.Fragment key={tab.id}>
+              {!tab.hide && (
+                <div
+                  className={`relative z-10 w-max border-b-2 p-2.5 text-sm font-medium transition-all duration-100 ${generateClassName(
+                    tab
+                  )}`}
+                  onClick={() => handleClick(tab)}
+                >
+                  <p className="w-max">{tab.label}</p>
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+        {action ? <div className="flex-shrink-0 py-2">{action}</div> : null}
       </div>
       {children ? (
-        <div className="">
-          <div className="tab-section py-4 rounded overflow-hidden">
+        <div>
+          <div className="tab-section overflow-hidden rounded py-4">
             <Wrapper activeTab={activeTab}>{children}</Wrapper>
           </div>
         </div>
