@@ -3,7 +3,8 @@ import { FormProvider, useForm } from 'react-hook-form'
 import { DialogModal } from '../../../components/common'
 import FormBuilder from '../../../components/app/formBuilder'
 import { useSnackbarManager } from '../../../components/common/snackbar'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { getErrorMessage } from '../../../utilities/parsers'
 import { createWorkoutTemplate, updateWorkoutTemplate } from '../api'
 import {
   workoutTemplateSchema,
@@ -23,13 +24,14 @@ export default function WorkoutTemplateForm({
   edit?: boolean
   onSuccess?: () => void
 }) {
+  const [submitting, setSubmitting] = useState(false)
   const methods = useForm<WorkoutTemplateValues>({
     resolver: zodResolver(workoutTemplateSchema),
     mode: 'onChange',
     defaultValues: {
       name: '',
       description: '',
-      intensity_level: 'Moderate',
+      intensity_level: '',
       duration_days: 7,
       notes: '',
     },
@@ -42,34 +44,50 @@ export default function WorkoutTemplateForm({
     reset({
       name: rowData?.name || '',
       description: rowData?.description || '',
-      intensity_level: rowData?.intensity_level || 'Moderate',
+      intensity_level: rowData?.intensity_level || '',
       duration_days: Number(rowData?.duration_days || 7),
       notes: rowData?.notes || '',
     })
   }, [isOpen, rowData, reset])
 
   const submit = async (values: WorkoutTemplateValues) => {
-    const rawName = String(values.name || '').trim()
-    const capitalizedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
-    const data = new FormData()
-    data.append('workout_template[name]', capitalizedName)
-    data.append('workout_template[description]', values.description)
-    data.append('workout_template[intensity_level]', values.intensity_level)
-    data.append('workout_template[duration_days]', String(values.duration_days))
-    data.append('workout_template[notes]', values.notes || '')
-    const response: any =
-      edit && rowData?.id
-        ? await updateWorkoutTemplate({ id: rowData.id, data })
-        : await createWorkoutTemplate(data)
-    enqueueSnackbar(
-      response?.message ||
-        (edit
-          ? 'Workout template updated successfully'
-          : 'Workout template created successfully'),
-      { variant: 'success' }
-    )
-    onSuccess?.()
-    handleClose()
+    try {
+      setSubmitting(true)
+      const rawName = String(values.name || '').trim()
+      const capitalizedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
+      const data = new FormData()
+      data.append('workout_template[name]', capitalizedName)
+      data.append('workout_template[description]', values.description)
+      data.append('workout_template[intensity_level]', values.intensity_level)
+      data.append(
+        'workout_template[duration_days]',
+        String(values.duration_days)
+      )
+      data.append('workout_template[notes]', values.notes || '')
+      const response: any =
+        edit && rowData?.id
+          ? await updateWorkoutTemplate({ id: rowData.id, data })
+          : await createWorkoutTemplate(data)
+      enqueueSnackbar(
+        response?.message ||
+          (edit
+            ? 'Workout template updated successfully'
+            : 'Workout template created successfully'),
+        { variant: 'success' }
+      )
+      onSuccess?.()
+      handleClose()
+    } catch (err: any) {
+      const serverError =
+        err?.response?.data?.errors ??
+        err?.response?.data?.detail ??
+        err?.response?.data?.message ??
+        err?.response?.error ??
+        err
+      enqueueSnackbar(getErrorMessage(serverError), { variant: 'error' })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const fields: any[] = [
@@ -126,6 +144,7 @@ export default function WorkoutTemplateForm({
       onClose={handleClose}
       title={edit ? 'Edit Workout Template' : 'Create Workout Template'}
       actionLabel={edit ? 'Update' : 'Create'}
+      actionLoader={submitting}
       onSubmit={handleSubmit(submit)}
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"
