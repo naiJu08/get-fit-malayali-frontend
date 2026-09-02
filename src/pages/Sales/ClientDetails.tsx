@@ -1,5 +1,5 @@
 import moment from 'moment'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -59,18 +59,34 @@ export default function SalesClientDetails() {
   const { id = '' } = useParams()
   const { enqueueSnackbar } = useSnackbarManager()
   const { data, isLoading, refetch } = useSalesClient(id)
-  const { data: packagesData, isFetching: packagesLoading } = useSalesPackages({
-    page: 1,
-    per_page: 100,
-    search: '',
-  })
   const client = data?.client
-  const packages = useMemo(
+  const [pkgSearchInput, setPkgSearchInput] = useState('')
+  const [pkgSearch, setPkgSearch] = useState('')
+  const [pkgPage, setPkgPage] = useState(1)
+  const pkgPageSize = 4
+  const isSearching = pkgSearch.trim().length > 0
+  const { data: packagesData, isFetching: packagesLoading } = useSalesPackages({
+    page: isSearching ? pkgPage : 1,
+    per_page: isSearching ? pkgPageSize : 100,
+    search: pkgSearch,
+  })
+  const allPackages = useMemo(
     () => packagesData?.packages || [],
     [packagesData?.packages]
   )
+  const pkgTotalPages = isSearching
+    ? packagesData?.total_pages ||
+      Math.max(1, Math.ceil((packagesData?.total || 0) / pkgPageSize))
+    : Math.max(1, Math.ceil(allPackages.length / pkgPageSize))
+  const packages = useMemo(() => {
+    if (isSearching) return allPackages
+    const start = (pkgPage - 1) * pkgPageSize
+    return allPackages.slice(start, start + pkgPageSize)
+  }, [allPackages, pkgPage, isSearching])
+  const pkgTotal = isSearching ? packagesData?.total || 0 : allPackages.length
   const [proposalModal, setProposalModal] = useState(false)
   const [editingProposal, setEditingProposal] = useState<any>(null)
+  const [proposalStep, setProposalStep] = useState(1)
   const [assignmentRole, setAssignmentRole] = useState('')
   const [proposalLoading, setProposalLoading] = useState(false)
   const [assignmentLoading, setAssignmentLoading] = useState(false)
@@ -82,6 +98,14 @@ export default function SalesClientDetails() {
   })
   const [staffSearch, setStaffSearch] = useState('')
   const [staffPage, setStaffPage] = useState(1)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPkgSearch(pkgSearchInput)
+      setPkgPage(1)
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [pkgSearchInput])
   const selectedPlanId = proposalMethods.watch('plan_id')
   const anticipatedStart = proposalMethods.watch('start_date')
   const selectedPlan = packages.find(
@@ -95,43 +119,43 @@ export default function SalesClientDetails() {
         )
       : null
 
-  const proposalFields = useMemo(
-    () => [
-      {
-        name: 'plan_name',
-        id: 'plan_id',
-        label: 'Package plan',
-        type: 'custom_select',
-        desc: 'name',
-        descId: 'id',
-        data: packages,
-        required: true,
-        placeholder: packagesLoading
-          ? 'Loading active plans...'
-          : 'Select active plan',
-        disabled: packagesLoading,
-      },
-      {
-        name: 'start_date',
-        id: 'start_date',
-        label: 'Anticipated start date',
-        type: 'date',
-        required: true,
-        minDate: new Date(),
-      },
-      {
-        name: 'notes',
-        id: 'notes',
-        label: 'Notes',
-        type: 'textarea',
-        rows: 5,
-        maxLength: 500,
-        fullWidth: true,
-        placeholder: 'Optional notes for this proposed assignment',
-      },
-    ],
-    [packages, packagesLoading]
-  )
+  // const proposalFields = useMemo(
+  //   () => [
+  //     {
+  //       name: 'plan_name',
+  //       id: 'plan_id',
+  //       label: 'Package plan',
+  //       type: 'custom_select',
+  //       desc: 'name',
+  //       descId: 'id',
+  //       data: packages,
+  //       required: true,
+  //       placeholder: packagesLoading
+  //         ? 'Loading active plans...'
+  //         : 'Select active plan',
+  //       disabled: packagesLoading,
+  //     },
+  //     {
+  //       name: 'start_date',
+  //       id: 'start_date',
+  //       label: 'Anticipated start date',
+  //       type: 'date',
+  //       required: true,
+  //       minDate: new Date(),
+  //     },
+  //     {
+  //       name: 'notes',
+  //       id: 'notes',
+  //       label: 'Notes',
+  //       type: 'textarea',
+  //       rows: 5,
+  //       maxLength: 500,
+  //       fullWidth: true,
+  //       placeholder: 'Optional notes for this proposed assignment',
+  //     },
+  //   ],
+  //   [packages, packagesLoading]
+  // )
 
   const selectedStaffId = assignmentMethods.watch('staff_user_id')
   const activeStaff = useMemo(() => {
@@ -165,6 +189,10 @@ export default function SalesClientDetails() {
       start_date: proposal?.start_date || '',
       notes: proposal?.notes || '',
     })
+    setProposalStep(1)
+    setPkgSearchInput('')
+    setPkgSearch('')
+    setPkgPage(1)
     setProposalModal(true)
   }
 
@@ -532,35 +560,309 @@ export default function SalesClientDetails() {
         onClose={() => {
           setProposalModal(false)
           setEditingProposal(null)
+          setProposalStep(1)
         }}
         title={
           editingProposal ? 'Edit proposed package' : 'Add proposed package'
         }
-        subTitle="Select an active package and anticipated start date. The end date is calculated from the package duration."
-        actionLabel={editingProposal ? 'Update proposal' : 'Save proposed plan'}
+        subTitle={
+          proposalStep === 1
+            ? 'Select a package plan for the client.'
+            : 'Set start date and optional notes.'
+        }
+        actionLabel={
+          proposalStep === 1
+            ? 'Next'
+            : editingProposal
+              ? 'Update proposal'
+              : 'Save proposed plan'
+        }
         actionLoader={proposalLoading}
-        onSubmit={saveProposal}
-        secondaryAction={() => {
-          setProposalModal(false)
-          setEditingProposal(null)
+        onSubmit={() => {
+          if (proposalStep === 1) {
+            const planId = proposalMethods.getValues('plan_id')
+            if (!planId) {
+              enqueueSnackbar('Please select a package plan.', {
+                variant: 'error',
+              })
+              return
+            }
+            setProposalStep(2)
+          } else {
+            saveProposal()
+          }
         }}
-        secondaryActionLabel="Cancel"
+        secondaryAction={() => {
+          if (proposalStep === 2) {
+            setProposalStep(1)
+          } else {
+            setProposalModal(false)
+            setEditingProposal(null)
+          }
+        }}
+        secondaryActionLabel={proposalStep === 2 ? 'Back' : 'Cancel'}
         small={false}
         className="w-full max-w-4xl"
         body={
           <div>
-            <FormProvider {...proposalMethods}>
-              <FormBuilder data={proposalFields} edit spacing />
-            </FormProvider>
-            {anticipatedEnd && (
-              <div className="mt-4 rounded-lg border border-formBorder bg-cardWrapperBg p-4">
-                <div className="text-xs text-secondary">
-                  Automatically calculated end date
+            {proposalStep === 1 ? (
+              <div>
+                <div className="relative mb-4">
+                  <Icons
+                    name="search"
+                    className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                  />
+                  <input
+                    type="text"
+                    value={pkgSearchInput}
+                    onChange={(e) => setPkgSearchInput(e.target.value)}
+                    placeholder="Search packages by name, category, or price..."
+                    className="w-full rounded-lg border border-formBorder bg-cardWrapperBg py-2.5 pl-10 pr-4 text-sm text-primaryText placeholder-gray-400 outline-none focus:border-primaryGreen focus:bg-white focus:ring-2 focus:ring-primaryGreen/20 transition"
+                  />
                 </div>
-                <div className="mt-1 text-sm font-medium text-primaryText">
-                  {anticipatedEnd.format('DD-MM-YYYY')} (
-                  {selectedPlan.duration_days} days)
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-sm font-medium text-primaryText">
+                    {pkgTotal} package{pkgTotal === 1 ? '' : 's'} found
+                  </span>
+                  {packagesLoading && (
+                    <span className="text-xs text-secondary">Loading...</span>
+                  )}
                 </div>
+                <div className="space-y-2.5">
+                  {packages.map((pkg: any) => {
+                    const isSelected = String(selectedPlanId) === String(pkg.id)
+                    return (
+                      <button
+                        key={pkg.id}
+                        type="button"
+                        onClick={() => {
+                          proposalMethods.setValue('plan_id', String(pkg.id), {
+                            shouldValidate: true,
+                          })
+                          proposalMethods.setValue('plan_name', pkg.name || '')
+                        }}
+                        className={
+                          'relative w-full rounded-xl border-2 p-4 text-left transition-all duration-200 hover:shadow-md ' +
+                          (isSelected
+                            ? 'border-primaryGreen shadow-md'
+                            : 'border-formBorder bg-white hover:border-primaryGreen/40 hover:bg-cardWrapperBg')
+                        }
+                        style={
+                          isSelected
+                            ? {
+                                background:
+                                  'linear-gradient(135deg, #e6fbfc 0%, #f0fffe 50%, #e0f7fa 100%)',
+                              }
+                            : undefined
+                        }
+                      >
+                        <div className="flex items-center gap-4">
+                          {pkg.thumbnail_url ||
+                          pkg.image_url ||
+                          pkg.thumbnail ? (
+                            <img
+                              src={
+                                pkg.thumbnail_url ||
+                                pkg.image_url ||
+                                pkg.thumbnail
+                              }
+                              alt={pkg.name || 'Package'}
+                              className={
+                                'h-12 w-12 shrink-0 rounded-xl object-cover transition-all ' +
+                                (isSelected
+                                  ? 'ring-2 ring-primaryGreen shadow-sm'
+                                  : 'ring-1 ring-formBorder')
+                              }
+                            />
+                          ) : (
+                            <div
+                              className={
+                                'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ' +
+                                (isSelected
+                                  ? 'bg-primaryGreen text-white shadow-sm'
+                                  : 'bg-cardWrapperBg text-primaryGreen')
+                              }
+                            >
+                              <Icons name="package" className="h-6 w-6" />
+                            </div>
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={
+                                  'truncate text-sm font-semibold ' +
+                                  (isSelected
+                                    ? 'text-primaryGreen'
+                                    : 'text-primaryText')
+                                }
+                              >
+                                {pkg.name || 'Unnamed'}
+                              </span>
+                              {pkg.category && (
+                                <span
+                                  className={
+                                    'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ' +
+                                    (isSelected
+                                      ? 'bg-primaryGreen/15 text-primaryGreen'
+                                      : 'bg-cardWrapperBg text-secondary')
+                                  }
+                                >
+                                  {pkg.category}
+                                </span>
+                              )}
+                            </div>
+                            {pkg.description && (
+                              <p className="mt-0.5 line-clamp-1 text-xs text-secondary">
+                                {pkg.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 items-center gap-3">
+                            {pkg.duration_days && (
+                              <span
+                                className={
+                                  'inline-flex items-center gap-4 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ' +
+                                  (isSelected
+                                    ? 'bg-primaryGreen/10 text-primaryGreen'
+                                    : 'bg-cardWrapperBg text-gray-500')
+                                }
+                              >
+                                <Icons name="calendar" className=" w-3" />
+                                {pkg.duration_days} days
+                              </span>
+                            )}
+                            {(pkg.fees || pkg.price || pkg.amount) && (
+                              <span
+                                className={
+                                  'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ' +
+                                  (isSelected
+                                    ? 'bg-primaryGreen text-white'
+                                    : 'bg-successColor/10 text-successColor')
+                                }
+                              >
+                                {'₹'}
+                                {pkg.fees || pkg.price || pkg.amount}
+                              </span>
+                            )}
+                          </div>
+                          {isSelected && (
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primaryGreen shadow-sm">
+                              <svg
+                                className="h-4 w-4 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={3}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                  {!packagesLoading && packages.length === 0 && (
+                    <div className="rounded-lg border border-dashed border-formBorder p-8 text-center text-sm text-secondary">
+                      {pkgSearch
+                        ? 'No packages match your search.'
+                        : 'No active packages available.'}
+                    </div>
+                  )}
+                </div>
+                {pkgTotalPages > 1 && (
+                  <div className="mt-4 flex items-center justify-between border-t border-formBorder pt-3">
+                    <span className="text-xs text-secondary">
+                      Page {Math.min(pkgPage, pkgTotalPages)} of {pkgTotalPages}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={pkgPage <= 1}
+                        onClick={() => setPkgPage((p) => Math.max(1, p - 1))}
+                        className="rounded-lg border border-formBorder px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        disabled={pkgPage >= pkgTotalPages}
+                        onClick={() =>
+                          setPkgPage((p) => Math.min(pkgTotalPages, p + 1))
+                        }
+                        className="rounded-lg border border-formBorder px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {selectedPlan && (
+                  <div className="rounded-lg border border-formBorder bg-cardWrapperBg p-4">
+                    <div className="text-xs text-secondary">
+                      Selected package
+                    </div>
+                    <div className="mt-1 text-sm font-medium text-primaryText">
+                      {selectedPlan.name}
+                      {selectedPlan.category
+                        ? ` — ${selectedPlan.category}`
+                        : ''}
+                      {selectedPlan.duration_days
+                        ? ` — ${selectedPlan.duration_days} days`
+                        : ''}
+                      {selectedPlan.fees ||
+                      selectedPlan.price ||
+                      selectedPlan.amount
+                        ? ` — ${selectedPlan.fees || selectedPlan.price || selectedPlan.amount}`
+                        : ''}
+                    </div>
+                  </div>
+                )}
+                <FormProvider {...proposalMethods}>
+                  <FormBuilder
+                    data={[
+                      {
+                        name: 'start_date',
+                        id: 'start_date',
+                        label: 'Anticipated start date',
+                        type: 'date',
+                        required: true,
+                        minDate: new Date(),
+                      },
+                      {
+                        name: 'notes',
+                        id: 'notes',
+                        label: 'Notes',
+                        type: 'textarea',
+                        rows: 4,
+                        maxLength: 500,
+                        fullWidth: true,
+                        placeholder:
+                          'Optional notes for this proposed assignment',
+                      },
+                    ]}
+                    edit
+                    spacing
+                  />
+                </FormProvider>
+                {anticipatedEnd && (
+                  <div className="rounded-lg border border-formBorder bg-cardWrapperBg p-4">
+                    <div className="text-xs text-secondary">
+                      Automatically calculated end date
+                    </div>
+                    <div className="mt-1 text-sm font-medium text-primaryText">
+                      {anticipatedEnd.format('DD-MM-YYYY')} (
+                      {selectedPlan.duration_days} days)
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
