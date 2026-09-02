@@ -30,7 +30,7 @@ Food dislikes:
 Fitness Goal:
 Starting date:`
 
-const activityOptions = [
+const allActivityOptions = [
   { id: 'call', name: 'Call' },
   { id: 'email', name: 'Email' },
   { id: 'whatsapp', name: 'WhatsApp' },
@@ -39,6 +39,17 @@ const activityOptions = [
   { id: 'contacted', name: 'Contacted' },
   { id: 'qualified', name: 'Qualified' },
   { id: 'lost', name: 'Lost' },
+]
+
+const statusProgression = [
+  'new_lead',
+  'assigned',
+  'accepted',
+  'contacted',
+  'qualified',
+  'confirmation_pending',
+  'client_accepted',
+  'converted',
 ]
 
 const activityIcon = (type: string) => {
@@ -121,6 +132,15 @@ export default function SalesLeadDetails() {
   const queryClient = useQueryClient()
   const { data, isLoading, refetch } = useSalesLead(id)
   const lead = data?.lead
+  const statusBlockedActivities = ['contacted', 'qualified', 'lost']
+  const activityOptions =
+    lead &&
+    statusProgression.indexOf(lead.status) >=
+      statusProgression.indexOf('confirmation_pending')
+      ? allActivityOptions.filter(
+          (opt) => !statusBlockedActivities.includes(opt.id)
+        )
+      : allActivityOptions
   const [activeTab, setActiveTab] = useState(() => {
     if (typeof window === 'undefined') return 'details'
     return window.localStorage.getItem('sales-lead-tab-' + id) || 'details'
@@ -661,7 +681,7 @@ export default function SalesLeadDetails() {
           </Tab>
           <Tab id="activities">
             <div className="space-y-4">
-              {lead.accepted ? (
+              {lead.status !== 'assigned' && lead.status !== 'new_lead' && (
                 <div className="flex justify-end">
                   <Button
                     label="Add Interaction"
@@ -677,8 +697,6 @@ export default function SalesLeadDetails() {
                     }}
                   />
                 </div>
-              ) : (
-                <InfoBox content="Accept the lead to record interactions and update its status." />
               )}
               {(lead.activities || []).length ? (
                 <div className="relative pl-5 border-l-2 border-formBorder space-y-4">
