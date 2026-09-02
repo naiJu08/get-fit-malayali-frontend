@@ -7,7 +7,10 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
-export const getColumns = (navigate?: (path: string) => void) => {
+export const getColumns = (
+  navigate?: (path: string) => void,
+  isSuperAdmin?: boolean
+) => {
   const createRenderCell =
     (key: string, formatter?: (v: any, row?: any) => any) => (row: any) => {
       const val = getNestedProperty(row, key)
@@ -25,7 +28,12 @@ export const getColumns = (navigate?: (path: string) => void) => {
           type="button"
           className="text-blue-600 hover:underline"
           onClick={() =>
-            navigate && navigate(`/users/${row?.user_id || val}/details`)
+            navigate &&
+            navigate(
+              isSuperAdmin
+                ? `/users/${row?.user_id || val}/details`
+                : `/sales/clients/${row?.client_id || row?.user_id || val}`
+            )
           }
         >
           {val}
