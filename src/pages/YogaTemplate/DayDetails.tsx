@@ -17,6 +17,7 @@ import {
   addYogaTemplateExercises,
   removeYogaTemplateExercises,
 } from './api'
+import { formatDurationMinutes } from '../../utilities/format'
 import YogaTemplateDayForm from './DayForm'
 import CopyExercisesDialog, { CopyTargetType } from './CopyExercisesDialog'
 
@@ -292,9 +293,7 @@ function AssignTabContent({
                               </span>
                               <span className="items-center gap-1 rounded-sm bg-green-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                                 <Icons name="clock" className="w-3 h-3" />
-                                {ex?.duration_minutes
-                                  ? `${ex.duration_minutes}s`
-                                  : '--'}
+                                {formatDurationMinutes(ex?.duration_minutes)}
                               </span>
                             </div>
                           </div>
@@ -1346,10 +1345,10 @@ export default function YogaPlanDetails() {
                                   </span>
                                   <span className="items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                                     <Icons name="clock" className="w-3 h-3" />
-                                    {w?.duration_minutes ||
-                                    w?.yoga?.duration_minutes
-                                      ? `${w?.duration_minutes || w?.yoga?.duration_minutes}s`
-                                      : '--'}
+                                    {formatDurationMinutes(
+                                      w?.duration_minutes ||
+                                        w?.yoga?.duration_minutes
+                                    )}
                                   </span>
                                 </div>
                               </div>

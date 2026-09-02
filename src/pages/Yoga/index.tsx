@@ -230,7 +230,7 @@ export default function YogaMain() {
         icon: <Icons name="eye" />,
         action: (row: any) => navigate(`/yoga/${row?.id}`),
         title: 'View',
-        toolTip: 'View Details',
+        toolTip: 'View',
       },
       {
         icon: <Icons name="edit" />,

@@ -221,7 +221,7 @@ export default function MeditationMain() {
         icon: <Icons name="eye" />,
         action: (row: any) => navigate(`/meditation/${row?.id}`),
         title: 'View',
-        toolTip: 'View Details',
+        toolTip: 'View',
       },
       {
         icon: <Icons name="edit" />,

@@ -276,7 +276,7 @@ export default function CategoriesMain() {
                         icon: <Icons name="eye" />,
                         action: (row) => navigate(`/categories/${row?.id}`),
                         title: 'View',
-                        toolTip: 'View Details',
+                        toolTip: 'View',
                       },
                       {
                         icon: <Icons name="edit" />,

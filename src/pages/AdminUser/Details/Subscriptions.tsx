@@ -1,4 +1,5 @@
 import moment from 'moment'
+import { formatDurationMinutes } from '../../../utilities/format'
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import type { DragEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -3536,10 +3537,10 @@ export default function Subscriptions({
                                   </span>
                                   <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                                     <Icons name="clock" className="w-3 h-3" />
-                                    {w?.duration_minutes ||
-                                    w?.workout?.duration_minutes
-                                      ? `${w?.duration_minutes || w?.workout?.duration_minutes}s`
-                                      : '--'}
+                                    {formatDurationMinutes(
+                                      w?.duration_minutes ||
+                                        w?.workout?.duration_minutes
+                                    )}
                                   </span>
                                 </div>
                               </div>

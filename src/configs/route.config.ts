@@ -681,7 +681,7 @@ const MARKETING: RouterMenuProps = {
   label: 'Marketing Module',
   key: 'marketing',
   icon: 'customer-icon',
-  permission_slugs: ['marketing'],
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
   isSidebarMenu: true,
 }
 const MARKETING_FORMS: RouterMenuProps = {
@@ -690,7 +690,7 @@ const MARKETING_FORMS: RouterMenuProps = {
   parent_id: 700,
   label: 'Forms',
   key: 'marketing-forms',
-  permission_slugs: ['marketing'],
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
   isSidebarMenu: true,
 }
 const MARKETING_CAMPAIGNS: RouterMenuProps = {
@@ -699,7 +699,7 @@ const MARKETING_CAMPAIGNS: RouterMenuProps = {
   parent_id: 700,
   label: 'Campaigns',
   key: 'marketing-campaigns',
-  permission_slugs: ['marketing'],
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
   isSidebarMenu: true,
 }
 const MARKETING_CAMPAIGN_DETAILS: RouterMenuProps = {
@@ -708,7 +708,7 @@ const MARKETING_CAMPAIGN_DETAILS: RouterMenuProps = {
   parent_id: null,
   label: 'Campaign details',
   key: 'marketing-campaign-details',
-  permission_slugs: ['marketing'],
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
 }
 
 const MARKETING_FORM_EDITOR: RouterMenuProps = {
@@ -717,7 +717,7 @@ const MARKETING_FORM_EDITOR: RouterMenuProps = {
   parent_id: null,
   label: 'Form editor',
   key: 'marketing-form-editor',
-  permission_slugs: ['marketing'],
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
 }
 
 const SALES: RouterMenuProps = {
