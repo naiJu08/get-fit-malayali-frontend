@@ -356,8 +356,38 @@ export default function Campaigns() {
         resizable: true,
         isVisible: true,
       },
+      {
+        title: 'Public URL',
+        field: 'public_url',
+        renderCell: (row: any) => ({
+          cell:
+            row.public_url || row.public_token ? (
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  copyLink(row)
+                }}
+              >
+                <Icons
+                  name="link"
+                  className="inline-flex items-center justify-center text-white shrink-0"
+                />
+                <span className="leading-none">Copy link</span>
+              </button>
+            ) : (
+              '-'
+            ),
+          toolTip: 'Copy public link',
+        }),
+        customCell: true,
+        sortable: false,
+        resizable: true,
+        isVisible: true,
+      },
     ],
-    [navigate]
+    [navigate, copyLink]
   )
 
   return (

@@ -119,6 +119,7 @@ export default function LeadDetails() {
 
   const leadId = params.leadId || params.id
   const campaignId = params.campaignId
+  const activeUserId = params.userId || params.user_id
 
   const {
     data: leadData,
@@ -140,7 +141,11 @@ export default function LeadDetails() {
   }, [location.pathname])
 
   const handleTabClick = (item: { id: string | number; label: string }) => {
-    if (effectiveCampaignId && leadId) {
+    if (activeUserId && effectiveCampaignId && leadId) {
+      nav(
+        `/users/marketing/${activeUserId}/campaigns/${effectiveCampaignId}/leads/${leadId}/${item.id}`
+      )
+    } else if (effectiveCampaignId && leadId) {
       nav(
         `/marketing/campaigns/${effectiveCampaignId}/leads/${leadId}/${item.id}`
       )
@@ -237,7 +242,11 @@ export default function LeadDetails() {
   const parsedNotesInfo = useMemo(() => parseNotes(lead?.notes), [lead?.notes])
 
   const goBack = () => {
-    if (effectiveCampaignId) {
+    if (activeUserId && effectiveCampaignId) {
+      nav(
+        `/users/marketing/${activeUserId}/campaigns/${effectiveCampaignId}/leads`
+      )
+    } else if (effectiveCampaignId) {
       nav(`/marketing/campaigns/${effectiveCampaignId}/leads`)
     } else {
       nav(-1)
@@ -423,7 +432,11 @@ export default function LeadDetails() {
                     value={
                       campaign?.id ? (
                         <Link
-                          to={`/marketing/campaigns/${campaign.id}/details`}
+                          to={
+                            activeUserId
+                              ? `/users/marketing/${activeUserId}/campaigns/${campaign.id}/details`
+                              : `/marketing/campaigns/${campaign.id}/details`
+                          }
                           className="text-blue-600 hover:underline inline-flex items-center gap-1"
                         >
                           {campaign.name}

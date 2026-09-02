@@ -471,7 +471,7 @@ export default function Notifications() {
         handleViewBatch(row)
       },
       title: 'view',
-      toolTip: 'View Details',
+      toolTip: 'View',
     },
     ...(canEditBatchPermission
       ? [
