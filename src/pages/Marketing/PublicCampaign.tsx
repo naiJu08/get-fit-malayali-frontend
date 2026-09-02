@@ -270,6 +270,15 @@ export default function PublicCampaign() {
         value={values[field.key] || ''}
         errors={errors as any}
         onChange={(event) => updateValue(field.key, event.target.value)}
+        maxLength={
+          field.maxLength ||
+          (field.key === 'first_name' || field.key === 'last_name'
+            ? 25
+            : field.key === 'phone'
+              ? 10
+              : undefined)
+        }
+        digitsOnly={field.digitsOnly || field.key === 'phone'}
       />
     )
   }

@@ -566,6 +566,11 @@ const FormBuilder: React.FC<Props> = (props) => {
             name={`${field.name}`}
             key={`${updatekey}${field.name}`}
             control={control}
+            rules={
+              field.required
+                ? { required: `${field.label || 'This field'} is required` }
+                : undefined
+            }
             render={({ field: { value } }) => {
               return (
                 <>

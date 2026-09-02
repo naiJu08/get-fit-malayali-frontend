@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { FormProvider, useForm } from 'react-hook-form'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import Button from '../../components/common/buttons/Button'
 import { DialogModal, TabContainer } from '../../components/common'
 import FormBuilder from '../../components/app/formBuilder'
@@ -115,6 +115,7 @@ const statusColor = (value: any) => {
 
 export default function SalesLeadDetails() {
   const { id = '' } = useParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
   const queryClient = useQueryClient()
@@ -127,6 +128,7 @@ export default function SalesLeadDetails() {
   const [activityModal, setActivityModal] = useState(false)
   const [selectedActivityType, setSelectedActivityType] = useState('call')
   const [confirmationModal, setConfirmationModal] = useState(false)
+  const [successModal, setSuccessModal] = useState(false)
   const [conversionModal, setConversionModal] = useState(false)
   const [activityLoader, setActivityLoader] = useState(false)
   const [confirmationLoader, setConfirmationLoader] = useState(false)
@@ -135,6 +137,18 @@ export default function SalesLeadDetails() {
   useEffect(() => {
     window.localStorage.setItem('sales-lead-tab-' + id, activeTab)
   }, [activeTab, id])
+
+  useEffect(() => {
+    const action = searchParams.get('action')
+    if (action === 'confirmation') {
+      setConfirmationModal(true)
+    } else if (action === 'convert') {
+      setConversionModal(true)
+    }
+    if (action) {
+      setSearchParams({}, { replace: true })
+    }
+  }, [])
 
   const activityMethods = useForm({
     defaultValues: {
@@ -219,7 +233,12 @@ export default function SalesLeadDetails() {
         maxLength: 10,
       },
       { name: 'email', label: 'Email', type: 'text', required: true },
-      { name: 'date_of_birth', label: 'Date of birth', type: 'date' },
+      {
+        name: 'date_of_birth',
+        label: 'Date of birth',
+        type: 'date',
+        required: true,
+      },
       {
         name: 'gender',
         label: 'Gender',
@@ -232,6 +251,7 @@ export default function SalesLeadDetails() {
           { id: 'others', name: 'Other' },
         ],
         placeholder: 'Select gender',
+        required: true,
       },
     ],
     []
@@ -298,6 +318,8 @@ export default function SalesLeadDetails() {
       })
       await refetch()
       queryClient.invalidateQueries(['sales_leads'])
+      setConfirmationModal(false)
+      setSuccessModal(true)
     } catch (error: any) {
       enqueueSnackbar(
         getApiErrorMessage(error, 'Unable to generate confirmation link'),
@@ -373,12 +395,7 @@ export default function SalesLeadDetails() {
               />
             )}
             {lead?.accepted &&
-              [
-                'accepted',
-                'contacted',
-                'qualified',
-                'confirmation_pending',
-              ].includes(lead.status) && (
+              ['accepted', 'contacted', 'qualified'].includes(lead.status) && (
                 <Button
                   label="Confirmation link"
                   icon="link"
@@ -430,8 +447,20 @@ export default function SalesLeadDetails() {
                     ['Email', lead.email],
                     ['Phone', lead.phone],
                     ['Campaign', lead.campaign?.name],
-                    ['Assigned to', lead.assigned_to?.name],
-                    ['Assigned by', lead.assigned_by?.name],
+                    [
+                      'Assigned to',
+                      lead.assigned_to?.name
+                        ? lead.assigned_to.name.charAt(0).toUpperCase() +
+                          lead.assigned_to.name.slice(1)
+                        : '',
+                    ],
+                    [
+                      'Assigned by',
+                      lead.assigned_by?.name
+                        ? lead.assigned_by.name.charAt(0).toUpperCase() +
+                          lead.assigned_by.name.slice(1)
+                        : '',
+                    ],
                     [
                       'Assigned date',
                       lead.assigned_at
@@ -448,6 +477,80 @@ export default function SalesLeadDetails() {
                   ))}
                 </div>
               </section>
+              {lead.status === 'confirmation_pending' && lead.confirmation && (
+                <section className="border border-formBorder rounded-lg bg-white p-4">
+                  <div className="flex items-center justify-between border-b border-formBorder pb-3 mb-3">
+                    <h3 className="font-semibold text-primaryText">
+                      Confirmation Details
+                    </h3>
+                    {/* <span
+                      className={
+                        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ' +
+                        statusColor(lead.status)
+                      }
+                    >
+                      {statusLabel(lead.status)}
+                    </span> */}
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <div className="text-xs text-secondary">
+                        Confirmation message
+                      </div>
+                      <div className="text-sm text-primaryText mt-1 whitespace-pre-wrap bg-cardWrapperBg rounded border border-formBorder p-3">
+                        {lead.confirmation.message || '--'}
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <div className="text-xs text-secondary">Sent at</div>
+                        <div className="text-sm text-primaryText mt-1">
+                          {lead.confirmation.sent_at
+                            ? new Date(
+                                lead.confirmation.sent_at
+                              ).toLocaleString()
+                            : '--'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-secondary">
+                          Client confirmed
+                        </div>
+                        <div className="text-sm text-primaryText mt-1">
+                          {lead.confirmation.client_confirmed_at
+                            ? new Date(
+                                lead.confirmation.client_confirmed_at
+                              ).toLocaleString()
+                            : 'Not yet confirmed'}
+                        </div>
+                      </div>
+                    </div>
+                    {lead.confirmation.public_url && (
+                      <div>
+                        <div className="text-xs text-secondary mb-1">
+                          Confirmation link
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 break-all text-sm text-primaryText bg-cardWrapperBg rounded border border-formBorder p-3">
+                            {lead.confirmation.public_url}
+                          </div>
+                          <Button
+                            label="Copy"
+                            icon="link"
+                            outlined
+                            onClick={() =>
+                              copyLink(
+                                lead.confirmation.public_url,
+                                'Confirmation link'
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
               <section className="border border-formBorder rounded-lg bg-white p-4">
                 <h3 className="font-semibold text-primaryText border-b border-formBorder pb-3 mb-3">
                   Form shared details
@@ -628,29 +731,71 @@ export default function SalesLeadDetails() {
             <FormProvider {...confirmationMethods}>
               <FormBuilder data={confirmationFields} edit spacing />
             </FormProvider>
-            {lead?.confirmation?.public_url && (
-              <div className="mt-4 rounded-lg border border-formBorder bg-cardWrapperBg p-4">
-                <div className="text-xs font-medium text-secondary mb-1">
-                  Current public link
+          </div>
+        }
+      />
+      <DialogModal
+        isOpen={successModal}
+        onClose={() => setSuccessModal(false)}
+        title=""
+        actionLabel=""
+        onSubmit={() => setSuccessModal(false)}
+        small={false}
+        className="w-full max-w-md"
+        body={
+          <div className="text-center py-4">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 mb-4">
+              <svg
+                className="h-8 w-8 text-emerald-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-primaryText mb-1">
+              Link Generated Successfully
+            </h3>
+            <p className="text-sm text-secondary mb-5">
+              Share this link with the client to review and confirm.
+            </p>
+            {lead?.confirmation?.public_url ? (
+              <div className="rounded-xl border border-formBorder bg-cardWrapperBg p-4 mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icons name="link" className="h-4 w-4 text-secondary" />
+                  <span className="text-xs font-medium text-secondary">
+                    Confirmation link
+                  </span>
                 </div>
-                <div className="break-all text-sm text-primaryText">
+                <div className="break-all text-sm text-primaryText font-medium bg-white rounded-lg border border-formBorder p-3 mb-3">
                   {lead.confirmation.public_url}
                 </div>
-                <div className="mt-3">
-                  <Button
-                    label="Copy link"
-                    icon="link"
-                    outlined
-                    onClick={() =>
-                      copyLink(
-                        lead.confirmation.public_url,
-                        'Confirmation link'
-                      )
-                    }
-                  />
-                </div>
+                <Button
+                  label="Copy link"
+                  icon="link"
+                  outlined
+                  onClick={() =>
+                    copyLink(lead.confirmation.public_url, 'Confirmation link')
+                  }
+                />
               </div>
+            ) : (
+              <p className="text-sm text-secondary mb-4">
+                No link available yet.
+              </p>
             )}
+            <button
+              onClick={() => setSuccessModal(false)}
+              className="w-full rounded-lg bg-primaryGreen px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition"
+            >
+              Close
+            </button>
           </div>
         }
       />

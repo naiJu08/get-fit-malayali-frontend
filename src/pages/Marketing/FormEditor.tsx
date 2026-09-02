@@ -33,11 +33,12 @@ export default function FormEditor() {
   useEffect(() => {
     const form = data?.marketing_form || data
     if (form && !isNew) {
+      const formId = form.id || id
       setEditing({
         name: form.name || '',
         description: form.description || '',
         status: form.status || 'draft',
-        id: form.id,
+        id: formId,
       })
       const nextDefinition = clone(form.definition || defaultDefinition)
       setDefinition(nextDefinition)
@@ -47,7 +48,7 @@ export default function FormEditor() {
         header_image: nextDefinition.header?.image_url || '',
       })
     }
-  }, [data, isNew, methods])
+  }, [data, isNew, methods, id])
 
   const save = async () => {
     try {
@@ -71,10 +72,13 @@ export default function FormEditor() {
         status: editing.status,
         definition,
       }
-      if (editing.id)
-        await updateMarketingForm({ id: editing.id, data: payload })
-      else await createMarketingForm(payload)
-      enqueueSnackbar('Form saved successfully', { variant: 'success' })
+      if (editing.id || (!isNew && id)) {
+        await updateMarketingForm({ id: editing.id || id, data: payload })
+        enqueueSnackbar('Form updated successfully', { variant: 'success' })
+      } else {
+        await createMarketingForm(payload)
+        enqueueSnackbar('Form saved successfully', { variant: 'success' })
+      }
       navigate('/marketing/forms')
     } catch (error: any) {
       enqueueSnackbar(error?.message || 'Unable to save form', {

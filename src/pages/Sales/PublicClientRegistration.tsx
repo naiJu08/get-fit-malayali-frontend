@@ -14,6 +14,7 @@ const accent = '#0fc8cd'
 const genderOptions = [
   { id: 'female', name: 'Female', icon: '♀' },
   { id: 'male', name: 'Male', icon: '♂' },
+  { id: 'others', name: 'Other', icon: '⚧' },
 ]
 
 const lifestyleOptions = [
@@ -411,8 +412,13 @@ export default function PublicClientRegistration() {
 
   const goNext = async () => {
     if (step.type === 'multi_text' && step.fieldNames) {
-      const valid = await trigger(step.fieldNames)
-      if (!valid) return
+      for (const fn of step.fieldNames) {
+        const val = watch(fn)
+        if (!val || (typeof val === 'string' && !val.trim())) {
+          setMessage('Please fill in all required fields.')
+          return
+        }
+      }
       if (step.id === 'password') {
         const pw = watch('password') || ''
         const pwc = watch('password_confirmation') || ''
@@ -426,13 +432,37 @@ export default function PublicClientRegistration() {
         }
         setMessage('')
       }
+    } else if (step.type === 'date') {
+      const val = watch(fieldName)
+      if (!val) {
+        setMessage('Please select a date.')
+        return
+      }
+    } else if (step.type === 'slider') {
+      const val = watch(fieldName)
+      if (!val && val !== 0) {
+        setMessage('Please select a value.')
+        return
+      }
+    } else if (step.type === 'single_select') {
+      const val = watch(fieldName)
+      if (!val) {
+        setMessage('Please select an option.')
+        return
+      }
+    } else if (step.type === 'multi_select') {
+      const val = watch(fieldName)
+      if (!val || (Array.isArray(val) && val.length === 0)) {
+        setMessage('Please select at least one option.')
+        return
+      }
     } else if (step.fieldName) {
       const valid = await trigger(step.fieldName)
       if (!valid) return
     }
+    setMessage('')
     if (currentStep < totalSteps - 1) {
       setDirection('next')
-      setMessage('')
       setCurrentStep((s) => s + 1)
     }
   }

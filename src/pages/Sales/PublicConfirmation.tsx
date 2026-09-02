@@ -13,6 +13,7 @@ export default function PublicConfirmation() {
     { enabled: Boolean(token), retry: 1 }
   )
   const [accepted, setAccepted] = useState(false)
+  const [closed, setClosed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const confirmation = data?.confirmation || data
@@ -56,6 +57,41 @@ export default function PublicConfirmation() {
       .msg-scroll::-webkit-scrollbar-track { background: transparent; }
     `}</style>
   )
+
+  if (closed) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 p-4 sm:p-6 overflow-hidden">
+        <div className="w-full max-w-sm rounded-2xl sm:rounded-3xl border border-slate-100 bg-white p-6 sm:p-8 text-center shadow-xl shadow-slate-200/60">
+          <img
+            src="/gfm-logo.png"
+            alt="Get Fit Malayali"
+            className="mx-auto h-12 sm:h-14 w-auto object-contain mb-4"
+          />
+          <div className="mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-emerald-50 mb-4">
+            <svg
+              className="h-7 w-7 sm:h-8 sm:w-8 text-emerald-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          </div>
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900">
+            Page Closed
+          </h1>
+          <p className="mt-2 text-xs sm:text-sm text-slate-500">
+            Your confirmation has been recorded. You can close this tab.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -203,54 +239,7 @@ export default function PublicConfirmation() {
           </div>
 
           <div className="shrink-0 px-4 sm:px-8 py-3 sm:py-4 pub-animate-d2">
-            {isAccepted ? (
-              <div className="text-center py-1">
-                <div
-                  className="relative mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full pub-pop"
-                  style={{ backgroundColor: `${accent}14` }}
-                >
-                  <div
-                    className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full shadow-lg"
-                    style={{ backgroundColor: accent }}
-                  >
-                    <svg
-                      width="22"
-                      height="22"
-                      viewBox="0 0 34 34"
-                      fill="none"
-                      className="sm:w-7 sm:h-7"
-                    >
-                      <path
-                        d="M8 17.5l6 6L27 10"
-                        stroke="white"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="pub-draw"
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div style={{ animation: 'pubFadeIn .45s .2s ease-out both' }}>
-                  <p
-                    className="mt-3 text-[10px] sm:text-xs font-bold uppercase tracking-[0.22em]"
-                    style={{ color: accent }}
-                  >
-                    Confirmed
-                  </p>
-                  <h2 className="mt-1 text-base sm:text-xl font-bold text-slate-900">
-                    Thank you!
-                  </h2>
-                  <p className="mt-1 text-xs sm:text-sm text-slate-500">
-                    Your confirmation has been recorded successfully.
-                  </p>
-                  <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-[10px] sm:text-xs font-medium text-slate-500 border border-slate-100">
-                    <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500" />
-                    You may safely close this page
-                  </div>
-                </div>
-              </div>
-            ) : (
+            {!isAccepted && (
               <button
                 onClick={accept}
                 disabled={busy}
@@ -328,6 +317,70 @@ export default function PublicConfirmation() {
           </div>
         </div>
       </div>
+
+      {isAccepted && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-2xl sm:rounded-3xl border border-slate-100 bg-white p-6 sm:p-8 text-center shadow-2xl pub-pop">
+            <div
+              className="relative mx-auto flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full mb-4"
+              style={{ backgroundColor: `${accent}14` }}
+            >
+              <div
+                className="flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full shadow-lg"
+                style={{ backgroundColor: accent }}
+              >
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 34 34"
+                  fill="none"
+                  className="sm:w-7 sm:h-7"
+                >
+                  <path
+                    d="M8 17.5l6 6L27 10"
+                    stroke="white"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="pub-draw"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div style={{ animation: 'pubFadeIn .45s .2s ease-out both' }}>
+              <p
+                className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.22em]"
+                style={{ color: accent }}
+              >
+                Confirmed
+              </p>
+              <h2 className="mt-2 text-xl sm:text-2xl font-bold text-slate-900">
+                Thank you!
+              </h2>
+              <p className="mt-2 text-xs sm:text-sm text-slate-500 leading-5">
+                Your confirmation has been recorded successfully.
+              </p>
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-[10px] sm:text-xs font-medium text-slate-500 border border-slate-100">
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500" />
+                You may safely close this page
+              </div>
+              <button
+                onClick={() => {
+                  window.close()
+                  setClosed(true)
+                }}
+                className="mt-4 w-full rounded-xl px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold text-sm sm:text-base transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98]"
+                style={{
+                  background: `linear-gradient(135deg, ${accent}, #0ea5a8)`,
+                  boxShadow: `0 4px 20px ${accent}40`,
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

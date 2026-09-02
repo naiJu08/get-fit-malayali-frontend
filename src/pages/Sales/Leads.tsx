@@ -196,13 +196,9 @@ export default function SalesLeads() {
               toolTip: 'Open confirmation link flow',
               icon: <Icons name="link" />,
               hide: (row: any) =>
-                ![
-                  'accepted',
-                  'contacted',
-                  'qualified',
-                  'confirmation_pending',
-                ].includes(row.status),
-              action: (row: any) => navigate(`/sales/leads/${row.id}`),
+                !['accepted', 'contacted', 'qualified'].includes(row.status),
+              action: (row: any) =>
+                navigate(`/sales/leads/${row.id}?action=confirmation`),
             },
             {
               title: 'Convert',
@@ -210,7 +206,8 @@ export default function SalesLeads() {
               icon: <Icons name="user" />,
               variant: 'primary',
               hide: (row: any) => row.status !== 'client_accepted',
-              action: (row: any) => navigate(`/sales/leads/${row.id}`),
+              action: (row: any) =>
+                navigate(`/sales/leads/${row.id}?action=convert`),
             },
           ]}
           externalActions
