@@ -114,13 +114,14 @@ export default function YogaMain() {
   }, [])
 
   useEffect(() => {
-    setPageParams({
-      ...pageParams,
+    const currentParams = useAdminUserFilterStore.getState().pageParams
+    useAdminUserFilterStore.getState().setPageParams({
+      ...currentParams,
       page: 1,
       search: '',
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, setPageParams])
+  }, [location.pathname])
   const handleEdit = async (rowData: any) => {
     if (rowData?.id) {
       const data = await getYogaDetails(String(rowData?.id))

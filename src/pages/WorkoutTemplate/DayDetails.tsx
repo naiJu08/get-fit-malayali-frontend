@@ -273,13 +273,22 @@ function AssignTabContent({
                           {/* VIDEO BOX */}
                           <div className="relative w-full h-36 bg-black/5">
                             {embed ? (
-                              <iframe
-                                src={embed}
-                                title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
-                                className="w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                allowFullScreen
-                              />
+                              <a
+                                href={url || embed}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block w-full h-full relative group cursor-pointer"
+                                title="Open in YouTube"
+                              >
+                                <iframe
+                                  src={embed}
+                                  title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
+                                  className="w-full h-full pointer-events-none"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                  allowFullScreen
+                                />
+                                <div className="absolute inset-0 bg-transparent group-hover:bg-black/10 transition-colors" />
+                              </a>
                             ) : url ? (
                               <video
                                 className="w-full h-full object-cover"
@@ -1679,12 +1688,22 @@ export default function WorkoutPlanDetails() {
                             >
                               <div className="relative w-full h-40 bg-black/5">
                                 {embed ? (
-                                  <iframe
-                                    src={embed}
-                                    title={`Workout Video ${w?.id}`}
-                                    className="w-full h-full"
-                                    allowFullScreen
-                                  />
+                                  <a
+                                    href={url || embed}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-full h-full relative group cursor-pointer"
+                                    title="Open in YouTube"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <iframe
+                                      src={embed}
+                                      title={`Workout Video ${w?.id}`}
+                                      className="w-full h-full pointer-events-none"
+                                      allowFullScreen
+                                    />
+                                    <div className="absolute inset-0 bg-transparent group-hover:bg-black/10 transition-colors" />
+                                  </a>
                                 ) : url ? (
                                   <video
                                     className="w-full h-full object-cover"
@@ -1864,11 +1883,20 @@ export default function WorkoutPlanDetails() {
 
                             <div className="relative w-full h-30 bg-black/5">
                               {embed ? (
-                                <iframe
-                                  className="w-full h-full"
-                                  src={embed}
-                                  allowFullScreen
-                                ></iframe>
+                                <a
+                                  href={url || embed}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block w-full h-full relative group cursor-pointer"
+                                  title="Open in YouTube"
+                                >
+                                  <iframe
+                                    className="w-full h-full pointer-events-none"
+                                    src={embed}
+                                    allowFullScreen
+                                  ></iframe>
+                                  <div className="absolute inset-0 bg-transparent group-hover:bg-black/10 transition-colors" />
+                                </a>
                               ) : url ? (
                                 <video
                                   src={url}
