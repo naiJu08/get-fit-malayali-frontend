@@ -1,3 +1,4 @@
+import moment from 'moment'
 import { useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
@@ -297,10 +298,15 @@ export default function Campaigns() {
       {
         title: 'Form',
         field: 'marketing_form.name',
-        renderCell: (row: any) => ({
-          cell: row.marketing_form?.name || '-',
-          toolTip: row.marketing_form?.name || '',
-        }),
+        renderCell: (row: any) => {
+          const name = row.marketing_form?.name || '-'
+          const capitalized =
+            name !== '-' ? name.charAt(0).toUpperCase() + name.slice(1) : name
+          return {
+            cell: capitalized,
+            toolTip: capitalized,
+          }
+        },
         customCell: true,
         sortable: false,
         resizable: true,
@@ -321,16 +327,19 @@ export default function Campaigns() {
       {
         title: 'Date range',
         field: 'starts_on',
-        renderCell: (row: any) => ({
-          cell:
-            row.starts_on && row.ends_on
-              ? `${row.starts_on} – ${row.ends_on}`
-              : 'No dates',
-          toolTip:
-            row.starts_on && row.ends_on
-              ? `${row.starts_on} – ${row.ends_on}`
-              : 'No dates',
-        }),
+        renderCell: (row: any) => {
+          const fmt = (d: string) => (d ? moment(d).format('DD-MM-YYYY') : '')
+          return {
+            cell:
+              row.starts_on && row.ends_on
+                ? `${fmt(row.starts_on)} – ${fmt(row.ends_on)}`
+                : 'No dates',
+            toolTip:
+              row.starts_on && row.ends_on
+                ? `${fmt(row.starts_on)} – ${fmt(row.ends_on)}`
+                : 'No dates',
+          }
+        },
         customCell: true,
         sortable: false,
         resizable: true,

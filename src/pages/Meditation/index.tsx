@@ -90,13 +90,14 @@ export default function MeditationMain() {
     })
   }
   useEffect(() => {
-    setPageParams({
-      ...pageParams,
+    const currentParams = useAdminUserFilterStore.getState().pageParams
+    useAdminUserFilterStore.getState().setPageParams({
+      ...currentParams,
       page: 1,
       search: '',
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, setPageParams])
+  }, [location.pathname])
   const onViewAction = async (row: any) => {
     setViewIndicator(true)
     if (row?.id) {
