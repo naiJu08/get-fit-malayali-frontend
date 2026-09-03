@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { AutoComplete } from 'qbs-core'
+import { useState, useMemo } from 'react'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import { DialogModal } from '../../components/common'
 import Button from '../../components/common/buttons/Button'
@@ -47,12 +46,58 @@ export function ClientWorkflowDetails({
 }: WorkflowProps) {
   const { enqueueSnackbar } = useSnackbarManager()
   const [proposalDialogOpen, setProposalDialogOpen] = useState(false)
+  const [proposalStep, setProposalStep] = useState(1)
+  const [pkgSearch, setPkgSearch] = useState('')
+  const [pkgPage, setPkgPage] = useState(1)
+  const pkgPerPage = 4
   const [saving, setSaving] = useState(false)
   const [proposal, setProposal] = useState({
     plan_id: '',
     start_date: '',
     notes: '',
   })
+
+  const openProposalModal = () => {
+    setProposal({
+      plan_id: '',
+      start_date: assignment?.anticipated_package?.start_date || '',
+      notes: assignment?.anticipated_package?.notes || '',
+    })
+    setProposalStep(1)
+    setPkgSearch('')
+    setPkgPage(1)
+    setProposalDialogOpen(true)
+  }
+
+  const filteredPackages = useMemo(() => {
+    if (!pkgSearch.trim()) return plans
+    const q = pkgSearch.toLowerCase()
+    return plans.filter((p: any) => {
+      const nameMatch = p.name?.toLowerCase().includes(q)
+      const catMatch = (p.category || p.plan_category)
+        ?.toLowerCase()
+        .includes(q)
+      const priceMatch = String(p.fees || p.price || p.amount || '').includes(q)
+      return nameMatch || catMatch || priceMatch
+    })
+  }, [plans, pkgSearch])
+
+  const pkgTotalPages = Math.max(
+    1,
+    Math.ceil(filteredPackages.length / pkgPerPage)
+  )
+
+  const visiblePackages = useMemo(() => {
+    const start = (pkgPage - 1) * pkgPerPage
+    return filteredPackages.slice(start, start + pkgPerPage)
+  }, [filteredPackages, pkgPage, pkgPerPage])
+
+  const selectedPlan = useMemo(() => {
+    return plans.find(
+      (item: any) => String(item.id) === String(proposal.plan_id)
+    )
+  }, [plans, proposal.plan_id])
+
   const run = async (action: () => Promise<any>, success: string) => {
     try {
       setSaving(true)
@@ -67,15 +112,33 @@ export function ClientWorkflowDetails({
   }
 
   const submitProposal = async () => {
-    if (!proposal.plan_id || !proposal.start_date) {
-      enqueueSnackbar('Choose a package and start date.', { variant: 'error' })
-      return
+    if (proposalStep === 1) {
+      if (!proposal.plan_id) {
+        enqueueSnackbar('Please select a package plan.', {
+          variant: 'error',
+        })
+        return
+      }
+      setProposalStep(2)
+    } else {
+      if (!proposal.start_date) {
+        enqueueSnackbar('Choose a start date.', { variant: 'error' })
+        return
+      }
+      await run(
+        () => proposeAssignedClientPackage(assignmentId, proposal),
+        'Proposed package updated successfully'
+      )
+      setProposalDialogOpen(false)
     }
-    await run(
-      () => proposeAssignedClientPackage(assignmentId, proposal),
-      'Proposed package updated successfully'
-    )
-    setProposalDialogOpen(false)
+  }
+
+  const handleSecondaryAction = () => {
+    if (proposalStep === 2) {
+      setProposalStep(1)
+    } else {
+      setProposalDialogOpen(false)
+    }
   }
 
   return (
@@ -181,7 +244,7 @@ export function ClientWorkflowDetails({
                       icon="edit"
                       className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
                       label="Change package"
-                      onClick={() => setProposalDialogOpen(true)}
+                      onClick={openProposalModal}
                       disabled={saving || !plans.length}
                     />
                     <Button
@@ -212,54 +275,268 @@ export function ClientWorkflowDetails({
 
       <DialogModal
         isOpen={proposalDialogOpen}
-        onClose={() => setProposalDialogOpen(false)}
+        onClose={() => {
+          setProposalDialogOpen(false)
+          setProposalStep(1)
+        }}
         title="Propose a different package"
-        subTitle="The new package will remain proposed until it is confirmed."
+        subTitle={
+          proposalStep === 1
+            ? 'Select a package plan for the client.'
+            : 'Set start date and optional notes.'
+        }
         onSubmit={submitProposal}
-        actionLabel="Save proposed package"
+        actionLabel={proposalStep === 1 ? 'Next' : 'Save proposed package'}
         actionLoader={saving}
-        secondaryAction={() => setProposalDialogOpen(false)}
-        secondaryActionLabel="Cancel"
+        secondaryAction={handleSecondaryAction}
+        secondaryActionLabel={proposalStep === 2 ? 'Back' : 'Cancel'}
+        small={false}
+        className="w-full max-w-4xl"
         body={
-          <div className="space-y-4">
-            <AutoComplete
-              placeholder="Select package"
-              desc="name"
-              descId="id"
-              type="custom_search_select"
-              data={plans}
-              value={
-                plans.find(
-                  (item: any) => String(item.id) === String(proposal.plan_id)
-                ) || null
-              }
-              name="proposed_plan"
-              onChange={(item: any) =>
-                setProposal({ ...proposal, plan_id: item?.id || '' })
-              }
-            />
-            <label className="block text-sm">
-              Start date
-              <input
-                className="mt-1 w-full border rounded-lg p-2"
-                type="date"
-                value={proposal.start_date}
-                onChange={(event) =>
-                  setProposal({ ...proposal, start_date: event.target.value })
-                }
-              />
-            </label>
-            <label className="block text-sm">
-              Notes
-              <textarea
-                className="mt-1 w-full border rounded-lg p-2"
-                rows={3}
-                value={proposal.notes}
-                onChange={(event) =>
-                  setProposal({ ...proposal, notes: event.target.value })
-                }
-              />
-            </label>
+          <div>
+            {proposalStep === 1 ? (
+              <div>
+                <div className="relative mb-4">
+                  <Icons
+                    name="search"
+                    className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+                  />
+                  <input
+                    type="text"
+                    value={pkgSearch}
+                    onChange={(e) => {
+                      setPkgSearch(e.target.value)
+                      setPkgPage(1)
+                    }}
+                    placeholder="Search packages by name, category, or price..."
+                    className="w-full rounded-lg border border-formBorder bg-cardWrapperBg py-2.5 pl-10 pr-4 text-sm text-primaryText placeholder-gray-400 outline-none focus:border-primaryGreen focus:bg-white focus:ring-2 focus:ring-primaryGreen/20 transition"
+                  />
+                </div>
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-sm font-medium text-primaryText">
+                    {filteredPackages.length} package
+                    {filteredPackages.length === 1 ? '' : 's'} found
+                  </span>
+                </div>
+                <div className="space-y-2.5">
+                  {visiblePackages.map((pkg: any) => {
+                    const isSelected =
+                      String(proposal.plan_id) === String(pkg.id)
+                    return (
+                      <button
+                        key={pkg.id}
+                        type="button"
+                        onClick={() => {
+                          setProposal((prev) => ({
+                            ...prev,
+                            plan_id: String(pkg.id),
+                          }))
+                        }}
+                        className={
+                          'relative w-full rounded-xl border-2 p-4 text-left transition-all duration-200 hover:shadow-md ' +
+                          (isSelected
+                            ? 'border-primaryGreen shadow-md'
+                            : 'border-formBorder bg-white hover:border-primaryGreen/40 hover:bg-cardWrapperBg')
+                        }
+                        style={
+                          isSelected
+                            ? {
+                                background:
+                                  'linear-gradient(135deg, #e6fbfc 0%, #f0fffe 50%, #e0f7fa 100%)',
+                              }
+                            : undefined
+                        }
+                      >
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={
+                              'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ' +
+                              (isSelected
+                                ? 'bg-primaryGreen text-white shadow-sm'
+                                : 'bg-cardWrapperBg text-primaryGreen')
+                            }
+                          >
+                            <Icons name="package" className="h-6 w-6" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={
+                                  'truncate text-sm font-semibold ' +
+                                  (isSelected
+                                    ? 'text-primaryGreen'
+                                    : 'text-primaryText')
+                                }
+                              >
+                                {pkg.name || 'Unnamed'}
+                              </span>
+                              {(pkg.category || pkg.plan_category) && (
+                                <span
+                                  className={
+                                    'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize ' +
+                                    (isSelected
+                                      ? 'bg-primaryGreen/15 text-primaryGreen'
+                                      : 'bg-cardWrapperBg text-secondary')
+                                  }
+                                >
+                                  {pkg.category || pkg.plan_category}
+                                </span>
+                              )}
+                            </div>
+                            {pkg.description && (
+                              <p className="mt-0.5 line-clamp-1 text-xs text-secondary">
+                                {pkg.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 items-center gap-3">
+                            {pkg.duration_days && (
+                              <span
+                                className={
+                                  'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ' +
+                                  (isSelected
+                                    ? 'bg-primaryGreen/10 text-primaryGreen'
+                                    : 'bg-cardWrapperBg text-gray-500')
+                                }
+                              >
+                                <svg
+                                  className="h-3.5 w-3.5 shrink-0"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                  strokeWidth={2}
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  />
+                                </svg>
+                                <span>{pkg.duration_days} days</span>
+                              </span>
+                            )}
+                            {(pkg.fees || pkg.price || pkg.amount) && (
+                              <span
+                                className={
+                                  'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ' +
+                                  (isSelected
+                                    ? 'bg-primaryGreen text-white'
+                                    : 'bg-successColor/10 text-successColor')
+                                }
+                              >
+                                {'₹'}
+                                {pkg.fees || pkg.price || pkg.amount}
+                              </span>
+                            )}
+                          </div>
+                          {isSelected && (
+                            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primaryGreen shadow-sm">
+                              <svg
+                                className="h-4 w-4 text-white"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={3}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M5 13l4 4L19 7"
+                                />
+                              </svg>
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                  {filteredPackages.length === 0 && (
+                    <div className="rounded-lg border border-dashed border-formBorder p-8 text-center text-sm text-secondary">
+                      {pkgSearch
+                        ? 'No packages match your search.'
+                        : 'No active packages available.'}
+                    </div>
+                  )}
+                </div>
+                {pkgTotalPages > 1 && (
+                  <div className="mt-4 flex items-center justify-between border-t border-formBorder pt-3">
+                    <span className="text-xs text-secondary">
+                      Page {Math.min(pkgPage, pkgTotalPages)} of {pkgTotalPages}
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={pkgPage <= 1}
+                        onClick={() => setPkgPage((p) => Math.max(1, p - 1))}
+                        className="rounded-lg border border-formBorder px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        disabled={pkgPage >= pkgTotalPages}
+                        onClick={() =>
+                          setPkgPage((p) => Math.min(pkgTotalPages, p + 1))
+                        }
+                        className="rounded-lg border border-formBorder px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {selectedPlan && (
+                  <div className="rounded-lg border border-formBorder bg-cardWrapperBg p-4">
+                    <div className="text-xs text-secondary">
+                      Selected package
+                    </div>
+                    <div className="mt-1 text-sm font-medium text-primaryText">
+                      {selectedPlan.name}
+                      {selectedPlan.category || selectedPlan.plan_category
+                        ? ` — ${selectedPlan.category || selectedPlan.plan_category}`
+                        : ''}
+                      {selectedPlan.duration_days
+                        ? ` — ${selectedPlan.duration_days} days`
+                        : ''}
+                      {selectedPlan.fees ||
+                      selectedPlan.price ||
+                      selectedPlan.amount
+                        ? ` — ₹${selectedPlan.fees || selectedPlan.price || selectedPlan.amount}`
+                        : ''}
+                    </div>
+                  </div>
+                )}
+                <label className="block text-sm font-medium text-gray-700">
+                  Anticipated start date <span className="text-red-500">*</span>
+                  <input
+                    className="mt-1 w-full rounded-lg border border-formBorder p-2.5 text-sm outline-none focus:border-primaryGreen focus:ring-2 focus:ring-primaryGreen/20"
+                    type="date"
+                    value={proposal.start_date}
+                    onChange={(event) =>
+                      setProposal({
+                        ...proposal,
+                        start_date: event.target.value,
+                      })
+                    }
+                  />
+                </label>
+                <label className="block text-sm font-medium text-gray-700">
+                  Notes
+                  <textarea
+                    rows={4}
+                    className="mt-1 w-full rounded-lg border border-formBorder p-2.5 text-sm outline-none focus:border-primaryGreen focus:ring-2 focus:ring-primaryGreen/20"
+                    placeholder="Optional notes for this proposed assignment"
+                    value={proposal.notes}
+                    onChange={(event) =>
+                      setProposal({ ...proposal, notes: event.target.value })
+                    }
+                  />
+                </label>
+              </div>
+            )}
           </div>
         }
       />
@@ -331,8 +608,7 @@ export function ClientWorkflowFollowUps({
   return (
     <>
       <section className="bg-white border border-gray-200 rounded-xl p-5">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <h2 className="font-semibold">Follow-ups</h2>
+        <div className="flex items-center justify-end gap-3 mb-3">
           <Button
             outlined
             label="Schedule follow-up"
@@ -345,20 +621,16 @@ export function ClientWorkflowFollowUps({
           />
         </div>
         {assignment.workflow_status === 'pending' && (
-          <p className="text-sm text-secondary">
+          <p className="text-sm text-secondary mb-3">
             Accept the client before scheduling a follow-up.
           </p>
         )}
         {assignment.workflow_status === 'package_confirmed' && (
-          <p className="text-sm text-secondary">
+          <p className="text-sm text-secondary mb-3">
             The package is confirmed; no further assignment follow-up is
             required.
           </p>
         )}
-      </section>
-
-      <section className="bg-white border border-gray-200 rounded-xl p-5">
-        <h2 className="mb-3 font-semibold">Follow-up history</h2>
         <SmartTable
           data={assignment.follow_ups || []}
           dataRowKey="id"
