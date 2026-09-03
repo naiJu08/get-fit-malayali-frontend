@@ -114,7 +114,7 @@ export default function SalesClients() {
         renderCell: (row: any) => ({
           cell: row.profile_completion_url ? (
             <button
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100 active:scale-95"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
               onClick={() => copy(row.profile_completion_url)}
             >
               <Icons name="link" className="h-3.5 w-3.5" /> Copy link

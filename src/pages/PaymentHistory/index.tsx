@@ -679,6 +679,15 @@ export default function Subscriptions() {
               }}
               actionProps={[
                 {
+                  icon: <Icons name="eye" />,
+                  action: (row: any) =>
+                    navigate(
+                      `/sales/clients/${row?.client_id || row?.user_id}`
+                    ),
+                  title: 'View',
+                  toolTip: 'View client details',
+                },
+                {
                   icon: <Icons name="download" />,
                   action: (row: any) => generateInvoice(row),
                   title: 'Download Invoice',
