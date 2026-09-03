@@ -68,7 +68,14 @@ export default function CategoriesMain() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const totalCount = data?.meta?.total_count
+  const totalCount =
+    typeof data?.meta?.total_count === 'number'
+      ? data.meta.total_count
+      : typeof data?.total === 'number'
+        ? data.total
+        : typeof data?.count === 'number'
+          ? data.count
+          : undefined
   const calculatedTotalPages =
     typeof totalCount === 'number'
       ? Math.max(1, Math.ceil(totalCount / Number(pageParams?.per_page ?? 10)))
@@ -138,8 +145,9 @@ export default function CategoriesMain() {
     )
   }, [isNutritionist])
   useEffect(() => {
-    setPageParams({
-      ...pageParams,
+    const currentParams = useAdminUserFilterStore.getState().pageParams
+    useAdminUserFilterStore.getState().setPageParams({
+      ...currentParams,
       page: 1,
       search: '',
       sortColumn: undefined,
@@ -147,7 +155,7 @@ export default function CategoriesMain() {
       ordering: undefined,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, setPageParams])
+  }, [location.pathname])
   // const handleSeach = (key?: string) => {
   //   setPageParams({
   //     ...pageParams,
@@ -256,7 +264,7 @@ export default function CategoriesMain() {
               pagination={true}
               paginationProps={{
                 onPagination: onChangePage,
-                total: data?.meta?.total_count ?? 0,
+                total: totalCount ?? data?.categories?.length ?? 0,
                 currentPage: pageParams?.page ?? 1,
                 rowsPerPage: Number(pageParams?.per_page ?? 10),
                 onRowsPerPage: onChangeRowsPerPage,

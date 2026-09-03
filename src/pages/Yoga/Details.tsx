@@ -155,20 +155,31 @@ export default function YogaDetails() {
                   ? `https://dl.dropboxusercontent.com/s/${dropboxMatch[1]}`
                   : null
 
+                const videoTargetUrl = ytMatch
+                  ? `https://www.youtube.com/watch?v=${ytMatch[1]}`
+                  : v
+
                 return (
                   <div className="">
                     <div className="border rounded-lg p-3 bg-white ">
                       <div className="text-xs text-gray-500 mb-2">Video</div>
                       <div className="relative w-64">
                         {ytMatch ? (
-                          <div className="w-full aspect-video">
+                          <a
+                            href={videoTargetUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-full aspect-video relative group cursor-pointer overflow-hidden rounded"
+                            title="Open in YouTube"
+                          >
                             <iframe
-                              className="w-full h-full rounded"
+                              className="w-full h-full rounded pointer-events-none"
                               src={`https://www.youtube.com/embed/${ytMatch[1]}`}
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                               allowFullScreen
                             />
-                          </div>
+                            <div className="absolute inset-0 bg-transparent group-hover:bg-black/10 transition-colors" />
+                          </a>
                         ) : vimeoMatch ? (
                           <div className="w-full aspect-video">
                             <iframe

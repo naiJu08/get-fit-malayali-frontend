@@ -62,7 +62,14 @@ export default function WorkoutMain() {
 
   const { data, refetch, isFetching } = useWorkoutList(searchParams)
 
-  const totalCount = data?.meta?.total_count
+  const totalCount =
+    typeof data?.meta?.total_count === 'number'
+      ? data.meta.total_count
+      : typeof data?.total === 'number'
+        ? data.total
+        : typeof data?.count === 'number'
+          ? data.count
+          : undefined
   const calculatedTotalPages =
     typeof totalCount === 'number'
       ? Math.max(1, Math.ceil(totalCount / Number(pageParams?.per_page ?? 10)))
@@ -143,12 +150,13 @@ export default function WorkoutMain() {
     )
   }, [isNutritionist, navigate])
   useEffect(() => {
-    const sanitizedFilters = { ...(pageParams?.filters || {}) }
+    const currentParams = useAdminUserFilterStore.getState().pageParams
+    const sanitizedFilters = { ...(currentParams?.filters || {}) }
     delete (sanitizedFilters as any).category_id
     delete (sanitizedFilters as any).subcategory_ids
 
-    setPageParams({
-      ...pageParams,
+    useAdminUserFilterStore.getState().setPageParams({
+      ...currentParams,
       page: 1,
       search: '',
       sortColumn: undefined,
@@ -157,7 +165,7 @@ export default function WorkoutMain() {
       filters: sanitizedFilters,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, setPageParams])
+  }, [location.pathname])
   // const handleSeach = (key?: string) => {
   //   setPageParams({
   //     ...pageParams,
@@ -405,7 +413,7 @@ export default function WorkoutMain() {
               pagination={true}
               paginationProps={{
                 onPagination: onChangePage,
-                total: data?.meta?.total_count ?? 0,
+                total: totalCount ?? data?.workouts?.length ?? 0,
                 currentPage: pageParams?.page ?? 1,
                 rowsPerPage: Number(pageParams?.per_page ?? 10),
                 onRowsPerPage: onChangeRowsPerPage,
