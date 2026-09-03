@@ -22,11 +22,24 @@ const statusColor = (value: any) => {
 export default function UserCampaigns({ user }: { user: any }) {
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
-  const [params, setParams] = useState({ page: 1, per_page: 10, search: '' })
+  const [params, setParams] = useState({
+    page: 1,
+    per_page: 10,
+    search: '',
+    status: '',
+  })
 
   const { data, isFetching } = useUserMarketingCampaigns(user?.id, params)
 
-  const rows = data?.marketing_campaigns || []
+  const rawRows = data?.marketing_campaigns || []
+  const rows = useMemo(() => {
+    if (!params.status) return rawRows
+    return rawRows.filter(
+      (r: any) =>
+        String(r.status || '').toLowerCase() === params.status.toLowerCase()
+    )
+  }, [rawRows, params.status])
+
   const meta = data?.meta || {}
 
   const columns: any[] = useMemo(
@@ -167,6 +180,28 @@ export default function UserCampaigns({ user }: { user: any }) {
         data={rows}
         dataRowKey="id"
         columns={columns}
+        toolbar
+        toolbarExtra={
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-600">Status</label>
+            <select
+              className="w-44 px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200"
+              value={params.status || ''}
+              onChange={(e) =>
+                setParams((prev) => ({
+                  ...prev,
+                  status: e.target.value,
+                  page: 1,
+                }))
+              }
+            >
+              <option value="">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        }
         search
         searchPlaceholder="Search campaigns"
         searchValue={params.search}
