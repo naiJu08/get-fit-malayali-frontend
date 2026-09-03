@@ -52,9 +52,10 @@ export default function CategoriesMain() {
   if (cleanedFilters.active === false || cleanedFilters.active === 'false') {
     delete cleanedFilters.active
   }
+  const effectivePerPage = Number(per_page ?? 10)
   const searchParams = {
-    page: page,
-    per_page: per_page,
+    page: page || 1,
+    per_page: effectivePerPage,
     search: search,
     ...(ordering ? { ordering } : {}),
     ...cleanedFilters,
@@ -71,14 +72,16 @@ export default function CategoriesMain() {
   const totalCount =
     typeof data?.meta?.total_count === 'number'
       ? data.meta.total_count
-      : typeof data?.total === 'number'
-        ? data.total
-        : typeof data?.count === 'number'
-          ? data.count
-          : undefined
+      : typeof data?.total_count === 'number'
+        ? data.total_count
+        : typeof data?.total === 'number'
+          ? data.total
+          : typeof data?.count === 'number'
+            ? data.count
+            : undefined
   const calculatedTotalPages =
     typeof totalCount === 'number'
-      ? Math.max(1, Math.ceil(totalCount / Number(pageParams?.per_page ?? 10)))
+      ? Math.max(1, Math.ceil(totalCount / effectivePerPage))
       : null
 
   useEffect(() => {
@@ -266,7 +269,7 @@ export default function CategoriesMain() {
                 onPagination: onChangePage,
                 total: totalCount ?? data?.categories?.length ?? 0,
                 currentPage: pageParams?.page ?? 1,
-                rowsPerPage: Number(pageParams?.per_page ?? 10),
+                rowsPerPage: effectivePerPage,
                 onRowsPerPage: onChangeRowsPerPage,
                 totalPages: calculatedTotalPages ?? 1,
                 dropOptions: [10, 20, 30, 50, 100],
