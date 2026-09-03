@@ -1,5 +1,5 @@
 import moment from 'moment'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router-dom'
 
@@ -59,31 +59,16 @@ export default function SalesClientDetails() {
   const { id = '' } = useParams()
   const { enqueueSnackbar } = useSnackbarManager()
   const { data, isLoading, refetch } = useSalesClient(id)
-  const client = data?.client
-  const [pkgSearchInput, setPkgSearchInput] = useState('')
-  const [pkgSearch, setPkgSearch] = useState('')
-  const [pkgPage, setPkgPage] = useState(1)
-  const pkgPageSize = 4
-  const isSearching = pkgSearch.trim().length > 0
   const { data: packagesData, isFetching: packagesLoading } = useSalesPackages({
-    page: isSearching ? pkgPage : 1,
-    per_page: isSearching ? pkgPageSize : 100,
-    search: pkgSearch,
+    page: 1,
+    per_page: 100,
+    search: '',
   })
-  const allPackages = useMemo(
+  const client = data?.client
+  const packages = useMemo(
     () => packagesData?.packages || [],
     [packagesData?.packages]
   )
-  const pkgTotalPages = isSearching
-    ? packagesData?.total_pages ||
-      Math.max(1, Math.ceil((packagesData?.total || 0) / pkgPageSize))
-    : Math.max(1, Math.ceil(allPackages.length / pkgPageSize))
-  const packages = useMemo(() => {
-    if (isSearching) return allPackages
-    const start = (pkgPage - 1) * pkgPageSize
-    return allPackages.slice(start, start + pkgPageSize)
-  }, [allPackages, pkgPage, isSearching])
-  const pkgTotal = isSearching ? packagesData?.total || 0 : allPackages.length
   const [proposalModal, setProposalModal] = useState(false)
   const [editingProposal, setEditingProposal] = useState<any>(null)
   const [proposalStep, setProposalStep] = useState(1)
@@ -98,18 +83,38 @@ export default function SalesClientDetails() {
   })
   const [staffSearch, setStaffSearch] = useState('')
   const [staffPage, setStaffPage] = useState(1)
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPkgSearch(pkgSearchInput)
-      setPkgPage(1)
-    }, 400)
-    return () => clearTimeout(timer)
-  }, [pkgSearchInput])
+  const [pkgSearch, setPkgSearch] = useState('')
+  const [pkgPage, setPkgPage] = useState(1)
+  const pkgPageSize = 4
   const selectedPlanId = proposalMethods.watch('plan_id')
   const anticipatedStart = proposalMethods.watch('start_date')
   const selectedPlan = packages.find(
     (plan: any) => String(plan.id) === String(selectedPlanId)
+  )
+  const filteredPackages = useMemo(() => {
+    const term = pkgSearch.trim().toLowerCase()
+    return packages.filter(
+      (pkg: any) =>
+        !term ||
+        [
+          pkg.name,
+          pkg.category,
+          pkg.description,
+          String(pkg.fees || pkg.price || pkg.amount),
+        ].some((v) =>
+          String(v || '')
+            .toLowerCase()
+            .includes(term)
+        )
+    )
+  }, [packages, pkgSearch])
+  const pkgTotalPages = Math.max(
+    1,
+    Math.ceil(filteredPackages.length / pkgPageSize)
+  )
+  const visiblePackages = filteredPackages.slice(
+    (pkgPage - 1) * pkgPageSize,
+    pkgPage * pkgPageSize
   )
   const anticipatedEnd =
     selectedPlan?.duration_days && anticipatedStart
@@ -190,7 +195,6 @@ export default function SalesClientDetails() {
       notes: proposal?.notes || '',
     })
     setProposalStep(1)
-    setPkgSearchInput('')
     setPkgSearch('')
     setPkgPage(1)
     setProposalModal(true)
@@ -337,7 +341,13 @@ export default function SalesClientDetails() {
           {[
             ['Email', client.email],
             ['Phone', client.phone],
-            ['Gender', client.profile?.gender],
+            [
+              'Gender',
+              client.profile?.gender
+                ? client.profile.gender.charAt(0).toUpperCase() +
+                  client.profile.gender.slice(1)
+                : '',
+            ],
             ['Date of Birth', formatDate(client.profile?.date_of_birth)],
             [
               'Height',
@@ -356,6 +366,7 @@ export default function SalesClientDetails() {
               'Location',
               [client.profile?.state, client.profile?.country]
                 .filter(Boolean)
+                .map((v: string) => v.charAt(0).toUpperCase() + v.slice(1))
                 .join(', '),
             ],
           ].map(([label, value]) => (
@@ -369,7 +380,7 @@ export default function SalesClientDetails() {
         </div>
       </section>
 
-      <section className="rounded-lg border border-formBorder bg-white p-4">
+      {/* <section className="rounded-lg border border-formBorder bg-white p-4">
         <div className="mb-4 border-b border-formBorder pb-3">
           <h2 className="font-semibold text-primaryText">
             Assignment follow-up
@@ -442,7 +453,7 @@ export default function SalesClientDetails() {
             No service assignments yet.
           </div>
         )}
-      </section>
+      </section> */}
 
       <section className="rounded-lg border border-formBorder bg-white p-4">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-formBorder pb-3">
@@ -481,7 +492,7 @@ export default function SalesClientDetails() {
                     key={proposal.id}
                     className="border-b border-formBorder last:border-0"
                   >
-                    <td className="p-3 font-medium text-primaryText">
+                    <td className="p-3 font-medium text-primaryText capitalize">
                       {proposal.plan?.name || '--'}
                     </td>
                     <td className="p-3 capitalize text-secondary">
@@ -493,7 +504,7 @@ export default function SalesClientDetails() {
                     <td className="p-3 text-secondary">
                       {formatDate(proposal.end_date)}
                     </td>
-                    <td className="p-3 text-secondary">
+                    <td className="p-3 text-secondary capitalize">
                       {proposal.created_by?.name || '--'}
                     </td>
                     <td className="p-3">
@@ -520,7 +531,7 @@ export default function SalesClientDetails() {
       <section className="rounded-lg border border-formBorder bg-white p-4">
         <div className="mb-4 border-b border-formBorder pb-3">
           <h2 className="font-semibold text-primaryText">
-            Service team assignments
+            Service team assignmens
           </h2>
           <p className="mt-1 text-xs text-secondary">
             Assign one active team member for each service role.
@@ -614,22 +625,26 @@ export default function SalesClientDetails() {
                   />
                   <input
                     type="text"
-                    value={pkgSearchInput}
-                    onChange={(e) => setPkgSearchInput(e.target.value)}
+                    value={pkgSearch}
+                    onChange={(e) => {
+                      setPkgSearch(e.target.value)
+                      setPkgPage(1)
+                    }}
                     placeholder="Search packages by name, category, or price..."
                     className="w-full rounded-lg border border-formBorder bg-cardWrapperBg py-2.5 pl-10 pr-4 text-sm text-primaryText placeholder-gray-400 outline-none focus:border-primaryGreen focus:bg-white focus:ring-2 focus:ring-primaryGreen/20 transition"
                   />
                 </div>
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-sm font-medium text-primaryText">
-                    {pkgTotal} package{pkgTotal === 1 ? '' : 's'} found
+                    {filteredPackages.length} package
+                    {filteredPackages.length === 1 ? '' : 's'} found
                   </span>
                   {packagesLoading && (
                     <span className="text-xs text-secondary">Loading...</span>
                   )}
                 </div>
                 <div className="space-y-2.5">
-                  {packages.map((pkg: any) => {
+                  {visiblePackages.map((pkg: any) => {
                     const isSelected = String(selectedPlanId) === String(pkg.id)
                     return (
                       <button
@@ -657,35 +672,16 @@ export default function SalesClientDetails() {
                         }
                       >
                         <div className="flex items-center gap-4">
-                          {pkg.thumbnail_url ||
-                          pkg.image_url ||
-                          pkg.thumbnail ? (
-                            <img
-                              src={
-                                pkg.thumbnail_url ||
-                                pkg.image_url ||
-                                pkg.thumbnail
-                              }
-                              alt={pkg.name || 'Package'}
-                              className={
-                                'h-12 w-12 shrink-0 rounded-xl object-cover transition-all ' +
-                                (isSelected
-                                  ? 'ring-2 ring-primaryGreen shadow-sm'
-                                  : 'ring-1 ring-formBorder')
-                              }
-                            />
-                          ) : (
-                            <div
-                              className={
-                                'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ' +
-                                (isSelected
-                                  ? 'bg-primaryGreen text-white shadow-sm'
-                                  : 'bg-cardWrapperBg text-primaryGreen')
-                              }
-                            >
-                              <Icons name="package" className="h-6 w-6" />
-                            </div>
-                          )}
+                          <div
+                            className={
+                              'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ' +
+                              (isSelected
+                                ? 'bg-primaryGreen text-white shadow-sm'
+                                : 'bg-cardWrapperBg text-primaryGreen')
+                            }
+                          >
+                            <Icons name="package" className="h-6 w-6" />
+                          </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
                               <span
@@ -766,7 +762,7 @@ export default function SalesClientDetails() {
                       </button>
                     )
                   })}
-                  {!packagesLoading && packages.length === 0 && (
+                  {!packagesLoading && filteredPackages.length === 0 && (
                     <div className="rounded-lg border border-dashed border-formBorder p-8 text-center text-sm text-secondary">
                       {pkgSearch
                         ? 'No packages match your search.'
