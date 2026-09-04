@@ -13,7 +13,7 @@ export default function PublicConfirmation() {
     { enabled: Boolean(token), retry: 1 }
   )
   const [accepted, setAccepted] = useState(false)
-  const [closed, setClosed] = useState(false)
+
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const confirmation = data?.confirmation || data
@@ -57,41 +57,6 @@ export default function PublicConfirmation() {
       .msg-scroll::-webkit-scrollbar-track { background: transparent; }
     `}</style>
   )
-
-  if (closed) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 p-4 sm:p-6 overflow-hidden">
-        <div className="w-full max-w-sm rounded-2xl sm:rounded-3xl border border-slate-100 bg-white p-6 sm:p-8 text-center shadow-xl shadow-slate-200/60">
-          <img
-            src="/gfm-logo.png"
-            alt="Get Fit Malayali"
-            className="mx-auto h-12 sm:h-14 w-auto object-contain mb-4"
-          />
-          <div className="mx-auto flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-full bg-emerald-50 mb-4">
-            <svg
-              className="h-7 w-7 sm:h-8 sm:w-8 text-emerald-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          </div>
-          <h1 className="text-lg sm:text-xl font-bold text-slate-900">
-            Page Closed
-          </h1>
-          <p className="mt-2 text-xs sm:text-sm text-slate-500">
-            Your confirmation has been recorded. You can close this tab.
-          </p>
-        </div>
-      </div>
-    )
-  }
 
   if (isLoading) {
     return (
@@ -364,10 +329,9 @@ export default function PublicConfirmation() {
                 <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500" />
                 You may safely close this page
               </div>
-              <button
+              {/* <button
                 onClick={() => {
-                  window.close()
-                  setClosed(true)
+                  try { window.close() } catch {}
                 }}
                 className="mt-4 w-full rounded-xl px-4 sm:px-6 py-2.5 sm:py-3 text-white font-semibold text-sm sm:text-base transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98]"
                 style={{
@@ -376,7 +340,7 @@ export default function PublicConfirmation() {
                 }}
               >
                 Close
-              </button>
+              </button> */}
             </div>
           </div>
         </div>
