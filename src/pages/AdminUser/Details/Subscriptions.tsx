@@ -784,11 +784,6 @@ export default function Subscriptions({
   useEffect(() => {
     const fetchOverview = async () => {
       if (!user?.id) return
-      if (!user?.subscribed_plan) {
-        setOverview(null)
-        setCurrentMonth('')
-        return
-      }
       try {
         setOverviewLoading(true)
         const res = await getActivePlanOverview(user.id)
@@ -825,7 +820,7 @@ export default function Subscriptions({
     }
     fetchOverview()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
+  }, [user?.id, workflowAssignment?.package_confirmed_at])
 
   const statusColor = (day: any) => {
     if (day?.freeze)
