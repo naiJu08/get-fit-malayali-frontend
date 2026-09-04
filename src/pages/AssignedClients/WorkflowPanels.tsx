@@ -266,8 +266,20 @@ export function ClientWorkflowDetails({
               )}
             </>
           ) : (
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <InfoBox content="No proposed package is available yet." />
+              {showWorkflowActions &&
+                (assignment.can_confirm_package ?? true) && (
+                  <Button
+                    outlined
+                    size="xs"
+                    icon="edit"
+                    className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
+                    label="Select package"
+                    onClick={openProposalModal}
+                    disabled={saving || !plans.length}
+                  />
+                )}
             </div>
           )}
         </div>
