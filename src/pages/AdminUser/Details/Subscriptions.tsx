@@ -71,6 +71,9 @@ export default function Subscriptions({
     : []
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = loginRole === 'nutritionist'
+  const isServiceRole = ['nutritionist', 'yogist', 'physiotherapist'].includes(
+    loginRole || ''
+  )
 
   const subscribedPlan = user?.subscribed_plan
   const [overview, setOverview] = useState<any>(null)
@@ -2971,17 +2974,15 @@ export default function Subscriptions({
               onRefresh={onWorkflowRefresh}
             />
           )}
-          {loginRole !== 'nutritionist' &&
-            !hasPlanOverview &&
-            !subscribedPlan && (
-              <div className="flex justify-end">
-                <Button
-                  className="primaryButton"
-                  label="Add Subscription"
-                  onClick={() => openSubscriptionDrawer(false)}
-                />
-              </div>
-            )}
+          {!isServiceRole && !hasPlanOverview && !subscribedPlan && (
+            <div className="flex justify-end">
+              <Button
+                className="primaryButton"
+                label="Add Subscription"
+                onClick={() => openSubscriptionDrawer(false)}
+              />
+            </div>
+          )}
           <div
             className={`relative border rounded-lg p-4 pt-6 h-full min-h-[calc(100vh-200px)] ${
               subscribedPlan ? 'mt-4' : ''
@@ -3048,7 +3049,7 @@ export default function Subscriptions({
                         View plan details →
                       </a>
                     ) : null}
-                    {loginRole !== 'nutritionist' && (
+                    {!isServiceRole && (
                       <Button
                         className="primaryButton"
                         label="Update Subscription"
