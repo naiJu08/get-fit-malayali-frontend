@@ -258,6 +258,7 @@ export default function SalesLeadDetails() {
         label: 'Date of birth',
         type: 'date',
         required: true,
+        maxDate: new Date(),
       },
       {
         name: 'gender',
@@ -435,6 +436,33 @@ export default function SalesLeadDetails() {
       </div>
       {isLoading && <InfoBox content="Loading lead details..." />}
       {!isLoading && !lead && <InfoBox content="Lead not found." />}
+      {!isLoading &&
+        lead &&
+        lead.client &&
+        !lead.client.profile_completed &&
+        lead.client.profile_completion_url && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-amber-700">
+              The client must complete the public registration link before
+              service planning begins.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  lead.client.profile_completion_url
+                )
+                enqueueSnackbar('Profile completion link copied', {
+                  variant: 'success',
+                })
+              }}
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
+            >
+              <Icons name="external-link" className="h-3.5 w-3.5" />
+              Copy profile link
+            </button>
+          </div>
+        )}
       {!isLoading && lead && (
         <TabContainer
           data={[
@@ -660,21 +688,6 @@ export default function SalesLeadDetails() {
                       </div>
                     </div>
                   </div>
-                  {lead.client.profile_completion_url && (
-                    <div className="mt-3">
-                      <Button
-                        label="Copy profile link"
-                        icon="link"
-                        outlined
-                        onClick={() =>
-                          copyLink(
-                            lead.client.profile_completion_url,
-                            'Profile completion link'
-                          )
-                        }
-                      />
-                    </div>
-                  )}
                 </section>
               )}
             </div>
