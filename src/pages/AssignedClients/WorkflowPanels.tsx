@@ -9,7 +9,6 @@ import { useSnackbarManager } from '../../components/common/snackbar'
 import { getErrorMessage } from '../../utilities/parsers'
 import {
   completeAssignedClientFollowUp,
-  confirmAssignedClientPackage,
   scheduleAssignedClientFollowUp,
   proposeAssignedClientPackage,
 } from './api'
@@ -45,8 +44,8 @@ export function ClientWorkflowDetails({
   showWorkflowActions = true,
 }: WorkflowProps) {
   const { enqueueSnackbar } = useSnackbarManager()
+  const packageIsActive = assignment?.anticipated_package?.status === 'accepted'
   const [proposalDialogOpen, setProposalDialogOpen] = useState(false)
-  const [proposalStep, setProposalStep] = useState(1)
   const [pkgSearch, setPkgSearch] = useState('')
   const [pkgPage, setPkgPage] = useState(1)
   const pkgPerPage = 4
@@ -59,11 +58,12 @@ export function ClientWorkflowDetails({
 
   const openProposalModal = () => {
     setProposal({
-      plan_id: '',
+      plan_id: assignment?.anticipated_package?.plan?.id
+        ? String(assignment.anticipated_package.plan.id)
+        : '',
       start_date: assignment?.anticipated_package?.start_date || '',
       notes: assignment?.anticipated_package?.notes || '',
     })
-    setProposalStep(1)
     setPkgSearch('')
     setPkgPage(1)
     setProposalDialogOpen(true)
@@ -98,11 +98,29 @@ export function ClientWorkflowDetails({
     )
   }, [plans, proposal.plan_id])
 
-  const run = async (action: () => Promise<any>, success: string) => {
+  const submitProposal = async () => {
+    if (!proposal.plan_id) {
+      enqueueSnackbar('Please select a package plan.', { variant: 'error' })
+      return
+    }
+    if (!proposal.start_date) {
+      enqueueSnackbar('Choose a start date.', { variant: 'error' })
+      return
+    }
+
     try {
       setSaving(true)
-      const response = await action()
-      enqueueSnackbar(response?.message || success, { variant: 'success' })
+      const response = await proposeAssignedClientPackage(
+        assignmentId,
+        proposal
+      )
+      enqueueSnackbar(
+        response?.message || 'Package updated and activated successfully',
+        {
+          variant: 'success',
+        }
+      )
+      setProposalDialogOpen(false)
       await onRefresh()
     } catch (error: any) {
       enqueueSnackbar(errorMessage(error), { variant: 'error' })
@@ -111,34 +129,8 @@ export function ClientWorkflowDetails({
     }
   }
 
-  const submitProposal = async () => {
-    if (proposalStep === 1) {
-      if (!proposal.plan_id) {
-        enqueueSnackbar('Please select a package plan.', {
-          variant: 'error',
-        })
-        return
-      }
-      setProposalStep(2)
-    } else {
-      if (!proposal.start_date) {
-        enqueueSnackbar('Choose a start date.', { variant: 'error' })
-        return
-      }
-      await run(
-        () => proposeAssignedClientPackage(assignmentId, proposal),
-        'Proposed package updated successfully'
-      )
-      setProposalDialogOpen(false)
-    }
-  }
-
   const handleSecondaryAction = () => {
-    if (proposalStep === 2) {
-      setProposalStep(1)
-    } else {
-      setProposalDialogOpen(false)
-    }
+    setProposalDialogOpen(false)
   }
 
   return (
@@ -155,14 +147,22 @@ export function ClientWorkflowDetails({
               <div>
                 <div className="mb-1 flex items-center gap-2">
                   <h2 className="text-lg font-semibold text-gray-900">
-                    Proposed package
+                    {packageIsActive ? 'Active package' : 'Proposed package'}
                   </h2>
-                  <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
-                    Proposed
+                  <span
+                    className={
+                      packageIsActive
+                        ? 'rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700'
+                        : 'rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700'
+                    }
+                  >
+                    {packageIsActive ? 'Active' : 'Proposed'}
                   </span>
                 </div>
                 <div className="text-sm text-gray-500">
-                  Review the package details before activation
+                  {packageIsActive
+                    ? 'The package is active and available in the calendar'
+                    : 'Review the package details before activation'}
                 </div>
               </div>
             </div>
@@ -243,23 +243,9 @@ export function ClientWorkflowDetails({
                       size="xs"
                       icon="edit"
                       className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
-                      label="Change package"
+                      label="Update package"
                       onClick={openProposalModal}
                       disabled={saving || !plans.length}
-                    />
-                    <Button
-                      primary
-                      size="xs"
-                      icon="check-circle"
-                      className="rounded-lg !border-emerald-500 !bg-emerald-500 hover:!bg-emerald-600 shadow-sm"
-                      label="Confirm & activate"
-                      onClick={() =>
-                        run(
-                          () => confirmAssignedClientPackage(assignmentId),
-                          'Package confirmed and activated successfully'
-                        )
-                      }
-                      isLoading={saving}
                     />
                   </div>
                 </div>
@@ -289,24 +275,21 @@ export function ClientWorkflowDetails({
         isOpen={proposalDialogOpen}
         onClose={() => {
           setProposalDialogOpen(false)
-          setProposalStep(1)
         }}
-        title="Propose a different package"
-        subTitle={
-          proposalStep === 1
-            ? 'Select a package plan for the client.'
-            : 'Set start date and optional notes.'
+        title={
+          assignment.anticipated_package ? 'Update package' : 'Select package'
         }
+        subTitle="Select a package, set the start date, and confirm it."
         onSubmit={submitProposal}
-        actionLabel={proposalStep === 1 ? 'Next' : 'Save proposed package'}
+        actionLabel="Confirm package"
         actionLoader={saving}
         secondaryAction={handleSecondaryAction}
-        secondaryActionLabel={proposalStep === 2 ? 'Back' : 'Cancel'}
+        secondaryActionLabel="Cancel"
         small={false}
         className="w-full max-w-4xl"
         body={
           <div>
-            {proposalStep === 1 ? (
+            <>
               <div>
                 <div className="relative mb-4">
                   <Icons
@@ -498,7 +481,6 @@ export function ClientWorkflowDetails({
                   </div>
                 )}
               </div>
-            ) : (
               <div className="space-y-4">
                 {selectedPlan && (
                   <div className="rounded-lg border border-formBorder bg-cardWrapperBg p-4">
@@ -548,7 +530,7 @@ export function ClientWorkflowDetails({
                   />
                 </label>
               </div>
-            )}
+            </>
           </div>
         }
       />

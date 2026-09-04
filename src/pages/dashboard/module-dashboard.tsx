@@ -349,7 +349,8 @@ export default function ModuleDashboard({
                       </span>
                       <span className="block truncate text-xs text-gray-500">
                         {item.email ||
-                          item.campaign ||
+                          item.campaign?.name ||
+                          item.marketing_form?.name ||
                           'No additional information'}
                       </span>
                     </span>
