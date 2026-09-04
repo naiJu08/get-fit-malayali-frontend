@@ -18,6 +18,7 @@ import { getApiErrorMessage } from '../../utilities/commonUtilities'
 import {
   useMarketingCampaigns,
   useMarketingForms,
+  useMarketingForm,
   createMarketingCampaign,
   updateMarketingCampaign,
   deleteMarketingCampaign,
@@ -72,18 +73,18 @@ const formPreviewHtml = (form: any) => {
     .map((field: any) => {
       const label = `<label>${escapeHtml(field.label)}${field.required ? ' <b>*</b>' : ''}</label>`
       if (field.type === 'textarea')
-        return `<div class=\"field\">${label}<textarea placeholder=\"${escapeHtml(field.placeholder)}\"></textarea></div>`
+        return `<div class=\"field\">${label}<textarea placeholder=\"${escapeHtml(field.placeholder)}\" disabled></textarea></div>`
       if (field.type === 'select')
-        return `<div class=\"field\">${label}<select><option>${escapeHtml(field.placeholder || 'Select an option')}</option>${(field.options || []).map((option: string) => `<option>${escapeHtml(option)}</option>`).join('')}</select></div>`
+        return `<div class=\"field\">${label}<select disabled><option>${escapeHtml(field.placeholder || 'Select an option')}</option>${(field.options || []).map((option: string) => `<option>${escapeHtml(option)}</option>`).join('')}</select></div>`
       if (field.type === 'checkbox')
         return `<div class=\"field\">${label}<div>${(field.options || [field.placeholder || field.label]).map((option: string) => `<div class=\"check\"><input type=\"checkbox\" disabled> ${escapeHtml(option)}</div>`).join('')}</div></div>`
-      return `<div class=\"field\">${label}<input type=\"${field.type === 'phone' ? 'tel' : escapeHtml(field.type || 'text')}\" placeholder=\"${escapeHtml(field.placeholder)}\"></div>`
+      return `<div class=\"field\">${label}<input type=\"${field.type === 'phone' ? 'tel' : escapeHtml(field.type || 'text')}\" placeholder=\"${escapeHtml(field.placeholder)}\" disabled></div>`
     })
     .join('')
   const image = definition.header?.image_url
     ? `<img class=\"hero\" src=\"${definition.header.image_url}\" alt=\"\">`
     : ''
-  return `<!doctype html><html><head><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><style>*{box-sizing:border-box}body{margin:0;background:${theme.page_background || '#eef2f1'};font-family:Arial,sans-serif;color:#374151}.page{min-height:1123px;background:${theme.background || '#fff'};overflow:hidden}.hero{width:100%;height:170px;object-fit:cover}.content{padding:48px}.title{color:${theme.accent || '#176b5b'};font-size:30px;font-weight:700}.subtitle{margin:12px 0 28px;color:#6b7280}.fields{display:${definition.layout === 'two' ? 'grid' : 'block'};grid-template-columns:1fr 1fr;gap:18px}.field{margin-bottom:18px}label{display:block;margin-bottom:8px;font-size:13px;font-weight:600}label b{color:#ef4444}input,textarea,select{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:12px;background:#fff;font-size:13px}textarea{min-height:82px}.check{margin:8px 0;font-size:13px}.check input{width:auto}.submit{margin-top:40px;width:100%;border:0;border-radius:8px;padding:13px;color:#fff;background:${theme.accent || '#176b5b'};font-weight:600}.footer{margin-top:22px;text-align:center;color:#9ca3af;font-size:11px}</style></head><body><div class=\"page\">${image}<div class=\"content\"><div class=\"title\">${escapeHtml(definition.header?.title || form.name)}</div><div class=\"subtitle\">${escapeHtml(definition.header?.subtitle || form.description)}</div><div class=\"fields\">${fields}</div><button class=\"submit\">Submit enquiry</button><div class=\"footer\">${escapeHtml(definition.footer?.text || '')}</div></div></div></body></html>`
+  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:${theme.page_background || '#eef2f1'};font-family:Arial,sans-serif;color:#374151}.page{min-height:1123px;background:${theme.background || '#fff'};overflow:hidden}.hero{width:100%;height:170px;object-fit:cover}.content{padding:48px}.title{color:${theme.accent || '#176b5b'};font-size:30px;font-weight:700}.subtitle{margin:12px 0 28px;color:#6b7280}.fields{display:${definition.layout === 'two' ? 'grid' : 'block'};grid-template-columns:1fr 1fr;gap:18px}.field{margin-bottom:18px}label{display:block;margin-bottom:8px;font-size:13px;font-weight:600}label b{color:#ef4444}input,textarea,select{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:12px;background:#f9fafb;font-size:13px;cursor:not-allowed}input:disabled,textarea:disabled,select:disabled{opacity:0.7}textarea{min-height:82px}.check{margin:8px 0;font-size:13px}.check input{width:auto}.submit{margin-top:40px;width:100%;border:0;border-radius:8px;padding:13px;color:#fff;background:${theme.accent || '#176b5b'};font-weight:600}.footer{margin-top:22px;text-align:center;color:#9ca3af;font-size:11px}</style></head><body><div class="page">${image}<div class="content"><div class="title">${escapeHtml(definition.header?.title || form.name)}</div><div class="subtitle">${escapeHtml(definition.header?.subtitle || form.description)}</div><div class="fields">${fields}</div><button class="submit" disabled>Submit enquiry</button><div class="footer">${escapeHtml(definition.footer?.text || '')}</div></div></div></body></html>`
 }
 
 export default function Campaigns() {
@@ -100,7 +101,7 @@ export default function Campaigns() {
   const [formDrawerOpen, setFormDrawerOpen] = useState(false)
   const [formParams, setFormParams] = useState({
     page: 1,
-    per_page: 6,
+    per_page: 3,
     search: '',
     status: 'active',
   })
@@ -111,6 +112,11 @@ export default function Campaigns() {
   const { data, isFetching, refetch } = useMarketingCampaigns(params)
   const { data: formsData, isFetching: formsFetching } =
     useMarketingForms(formParams)
+  const { data: selectedFormData } = useMarketingForm(selectedForm?.id)
+  const formForPreview = useMemo(
+    () => selectedFormData?.marketing_form || selectedForm,
+    [selectedFormData, selectedForm]
+  )
   const forms = useMemo(() => formsData?.marketing_forms || [], [formsData])
   const methods = useForm({ mode: 'onChange', defaultValues: emptyCampaign() })
 
@@ -499,7 +505,9 @@ export default function Campaigns() {
             <div className="mt-5 w-full rounded-xl border bg-gray-50 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-semibold text-primaryText">Form</div>
+                  <div className="font-semibold text-primaryText">
+                    Form <span className="text-red-500">*</span>
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">
                     Choose the form that will collect campaign leads.
                   </p>
@@ -530,11 +538,7 @@ export default function Campaigns() {
                     Remove
                   </button>
                 </div>
-              ) : (
-                <p className="mt-4 text-sm text-amber-700 bg-amber-50 rounded-lg p-3">
-                  A form is required.
-                </p>
-              )}
+              ) : null}
             </div>
             <div className="mt-5 grid grid-cols-6 gap-4">
               <div className="col-span-6">
@@ -598,7 +602,7 @@ export default function Campaigns() {
                         : 'hover:border-primaryGreen')
                     }
                   >
-                    <div className="h-20 bg-gray-100 overflow-hidden">
+                    <div className="h-9 bg-gray-100 overflow-hidden">
                       {form.definition?.header?.image_url ? (
                         <img
                           src={form.definition.header.image_url}
@@ -686,7 +690,7 @@ export default function Campaigns() {
               )}
             </div>
             {selectedForm ? (
-              renderFormPreview(selectedForm)
+              renderFormPreview(formForPreview)
             ) : (
               <div className="flex min-h-[600px] items-center justify-center text-sm text-gray-500">
                 Select a form to preview it.
