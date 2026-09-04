@@ -2,6 +2,27 @@ import React from 'react'
 
 import { TextFieldProps } from '../../../common/types'
 
+const resolveFieldError = (errors: any, name: string) => {
+  if (!errors || !name || typeof errors !== 'object') return undefined
+  if (errors[name]) return errors[name]
+
+  if (!name.includes('.')) return undefined
+
+  return name.split('.').reduce((acc, segment) => {
+    if (acc == null) return undefined
+
+    if (Array.isArray(acc)) {
+      const index = Number(segment)
+      if (Number.isNaN(index)) {
+        return acc[segment as any]
+      }
+      return acc[index]
+    }
+
+    return acc ? acc[segment] : undefined
+  }, errors)
+}
+
 const TextField: React.FC<TextFieldProps> = ({
   name,
   id,
@@ -10,6 +31,7 @@ const TextField: React.FC<TextFieldProps> = ({
   disabled = false,
   fullwidth = true,
   placeholder,
+  maxLength,
   totalCount,
   adorement,
   register,
@@ -31,6 +53,7 @@ const TextField: React.FC<TextFieldProps> = ({
   isTotal,
   handleDisableAction,
   allowPositiveOnly,
+  digitsOnly,
   errorFlag,
   toLowercase,
 }) => {
@@ -42,6 +65,10 @@ const TextField: React.FC<TextFieldProps> = ({
     return errMsg
   }
 
+  const fieldError = resolveFieldError(errors, name)
+  const hasError = Boolean(fieldError) || Boolean(errorFlag)
+  const errorMessage = fieldError ? getErrors(fieldError) : ''
+
   const generateClassName = (from: string) => {
     let className = ''
     switch (from) {
@@ -52,7 +79,7 @@ const TextField: React.FC<TextFieldProps> = ({
         // ` w-full input ${
         //   fieldEdit || adorement ? 'pr-[75px] ' : 'pr-input '
         // }`
-        if ((errors && errors[name]) || errorFlag) {
+        if (hasError) {
           className += 'textfield textfield-error'
         } else {
           if (edited) {
@@ -83,6 +110,15 @@ const TextField: React.FC<TextFieldProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e?.target.value
 
+    if (digitsOnly) {
+      if (!/^\d*$/.test(inputValue)) return
+      if (maxLength && inputValue.length > maxLength) return
+      onChange?.(e)
+      return
+    }
+
+    if (maxLength && inputValue.length > maxLength) return
+
     if (type === 'number' && allowPositiveOnly) {
       if (
         inputValue === '' ||
@@ -93,6 +129,84 @@ const TextField: React.FC<TextFieldProps> = ({
       }
     } else {
       onChange?.(e)
+    }
+  }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (digitsOnly) {
+      const allowedKeys = [
+        'Backspace',
+        'Delete',
+        'ArrowLeft',
+        'ArrowRight',
+        'Tab',
+        'Home',
+        'End',
+      ]
+      if (allowedKeys.includes(e.key)) return
+      if (!/[0-9]/.test(e.key)) {
+        e.preventDefault()
+      }
+      return
+    }
+
+    if (!allowPositiveOnly) return
+    const allowedKeys = [
+      'Backspace',
+      'Delete',
+      'ArrowLeft',
+      'ArrowRight',
+      'Tab',
+      'Home',
+      'End',
+    ]
+    if (allowedKeys.includes(e.key)) return
+    const isNumber = /[0-9]/.test(e.key)
+    const isDot = e.key === '.'
+    const target = e.target as HTMLInputElement
+    if (!isNumber && !isDot) {
+      e.preventDefault()
+      return
+    }
+    if (isDot && target.value.includes('.')) {
+      e.preventDefault()
+      return
+    }
+  }
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    if (digitsOnly) {
+      const paste = e.clipboardData.getData('text')
+      if (!/^\d*$/.test(paste)) {
+        e.preventDefault()
+        return
+      }
+      const target = e.target as HTMLInputElement
+      const selectedLength =
+        (target.selectionEnd ?? 0) - (target.selectionStart ?? 0)
+      const nextLength = target.value.length - selectedLength + paste.length
+      if (maxLength && nextLength > maxLength) {
+        e.preventDefault()
+      }
+      return
+    }
+
+    if (maxLength) {
+      const target = e.target as HTMLInputElement
+      const selectedLength =
+        (target.selectionEnd ?? 0) - (target.selectionStart ?? 0)
+      const nextLength =
+        target.value.length -
+        selectedLength +
+        e.clipboardData.getData('text').length
+      if (nextLength > maxLength) {
+        e.preventDefault()
+      }
+      return
+    }
+
+    if (!allowPositiveOnly) return
+    const paste = e.clipboardData.getData('text')
+    if (!/^[0-9]*\.?[0-9]*$/.test(paste)) {
+      e.preventDefault()
     }
   }
   return (
@@ -137,10 +251,14 @@ const TextField: React.FC<TextFieldProps> = ({
           {...register?.(name, { required })}
           value={value ?? ''}
           onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           ref={ref}
           placeholder={placeholder || label}
           onBlur={onBlur}
           type={type}
+          maxLength={maxLength}
+          inputMode={digitsOnly ? 'numeric' : undefined}
           data-testid={id ?? name}
           autoComplete={autoComplete ? 'on' : 'off'}
           autoFocus={autoFocus}
@@ -148,9 +266,9 @@ const TextField: React.FC<TextFieldProps> = ({
           hidden={hidden}
         />
       </div>
-      {errors && errors[name] && (
+      {fieldError && (
         <div className="text-error text-error-label mt-[1px]">
-          {getErrors(errors[name])}
+          {errorMessage}
         </div>
       )}
     </div>

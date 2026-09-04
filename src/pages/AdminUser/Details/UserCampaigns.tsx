@@ -1,0 +1,243 @@
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import SmartTable from '../../../components/common/table/SmartTable'
+import Icons from '../../../components/common/icons'
+import { calcWindowHeight } from '../../../utilities/calcHeight'
+import { useUserMarketingCampaigns } from '../../Marketing/api'
+import { useSnackbarManager } from '../../../components/common/snackbar'
+
+const displayStatus = (value: any) =>
+  String(value || 'draft')
+    .replace(/_/g, ' ')
+    .replace(/^./, (letter) => letter.toUpperCase())
+
+const statusColor = (value: any) => {
+  const s = String(value || '').toLowerCase()
+  if (s === 'active') return 'bg-green-50 text-green-700 border-green-200'
+  if (s === 'draft') return 'bg-yellow-50 text-yellow-700 border-yellow-200'
+  if (s === 'inactive') return 'bg-gray-100 text-gray-600 border-gray-200'
+  return 'bg-gray-100 text-gray-600 border-gray-200'
+}
+
+export default function UserCampaigns({ user }: { user: any }) {
+  const navigate = useNavigate()
+  const { enqueueSnackbar } = useSnackbarManager()
+  const [params, setParams] = useState({
+    page: 1,
+    per_page: 10,
+    search: '',
+    status: '',
+  })
+
+  const { data, isFetching } = useUserMarketingCampaigns(user?.id, params)
+
+  const rawRows = data?.marketing_campaigns || []
+  const rows = useMemo(() => {
+    if (!params.status) return rawRows
+    return rawRows.filter(
+      (r: any) =>
+        String(r.status || '').toLowerCase() === params.status.toLowerCase()
+    )
+  }, [rawRows, params.status])
+
+  const meta = data?.meta || {}
+
+  const columns: any[] = useMemo(
+    () => [
+      {
+        title: 'Campaign Name',
+        field: 'name',
+        renderCell: (r: any) => ({
+          cell: (
+            <button
+              type="button"
+              className="text-blue-600 hover:underline font-medium text-left"
+              onClick={() =>
+                navigate(`/users/marketing/${user?.id}/campaigns/${r.id}`)
+              }
+            >
+              {r.name}
+            </button>
+          ),
+          toolTip: r.name,
+        }),
+        customCell: true,
+        sortable: false,
+        resizable: true,
+        isVisible: true,
+      },
+      {
+        title: 'Status',
+        field: 'status',
+        renderCell: (r: any) => ({
+          cell: (
+            <span
+              className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${statusColor(
+                r.status
+              )}`}
+            >
+              {displayStatus(r.status)}
+            </span>
+          ),
+          toolTip: displayStatus(r.status),
+        }),
+        customCell: true,
+        sortable: false,
+        resizable: true,
+        isVisible: true,
+      },
+      {
+        title: 'Form',
+        field: 'marketing_form',
+        renderCell: (r: any) => ({
+          cell: r.marketing_form?.name || '-',
+          toolTip: r.marketing_form?.name || '-',
+        }),
+        customCell: true,
+        sortable: false,
+        resizable: true,
+        isVisible: true,
+      },
+      {
+        title: 'Leads',
+        field: 'leads_count',
+        renderCell: (r: any) => ({
+          cell: (
+            <span className="font-semibold text-gray-900">
+              {r.leads_count ?? 0}
+            </span>
+          ),
+          toolTip: String(r.leads_count ?? 0),
+        }),
+        customCell: true,
+        sortable: false,
+        resizable: true,
+        isVisible: true,
+      },
+      {
+        title: 'Starts On',
+        field: 'starts_on',
+        renderCell: (r: any) => ({
+          cell: r.starts_on || '-',
+          toolTip: r.starts_on || '-',
+        }),
+        customCell: true,
+        sortable: false,
+        resizable: true,
+        isVisible: true,
+      },
+      {
+        title: 'Ends On',
+        field: 'ends_on',
+        renderCell: (r: any) => ({
+          cell: r.ends_on || '-',
+          toolTip: r.ends_on || '-',
+        }),
+        customCell: true,
+        sortable: false,
+        resizable: true,
+        isVisible: true,
+      },
+      {
+        title: 'Public URL',
+        field: 'public_url',
+        renderCell: (r: any) => ({
+          cell: r.public_url ? (
+            <button
+              type="button"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
+              onClick={(e) => {
+                e.stopPropagation()
+                navigator.clipboard.writeText(r.public_url)
+                enqueueSnackbar('Public link copied to clipboard', {
+                  variant: 'success',
+                })
+              }}
+            >
+              <Icons
+                name="link"
+                className="inline-flex items-center justify-center text-white shrink-0"
+              />
+              <span className="leading-none">Copy link</span>
+            </button>
+          ) : (
+            '-'
+          ),
+          toolTip: r.public_url || '',
+        }),
+        customCell: true,
+        sortable: false,
+        resizable: true,
+        isVisible: true,
+      },
+    ],
+    [navigate, enqueueSnackbar, user?.id]
+  )
+
+  return (
+    <div>
+      <SmartTable
+        data={rows}
+        dataRowKey="id"
+        columns={columns}
+        toolbar
+        toolbarExtra={
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-gray-600">Status</label>
+            <select
+              className="w-44 px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200"
+              value={params.status || ''}
+              onChange={(e) =>
+                setParams((prev) => ({
+                  ...prev,
+                  status: e.target.value,
+                  page: 1,
+                }))
+              }
+            >
+              <option value="">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+        }
+        search
+        searchPlaceholder="Search campaigns"
+        searchValue={params.search}
+        onSearchChange={(value) =>
+          setParams((prev) => ({ ...prev, search: value, page: 1 }))
+        }
+        isLoading={isFetching}
+        height={calcWindowHeight(260)}
+        emptyTitle="No campaigns found for this user"
+        pagination
+        paginationProps={{
+          onPagination: (page) => setParams((prev) => ({ ...prev, page })),
+          total: meta.total_count || rows.length,
+          currentPage: meta.current_page || 1,
+          rowsPerPage: params.per_page,
+          onRowsPerPage: (per_page) =>
+            setParams((prev) => ({
+              ...prev,
+              per_page: Number(per_page),
+              page: 1,
+            })),
+          totalPages: meta.total_pages || 1,
+          dropOptions: [10, 20, 30, 50],
+        }}
+        columnToggle
+        externalActions
+        actionProps={[
+          {
+            title: 'View',
+            toolTip: 'View',
+            icon: <Icons name="external-link" />,
+            action: (row: any) =>
+              navigate(`/users/marketing/${user?.id}/campaigns/${row.id}`),
+          },
+        ]}
+      />
+    </div>
+  )
+}

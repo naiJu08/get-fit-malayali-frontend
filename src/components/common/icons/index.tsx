@@ -17,6 +17,7 @@ import BadgeCheckIcon from './BadgeCheck'
 import BuildingIcon from './Building'
 import BarchartIcon from './Barchart'
 import CalendarIcon from './Calendar'
+import CampaignHeaderIcon from './CampaignHeaderIcon'
 import CancelIcon from './Cancel'
 import CardsIcon from './CardsIcon'
 import CartIcon from './Cart'
@@ -146,6 +147,47 @@ import AsceningIcon from './Ascending'
 import ExportFileIcon from './ExportFile'
 import DocumentIcon from './DocumentIcon'
 import CubeIcon from './CubeIcon'
+import LeftArrowIcon from './LeftArrow'
+import HeartRate from './HeartRate'
+import BloodPressureIcon from './BloodPressure'
+import SugarLevelIcon from './SugarLevelIcon'
+import SleepTimeIcon from './SleepTimeIcon'
+import WaterIntakeIcon from './WaterIntake'
+import ClockIcon from './ClockIcon'
+import Calendar from './CalendarIcon'
+import ChestIcon from './chest'
+import HipIcon from './hip'
+import WaterBottleIcon from './waterbottle'
+import WaistIcon from './WaistIcon'
+import NeckIcon from './NeckIcon'
+import ThighIcon from './ThighIcon'
+import FatIcon from './FatIcon'
+import MuscleMassIcon from './Musclemass'
+import ArmIcon from './ArmIcon'
+import BoneMassIcon from './BoneMass'
+import NoDataIcon from './NoData'
+import Plan from './Plan'
+import Workout from './Workout'
+import Notifications from './Notifications'
+import Subscription from './Subscriptions'
+import Recipe from './Recipe'
+import TitleIcon from './TitleIcon'
+import YogaIcon from './YogaIcon'
+import YogaWhiteIcon from './YogaWhiteIcon'
+import Meditation from './Meditation'
+import Meals from './Meals'
+import StepsIcon from './steps'
+import CategoryIcon from './CategoryIcon'
+import CategoryHeaderIcon from './CategoryHeaderIcon'
+import TemplateIcon from './TemplateIcon'
+import TemplateIconWhite from './TemplateIconWhite'
+import WeightIcon from './WeightIcon'
+import HeightIcon from './HeightIcon'
+import ExerciseIcon from './ExerciseIcon'
+import HeaderSideArrow from './HeaderArrow'
+import HamburgerIcon from './Hamburger'
+import DuplicateIcon from './DuplicateIcon'
+// import ExerciseIcon from './ExerciseIcon'
 
 const Icons: React.FC<IconsProps> = ({
   name,
@@ -443,6 +485,90 @@ const Icons: React.FC<IconsProps> = ({
         return <Notification />
       case 'accounting-icon':
         return <AccountingIcon />
+      case 'left-arrow-icon':
+        return <LeftArrowIcon />
+      case 'heart-rate-icon':
+        return <HeartRate />
+      case 'blood-pressure-icon':
+        return <BloodPressureIcon />
+      case 'sugar-level-icon':
+        return <SugarLevelIcon />
+      case 'sleep-time-icon':
+        return <SleepTimeIcon />
+      case 'water-intake-icon':
+        return <WaterIntakeIcon />
+      case 'clock-icon':
+        return <ClockIcon />
+      case 'calendar-icon':
+        return <Calendar />
+      case 'chest-icon':
+        return <ChestIcon />
+      case 'hip-icon':
+        return <HipIcon />
+      case 'water-bottle-icon':
+        return <WaterBottleIcon />
+      case 'waist-icon':
+        return <WaistIcon />
+      case 'neck-icon':
+        return <NeckIcon />
+      case 'thigh-icon':
+        return <ThighIcon />
+      case 'fat-icon':
+        return <FatIcon />
+      case 'muscle-mass-icon':
+        return <MuscleMassIcon />
+      case 'arm-icon':
+        return <ArmIcon />
+      case 'bone-icon':
+        return <BoneMassIcon />
+      case 'no-data-icon':
+        return <NoDataIcon />
+      case 'plan':
+        return <Plan />
+      case 'workout':
+        return <Workout />
+      case 'notification':
+        return <Notifications />
+      case 'subscription':
+        return <Subscription />
+      case 'recipe':
+        return <Recipe />
+
+      case 'title-icon':
+        return <TitleIcon />
+      case 'yoga-icon':
+        return <YogaIcon />
+      case 'yoga-white-icon':
+        return <YogaWhiteIcon />
+      case 'meditation-icon':
+        return <Meditation />
+      case 'meal-icon':
+        return <Meals />
+      case 'steps-icon':
+        return <StepsIcon />
+      case 'category-icon':
+        return <CategoryIcon />
+      case 'category-header-icon':
+        return <CategoryHeaderIcon />
+      case 'campaign-header-icon':
+      case 'campaign-icon':
+        return <CampaignHeaderIcon />
+      case 'template-icon':
+        return <TemplateIcon />
+      case 'template-icon-white':
+        return <TemplateIconWhite />
+      case 'weight-icon':
+        return <WeightIcon />
+      case 'height-icon':
+        return <HeightIcon />
+      case 'exercise-icon':
+        return <ExerciseIcon />
+      case 'header-side-arrow':
+        return <HeaderSideArrow />
+      case 'hamburger-icon':
+        return <HamburgerIcon />
+      case 'duplicate-icon':
+        return <DuplicateIcon />
       default:
         return <></>
     }

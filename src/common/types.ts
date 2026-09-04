@@ -102,6 +102,7 @@ export interface TextFieldProps {
   disabled?: boolean
   placeholder?: string
   required?: boolean
+  maxLength?: number
   isTotal?: boolean
   fieldEdit?: boolean
   tabularForm?: boolean
@@ -125,8 +126,15 @@ export interface TextFieldProps {
   disableAction?: boolean
   handleDisableAction?: (val: boolean) => void
   allowPositiveOnly?: boolean
+  digitsOnly?: boolean
   errorFlag?: boolean
   toLowercase?: boolean
+  list?: string
+}
+
+export interface AspectRatioSpec {
+  width: number
+  height: number
 }
 
 export interface FileUploadProps {
@@ -134,6 +142,7 @@ export interface FileUploadProps {
   name: string
   subName: string
   label?: string
+  labelAddon?: ReactNode
   type?: string
   fullwidth?: boolean
   disabled?: boolean
@@ -153,6 +162,10 @@ export interface FileUploadProps {
   needConfirmation?: boolean
   setAttachmentName?: (value: any) => void
   accept?: string
+  aspectRatio?: AspectRatioSpec
+  requiredWidth?: number
+  requiredHeight?: number
+  dimensionLabel?: string
 }
 
 export interface FieldViewProps {
@@ -171,9 +184,12 @@ export interface QueryParams {
   page: number
   search?: string
   page_size?: number | string
+  per_page?: number | string
   ordering?: string
   type?: string
   currentDomain?: string
+  parent_id?: string | number
+  status?: string
 }
 export interface SearchParams {
   search?: string
@@ -325,6 +341,7 @@ export interface DialogModalProps {
   onClose?: (type?: string, key?: string | undefined) => void
   onSubmit?: () => void
   actionLabel?: string
+  actionDisabled?: boolean
   actionLoader?: boolean
   title?: any
   subTitle?: any
@@ -340,17 +357,25 @@ export interface DialogModalProps {
   className?: string
   stylelabel?: string
   headborder?: boolean
+  tall?: boolean
+  bodyOverflowVisible?: boolean
 }
 export interface TabItemProps {
   label: string
   id: string | number
   disabled?: boolean
   hide?: boolean
+  bgClass?: string
+  activeClass?: string
+  inactiveClass?: string
+  activeBorderClass?: string
+  inactiveBorderClass?: string
 }
 export interface TabProps {
   data: TabItemProps[]
   activeTab: string | number
   onClick: (item: TabItemProps) => void
+  action?: React.ReactNode
 
   children: React.ReactNode
 }
@@ -410,6 +435,7 @@ export type AdvanceFilter = {
 export interface StoreFilterParams {
   page: number
   page_size?: number | string
+  per_page?: number | string
   search: string
   ordering?: string
   filters: Record<string, unknown>
@@ -434,6 +460,8 @@ export interface FormBuilderProps {
   label?: string
   type: string
   inputType?: string
+  allowPositiveOnly?: boolean
+  digitsOnly?: boolean
   initialLoad?: boolean
   id: string
   uppercase?: boolean
@@ -475,13 +503,19 @@ export interface FormBuilderProps {
   subId?: string
   subData?: any[]
   toLowercase?: boolean
+  labelAddon?: ReactNode
+  aspectRatio?: AspectRatioSpec
+  requiredWidth?: number
+  requiredHeight?: number
+  dimensionLabel?: string
+  hidePeriodIcon?: boolean
 }
 interface Content {
   cell: ReactNode | string
   toolTip?: string
 }
 export type TableColumns = {
-  title: string
+  title: string | ReactNode
   field: string
   sortable?: boolean
   resizable?: boolean

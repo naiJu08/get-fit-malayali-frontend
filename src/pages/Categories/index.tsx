@@ -1,0 +1,342 @@
+import { useQueryClient } from '@tanstack/react-query'
+import SmartTable from '../../components/common/table/SmartTable'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+
+import { TableColumns } from '../../common/types'
+import InfoBox from '../../components/app/alertBox/infoBox'
+import Icons from '../../components/common/icons'
+import ListingHeader from '../../components/common/ListingTiles'
+import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
+import { checkPermissions } from '../../layout/store'
+import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
+import { useAuthStore } from '../../store/authStore'
+import { calcWindowHeight } from '../../utilities/calcHeight'
+import { getSortedColumnName } from '../../utilities/parsers'
+import { handleReturnEmptyMsg } from '../../utilities/validation'
+import { useSnackbarManager } from '../../components/common/snackbar'
+import {
+  getCategoriesDetails,
+  useCategoriesList,
+  DISABLE_NONLOGIN_APIS,
+  deleteCategories,
+} from './api'
+import { getColumns } from './columns'
+import CreateAdmin from './create'
+import { useLocation } from 'react-router-dom'
+
+export default function CategoriesMain() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
+  const [columns, setColumns] = useState<TableColumns[]>([])
+  const [createOpen, setCreateOpen] = useState(false)
+  const [viewMode, setViewMode] = useState(false)
+  const [edit, setEdit] = useState(false)
+  const [rowData, setRowData] = useState<any>()
+  const [editViewIndicator, setEditViewIndicator] = useState(false)
+  const [viewIndicator, setViewIndicator] = useState(false)
+  const [searchDebounce, setSearchDebounce] = useState<any>(null)
+  const [deleteWorkoutModal, setDeleteWorkoutModal] = useState(false)
+  const [deletingWorkout, setDeletingWorkout] = useState(false)
+  const [workoutToDelete, setWorkoutToDelete] = useState<any>(null)
+
+  const params = useParams()
+
+  const { pageParams, setPageParams } = useAdminUserFilterStore()
+  const { page, per_page, search, ordering, filters } = pageParams
+  const cleanedFilters: any = { ...(filters || {}) }
+  if (cleanedFilters.active === false || cleanedFilters.active === 'false') {
+    delete cleanedFilters.active
+  }
+  const effectivePerPage = Number(per_page ?? 10)
+  const searchParams = {
+    page: page || 1,
+    per_page: effectivePerPage,
+    search: search,
+    ...(ordering ? { ordering } : {}),
+    ...cleanedFilters,
+  }
+
+  const { data, refetch, isFetching } = useCategoriesList(searchParams)
+  useEffect(() => {
+    if (pageParams?.search) {
+      setPageParams({ ...pageParams, search: '', page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const totalCount =
+    typeof data?.meta?.total_count === 'number'
+      ? data.meta.total_count
+      : typeof data?.total_count === 'number'
+        ? data.total_count
+        : typeof data?.total === 'number'
+          ? data.total
+          : typeof data?.count === 'number'
+            ? data.count
+            : undefined
+  const calculatedTotalPages =
+    typeof totalCount === 'number'
+      ? Math.max(1, Math.ceil(totalCount / effectivePerPage))
+      : null
+
+  useEffect(() => {
+    if (calculatedTotalPages !== null && !isFetching) {
+      if ((pageParams?.page ?? 1) > calculatedTotalPages) {
+        setPageParams({ ...pageParams, page: calculatedTotalPages })
+      } else if ((pageParams?.page ?? 1) < 1) {
+        setPageParams({ ...pageParams, page: 1 })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [calculatedTotalPages, isFetching])
+  const onChangePage = (row: number) => {
+    setPageParams({
+      ...pageParams,
+      page: row,
+    })
+  }
+  const onChangeRowsPerPage = (count: number | string) => {
+    setPageParams({
+      ...pageParams,
+      per_page: Number(count),
+      page: 1,
+    })
+  }
+  const onViewAction = async (row: any) => {
+    setViewIndicator(true)
+    if (row?.id) {
+      const data = await getCategoriesDetails(String(row?.id))
+      setRowData((data as any)?.workout ?? data)
+      setViewMode(true)
+      setCreateOpen(true)
+    }
+  }
+
+  const handleDelete = async (rowData: any) => {
+    if (!rowData?.id) return
+    try {
+      setDeletingWorkout(true)
+      await deleteCategories(String(rowData.id))
+      queryClient.invalidateQueries(['categories_list'])
+      queryClient.invalidateQueries(['workout_categories'])
+      queryClient.invalidateQueries(['workout-filter-categories'])
+      queryClient.invalidateQueries(['workout_categories_for_assign'])
+      enqueueSnackbar('Category deleted successfully', { variant: 'success' })
+      setDeleteWorkoutModal(false)
+      setWorkoutToDelete(null)
+      refetch()
+    } catch (err: any) {
+      enqueueSnackbar(
+        err?.response?.data?.message || 'Failed to delete category',
+        { variant: 'error' }
+      )
+    } finally {
+      setDeletingWorkout(false)
+    }
+  }
+  useEffect(() => {
+    setColumns(
+      getColumns({
+        onNameClick: (row: any) => navigate(`/categories/${row?.id}`),
+        disableNameLink: false,
+      })
+    )
+  }, [isNutritionist])
+  useEffect(() => {
+    const currentParams = useAdminUserFilterStore.getState().pageParams
+    useAdminUserFilterStore.getState().setPageParams({
+      ...currentParams,
+      page: 1,
+      search: '',
+      sortColumn: undefined,
+      sortType: undefined,
+      ordering: undefined,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
+  // const handleSeach = (key?: string) => {
+  //   setPageParams({
+  //     ...pageParams,
+  //     search: key as string,
+  //     page: 1,
+  //   })
+  // }
+
+  const handleEdit = async (rowData: any) => {
+    if (rowData?.id) {
+      const data = await getCategoriesDetails(String(rowData?.id))
+      setRowData((data as any)?.category ?? data)
+      setCreateOpen(true)
+      setViewMode(false)
+      setEdit(true)
+    }
+  }
+
+  const handleClose = () => {
+    setCreateOpen(false)
+    setViewMode(false)
+    setEdit(false)
+    if (viewIndicator && editViewIndicator) {
+      setViewIndicator(false)
+      setEditViewIndicator(false)
+      onViewAction(rowData)
+    }
+  }
+
+  const handleRefresh = () => {
+    refetch()
+  }
+  const basicData = {
+    title: 'Exercise Categories',
+    icon: 'category-header-icon',
+  }
+  const openDrawer = () => {
+    if (isNutritionist) return
+    setCreateOpen(true)
+    setRowData({})
+  }
+  const headerProps = {
+    actionTitle: 'Create Category',
+  }
+  const handleSort = (orderColumn: any, orderDirection: any) => {
+    if (!orderColumn || !orderDirection) {
+      setPageParams({
+        ...pageParams,
+        sortColumn: undefined,
+        sortType: undefined,
+        ordering: undefined,
+      })
+      return
+    }
+    setPageParams({
+      ...pageParams,
+      sortColumn: orderColumn,
+      sortType: orderDirection,
+      ordering: getSortedColumnName(orderColumn, orderDirection),
+    })
+  }
+
+  return (
+    <div>
+      {DISABLE_NONLOGIN_APIS ? (
+        <div className="p-6">
+          <InfoBox content={'This section is disabled for this build.'} />
+        </div>
+      ) : (
+        <>
+          <ListingHeader
+            data={basicData}
+            onActionClick={!isNutritionist ? openDrawer : undefined}
+            actionProps={!isNutritionist ? headerProps : undefined}
+            checkPermission={
+              !isNutritionist && checkPermissions('Employee', 'create')
+            }
+          />
+          <div className=" p-4">
+            <SmartTable
+              data={data?.categories ?? []}
+              dataRowKey="id"
+              toolbar={true}
+              height={
+                (data?.categories?.length ?? 0) === 0
+                  ? calcWindowHeight(218)
+                  : calcWindowHeight(150)
+              }
+              search={true}
+              searchPlaceholder="Search Category Name"
+              searchValue={pageParams?.search || ''}
+              onSearchChange={(val) => {
+                setPageParams({ ...pageParams, search: val, page: 1 })
+                if (searchDebounce) clearTimeout(searchDebounce)
+                const t = setTimeout(() => refetch(), 300)
+                setSearchDebounce(t)
+              }}
+              onSearch={() => refetch()}
+              isLoading={isFetching}
+              sortType={pageParams.sortType}
+              sortColumn={pageParams.sortColumn}
+              handleColumnSort={handleSort}
+              emptyTitle="No records to display"
+              emptySubTitle={handleReturnEmptyMsg(search)}
+              columns={columns}
+              pagination={true}
+              paginationProps={{
+                onPagination: onChangePage,
+                total: totalCount ?? data?.categories?.length ?? 0,
+                currentPage: pageParams?.page ?? 1,
+                rowsPerPage: effectivePerPage,
+                onRowsPerPage: onChangeRowsPerPage,
+                totalPages: calculatedTotalPages ?? 1,
+                dropOptions: [10, 20, 30, 50, 100],
+              }}
+              actionProps={
+                isNutritionist
+                  ? []
+                  : [
+                      {
+                        icon: <Icons name="eye" />,
+                        action: (row) => navigate(`/categories/${row?.id}`),
+                        title: 'View',
+                        toolTip: 'View',
+                      },
+                      {
+                        icon: <Icons name="edit" />,
+                        action: (row) => handleEdit(row),
+                        title: 'Edit',
+                        toolTip: 'Edit',
+                      },
+                      {
+                        icon: <Icons name="delete" />,
+                        action: (row) => {
+                          setWorkoutToDelete(row)
+                          setDeleteWorkoutModal(true)
+                        },
+                        title: 'Delete',
+                        toolTip: 'Delete',
+                      },
+                    ]
+              }
+              columnToggle
+              externalActions={true}
+            />
+          </div>
+          <ConfirmDeleteModal
+            isOpen={deleteWorkoutModal}
+            onClose={() => {
+              if (!deletingWorkout) {
+                setDeleteWorkoutModal(false)
+                setWorkoutToDelete(null)
+              }
+            }}
+            onConfirm={() => workoutToDelete && handleDelete(workoutToDelete)}
+            loading={deletingWorkout}
+            title={'Are you sure?'}
+            subTitle={
+              'Do you really want to delete this category? This process cannot be undone.'
+            }
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+          />
+          <CreateAdmin
+            isDrawerOpen={createOpen}
+            rowData={rowData}
+            edit={edit}
+            setViewMode={setViewMode}
+            setEdit={setEdit}
+            viewMode={viewMode}
+            paramsId={params?.id}
+            handleClose={handleClose}
+            handleRefresh={handleRefresh}
+            editViewIndicator={editViewIndicator}
+            setEditViewIndicator={setEditViewIndicator}
+          />
+        </>
+      )}
+    </div>
+  )
+}

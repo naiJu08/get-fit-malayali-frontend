@@ -1,16 +1,16 @@
 import { useMemo } from 'react'
 
-export const parseQueryParams = (params = {}) => {
-  const length = Object.entries(params).length
-  if (!Object.entries(params).length) return ''
-  return Object.entries(params).reduce(
-    (acc, [key, value], i) =>
-      acc +
-      (value && value !== ''
-        ? `${key}=${value}${i !== length - 1 ? '&' : ''}`
-        : ''),
-    '?'
+export const parseQueryParams = (params: Record<string, any> = {}) => {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== '' && v !== undefined && v !== null
   )
+  if (!entries.length) return ''
+  const qs = entries
+    .map(
+      ([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`
+    )
+    .join('&')
+  return `?${qs}`
 }
 
 export const parseExpQueryParams = (params = {}) => {
@@ -29,31 +29,50 @@ export const formatFormErrors = (params = {}) => {
   )
 }
 export const getErrorMessage = (error: any): string => {
+  if (!error) {
+    return 'An unexpected error occurred'
+  }
   if (typeof error === 'string') {
     return error
   }
-  if (error[0].ctx.error) {
-    if (Array.isArray(error[0].ctx.error)) {
-      return error[0].ctx.error.join(', ')
+
+  // Some APIs return an array of validation errors
+  if (Array.isArray(error) && error.length > 0) {
+    const first = error[0]
+    if (typeof first === 'string') {
+      return error.join(', ')
     }
-    return error[0].ctx.error
-  } else if (error[0].msg) {
-    if (Array.isArray(error[0].msg)) {
-      return error[0].msg.join(', ')
+    if (first?.ctx?.error) {
+      if (Array.isArray(first.ctx.error)) {
+        return first.ctx.error.join(', ')
+      }
+      return String(first.ctx.error)
     }
-    return error[0].msg
+    if (first?.msg) {
+      if (Array.isArray(first.msg)) {
+        return first.msg.join(', ')
+      }
+      return String(first.msg)
+    }
+    // Fall back to stringifying the array elements
+    return error
+      .map((e: any) => (typeof e === 'string' ? e : String(e)))
+      .join(', ')
   }
+
   if (error && typeof error === 'object') {
-    if (Array.isArray(error)) {
-      return String(error)
+    if (error.errors) {
+      return getErrorMessage(error.errors)
     }
     if (error.message) {
       if (Array.isArray(error.message)) {
         return error.message.join(', ')
       }
-      return error.message
+      return String(error.message)
     }
-    // console.log('error.msg',error?.0?.msg)
+    if (error.error && typeof error.error === 'string') {
+      return error.error
+    }
   }
 
   return 'An unexpected error occurred'
