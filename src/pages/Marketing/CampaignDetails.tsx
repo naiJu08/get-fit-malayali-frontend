@@ -151,7 +151,14 @@ const escapeHtml = (value: any) =>
   )
 
 const formPreviewHtml = (form: any) => {
-  const definition = form?.definition || {}
+  let definition = form?.definition || {}
+  if (typeof definition === 'string') {
+    try {
+      definition = JSON.parse(definition)
+    } catch {
+      definition = {}
+    }
+  }
   const theme = definition.theme || {}
   const fields = (definition.fields || [])
     .map((field: any) => {
@@ -212,6 +219,19 @@ export default function CampaignDetails() {
     isFetching: leadsFetching,
     refetch: refetchLeads,
   } = useCampaignLeads(id, leadsParams, activeUserId)
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'lead_submitted') {
+        setShowAddLeadModal(false)
+        setLeadSubmitted(true)
+        refetchLeads()
+      }
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [refetchLeads])
+
   const [editing, setEditing] = useState<any>(null)
   const [savingLead, setSavingLead] = useState(false)
   const [activity, setActivity] = useState<any>(null)
@@ -772,6 +792,7 @@ export default function CampaignDetails() {
   const [editingCampaign, setEditingCampaign] = useState<any>(null)
   const [selectedForm, setSelectedForm] = useState<any>(null)
   const [formDrawerOpen, setFormDrawerOpen] = useState(false)
+  const [leadSubmitted, setLeadSubmitted] = useState(false)
   const [formParams, setFormParams] = useState({
     page: 1,
     per_page: 4,
@@ -788,10 +809,15 @@ export default function CampaignDetails() {
   const forms = useMemo(() => formsData?.marketing_forms || [], [formsData])
 
   const { data: selectedFormData } = useMarketingForm(selectedForm?.id)
-  const formForPreview = useMemo(
-    () => selectedFormData?.marketing_form || selectedForm,
-    [selectedFormData, selectedForm]
-  )
+  useEffect(() => {
+    if (selectedFormData?.marketing_form && selectedForm?.id) {
+      setSelectedForm((prev: any) =>
+        prev?.id === selectedFormData.marketing_form.id
+          ? selectedFormData.marketing_form
+          : prev
+      )
+    }
+  }, [selectedFormData])
 
   const campaignStatusOptions = [
     { id: 'draft', name: 'Draft' },
@@ -836,8 +862,8 @@ export default function CampaignDetails() {
     defaultValues: {
       name: '',
       description: '',
-      status: 'Draft',
-      status_value: 'draft',
+      status: 'Active',
+      status_value: 'active',
       starts_on: '',
       ends_on: '',
     },
@@ -877,8 +903,8 @@ export default function CampaignDetails() {
     campaignMethods.reset({
       name: '',
       description: '',
-      status: 'Draft',
-      status_value: 'draft',
+      status: 'Active',
+      status_value: 'active',
       starts_on: '',
       ends_on: '',
     })
@@ -1163,7 +1189,14 @@ export default function CampaignDetails() {
                       onClick={() => openAssignModal(selectedLeads)}
                     />
                   )}
-                  <Button label="Add lead" icon="plus" onClick={openAddLead} />
+                  {String(campaign?.status || '').toLowerCase() !==
+                    'inactive' && (
+                    <Button
+                      label="Add lead"
+                      icon="plus"
+                      onClick={openAddLead}
+                    />
+                  )}
                 </div>
               }
               isLoading={leadsFetching}
@@ -1365,6 +1398,62 @@ export default function CampaignDetails() {
       />
 
       <DialogModal
+        isOpen={leadSubmitted}
+        onClose={() => setLeadSubmitted(false)}
+        title=""
+        small
+        body={
+          <div className="flex flex-col items-center py-8 text-center">
+            <style>{`@keyframes success-pop{0%{opacity:0;transform:scale(.72)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}@keyframes success-draw{from{stroke-dashoffset:48}to{stroke-dashoffset:0}}@keyframes soft-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
+            <div
+              className="relative flex h-20 w-20 items-center justify-center rounded-full"
+              style={{
+                backgroundColor: '#176b5b14',
+                animation: 'success-pop .55s cubic-bezier(.2,.8,.2,1) both',
+              }}
+            >
+              <div
+                className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg"
+                style={{ backgroundColor: '#176b5b' }}
+              >
+                <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
+                  <path
+                    d="M8 17.5l6 6L27 10"
+                    stroke="white"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      strokeDasharray: 48,
+                      animation: 'success-draw .6s .25s ease-out both',
+                    }}
+                  />
+                </svg>
+              </div>
+            </div>
+            <div style={{ animation: 'soft-rise .45s .2s ease-out both' }}>
+              <p className="mt-5 text-xs font-bold uppercase tracking-[0.22em] text-primaryGreen">
+                Submission received
+              </p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+                Thank you!
+              </h2>
+              <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-slate-500 sm:text-sm">
+                Your details have been submitted successfully. Our team will
+                review your enquiry and contact you soon.
+              </p>
+              <button
+                onClick={() => setLeadSubmitted(false)}
+                className="mt-6 rounded-lg bg-primaryGreen px-6 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        }
+      />
+
+      <DialogModal
         isOpen={Boolean(editingCampaign)}
         onClose={closeEditCampaign}
         title={editingCampaign?.id ? 'Edit campaign' : 'Create campaign'}
@@ -1549,7 +1638,22 @@ export default function CampaignDetails() {
               </button>
             </div>
           </div>
-          <div className="min-w-0 flex-1 overflow-auto rounded-xl border bg-gray-200 p-5">
+          <div
+            className="min-w-0 flex-1 overflow-auto rounded-xl border p-5"
+            style={{
+              backgroundColor: (() => {
+                let d = selectedForm?.definition || {}
+                if (typeof d === 'string') {
+                  try {
+                    d = JSON.parse(d)
+                  } catch {
+                    d = {}
+                  }
+                }
+                return d.theme?.page_background || '#e3e8e7'
+              })(),
+            }}
+          >
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-primaryText">
@@ -1566,11 +1670,25 @@ export default function CampaignDetails() {
               )}
             </div>
             {selectedForm ? (
-              <iframe
-                title={selectedForm?.name || 'Form preview'}
-                srcDoc={formPreviewHtml(formForPreview)}
-                className="mx-auto h-[1123px] w-[794px] max-w-none rounded-sm border-0 bg-white shadow-xl"
-              />
+              (() => {
+                let def = selectedForm?.definition || {}
+                if (typeof def === 'string') {
+                  try {
+                    def = JSON.parse(def)
+                  } catch {
+                    def = {}
+                  }
+                }
+                const bg = def.theme?.page_background || '#eef2f1'
+                return (
+                  <iframe
+                    title={selectedForm?.name || 'Form preview'}
+                    srcDoc={formPreviewHtml(selectedForm)}
+                    className="mx-auto h-[1123px] w-[794px] max-w-none rounded-sm border-0 shadow-xl"
+                    style={{ backgroundColor: bg }}
+                  />
+                )
+              })()
             ) : (
               <div className="flex min-h-[600px] items-center justify-center text-sm text-gray-500">
                 Select a form to preview it.

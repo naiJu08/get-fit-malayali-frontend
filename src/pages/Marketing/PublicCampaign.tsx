@@ -141,6 +141,9 @@ export default function PublicCampaign() {
       await submitPublicLead(token, payload)
       setSent(true)
       window.scrollTo({ top: 0, behavior: 'smooth' })
+      try {
+        window.parent.postMessage({ type: 'lead_submitted' }, '*')
+      } catch {}
     } catch (requestError: any) {
       setSubmitError(responseMessage(requestError))
     } finally {

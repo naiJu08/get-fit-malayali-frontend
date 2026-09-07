@@ -1,5 +1,5 @@
 import moment from 'moment'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import FormBuilder from '../../components/app/formBuilder'
@@ -33,8 +33,8 @@ const statusOptions = [
 const emptyCampaign = () => ({
   name: '',
   description: '',
-  status: 'Draft',
-  status_value: 'draft',
+  status: 'Active',
+  status_value: 'active',
   starts_on: '',
   ends_on: '',
 })
@@ -67,7 +67,14 @@ const escapeHtml = (value: any) =>
       })[character] || character
   )
 const formPreviewHtml = (form: any) => {
-  const definition = form?.definition || {}
+  let definition = form?.definition || {}
+  if (typeof definition === 'string') {
+    try {
+      definition = JSON.parse(definition)
+    } catch {
+      definition = {}
+    }
+  }
   const theme = definition.theme || {}
   const fields = (definition.fields || [])
     .map((field: any) => {
@@ -113,10 +120,15 @@ export default function Campaigns() {
   const { data: formsData, isFetching: formsFetching } =
     useMarketingForms(formParams)
   const { data: selectedFormData } = useMarketingForm(selectedForm?.id)
-  const formForPreview = useMemo(
-    () => selectedFormData?.marketing_form || selectedForm,
-    [selectedFormData, selectedForm]
-  )
+  useEffect(() => {
+    if (selectedFormData?.marketing_form && selectedForm?.id) {
+      setSelectedForm((prev: any) =>
+        prev?.id === selectedFormData.marketing_form.id
+          ? selectedFormData.marketing_form
+          : prev
+      )
+    }
+  }, [selectedFormData])
   const forms = useMemo(() => formsData?.marketing_forms || [], [formsData])
   const methods = useForm({ mode: 'onChange', defaultValues: emptyCampaign() })
 
@@ -255,13 +267,33 @@ export default function Campaigns() {
     setFormDrawerOpen(false)
     enqueueSnackbar('Form attached', { variant: 'success' })
   }
-  const renderFormPreview = (form: any) => (
-    <iframe
-      title={form?.name || 'Form preview'}
-      srcDoc={formPreviewHtml(form)}
-      className="mx-auto h-[1123px] w-[794px] max-w-none rounded-sm border-0 bg-white shadow-xl"
-    />
-  )
+  const getFormDefinition = (form: any) => {
+    let def = form?.definition || {}
+    if (typeof def === 'string') {
+      try {
+        def = JSON.parse(def)
+      } catch {
+        def = {}
+      }
+    }
+    return def
+  }
+  const pageBg = (() => {
+    const def = getFormDefinition(selectedForm)
+    return def.theme?.page_background || '#e3e8e7'
+  })()
+  const renderFormPreview = (form: any) => {
+    const def = getFormDefinition(form)
+    const bg = def.theme?.page_background || '#eef2f1'
+    return (
+      <iframe
+        title={form?.name || 'Form preview'}
+        srcDoc={formPreviewHtml(form)}
+        className="mx-auto h-[1123px] w-[794px] max-w-none rounded-sm border-0 shadow-xl"
+        style={{ backgroundColor: bg }}
+      />
+    )
+  }
 
   const copyLink = async (row: any) => {
     try {
@@ -673,7 +705,10 @@ export default function Campaigns() {
               </button>
             </div>
           </div>
-          <div className="min-w-0 flex-1 overflow-auto rounded-xl border bg-gray-200 p-5">
+          <div
+            className="min-w-0 flex-1 overflow-auto rounded-xl border p-5"
+            style={{ backgroundColor: pageBg }}
+          >
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-primaryText">
@@ -690,7 +725,7 @@ export default function Campaigns() {
               )}
             </div>
             {selectedForm ? (
-              renderFormPreview(formForPreview)
+              renderFormPreview(selectedForm)
             ) : (
               <div className="flex min-h-[600px] items-center justify-center text-sm text-gray-500">
                 Select a form to preview it.
