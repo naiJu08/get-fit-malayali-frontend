@@ -13,6 +13,7 @@ import SmartTable from '../../components/common/table/SmartTable'
 import Icons from '../../components/common/icons'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useSnackbarManager } from '../../components/common/snackbar'
+import { getApiErrorMessage } from '../../utilities/commonUtilities'
 import { useNavigate } from 'react-router-dom'
 import { useMarketingForms, deleteMarketingForm } from './api'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
@@ -28,7 +29,7 @@ type FormField = {
   maxLength?: number
   digitsOnly?: boolean
 }
-const FORM_NAME_MAX = 100
+const FORM_NAME_MAX = 30
 const DESCRIPTION_MAX = 500
 const HEADER_TITLE_MAX = 100
 const HEADER_SUBTITLE_MAX = 200
@@ -77,6 +78,15 @@ export const defaultDefinition = {
       placeholder: 'Enter your first name',
       maxLength: 25,
     },
+    {
+      key: 'last_name',
+      label: 'Last name',
+      type: 'text',
+      required: true,
+      placeholder: 'Enter your last name',
+      maxLength: 10,
+    },
+
     {
       key: 'email',
       label: 'Email',
@@ -157,6 +167,7 @@ export function Builder({
       ...(['select', 'checkbox'].includes(type)
         ? { options: ['Option 1', 'Option 2'] }
         : {}),
+      ...(type === 'number' ? { maxLength: 15, digitsOnly: true } : {}),
     }
     setDefinition((value: any) => ({
       ...value,
@@ -1004,6 +1015,7 @@ export function Builder({
                   <TextField
                     id="field-key"
                     name="field_key"
+                    disabled
                     label="Field key"
                     value={selectedField.key}
                     onChange={(e) =>
@@ -1413,8 +1425,13 @@ export default function Forms() {
             })
             setDeleteRow(null)
             refetch()
-          } catch {
-            enqueueSnackbar('Failed to delete form', { variant: 'error' })
+          } catch (error: any) {
+            enqueueSnackbar(
+              getApiErrorMessage(error, 'Failed to delete form'),
+              {
+                variant: 'error',
+              }
+            )
           } finally {
             setDeleting(false)
           }

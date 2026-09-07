@@ -277,7 +277,7 @@ export default function FormDetails() {
             </div>
             <div className="border rounded-lg p-3 bg-white md:col-span-2 xl:col-span-4">
               <div className="text-xs text-gray-500 mb-1">Description</div>
-              <div className="text-sm whitespace-pre-wrap">
+              <div className="text-sm whitespace-pre-wrap break-words">
                 {cap(form.description)}
               </div>
             </div>
@@ -309,7 +309,11 @@ export default function FormDetails() {
               <div className="border rounded-lg p-3 bg-white">
                 <div className="text-xs text-gray-500 mb-1">Created</div>
                 <div className="text-sm">
-                  {new Date(form.created_at).toLocaleDateString()}
+                  {new Date(form.created_at).toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })}
                 </div>
               </div>
             )}
@@ -317,7 +321,11 @@ export default function FormDetails() {
               <div className="border rounded-lg p-3 bg-white">
                 <div className="text-xs text-gray-500 mb-1">Updated</div>
                 <div className="text-sm">
-                  {new Date(form.updated_at).toLocaleDateString()}
+                  {new Date(form.updated_at).toLocaleDateString('en-IN', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                  })}
                 </div>
               </div>
             )}

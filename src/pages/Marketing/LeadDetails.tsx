@@ -93,14 +93,25 @@ function parseNotes(rawNotes: any) {
   return { isJson: false, data: null, text: String(rawNotes) }
 }
 
-function formatFieldKey(key: string, formDefinition?: any) {
+function formatFieldKey(key: string, form?: any) {
   if (!key) return key
-  if (formDefinition && Array.isArray(formDefinition.fields)) {
-    const matchedField = formDefinition.fields.find(
-      (f: any) => f.key === key || f.name === key || f.id === key
-    )
-    if (matchedField && matchedField.label) {
-      return matchedField.label
+  if (form) {
+    let definition = form.definition || form
+    if (typeof definition === 'string') {
+      try {
+        definition = JSON.parse(definition)
+      } catch {
+        definition = {}
+      }
+    }
+    const fields = definition?.fields
+    if (Array.isArray(fields)) {
+      const matchedField = fields.find(
+        (f: any) => f.key === key || f.name === key || f.id === key
+      )
+      if (matchedField && matchedField.label) {
+        return matchedField.label
+      }
     }
   }
 
