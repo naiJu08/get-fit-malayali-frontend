@@ -160,7 +160,14 @@ const escapeHtml = (value: any) =>
   )
 
 const formPreviewHtml = (form: any) => {
-  const definition = form?.definition || {}
+  let definition = form?.definition || {}
+  if (typeof definition === 'string') {
+    try {
+      definition = JSON.parse(definition)
+    } catch {
+      definition = {}
+    }
+  }
   const theme = definition.theme || {}
   const fields = (definition.fields || [])
     .map((field: any) => {
@@ -221,6 +228,19 @@ export default function CampaignDetails() {
     isFetching: leadsFetching,
     refetch: refetchLeads,
   } = useCampaignLeads(id, leadsParams, activeUserId)
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'lead_submitted') {
+        setShowAddLeadModal(false)
+        setLeadSubmitted(true)
+        refetchLeads()
+      }
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [refetchLeads])
+
   const [editing, setEditing] = useState<any>(null)
   const [savingLead, setSavingLead] = useState(false)
   const [activity, setActivity] = useState<any>(null)
@@ -232,7 +252,8 @@ export default function CampaignDetails() {
     string | number | null
   >(null)
   const [salesPage, setSalesPage] = useState(1)
-  const salesPageSize = 6
+  const [salesSearch, setSalesSearch] = useState('')
+  const salesPageSize = 4
   const { data: team } = useQuery(['sales_team'], getSalesTeam)
 
   const methods = useForm({ mode: 'onChange', defaultValues: emptyLead() })
@@ -487,10 +508,23 @@ export default function CampaignDetails() {
     const currentSalesId =
       selectedRows.length === 1 ? selectedRows[0]?.assigned_to?.id : null
     setSelectedSalesId(currentSalesId ? String(currentSalesId) : null)
+    setSalesSearch('')
     setSalesPage(1)
   }
 
-  const salesUsers = team?.users || []
+  const allSalesUsers = team?.users || []
+  const salesUsers = allSalesUsers.filter((u: any) => {
+    if (!salesSearch) return true
+    const q = salesSearch.toLowerCase()
+    return (
+      String(u.name || '')
+        .toLowerCase()
+        .includes(q) ||
+      String(u.email || '')
+        .toLowerCase()
+        .includes(q)
+    )
+  })
   const totalSalesPages = Math.max(
     1,
     Math.ceil(salesUsers.length / salesPageSize)
@@ -781,6 +815,7 @@ export default function CampaignDetails() {
   const [editingCampaign, setEditingCampaign] = useState<any>(null)
   const [selectedForm, setSelectedForm] = useState<any>(null)
   const [formDrawerOpen, setFormDrawerOpen] = useState(false)
+  const [leadSubmitted, setLeadSubmitted] = useState(false)
   const [formParams, setFormParams] = useState({
     page: 1,
     per_page: 4,
@@ -797,10 +832,15 @@ export default function CampaignDetails() {
   const forms = useMemo(() => formsData?.marketing_forms || [], [formsData])
 
   const { data: selectedFormData } = useMarketingForm(selectedForm?.id)
-  const formForPreview = useMemo(
-    () => selectedFormData?.marketing_form || selectedForm,
-    [selectedFormData, selectedForm]
-  )
+  useEffect(() => {
+    if (selectedFormData?.marketing_form && selectedForm?.id) {
+      setSelectedForm((prev: any) =>
+        prev?.id === selectedFormData.marketing_form.id
+          ? selectedFormData.marketing_form
+          : prev
+      )
+    }
+  }, [selectedFormData])
 
   const campaignStatusOptions = [
     { id: 'draft', name: 'Draft' },
@@ -845,8 +885,8 @@ export default function CampaignDetails() {
     defaultValues: {
       name: '',
       description: '',
-      status: 'Draft',
-      status_value: 'draft',
+      status: 'Active',
+      status_value: 'active',
       starts_on: '',
       ends_on: '',
     },
@@ -854,10 +894,13 @@ export default function CampaignDetails() {
 
   const dateValue = (value: any) =>
     value ? new Date(value + 'T00:00:00') : null
-  const dateString = (value: any) =>
-    value instanceof Date && !Number.isNaN(value.getTime())
-      ? value.toISOString().slice(0, 10)
-      : ''
+  const dateString = (value: any) => {
+    if (!(value instanceof Date) || Number.isNaN(value.getTime())) return ''
+    const y = value.getFullYear()
+    const m = String(value.getMonth() + 1).padStart(2, '0')
+    const d = String(value.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
 
   const openEditCampaign = () => {
     if (!campaign) return
@@ -886,8 +929,8 @@ export default function CampaignDetails() {
     campaignMethods.reset({
       name: '',
       description: '',
-      status: 'Draft',
-      status_value: 'draft',
+      status: 'Active',
+      status_value: 'active',
       starts_on: '',
       ends_on: '',
     })
@@ -1172,7 +1215,14 @@ export default function CampaignDetails() {
                       onClick={() => openAssignModal(selectedLeads)}
                     />
                   )}
-                  <Button label="Add lead" icon="plus" onClick={openAddLead} />
+                  {String(campaign?.status || '').toLowerCase() !==
+                    'inactive' && (
+                    <Button
+                      label="Add lead"
+                      icon="plus"
+                      onClick={openAddLead}
+                    />
+                  )}
                 </div>
               }
               isLoading={leadsFetching}
@@ -1245,66 +1295,152 @@ export default function CampaignDetails() {
         onSubmit={handleAssign}
         secondaryAction={() => setAssigning(null)}
         secondaryActionLabel="Cancel"
-        className="max-w-lg w-full"
+        className="max-w-xl w-full"
         body={
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              Select a sales team member for {assigning?.length || 0} selected
-              lead{assigning?.length === 1 ? '' : 's'}.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {paginatedSalesUsers.map((user: any) => {
-                const isSelected = String(selectedSalesId) === String(user.id)
-                return (
-                  <button
-                    key={user.id}
-                    type="button"
-                    onClick={() => setSelectedSalesId(user.id)}
-                    className={
-                      isSelected
-                        ? 'text-left rounded-xl border p-4 transition border-blue-600 bg-blue-50 ring-1 ring-blue-600'
-                        : 'text-left rounded-xl border p-4 transition border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/40'
-                    }
-                  >
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="radio"
-                        checked={isSelected}
-                        readOnly
-                        aria-label={
-                          'Select ' +
-                          (user.name || user.email || 'sales member')
-                        }
-                      />
-                      <div className="min-w-0">
-                        <div className="font-medium text-gray-900 truncate">
-                          {user.name || 'Unnamed sales member'}
-                        </div>
-                        {user.email && (
-                          <div className="text-xs text-gray-500 truncate mt-1">
-                            {user.email}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
+          <div className="space-y-5">
+            <div
+              className="rounded-lg px-4 py-3 flex items-center gap-3"
+              style={{
+                backgroundColor: '#0fc8cd14',
+                border: '1px solid #0fc8cd30',
+              }}
+            >
+              <span style={{ color: '#0fc8cd' }}>
+                <Icons name="external-link" className="shrink-0" />
+              </span>
+              <p className="text-sm" style={{ color: '#0aa8ad' }}>
+                Assign {assigning?.length || 0} selected lead
+                {assigning?.length === 1 ? '' : 's'} to a sales team member.
+              </p>
             </div>
-            {salesUsers.length === 0 && (
-              <div className="py-8 text-center text-sm text-gray-500">
-                No sales members available.
+            <div className="relative">
+              <Icons
+                name="search"
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                value={salesSearch}
+                onChange={(e) => {
+                  setSalesSearch(e.target.value)
+                  setSalesPage(1)
+                }}
+                placeholder="Search by name or email..."
+                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:border-[#0fc8cd] focus:ring-2 focus:ring-[#0fc8cd30]"
+              />
+            </div>
+            {salesUsers.length === 0 ? (
+              <div className="py-10 text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                  <Icons name="profile" className="text-gray-400" />
+                </div>
+                <p className="text-sm font-medium text-gray-500">
+                  No sales members found
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  {allSalesUsers.length === 0
+                    ? 'Add team members to assign leads.'
+                    : 'Try a different search term.'}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {paginatedSalesUsers.map((user: any) => {
+                  const isSelected = String(selectedSalesId) === String(user.id)
+                  const initials = (user.name || '?')
+                    .split(' ')
+                    .map((w: string) => w[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase()
+                  return (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => setSelectedSalesId(user.id)}
+                      className={
+                        'group relative text-left rounded-xl border-2 p-4 transition-all duration-200 ' +
+                        (isSelected
+                          ? 'border-[#0fc8cd] bg-[#0fc8cd0d] shadow-sm ring-1 ring-[#0fc8cd20]'
+                          : 'border-gray-100 bg-white hover:border-[#0fc8cd40] hover:bg-[#0fc8cd08] hover:shadow-sm')
+                      }
+                    >
+                      {isSelected && (
+                        <div className="absolute top-3 right-3">
+                          <div
+                            className="flex h-5 w-5 items-center justify-center rounded-full"
+                            style={{ backgroundColor: '#0fc8cd' }}
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 14 14"
+                              fill="none"
+                            >
+                              <path
+                                d="M3 7.5l3 3 5-6"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 shrink-0 rounded-full text-sm font-semibold text-white transition-colors overflow-hidden"
+                          style={{
+                            backgroundColor: isSelected
+                              ? '#0fc8cd'
+                              : '#0fc8cd99',
+                          }}
+                        >
+                          {user.thumbnail_url ? (
+                            <img
+                              src={user.thumbnail_url}
+                              alt={user.name || ''}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="flex items-center justify-center w-full h-full">
+                              {initials}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 justify-between">
+                            <div className="font-semibold text-sm text-gray-900 truncate">
+                              {user.name || 'Unnamed'}
+                            </div>
+                            {user.phone && (
+                              <span className="text-xs text-gray-400 shrink-0">
+                                {user.phone}
+                              </span>
+                            )}
+                          </div>
+                          {user.email && (
+                            <div className="text-xs text-gray-400 truncate mt-0.5">
+                              {user.email}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
             )}
             {totalSalesPages > 1 && (
-              <div className="flex items-center justify-between border-t pt-3 text-sm">
-                <span className="text-gray-500">
+              <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                <span className="text-xs font-medium text-gray-400">
                   Page {salesPage} of {totalSalesPages}
                 </span>
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    className="rounded-lg border px-3 py-1.5 disabled:opacity-50"
+                    className="rounded-lg border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                     disabled={salesPage === 1}
                     onClick={() => setSalesPage((page) => page - 1)}
                   >
@@ -1312,7 +1448,7 @@ export default function CampaignDetails() {
                   </button>
                   <button
                     type="button"
-                    className="rounded-lg border px-3 py-1.5 disabled:opacity-50"
+                    className="rounded-lg border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
                     disabled={salesPage === totalSalesPages}
                     onClick={() => setSalesPage((page) => page + 1)}
                   >
@@ -1370,6 +1506,82 @@ export default function CampaignDetails() {
               Public form is not available for this campaign.
             </div>
           )
+        }
+      />
+
+      <DialogModal
+        isOpen={leadSubmitted}
+        onClose={() => setLeadSubmitted(false)}
+        title=""
+        small
+        body={
+          <div className="flex flex-col items-center py-8 text-center">
+            <style>{`@keyframes success-pop{0%{opacity:0;transform:scale(.72)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}@keyframes success-draw{from{stroke-dashoffset:48}to{stroke-dashoffset:0}}@keyframes soft-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
+            <div
+              className="relative flex h-20 w-20 items-center justify-center rounded-full"
+              style={{
+                backgroundColor: '#176b5b14',
+                animation: 'success-pop .55s cubic-bezier(.2,.8,.2,1) both',
+              }}
+            >
+              <div
+                className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg"
+                style={{ backgroundColor: '#176b5b' }}
+              >
+                <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
+                  <path
+                    d="M8 17.5l6 6L27 10"
+                    stroke="white"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{
+                      strokeDasharray: 48,
+                      animation: 'success-draw .6s .25s ease-out both',
+                    }}
+                  />
+                </svg>
+              </div>
+            </div>
+            {/* <div style={{ animation: 'soft-rise .45s .2s ease-out both' }}>
+              <p className="mt-5 text-xs font-bold uppercase tracking-[0.22em] text-primaryGreen">
+                Submission received
+              </p>
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+                Thank you!
+              </h2>
+              <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-slate-500 sm:text-sm">
+                Your details have been submitted successfully. Our team will
+                review your enquiry and contact you soon.
+              </p>
+              <button
+                onClick={() => setLeadSubmitted(false)}
+                className="mt-6 rounded-lg bg-primaryGreen px-6 py-2.5 text-sm font-semibold text-white hover:opacity-90"
+              >
+                Done
+              </button>
+            </div> */}
+
+            <div style={{ animation: 'soft-rise .45s .2s ease-out both' }}>
+              <p
+                className="mt-5 text-xs font-bold uppercase tracking-[0.22em]"
+                // style={{ color: accent }}
+              >
+                Submission received
+              </p>
+              <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+                Thank you!
+              </h1>
+              <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-slate-500 sm:text-sm">
+                Your details have been submitted successfully. Our team will
+                review your enquiry and contact you soon.
+              </p>
+              <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" /> You may
+                safely close this page
+              </div>
+            </div>
+          </div>
         }
       />
 
@@ -1558,7 +1770,22 @@ export default function CampaignDetails() {
               </button>
             </div>
           </div>
-          <div className="min-w-0 flex-1 overflow-auto rounded-xl border bg-gray-200 p-5">
+          <div
+            className="min-w-0 flex-1 overflow-auto rounded-xl border p-5"
+            style={{
+              backgroundColor: (() => {
+                let d = selectedForm?.definition || {}
+                if (typeof d === 'string') {
+                  try {
+                    d = JSON.parse(d)
+                  } catch {
+                    d = {}
+                  }
+                }
+                return d.theme?.page_background || '#e3e8e7'
+              })(),
+            }}
+          >
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-primaryText">
@@ -1575,11 +1802,25 @@ export default function CampaignDetails() {
               )}
             </div>
             {selectedForm ? (
-              <iframe
-                title={selectedForm?.name || 'Form preview'}
-                srcDoc={formPreviewHtml(formForPreview)}
-                className="mx-auto h-[1123px] w-[794px] max-w-none rounded-sm border-0 bg-white shadow-xl"
-              />
+              (() => {
+                let def = selectedForm?.definition || {}
+                if (typeof def === 'string') {
+                  try {
+                    def = JSON.parse(def)
+                  } catch {
+                    def = {}
+                  }
+                }
+                const bg = def.theme?.page_background || '#eef2f1'
+                return (
+                  <iframe
+                    title={selectedForm?.name || 'Form preview'}
+                    srcDoc={formPreviewHtml(selectedForm)}
+                    className="mx-auto h-[1123px] w-[794px] max-w-none rounded-sm border-0 shadow-xl"
+                    style={{ backgroundColor: bg }}
+                  />
+                )
+              })()
             ) : (
               <div className="flex min-h-[600px] items-center justify-center text-sm text-gray-500">
                 Select a form to preview it.

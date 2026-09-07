@@ -693,13 +693,21 @@ export default function SalesClientDetails() {
                         <div className="flex items-center gap-4">
                           <div
                             className={
-                              'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ' +
+                              'w-12 h-12 shrink-0 rounded-xl overflow-hidden transition-colors flex items-center justify-center ' +
                               (isSelected
                                 ? 'bg-primaryGreen text-white shadow-sm'
                                 : 'bg-cardWrapperBg text-primaryGreen')
                             }
                           >
-                            <Icons name="package" className="h-6 w-6" />
+                            {pkg.thumbnail_url ? (
+                              <img
+                                src={pkg.thumbnail_url}
+                                alt={pkg.name || ''}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Icons name="package" className="h-6 w-6" />
+                            )}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
