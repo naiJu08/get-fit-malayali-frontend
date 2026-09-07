@@ -36,6 +36,10 @@ export const getErrorMessage = (error: any): string => {
     return error
   }
 
+  if (error?.response?.data) {
+    return getErrorMessage(error.response.data)
+  }
+
   // Some APIs return an array of validation errors
   if (Array.isArray(error) && error.length > 0) {
     const first = error[0]
@@ -62,6 +66,13 @@ export const getErrorMessage = (error: any): string => {
 
   if (error && typeof error === 'object') {
     if (error.errors) {
+      if (typeof error.errors === 'object' && !Array.isArray(error.errors)) {
+        const values = Object.values(error.errors)
+          .flatMap((v: any) => (Array.isArray(v) ? v : [v]))
+          .map((v: any) => (typeof v === 'string' ? v : getErrorMessage(v)))
+          .filter((v: any) => v && v !== 'An unexpected error occurred')
+        if (values.length) return values.join(', ')
+      }
       return getErrorMessage(error.errors)
     }
     if (error.message) {
@@ -70,9 +81,18 @@ export const getErrorMessage = (error: any): string => {
       }
       return String(error.message)
     }
-    if (error.error && typeof error.error === 'string') {
-      return error.error
+    if (error.error) {
+      if (typeof error.error === 'string') {
+        return error.error
+      }
+      return getErrorMessage(error.error)
     }
+
+    const objValues = Object.values(error)
+      .flatMap((v: any) => (Array.isArray(v) ? v : [v]))
+      .map((v: any) => (typeof v === 'string' ? v : ''))
+      .filter((v: any) => v && v.length > 0 && v.length < 300)
+    if (objValues.length) return objValues.join(', ')
   }
 
   return 'An unexpected error occurred'

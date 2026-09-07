@@ -37,6 +37,12 @@ const leadStatusOptions = [
   { id: 'lost', name: 'Lost' },
 ]
 
+const leadStatusFilterOptions = [
+  ...leadStatusOptions,
+  { id: 'confirmation_pending', name: 'Confirmation pending' },
+  { id: 'client_accepted', name: 'Client accepted' },
+]
+
 const activityOptions = [
   { id: 'contacted', name: 'Contacted' },
   { id: 'qualified', name: 'Qualified' },
@@ -56,7 +62,9 @@ const emptyLead = () => ({
 })
 
 const displayLeadStatus = (value?: string) => {
-  const normalized = String(value || 'new_lead').toLowerCase()
+  const status = String(value || 'new_lead').toLowerCase()
+  // The API uses assigned as the canonical alias for new_lead.
+  const normalized = status === 'assigned' ? 'new_lead' : status
   return (
     leadStatusOptions.find((option) => option.id === normalized)?.name ||
     normalized
@@ -67,6 +75,7 @@ const displayLeadStatus = (value?: string) => {
 
 const leadStatusColor = (value?: string) => {
   switch (String(value || '').toLowerCase()) {
+    case 'assigned':
     case 'new_lead':
     case 'contacted':
       return 'bg-blue-100 text-blue-800 border-blue-200'
@@ -1164,7 +1173,7 @@ export default function CampaignDetails() {
                     }
                   >
                     <option value="">All statuses</option>
-                    {leadStatusOptions.map((option) => (
+                    {leadStatusFilterOptions.map((option) => (
                       <option key={option.id} value={option.id}>
                         {option.name}
                       </option>

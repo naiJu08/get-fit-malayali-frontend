@@ -13,6 +13,8 @@ import {
   proposeAssignedClientPackage,
 } from './api'
 
+import moment from 'moment'
+
 const formatDate = (value?: string) =>
   value
     ? new Intl.DateTimeFormat('en-IN', {
@@ -21,19 +23,38 @@ const formatDate = (value?: string) =>
       }).format(new Date(value))
     : '--'
 
-const errorMessage = (error: any) =>
-  getErrorMessage(error) ||
-  error?.response?.data?.error ||
-  error?.response?.data?.message ||
-  'Request failed'
+const errorMessage = (error: any) => {
+  const resData = error?.response?.data
+  if (resData) {
+    if (Array.isArray(resData.errors) && resData.errors.length) {
+      return resData.errors.join(', ')
+    }
+    if (typeof resData.errors === 'string') return resData.errors
+    if (typeof resData.error === 'string') return resData.error
+    if (typeof resData.message === 'string') return resData.message
+  }
+  return getErrorMessage(error) || 'Request failed'
+}
+
+const toTitleCaseStr = (str?: string): string => {
+  if (!str) return ''
+  return str
+    .split(' ')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
 
 type WorkflowProps = {
-  assignment: any
-  assignmentId: string | number
-  role: string
-  onRefresh: () => Promise<any>
+  assignment?: any
+  assignmentId?: string | number
+  role?: string
+  onRefresh?: (data?: any) => Promise<any> | void
   plans?: any[]
   showWorkflowActions?: boolean
+  subscription?: any
+  onUpdateSubscription?: () => void
+  onAddSubscription?: () => void
+  isServiceRole?: boolean
 }
 
 export function ClientWorkflowDetails({
@@ -42,9 +63,21 @@ export function ClientWorkflowDetails({
   onRefresh,
   plans = [],
   showWorkflowActions = true,
+  subscription,
+  onUpdateSubscription,
+  onAddSubscription,
+  isServiceRole,
 }: WorkflowProps) {
   const { enqueueSnackbar } = useSnackbarManager()
-  const packageIsActive = assignment?.anticipated_package?.status === 'accepted'
+  const activeSub = subscription
+  const proposedPkg = assignment?.anticipated_package
+
+  const isSubscribed = Boolean(
+    activeSub ||
+      proposedPkg?.status === 'accepted' ||
+      assignment?.workflow_status === 'package_confirmed'
+  )
+
   const [proposalDialogOpen, setProposalDialogOpen] = useState(false)
   const [pkgSearch, setPkgSearch] = useState('')
   const [pkgPage, setPkgPage] = useState(1)
@@ -58,11 +91,9 @@ export function ClientWorkflowDetails({
 
   const openProposalModal = () => {
     setProposal({
-      plan_id: assignment?.anticipated_package?.plan?.id
-        ? String(assignment.anticipated_package.plan.id)
-        : '',
-      start_date: assignment?.anticipated_package?.start_date || '',
-      notes: assignment?.anticipated_package?.notes || '',
+      plan_id: proposedPkg?.plan?.id ? String(proposedPkg.plan.id) : '',
+      start_date: proposedPkg?.start_date || '',
+      notes: proposedPkg?.notes || '',
     })
     setPkgSearch('')
     setPkgPage(1)
@@ -110,18 +141,20 @@ export function ClientWorkflowDetails({
 
     try {
       setSaving(true)
-      const response = await proposeAssignedClientPackage(
-        assignmentId,
-        proposal
-      )
-      enqueueSnackbar(
-        response?.message || 'Package updated and activated successfully',
-        {
-          variant: 'success',
-        }
-      )
+      if (assignmentId) {
+        const response = await proposeAssignedClientPackage(
+          assignmentId,
+          proposal
+        )
+        enqueueSnackbar(
+          response?.message || 'Package updated and activated successfully',
+          {
+            variant: 'success',
+          }
+        )
+      }
       setProposalDialogOpen(false)
-      await onRefresh()
+      if (onRefresh) await onRefresh()
     } catch (error: any) {
       enqueueSnackbar(errorMessage(error), { variant: 'error' })
     } finally {
@@ -132,6 +165,22 @@ export function ClientWorkflowDetails({
   const handleSecondaryAction = () => {
     setProposalDialogOpen(false)
   }
+
+  const planName =
+    activeSub?.plan_name ?? activeSub?.name ?? proposedPkg?.plan?.name
+  const category =
+    activeSub?.plan_category ??
+    activeSub?.category ??
+    proposedPkg?.plan?.category
+  const planId = activeSub?.plan_id ?? proposedPkg?.plan?.id
+
+  const startDateFormatted = activeSub?.start_date
+    ? moment(activeSub.start_date).format('MMM D, YYYY')
+    : proposedPkg?.start_date || '--'
+
+  const endDateFormatted = activeSub?.end_date
+    ? moment(activeSub.end_date).format('MMM D, YYYY')
+    : proposedPkg?.end_date || '--'
 
   return (
     <>
@@ -147,125 +196,195 @@ export function ClientWorkflowDetails({
               <div>
                 <div className="mb-1 flex items-center gap-2">
                   <h2 className="text-lg font-semibold text-gray-900">
-                    {packageIsActive ? 'Active package' : 'Proposed package'}
+                    {isSubscribed ? 'Subscribed package' : 'Proposed package'}
                   </h2>
                   <span
                     className={
-                      packageIsActive
-                        ? 'rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700'
-                        : 'rounded-full bg-indigo-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700'
+                      isSubscribed
+                        ? 'rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700'
+                        : 'rounded-full bg-indigo-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700'
                     }
                   >
-                    {packageIsActive ? 'Active' : 'Proposed'}
+                    {isSubscribed ? 'Subscribed' : 'Proposed'}
                   </span>
                 </div>
                 <div className="text-sm text-gray-500">
-                  {packageIsActive
+                  {isSubscribed
                     ? 'The package is active and available in the calendar'
                     : 'Review the package details before activation'}
                 </div>
               </div>
             </div>
-            {assignment.anticipated_package?.plan?.name && (
-              <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-indigo-700 shadow-sm ring-1 ring-indigo-100">
-                {assignment.anticipated_package.plan.name}
-              </span>
-            )}
+            <div className="flex flex-col items-end gap-1.5">
+              {planName && (
+                <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-indigo-700 shadow-sm ring-1 ring-indigo-100">
+                  {toTitleCaseStr(planName)}
+                </span>
+              )}
+              {planId && (
+                <a
+                  href={`/plans/${planId}`}
+                  className="text-xs font-medium text-indigo-600 hover:text-indigo-800 underline whitespace-nowrap"
+                >
+                  View plan details →
+                </a>
+              )}
+            </div>
           </div>
 
-          {assignment.anticipated_package ? (
+          {activeSub || proposedPkg ? (
             <>
               <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                    Assigned to
-                  </div>
-                  <div className="mt-1 text-sm font-semibold capitalize text-gray-800">
-                    {assignment.staff_name || '--'}
-                  </div>
-                </div>
-                <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                    Proposed by
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-gray-800">
-                    {assignment.anticipated_package.created_by?.name ||
-                      'Sales team'}
-                  </div>
-                </div>
-                <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                    Duration
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-gray-800">
-                    {assignment.anticipated_package.plan.duration_days || '--'}{' '}
-                    days
-                  </div>
-                </div>
-                <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
-                  <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                    Fees
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-gray-800">
-                    {assignment.anticipated_package.plan.fees ?? '--'}
-                  </div>
-                </div>
+                {activeSub ? (
+                  <>
+                    <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                        Package Plan
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-gray-800">
+                        {toTitleCaseStr(planName) || '--'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                        Category
+                      </div>
+                      <div className="mt-1 text-sm font-semibold capitalize text-gray-800">
+                        {category || '--'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                        Start Date
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-gray-800">
+                        {startDateFormatted}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                        End Date
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-gray-800">
+                        {endDateFormatted}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                        Assigned to
+                      </div>
+                      <div className="mt-1 text-sm font-semibold capitalize text-gray-800">
+                        {assignment?.staff_name || '--'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                        Proposed by
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-gray-800">
+                        {proposedPkg?.created_by?.name || 'Sales team'}
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                        Duration
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-gray-800">
+                        {proposedPkg?.plan?.duration_days || '--'} days
+                      </div>
+                    </div>
+                    <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
+                      <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
+                        Fees
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-gray-800">
+                        {proposedPkg?.plan?.fees ?? '--'}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
-                <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-blue-100">
-                  Start:{' '}
-                  <strong>
-                    {assignment.anticipated_package.start_date || '--'}
-                  </strong>
-                </span>
-                <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-blue-100">
-                  End:{' '}
-                  <strong>
-                    {assignment.anticipated_package.end_date || '--'}
-                  </strong>
-                </span>
-              </div>
-              {assignment.anticipated_package.notes && (
-                <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                  <span className="font-semibold">Sales note:</span>{' '}
-                  {assignment.anticipated_package.notes}
+
+              {!activeSub && proposedPkg && (
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-600">
+                  <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-blue-100">
+                    Start: <strong>{startDateFormatted}</strong>
+                  </span>
+                  <span className="rounded-full bg-white px-3 py-1.5 ring-1 ring-blue-100">
+                    End: <strong>{endDateFormatted}</strong>
+                  </span>
                 </div>
               )}
-              {showWorkflowActions && assignment.can_confirm_package && (
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-blue-100 pt-4">
-                  <p className="text-xs text-gray-500">
-                    Nutritionist leads multi-service clients; solo Physio/Yoga
-                    assignments confirm their own package.
-                  </p>
-                  <div className="flex flex-wrap items-center gap-3">
+
+              {proposedPkg?.notes && (
+                <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                  <span className="font-semibold">Sales note:</span>{' '}
+                  {proposedPkg.notes}
+                </div>
+              )}
+
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-blue-100 pt-4">
+                <p className="text-xs text-gray-500">
+                  {isSubscribed
+                    ? 'Manage your active subscription package details.'
+                    : 'Nutritionist leads multi-service clients; solo Physio/Yoga assignments confirm their own package.'}
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  {onUpdateSubscription && (
                     <Button
                       outlined
                       size="xs"
                       icon="edit"
                       className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
-                      label="Update package"
-                      onClick={openProposalModal}
-                      disabled={saving || !plans.length}
+                      label="Update Subscription"
+                      onClick={onUpdateSubscription}
                     />
-                  </div>
+                  )}
+                  {!onUpdateSubscription &&
+                    showWorkflowActions &&
+                    assignment?.can_confirm_package && (
+                      <Button
+                        outlined
+                        size="xs"
+                        icon="edit"
+                        className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
+                        label="Update package"
+                        onClick={openProposalModal}
+                        disabled={saving || !plans.length}
+                      />
+                    )}
                 </div>
-              )}
+              </div>
             </>
           ) : (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <InfoBox content="No proposed package is available yet." />
-              {showWorkflowActions &&
-                (assignment.can_confirm_package ?? true) && (
+              <div className="flex items-center gap-3">
+                {onAddSubscription && !isServiceRole && (
                   <Button
-                    outlined
+                    className="primaryButton"
                     size="xs"
-                    icon="edit"
-                    className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
-                    label="Select package"
-                    onClick={openProposalModal}
-                    disabled={saving || !plans.length}
+                    label="Add Subscription"
+                    onClick={onAddSubscription}
                   />
                 )}
+                {showWorkflowActions &&
+                  assignment &&
+                  (assignment?.can_confirm_package ?? true) && (
+                    <Button
+                      outlined
+                      size="xs"
+                      icon="edit"
+                      className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
+                      label="Select package"
+                      onClick={openProposalModal}
+                      disabled={saving || !plans.length}
+                    />
+                  )}
+              </div>
             </div>
           )}
         </div>
@@ -277,7 +396,9 @@ export function ClientWorkflowDetails({
           setProposalDialogOpen(false)
         }}
         title={
-          assignment.anticipated_package ? 'Update package' : 'Select package'
+          proposedPkg || activeSub || assignment?.anticipated_package
+            ? 'Update package'
+            : 'Select package'
         }
         subTitle="Select a package, set the start date, and confirm it."
         onSubmit={submitProposal}
@@ -556,22 +677,25 @@ export function ClientWorkflowFollowUps({
       setSaving(true)
       const response = await action()
       enqueueSnackbar(response?.message || success, { variant: 'success' })
-      await onRefresh()
+      if (onRefresh) await onRefresh()
+      return true
     } catch (error: any) {
       enqueueSnackbar(errorMessage(error), { variant: 'error' })
+      return false
     } finally {
       setSaving(false)
     }
   }
 
   const submitFollowUp = async () => {
+    if (!assignmentId) return
     if (!followUp.scheduled_at) {
       enqueueSnackbar('Choose a date and time for the follow-up.', {
         variant: 'error',
       })
       return
     }
-    await run(
+    const ok = await run(
       () =>
         scheduleAssignedClientFollowUp(assignmentId, {
           ...followUp,
@@ -579,13 +703,15 @@ export function ClientWorkflowFollowUps({
         }),
       'Follow-up scheduled successfully'
     )
-    setDialogOpen(false)
-    setFollowUp({ scheduled_at: '', notes: '' })
+    if (ok) {
+      setDialogOpen(false)
+      setFollowUp({ scheduled_at: '', notes: '' })
+    }
   }
 
   const submitCompletion = async () => {
     if (!completionNotes.trim() || !selectedFollowUp) return
-    await run(
+    const ok = await run(
       () =>
         completeAssignedClientFollowUp(
           selectedFollowUp.assignment_id || assignmentId,
@@ -594,14 +720,16 @@ export function ClientWorkflowFollowUps({
         ),
       'Follow-up marked as completed'
     )
-    setCompletionDialogOpen(false)
-    setSelectedFollowUp(null)
-    setCompletionNotes('')
+    if (ok) {
+      setCompletionDialogOpen(false)
+      setSelectedFollowUp(null)
+      setCompletionNotes('')
+    }
   }
 
   return (
     <>
-      <section className="bg-white border border-gray-200 rounded-xl p-5">
+      <section className="w-full">
         <div className="flex items-center justify-end gap-3 mb-3">
           <Button
             outlined
@@ -609,24 +737,24 @@ export function ClientWorkflowFollowUps({
             onClick={() => setDialogOpen(true)}
             disabled={
               saving ||
-              assignment.workflow_status === 'pending' ||
-              assignment.workflow_status === 'package_confirmed'
+              assignment?.workflow_status === 'pending' ||
+              assignment?.workflow_status === 'package_confirmed'
             }
           />
         </div>
-        {assignment.workflow_status === 'pending' && (
+        {assignment?.workflow_status === 'pending' && (
           <p className="text-sm text-secondary mb-3">
             Accept the client before scheduling a follow-up.
           </p>
         )}
-        {assignment.workflow_status === 'package_confirmed' && (
+        {assignment?.workflow_status === 'package_confirmed' && (
           <p className="text-sm text-secondary mb-3">
             The package is confirmed; no further assignment follow-up is
             required.
           </p>
         )}
         <SmartTable
-          data={assignment.follow_ups || []}
+          data={assignment?.follow_ups || []}
           dataRowKey="id"
           columns={[
             {
@@ -648,7 +776,7 @@ export function ClientWorkflowFollowUps({
                     ' (' +
                     (row.assigned_staff_role || 'service team') +
                     ')'
-                  : assignment.staff_name || '--',
+                  : assignment?.staff_name || '--',
               }),
               isVisible: true,
             },

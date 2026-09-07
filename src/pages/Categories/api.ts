@@ -29,17 +29,8 @@ const fetchData = async (input: QueryParams) => {
 export const useCategoriesList = (input: QueryParams) => {
   return useQuery(['categories_list', input], () => fetchData(input))
 }
-export const getSubCategories = (
-  parentId: string | number,
-  input: QueryParams = { page: 1 } as QueryParams
-) => {
-  const params: QueryParams = {
-    ...input,
-    page: input.page ?? 1,
-    parent_id: parentId,
-  }
-  const url = buildUrlWithParams(apiUrl.CATEGORIES, params)
-  return getData(url)
+export const getSubCategories = (parentId: string | number) => {
+  return getData(`${apiUrl.CATEGORIES}/${parentId}`)
 }
 export const deActivateAdmin = (id?: string) => {
   return updateFromData(`${apiUrl.ADMIN_USER}/${id}/status`, {})
