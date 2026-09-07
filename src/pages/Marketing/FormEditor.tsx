@@ -18,7 +18,7 @@ export default function FormEditor() {
   const [editing, setEditing] = useState<any>({
     name: '',
     description: '',
-    status: 'draft',
+    status: 'active',
   })
   const [definition, setDefinition] = useState<any>(clone(defaultDefinition))
   const [saving, setSaving] = useState(false)

@@ -29,7 +29,7 @@ const activityOptions = [
 ]
 
 function displayStatus(value: any) {
-  if (!value) return 'New Lead'
+  if (!value || String(value).toLowerCase() === 'assigned') return 'New Lead'
   const match = leadStatusOptions.find(
     (o) =>
       o.id === value || o.name.toLowerCase() === String(value).toLowerCase()
@@ -42,7 +42,7 @@ function displayStatus(value: any) {
 
 function statusColor(value: any) {
   const s = String(value || '').toLowerCase()
-  if (s === 'new_lead' || s === 'new')
+  if (s === 'assigned' || s === 'new_lead' || s === 'new')
     return 'bg-blue-50 text-blue-700 border-blue-200'
   if (s === 'contacted') return 'bg-amber-50 text-amber-700 border-amber-200'
   if (s === 'qualified') return 'bg-purple-50 text-purple-700 border-purple-200'
