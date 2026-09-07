@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { FormProvider, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
 import Icons from '../../components/common/icons'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -23,6 +24,18 @@ import FormBuilder from '../../components/app/formBuilder'
 import CreateCategory from './create'
 
 const SUBCATEGORY_ROWS = 10
+const SUBCATEGORY_NAMES = [
+  'Warmup',
+  'Workout Round 1',
+  'Workout Round 2',
+  'Cool Down',
+]
+const bulkSubcategorySchema = formSchema.extend({
+  name: z.string().optional(),
+  names: z
+    .array(z.object({ id: z.string(), name: z.string() }))
+    .min(1, 'Select at least one subcategory.'),
+})
 
 export default function CategoryDetails() {
   const { id } = useParams()
@@ -62,54 +75,48 @@ export default function CategoryDetails() {
     loadCategoryDetails()
   }, [loadCategoryDetails])
 
-  const fetchSubCategories = useCallback(
-    async (page = subPage, perPage = subRowsPerPage) => {
-      if (!id) return
-      setSubLoading(true)
-      setSubError('')
-      try {
-        const res = await getSubCategories(String(id), {
-          page,
-          per_page: perPage,
-        })
+  const fetchSubCategories = useCallback(async () => {
+    if (!id) return
+    setSubLoading(true)
+    setSubError('')
+    try {
+      const res = await getSubCategories(String(id))
 
-        const derivedSubcategories = (() => {
-          if (Array.isArray(res?.categories)) {
-            const parentCategory = res.categories.find(
-              (cat: any) => Number(cat?.id) === Number(id)
-            )
-            if (Array.isArray(parentCategory?.subcategories)) {
-              return parentCategory.subcategories
-            }
+      const derivedSubcategories = (() => {
+        if (Array.isArray(res?.categories)) {
+          const parentCategory = res.categories.find(
+            (cat: any) => Number(cat?.id) === Number(id)
+          )
+          if (Array.isArray(parentCategory?.subcategories)) {
+            return parentCategory.subcategories
           }
-          if (Array.isArray(res?.category?.subcategories)) {
-            return res.category.subcategories
-          }
-          if (Array.isArray(res?.subcategories)) {
-            return res.subcategories
-          }
-          return []
-        })()
+        }
+        if (Array.isArray(res?.category?.subcategories)) {
+          return res.category.subcategories
+        }
+        if (Array.isArray(res?.subcategories)) {
+          return res.subcategories
+        }
+        return []
+      })()
 
-        setSubcategories(derivedSubcategories)
-        setSubMeta({
-          total_count: derivedSubcategories.length,
-          current_page: 1,
-          total_pages: 1,
-        })
-      } catch (err: any) {
-        const msg =
-          err?.response?.data?.message ||
-          err?.response?.data?.detail ||
-          'Failed to load subcategories'
-        setSubError(msg)
-        enqueueSnackbar(msg, { variant: 'error' })
-      } finally {
-        setSubLoading(false)
-      }
-    },
-    [enqueueSnackbar, id, subPage, subRowsPerPage]
-  )
+      setSubcategories(derivedSubcategories)
+      setSubMeta({
+        total_count: derivedSubcategories.length,
+        current_page: 1,
+        total_pages: 1,
+      })
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        'Failed to load subcategories'
+      setSubError(msg)
+      enqueueSnackbar(msg, { variant: 'error' })
+    } finally {
+      setSubLoading(false)
+    }
+  }, [enqueueSnackbar, id])
 
   useEffect(() => {
     if (!id) return
@@ -119,9 +126,9 @@ export default function CategoryDetails() {
 
   useEffect(() => {
     if (id) {
-      fetchSubCategories(subPage, subRowsPerPage)
+      fetchSubCategories()
     }
-  }, [fetchSubCategories, id, subPage, subRowsPerPage])
+  }, [fetchSubCategories, id])
 
   const category = data?.category || data || {}
 
@@ -150,30 +157,54 @@ export default function CategoryDetails() {
     []
   )
 
-  const methods = useForm<CategorySchema>({
-    resolver: zodResolver(formSchema),
+  const availableSubcategoryOptions = useMemo(
+    () =>
+      SUBCATEGORY_NAMES.filter(
+        (name) =>
+          !subcategories.some(
+            (subcategory) =>
+              subcategory.name?.toLowerCase() === name.toLowerCase()
+          )
+      ).map((name) => ({ id: name, name })),
+    [subcategories]
+  )
+  const isEditingSubcategory = Boolean(selectedSubcategory?.id)
+  const methods = useForm<
+    Omit<CategorySchema, 'name'> & {
+      name?: string
+      names: { id: string; name: string }[]
+    }
+  >({
+    resolver: zodResolver(
+      isEditingSubcategory ? formSchema : bulkSubcategorySchema
+    ),
     defaultValues: {
       name: '',
+      names: [],
       description: '',
     },
   })
-  const { handleSubmit, reset } = methods
+  const { handleSubmit, reset, watch } = methods
+  const selectedNames = watch('names') || []
 
   const closeSubcategoryModal = () => {
+    if (isCreatingSubcategory || isUpdatingSubcategory) return
     setIsSubcategoryModalOpen(false)
     setSelectedSubcategory(null)
     reset()
   }
 
   const onSubcategorySuccess = () => {
-    closeSubcategoryModal()
-    fetchSubCategories(1, subRowsPerPage)
+    setIsSubcategoryModalOpen(false)
+    setSelectedSubcategory(null)
+    reset()
+    fetchSubCategories()
   }
 
   const { mutate: createSubcategory, isLoading: isCreatingSubcategory } =
     useCreateCategories(
       onSubcategorySuccess,
-      'Subcategory created successfully'
+      'Subcategories created successfully'
     )
   const { mutate: updateSubcategory, isLoading: isUpdatingSubcategory } =
     useUpdateCategories(
@@ -181,9 +212,8 @@ export default function CategoryDetails() {
       'Subcategory updated successfully'
     )
 
-  const isEditingSubcategory = Boolean(selectedSubcategory?.id)
-
   const handleSubcategorySubmit = handleSubmit((values) => {
+    if (isCreatingSubcategory || isUpdatingSubcategory) return
     if (!id) {
       enqueueSnackbar('Invalid category', { variant: 'error' })
       return
@@ -200,7 +230,13 @@ export default function CategoryDetails() {
     if (isEditingSubcategory && selectedSubcategory?.id) {
       updateSubcategory({ id: selectedSubcategory.id, data: payload })
     } else {
-      createSubcategory(payload)
+      createSubcategory({
+        category: {
+          names: values.names.map((option) => option.name),
+          description: values.description,
+          parent_id: Number(id),
+        },
+      })
     }
   })
 
@@ -208,6 +244,7 @@ export default function CategoryDetails() {
     setSelectedSubcategory(null)
     reset({
       name: '',
+      names: [],
       description: '',
     })
     setIsSubcategoryModalOpen(true)
@@ -216,6 +253,7 @@ export default function CategoryDetails() {
   const handleEditSubcategory = (row: any) => {
     setSelectedSubcategory(row)
     reset({
+      names: [],
       name: row?.name ?? '',
       description: row?.description ?? '',
     })
@@ -242,7 +280,7 @@ export default function CategoryDetails() {
         variant: 'success',
       })
       closeDeleteModal()
-      fetchSubCategories(1, subRowsPerPage)
+      fetchSubCategories()
     } catch (err: any) {
       enqueueSnackbar(
         err?.response?.data?.message || 'Failed to delete subcategory',
@@ -390,8 +428,17 @@ export default function CategoryDetails() {
       <DialogModal
         isOpen={isSubcategoryModalOpen}
         onClose={closeSubcategoryModal}
+        disabled={isCreatingSubcategory || isUpdatingSubcategory}
         title={isEditingSubcategory ? 'Edit Subcategory' : 'Create Subcategory'}
-        actionLabel={isEditingSubcategory ? 'Update' : 'Create'}
+        actionLabel={
+          isEditingSubcategory ? 'Update' : `Create (${selectedNames.length})`
+        }
+        actionDisabled={
+          isCreatingSubcategory ||
+          isUpdatingSubcategory ||
+          (!isEditingSubcategory &&
+            (selectedNames.length === 0 || subLoading || Boolean(subError)))
+        }
         actionLoader={
           isEditingSubcategory ? isUpdatingSubcategory : isCreatingSubcategory
         }
@@ -402,24 +449,54 @@ export default function CategoryDetails() {
         body={
           <FormProvider {...methods}>
             <div className="flex flex-col gap-4">
+              {!isEditingSubcategory && (
+                <div className="flex flex-col gap-2">
+                  <FormBuilder
+                    data={[
+                      {
+                        name: 'names',
+                        id: 'subcategory_names',
+                        label: 'Subcategories',
+                        type: 'multi_select',
+                        placeholder: 'Select subcategories',
+                        desc: 'name',
+                        descId: 'id',
+                        required: true,
+                        getData: () => availableSubcategoryOptions,
+                        async: false,
+                        initialLoad: true,
+                        isMultiple: true,
+                        notDataMessage:
+                          'All subcategories have already been created',
+                      },
+                    ]}
+                    edit={!isCreatingSubcategory && !subLoading && !subError}
+                  />
+                  <p className="text-xs text-gray-500">
+                    The description applies to all selected subcategories.
+                  </p>
+                </div>
+              )}
               <FormBuilder
                 data={[
-                  {
-                    name: 'name',
-                    id: 'subcategory_name',
-                    label: 'Name',
-                    placeholder: 'Select subcategory type',
-                    type: 'custom_select',
-                    desc: 'name',
-                    descId: 'id',
-                    required: true,
-                    data: [
-                      { id: 1, name: 'Warmup' },
-                      { id: 2, name: 'Workout Round 1' },
-                      { id: 3, name: 'Workout Round 2' },
-                      { id: 4, name: 'Cool Down' },
-                    ],
-                  },
+                  ...(isEditingSubcategory
+                    ? [
+                        {
+                          name: 'name',
+                          id: 'subcategory_name',
+                          label: 'Name',
+                          placeholder: 'Select subcategory type',
+                          type: 'custom_select',
+                          desc: 'name',
+                          descId: 'id',
+                          required: true,
+                          data: SUBCATEGORY_NAMES.map((name, index) => ({
+                            id: index + 1,
+                            name,
+                          })),
+                        },
+                      ]
+                    : []),
                   {
                     name: 'description',
                     label: 'Description',
