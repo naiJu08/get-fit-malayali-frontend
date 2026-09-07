@@ -36,6 +36,10 @@ export const getErrorMessage = (error: any): string => {
     return error
   }
 
+  if (error?.response?.data) {
+    return getErrorMessage(error.response.data)
+  }
+
   // Some APIs return an array of validation errors
   if (Array.isArray(error) && error.length > 0) {
     const first = error[0]

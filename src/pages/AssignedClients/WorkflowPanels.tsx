@@ -21,11 +21,18 @@ const formatDate = (value?: string) =>
       }).format(new Date(value))
     : '--'
 
-const errorMessage = (error: any) =>
-  getErrorMessage(error) ||
-  error?.response?.data?.error ||
-  error?.response?.data?.message ||
-  'Request failed'
+const errorMessage = (error: any) => {
+  const resData = error?.response?.data
+  if (resData) {
+    if (Array.isArray(resData.errors) && resData.errors.length) {
+      return resData.errors.join(', ')
+    }
+    if (typeof resData.errors === 'string') return resData.errors
+    if (typeof resData.error === 'string') return resData.error
+    if (typeof resData.message === 'string') return resData.message
+  }
+  return getErrorMessage(error) || 'Request failed'
+}
 
 type WorkflowProps = {
   assignment: any
@@ -557,8 +564,10 @@ export function ClientWorkflowFollowUps({
       const response = await action()
       enqueueSnackbar(response?.message || success, { variant: 'success' })
       await onRefresh()
+      return true
     } catch (error: any) {
       enqueueSnackbar(errorMessage(error), { variant: 'error' })
+      return false
     } finally {
       setSaving(false)
     }
@@ -571,7 +580,7 @@ export function ClientWorkflowFollowUps({
       })
       return
     }
-    await run(
+    const ok = await run(
       () =>
         scheduleAssignedClientFollowUp(assignmentId, {
           ...followUp,
@@ -579,13 +588,15 @@ export function ClientWorkflowFollowUps({
         }),
       'Follow-up scheduled successfully'
     )
-    setDialogOpen(false)
-    setFollowUp({ scheduled_at: '', notes: '' })
+    if (ok) {
+      setDialogOpen(false)
+      setFollowUp({ scheduled_at: '', notes: '' })
+    }
   }
 
   const submitCompletion = async () => {
     if (!completionNotes.trim() || !selectedFollowUp) return
-    await run(
+    const ok = await run(
       () =>
         completeAssignedClientFollowUp(
           selectedFollowUp.assignment_id || assignmentId,
@@ -594,9 +605,11 @@ export function ClientWorkflowFollowUps({
         ),
       'Follow-up marked as completed'
     )
-    setCompletionDialogOpen(false)
-    setSelectedFollowUp(null)
-    setCompletionNotes('')
+    if (ok) {
+      setCompletionDialogOpen(false)
+      setSelectedFollowUp(null)
+      setCompletionNotes('')
+    }
   }
 
   return (
