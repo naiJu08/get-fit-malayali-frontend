@@ -13,6 +13,7 @@ import Icons from '../../components/common/icons'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import CustomDrawer from '../../components/common/drawer'
 import SearchInput from '../../components/common/inputs/SearchInput'
+import ToggleSwitch from '../../components/common/inputs/ToggleSwitch'
 import DatePicker from '../../components/common/inputs/DatePicker'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getApiErrorMessage } from '../../utilities/commonUtilities'
@@ -40,6 +41,7 @@ const leadStatusOptions = [
 const leadStatusFilterOptions = [
   ...leadStatusOptions,
   { id: 'confirmation_pending', name: 'Confirmation pending' },
+  { id: 'accepted', name: 'Accepted' },
   { id: 'client_accepted', name: 'Client accepted' },
 ]
 
@@ -215,6 +217,7 @@ export default function CampaignDetails() {
     per_page: 100,
     search: '',
     status: '',
+    assignment_status: 'pending',
   })
   const {
     data: leadsData,
@@ -228,6 +231,10 @@ export default function CampaignDetails() {
   const [selectedLeadIds, setSelectedLeadIds] = useState<
     Array<string | number>
   >([])
+  useEffect(() => {
+    setSelectedLeadIds([])
+  }, [leadsParams.search, leadsParams.status, leadsParams.assignment_status])
+
   const [selectedSalesId, setSelectedSalesId] = useState<
     string | number | null
   >(null)
@@ -610,6 +617,13 @@ export default function CampaignDetails() {
     }
   }
 
+  const statusCounts: Record<string, number> = leadsData?.status_counts || {}
+  const totalStatusCount = leadStatusFilterOptions.reduce(
+    (total, option) =>
+      total +
+      (statusCounts[option.id === 'new_lead' ? 'assigned' : option.id] ?? 0),
+    0
+  )
   const rows = leadsData?.leads || leadsData?.marketing_leads || []
   const selectedLeads = rows.filter((row: any) =>
     selectedLeadIds.includes(row.id)
@@ -1133,26 +1147,57 @@ export default function CampaignDetails() {
               searchPlaceholder="Search leads"
               searchValue={leadsParams.search}
               toolbarExtra={
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs text-gray-600">Status</label>
-                  <select
-                    className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200 w-40"
-                    value={leadsParams.status}
-                    onChange={(event) =>
-                      setLeadsParams({
-                        ...leadsParams,
-                        status: event.target.value,
-                        page: 1,
-                      })
-                    }
-                  >
-                    <option value="">All statuses</option>
-                    {leadStatusFilterOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.name}
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label
+                      htmlFor="lead-status-filter"
+                      className="text-xs text-gray-600"
+                    >
+                      Status
+                    </label>
+                    <select
+                      id="lead-status-filter"
+                      className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200 w-56"
+                      value={leadsParams.status}
+                      onChange={(event) =>
+                        setLeadsParams({
+                          ...leadsParams,
+                          status: event.target.value,
+                          page: 1,
+                        })
+                      }
+                    >
+                      <option value="">
+                        All statuses ({totalStatusCount})
                       </option>
-                    ))}
-                  </select>
+                      {leadStatusFilterOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.name} (
+                          {statusCounts[
+                            option.id === 'new_lead' ? 'assigned' : option.id
+                          ] ?? 0}
+                          )
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2 py-2.5 text-sm">
+                    <span>Assigned</span>
+                    <ToggleSwitch
+                      id="lead-assignment-pending"
+                      checked={leadsParams.assignment_status === 'pending'}
+                      onChange={(checked: boolean) =>
+                        setLeadsParams((current) => ({
+                          ...current,
+                          assignment_status: checked ? 'pending' : 'assigned',
+                          page: 1,
+                        }))
+                      }
+                    />
+                    <label htmlFor="lead-assignment-pending">
+                      Assignment pending
+                    </label>
+                  </div>
                 </div>
               }
               onSearchChange={(value: string) =>
