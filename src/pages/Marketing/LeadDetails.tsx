@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import moment from 'moment'
+import { useQuery } from '@tanstack/react-query'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import Button from '../../components/common/buttons/Button'
 import Tab from '../../components/common/tab/Tab'
@@ -10,7 +11,13 @@ import FormBuilder from '../../components/app/formBuilder'
 import Icons from '../../components/common/icons'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import { getApiErrorMessage } from '../../utilities/commonUtilities'
-import { useMarketingLead, createLeadActivity } from './api'
+import {
+  useMarketingLead,
+  createLeadActivity,
+  getSalesTeam,
+  assignMarketingLead,
+} from './api'
+// import { usePlans } from '../Plans/api'
 
 const leadStatusOptions = [
   { id: 'new_lead', name: 'New Lead' },
@@ -240,6 +247,63 @@ export default function LeadDetails() {
     }
   }
 
+  const [assigning, setAssigning] = useState<any>(null)
+  const [assigningLoader, setAssigningLoader] = useState(false)
+  const [selectedSalesId, setSelectedSalesId] = useState<
+    string | number | null
+  >(null)
+  const [salesPage, setSalesPage] = useState(1)
+  const [salesSearch, setSalesSearch] = useState('')
+  const salesPageSize = 4
+  const { data: team } = useQuery(['sales_team'], getSalesTeam)
+
+  const allSalesUsers = team?.users || []
+  const salesUsers = allSalesUsers.filter((u: any) => {
+    if (!salesSearch) return true
+    const q = salesSearch.toLowerCase()
+    return (
+      String(u.name || '')
+        .toLowerCase()
+        .includes(q) ||
+      String(u.email || '')
+        .toLowerCase()
+        .includes(q)
+    )
+  })
+  const totalSalesPages = Math.max(
+    1,
+    Math.ceil(salesUsers.length / salesPageSize)
+  )
+  const paginatedSalesUsers = salesUsers.slice(
+    (salesPage - 1) * salesPageSize,
+    salesPage * salesPageSize
+  )
+
+  const handleAssign = async () => {
+    if (!selectedSalesId || !assigning) {
+      enqueueSnackbar('Select a sales team member', { variant: 'error' })
+      return
+    }
+    try {
+      setAssigningLoader(true)
+      await assignMarketingLead({
+        campaignId: effectiveCampaignId,
+        id: assigning.id,
+        assigned_to_id: selectedSalesId,
+      })
+      enqueueSnackbar('Lead assigned successfully', { variant: 'success' })
+      setAssigning(null)
+      setSelectedSalesId(null)
+      refetchLead()
+    } catch (e: any) {
+      enqueueSnackbar(getApiErrorMessage(e, 'Unable to assign lead'), {
+        variant: 'error',
+      })
+    } finally {
+      setAssigningLoader(false)
+    }
+  }
+
   const copyPublicLink = async () => {
     if (!campaign?.public_url) return
     try {
@@ -314,7 +378,20 @@ export default function LeadDetails() {
             </div>
           </div>
 
-          {/* Header Actions removed */}
+          {!leadLoading && lead && (
+            <div className="flex items-center gap-2">
+              <Button
+                label="Assign"
+                icon="external-link"
+                onClick={() => {
+                  setSelectedSalesId(lead.assigned_to?.id || null)
+                  setSalesSearch('')
+                  setSalesPage(1)
+                  setAssigning(lead)
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -591,6 +668,169 @@ export default function LeadDetails() {
               <FormBuilder data={activityFormFields} edit />
             </div>
           </FormProvider>
+        }
+      />
+
+      <DialogModal
+        isOpen={Boolean(assigning)}
+        onClose={() => setAssigning(null)}
+        title="Assign to sales"
+        actionLabel="Assign"
+        actionLoader={assigningLoader}
+        onSubmit={handleAssign}
+        secondaryAction={() => setAssigning(null)}
+        secondaryActionLabel="Cancel"
+        className="max-w-xl w-full"
+        body={
+          <div className="space-y-5">
+            <div className="rounded-lg bg-purple-50 border border-purple-100 px-4 py-3 flex items-center gap-3">
+              <Icons name="external-link" className="text-[#0fc8cd] shrink-0" />
+              <p className="text-sm text-[#0fc8cd]">
+                Assign this lead to a sales team member for follow-up.
+              </p>
+            </div>
+            <div className="relative">
+              <Icons
+                name="search"
+                className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="text"
+                value={salesSearch}
+                onChange={(e) => {
+                  setSalesSearch(e.target.value)
+                  setSalesPage(1)
+                }}
+                placeholder="Search by name or email..."
+                className="w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm text-gray-900 placeholder-gray-400 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition"
+              />
+            </div>
+            {salesUsers.length === 0 ? (
+              <div className="py-10 text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                  <Icons name="profile" className="text-gray-400" />
+                </div>
+                <p className="text-sm font-medium text-gray-500">
+                  No sales members found
+                </p>
+                <p className="mt-1 text-xs text-gray-400">
+                  {allSalesUsers.length === 0
+                    ? 'Add team members to assign leads.'
+                    : 'Try a different search term.'}
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {paginatedSalesUsers.map((user: any) => {
+                  const isSelected = String(selectedSalesId) === String(user.id)
+                  const initials = (user.name || '?')
+                    .split(' ')
+                    .map((w: string) => w[0])
+                    .join('')
+                    .slice(0, 2)
+                    .toUpperCase()
+                  return (
+                    <button
+                      key={user.id}
+                      type="button"
+                      onClick={() => setSelectedSalesId(user.id)}
+                      className={
+                        'group relative text-left rounded-xl border-2 p-4 transition-all duration-200 ' +
+                        (isSelected
+                          ? 'border-purple-500 bg-purple-50 shadow-sm ring-1 ring-purple-500/20'
+                          : 'border-gray-100 bg-white hover:border-purple-200 hover:bg-purple-50/30 hover:shadow-sm')
+                      }
+                    >
+                      {isSelected && (
+                        <div className="absolute top-3 right-3">
+                          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#0fc8cd]">
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 14 14"
+                              fill="none"
+                            >
+                              <path
+                                d="M3 7.5l3 3 5-6"
+                                stroke="white"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 shrink-0 rounded-full text-sm font-semibold text-white transition-colors overflow-hidden"
+                          style={{
+                            backgroundColor: isSelected
+                              ? '#0fc8cd'
+                              : '#0fc8cd99',
+                          }}
+                        >
+                          {user.thumbnail_url ? (
+                            <img
+                              src={user.thumbnail_url}
+                              alt={user.name || ''}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="flex items-center justify-center w-full h-full">
+                              {initials}
+                            </span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <div className="font-semibold text-sm text-gray-900 truncate">
+                              {user.name || 'Unnamed'}
+                            </div>
+                            {user.phone && (
+                              <span className="text-xs text-gray-400 shrink-0">
+                                {user.phone}
+                              </span>
+                            )}
+                          </div>
+                          {user.email && (
+                            <div className="text-xs text-gray-400 truncate mt-0.5">
+                              {user.email}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {totalSalesPages > 1 && (
+              <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                <span className="text-xs font-medium text-gray-400">
+                  Page {salesPage} of {totalSalesPages}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="rounded-lg border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={salesPage === 1}
+                    onClick={() => setSalesPage((p) => p - 1)}
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-gray-200 bg-white px-3.5 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+                    disabled={salesPage === totalSalesPages}
+                    onClick={() => setSalesPage((p) => p + 1)}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         }
       />
     </div>

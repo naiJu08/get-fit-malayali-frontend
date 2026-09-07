@@ -39,10 +39,13 @@ const emptyCampaign = () => ({
   ends_on: '',
 })
 const dateValue = (value: any) => (value ? new Date(value + 'T00:00:00') : null)
-const dateString = (value: any) =>
-  value instanceof Date && !Number.isNaN(value.getTime())
-    ? value.toISOString().slice(0, 10)
-    : ''
+const dateString = (value: any) => {
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) return ''
+  const y = value.getFullYear()
+  const m = String(value.getMonth() + 1).padStart(2, '0')
+  const d = String(value.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
 const displayStatus = (value: any) =>
   String(value || 'draft')
     .replace(/_/g, ' ')
