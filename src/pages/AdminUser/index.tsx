@@ -596,6 +596,10 @@ export default function AdminUser() {
                     action: (rowData) => handleOpenDeleteUser(rowData?.id),
                     icon: <Icons name="delete" />,
                     toolTip: 'Delete',
+                    hide: () =>
+                      ['nutritionist', 'yogist', 'physiotherapist'].includes(
+                        loginRole || ''
+                      ),
                   },
                 ]}
                 searchValue={pageParams?.search}

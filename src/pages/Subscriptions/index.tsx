@@ -13,6 +13,7 @@ import Icons from '../../components/common/icons'
 import ListingHeader from '../../components/common/ListingTiles'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
+import { useAuthStore } from '../../store/authStore'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getSortedColumnName } from '../../utilities/parsers'
 import { handleReturnEmptyMsg } from '../../utilities/validation'
@@ -31,6 +32,7 @@ import { getColumns } from './columns'
 import CreateAdmin from './create'
 export default function Subscriptions() {
   const navigate = useNavigate()
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
   const [createOpen, setCreateOpen] = useState(false)
@@ -973,6 +975,10 @@ export default function Subscriptions() {
                   action: (rowData) => handleOpenDeleteUser(rowData?.id),
                   icon: <Icons name="delete" />,
                   toolTip: 'Delete',
+                  hide: () =>
+                    ['nutritionist', 'yogist', 'physiotherapist'].includes(
+                      loginRole || ''
+                    ),
                 },
               ]}
               columnToggle
