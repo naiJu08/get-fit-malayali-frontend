@@ -4,6 +4,7 @@ import CustomDrawer from '../../components/common/drawer'
 import { getData, postData } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import { useSnackbarManager } from '../../components/common/snackbar'
+import { shortDate } from '../../utilities/format'
 
 type Props = {
   subscriptionId?: string | number | null
@@ -164,10 +165,7 @@ export default function YogaTemplateAssign({
                           <span>Days: {template.days_count ?? 0}</span>
                           {template.created_at && (
                             <span>
-                              Created:{' '}
-                              {new Date(
-                                template.created_at
-                              ).toLocaleDateString()}
+                              Created: {shortDate(template.created_at)}
                             </span>
                           )}
                         </div>
