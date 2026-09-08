@@ -64,8 +64,10 @@ export default function Sidenav() {
     buildMenuHierarchy(generateArray(router_config))
   )
 
-  const navSubmenu = (item: any) => {
-    if (item.hasChild) {
+  const navSubmenu = (e: React.MouseEvent, item: any) => {
+    const visibleChildren = item.hasChild?.filter(checkPermission)
+    if (visibleChildren && visibleChildren.length > 0) {
+      e.preventDefault()
       setExpandedGroups((prev) => ({
         ...prev,
         [item.label]: !prev[item.label],
@@ -73,7 +75,7 @@ export default function Sidenav() {
       if (!expand) {
         setExpand(true)
       }
-    } else {
+    } else if (item?.path) {
       navigate(item?.path)
     }
   }
@@ -200,8 +202,12 @@ export default function Sidenav() {
             return (
               <li key={item.id}>
                 <Link
-                  to={item.path || pathname}
-                  onClick={() => navSubmenu(item)}
+                  to={
+                    visibleChildren && visibleChildren.length > 0
+                      ? '#'
+                      : item.path || pathname
+                  }
+                  onClick={(e) => navSubmenu(e, item)}
                   className={`flex items-center gap-2.5 p-3 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 ${isActive ? 'bg-white/20 text-white' : 'text-white'} ${!expand ? 'justify-center' : 'justify-start'}`}
                 >
                   <div
