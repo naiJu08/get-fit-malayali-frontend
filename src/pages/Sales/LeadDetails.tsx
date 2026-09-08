@@ -237,6 +237,7 @@ export default function SalesLeadDetails() {
         label: 'Confirmation message',
         type: 'textarea',
         required: true,
+        rows: 16,
         placeholder: 'Enter the confirmation message',
       },
     ],
@@ -756,9 +757,9 @@ export default function SalesLeadDetails() {
         secondaryAction={() => setConfirmationModal(false)}
         secondaryActionLabel="Cancel"
         small={false}
-        className="w-full max-w-3xl"
+        className="w-full max-w-3xl min-h-[400px]"
         body={
-          <div className="mx-auto w-full max-w-2xl">
+          <div className="mx-auto w-full max-w-2xl min-h-[420px]">
             <FormProvider {...confirmationMethods}>
               <FormBuilder data={confirmationFields} edit spacing />
             </FormProvider>
@@ -851,12 +852,12 @@ export default function SalesLeadDetails() {
                 })}
               />
               <div>
-                <div className="mb-3 flex items-center justify-between">
+                <div className="mb-3 flex items-center justify-start gap-2">
                   <label className="text-sm font-semibold text-primaryText">
                     Activity type <span className="text-error">*</span>
                   </label>
                   <span className="text-xs text-secondary">
-                    Choose an activity
+                    (Choose an activity)
                   </span>
                 </div>
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">

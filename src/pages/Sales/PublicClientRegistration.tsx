@@ -294,6 +294,7 @@ const steps: StepDef[] = [
     title: 'What is your gender?',
     type: 'single_select',
     fieldName: 'gender',
+    // label: "What's your gender?",
     options: genderOptions,
   },
   {
@@ -350,6 +351,50 @@ const steps: StepDef[] = [
     type: 'multi_select',
     fieldName: 'food_allergies',
     options: foodAllergyOptions,
+    // required: true,
+  },
+  {
+    id: 'language',
+    title: "What's your preferred language?",
+    type: 'multi_text',
+    fieldNames: ['language'],
+    config: {
+      fields: [
+        {
+          name: 'language',
+          placeholder: 'e.g. English, Malayalam, Hindi',
+          label: "What's your preferred language?",
+        },
+      ],
+    },
+  },
+  {
+    id: 'work_schedule',
+    title: "What's your work schedule?",
+    type: 'single_select',
+    fieldName: 'work_schedule',
+    // required: true,
+    options: [
+      { id: 'Day shift', name: 'Day shift', icon: '☀️' },
+      { id: 'Night shift', name: 'Night shift', icon: '🌙' },
+      { id: 'Rotational shift', name: 'Rotational shift', icon: '🔄' },
+      { id: 'Flexible', name: 'Flexible', icon: '🕐' },
+    ],
+  },
+  {
+    id: 'occupation',
+    title: "What's your occupation?",
+    type: 'multi_text',
+    fieldNames: ['occupation'],
+    config: {
+      fields: [
+        {
+          name: 'occupation',
+          placeholder: 'e.g. Software Engineer, Teacher',
+          label: "What's your occupation?",
+        },
+      ],
+    },
   },
 ]
 
@@ -507,6 +552,19 @@ export default function PublicClientRegistration() {
   }
 
   const submit = async (values: any) => {
+    const allergies = values.food_allergies
+    if (!allergies || (Array.isArray(allergies) && allergies.length === 0)) {
+      setMessage('Please enter your occupation.')
+      return
+    }
+    if (!values.work_schedule) {
+      setMessage('Please select your work schedule.')
+      return
+    }
+    if (!values.occupation || !values.occupation.trim()) {
+      setMessage('Please enter your occupation.')
+      return
+    }
     try {
       setBusy(true)
       setMessage('')
@@ -843,6 +901,9 @@ export default function PublicClientRegistration() {
 
             {step.type === 'date' && (
               <div className="text-center lg:max-w-lg lg:mx-auto">
+                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 mb-2 sm:mb-3">
+                  {step.title}
+                </h3>
                 {watch(fieldName) ? (
                   <div
                     className="inline-block rounded-xl border-2 px-5 sm:px-6 lg:px-8 py-3 sm:py-4 lg:py-5 mb-4 sm:mb-6 lg:mb-8 shadow-sm"
@@ -879,126 +940,86 @@ export default function PublicClientRegistration() {
             )}
 
             {step.type === 'slider' && step.config && (
-              <div className="text-center pt-6 sm:pt-8 lg:pt-10 lg:max-w-lg lg:mx-auto">
-                <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-slate-900 mb-1">
-                  {watch(fieldName) || step.config.min}
-                </div>
-                <div className="text-lg sm:text-xl lg:text-2xl text-slate-400 font-medium mb-6 sm:mb-8 lg:mb-10">
-                  {step.config.unit}
-                </div>
-                <div className="px-2 sm:px-4 lg:px-6">
-                  <input
-                    type="range"
-                    min={step.config.min}
-                    max={step.config.max}
-                    step={step.config.step}
-                    value={watch(fieldName) || step.config.min}
-                    onChange={(e) =>
-                      setValue(fieldName, e.target.value, { shouldDirty: true })
-                    }
-                    className="w-full"
-                  />
-                  <div className="flex justify-between mt-2 sm:mt-3 text-[10px] sm:text-xs lg:text-sm text-slate-400">
-                    <span>{step.config.min}</span>
-                    <span>{step.config.max}</span>
+              <div className="text-center lg:max-w-lg lg:mx-auto">
+                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 mb-2 sm:mb-3">
+                  {step.title}
+                </h3>
+                <div className="pt-4 sm:pt-6 lg:pt-8">
+                  <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-slate-900 mb-1">
+                    {watch(fieldName) || step.config.min}
+                  </div>
+                  <div className="text-lg sm:text-xl lg:text-2xl text-slate-400 font-medium mb-6 sm:mb-8 lg:mb-10">
+                    {step.config.unit}
+                  </div>
+                  <div className="px-2 sm:px-4 lg:px-6">
+                    <input
+                      type="range"
+                      min={step.config.min}
+                      max={step.config.max}
+                      step={step.config.step}
+                      value={watch(fieldName) || step.config.min}
+                      onChange={(e) =>
+                        setValue(fieldName, e.target.value, {
+                          shouldDirty: true,
+                        })
+                      }
+                      className="w-full"
+                    />
+                    <div className="flex justify-between mt-2 sm:mt-3 text-[10px] sm:text-xs lg:text-sm text-slate-400">
+                      <span>{step.config.min}</span>
+                      <span>{step.config.max}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
             {step.type === 'single_select' && step.options && (
-              <div
-                className={
-                  step.id === 'gender'
-                    ? 'reg-gender-grid space-y-3 sm:space-y-0 lg:max-w-lg lg:mx-auto'
-                    : 'space-y-2.5 sm:space-y-3 lg:max-w-lg lg:mx-auto'
-                }
-              >
-                {step.options.map((opt) => {
-                  const selected =
-                    watch(fieldName) === opt.name || watch(fieldName) === opt.id
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() =>
-                        setValue(fieldName, opt.name || opt.id, {
-                          shouldDirty: true,
-                        })
-                      }
-                      className={`option-card w-full flex items-center gap-3 sm:gap-4 lg:gap-5 rounded-xl border p-3 sm:p-4 lg:p-5 text-left ${selected ? 'selected' : 'border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-slate-300'}`}
-                    >
-                      <div className="opt-icon flex h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-lg sm:text-xl lg:text-2xl">
-                        {opt.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-slate-900 font-semibold text-xs sm:text-sm lg:text-base">
-                          {opt.name}
-                        </div>
-                        {opt.desc && (
-                          <div className="text-slate-500 text-[10px] sm:text-xs lg:text-sm mt-0.5 leading-tight">
-                            {opt.desc}
-                          </div>
-                        )}
-                      </div>
-                      <div
-                        className="opt-check opacity-0 shrink-0 w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 rounded-full flex items-center justify-center"
-                        style={{ background: accent }}
+              <div className="lg:max-w-lg lg:mx-auto">
+                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 mb-2 sm:mb-3 text-center">
+                  {step.title}
+                </h3>
+                <div
+                  className={
+                    step.id === 'gender'
+                      ? 'reg-gender-grid space-y-3 sm:space-y-0'
+                      : 'space-y-2.5 sm:space-y-3'
+                  }
+                >
+                  {step.options.map((opt) => {
+                    const selected =
+                      watch(fieldName) === opt.name ||
+                      watch(fieldName) === opt.id
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() =>
+                          setValue(fieldName, opt.name || opt.id, {
+                            shouldDirty: true,
+                          })
+                        }
+                        className={`option-card w-full flex items-center gap-3 sm:gap-4 lg:gap-5 rounded-xl border p-3 sm:p-4 lg:p-5 text-left ${selected ? 'selected' : 'border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-slate-300'}`}
                       >
-                        <svg
-                          className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="white"
-                          strokeWidth={3}
+                        <div className="opt-icon flex h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-lg sm:text-xl lg:text-2xl">
+                          {opt.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-slate-900 font-semibold text-xs sm:text-sm lg:text-base">
+                            {opt.name}
+                          </div>
+                          {opt.desc && (
+                            <div className="text-slate-500 text-[10px] sm:text-xs lg:text-sm mt-0.5 leading-tight">
+                              {opt.desc}
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          className="opt-check opacity-0 shrink-0 w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 rounded-full flex items-center justify-center"
+                          style={{ background: accent }}
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
-
-            {step.type === 'multi_select' && step.options && (
-              <div className="space-y-2.5 sm:space-y-3 lg:max-w-lg lg:mx-auto">
-                {step.options.map((opt) => {
-                  const selected = isMultiSelected(fieldName, opt.id)
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => toggleMultiSelect(fieldName, opt.id)}
-                      className={`option-card w-full flex items-center gap-3 sm:gap-4 lg:gap-5 rounded-xl border p-3 sm:p-4 lg:p-5 text-left ${selected ? 'selected' : 'border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-slate-300'}`}
-                    >
-                      <div className="opt-icon flex h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-lg sm:text-xl lg:text-2xl">
-                        {opt.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-slate-900 font-semibold text-xs sm:text-sm lg:text-base">
-                          {opt.name}
-                        </div>
-                        {opt.desc && (
-                          <div className="text-slate-500 text-[10px] sm:text-xs lg:text-sm mt-0.5 leading-tight">
-                            {opt.desc}
-                          </div>
-                        )}
-                      </div>
-                      <div
-                        className="opt-check opacity-0 shrink-0 w-4.5 h-4.5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded border-2 flex items-center justify-center"
-                        style={{
-                          borderColor: selected ? accent : '#e2e8f0',
-                          background: selected ? accent : 'transparent',
-                        }}
-                      >
-                        {selected && (
                           <svg
-                            className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-3.5 lg:h-3.5"
+                            className="w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="white"
@@ -1010,11 +1031,69 @@ export default function PublicClientRegistration() {
                               d="M5 13l4 4L19 7"
                             />
                           </svg>
-                        )}
-                      </div>
-                    </button>
-                  )
-                })}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {step.type === 'multi_select' && step.options && (
+              <div className="lg:max-w-lg lg:mx-auto">
+                <h3 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 mb-2 sm:mb-3 text-center">
+                  {step.title}
+                </h3>
+                <div className="space-y-2.5 sm:space-y-3">
+                  {step.options.map((opt) => {
+                    const selected = isMultiSelected(fieldName, opt.id)
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => toggleMultiSelect(fieldName, opt.id)}
+                        className={`option-card w-full flex items-center gap-3 sm:gap-4 lg:gap-5 rounded-xl border p-3 sm:p-4 lg:p-5 text-left ${selected ? 'selected' : 'border-slate-200 bg-white shadow-sm hover:shadow-md hover:border-slate-300'}`}
+                      >
+                        <div className="opt-icon flex h-10 w-10 sm:h-12 sm:w-12 lg:h-14 lg:w-14 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-lg sm:text-xl lg:text-2xl">
+                          {opt.icon}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-slate-900 font-semibold text-xs sm:text-sm lg:text-base">
+                            {opt.name}
+                          </div>
+                          {opt.desc && (
+                            <div className="text-slate-500 text-[10px] sm:text-xs lg:text-sm mt-0.5 leading-tight">
+                              {opt.desc}
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          className="opt-check opacity-0 shrink-0 w-4.5 h-4.5 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded border-2 flex items-center justify-center"
+                          style={{
+                            borderColor: selected ? accent : '#e2e8f0',
+                            background: selected ? accent : 'transparent',
+                          }}
+                        >
+                          {selected && (
+                            <svg
+                              className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-3.5 lg:h-3.5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="white"
+                              strokeWidth={3}
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             )}
           </div>
