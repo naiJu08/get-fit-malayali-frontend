@@ -35,7 +35,7 @@ const HEADER_TITLE_MAX = 100
 const HEADER_SUBTITLE_MAX = 200
 const FOOTER_NOTE_MAX = 300
 const FIELD_LABEL_MAX = 100
-const FIELD_TEXT_MAX = 300
+const FIELD_TEXT_MAX = 200
 
 const statusOptions = [
   { id: 'draft', name: 'Draft' },

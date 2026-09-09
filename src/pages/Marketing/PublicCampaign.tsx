@@ -34,7 +34,7 @@ export default function PublicCampaign() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
+      <div className="flex min-h-screen items-center justify-center bg-white px-5">
         <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-slate-100 border-t-primaryGreen" />
           <h1 className="mt-5 text-lg font-semibold text-slate-800">
@@ -50,7 +50,7 @@ export default function PublicCampaign() {
 
   if (error || !data?.campaign) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
+      <div className="flex min-h-screen items-center justify-center bg-white px-5">
         <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-2xl">
             !
@@ -98,6 +98,14 @@ export default function PublicCampaign() {
         !/^\S+@\S+\.\S+$/.test(String(value))
       ) {
         nextErrors[field.key] = { message: 'Enter a valid email address' }
+      } else if (
+        (field.type === 'phone' || field.key === 'phone') &&
+        !isEmpty(value) &&
+        String(value).length !== 10
+      ) {
+        nextErrors[field.key] = {
+          message: 'Phone number must be exactly 10 digits',
+        }
       }
     })
     setErrors(nextErrors)
@@ -302,7 +310,7 @@ export default function PublicCampaign() {
         <form
           onSubmit={submit}
           noValidate
-          className="min-h-[1000px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-md"
+          className="min-h-[600px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-md"
           style={{ backgroundColor: theme.background || '#ffffff' }}
         >
           {definition.header?.image_url ? (
@@ -318,124 +326,107 @@ export default function PublicCampaign() {
           )}
 
           <div className="p-8 sm:p-12">
-            {!sent ? (
-              <>
-                <div className="mb-7">
-                  <h1
-                    className="text-3xl font-bold tracking-tight text-slate-900"
-                    style={{ color: accent || '#176b5b' }}
-                  >
-                    {definition.header?.title || campaign.name}
-                  </h1>
-                  {(definition.header?.subtitle || campaign.description) && (
-                    <p className="mt-3 text-base text-slate-500">
-                      {definition.header?.subtitle || campaign.description}
-                    </p>
-                  )}
-                </div>
-
-                <div
-                  className={
-                    definition.layout === 'two'
-                      ? 'grid gap-x-6 gap-y-5 md:grid-cols-2'
-                      : 'grid gap-y-5'
-                  }
-                >
-                  {fields.map((field: any) => (
-                    <div key={field.key}>{renderField(field)}</div>
-                  ))}
-                </div>
-
-                {submitError && (
-                  <div
-                    role="alert"
-                    className="mt-6 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"
-                  >
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-bold">
-                      !
-                    </span>
-                    <span>{submitError}</span>
-                  </div>
-                )}
-
-                <div className="mt-10">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full h-12 rounded-lg text-white font-semibold text-base transition hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-                    style={{ backgroundColor: accent || '#176b5b' }}
-                  >
-                    {submitting ? 'Submitting...' : 'Submit enquiry'}
-                  </button>
-                  <p className="mt-6 text-center text-xs text-slate-400">
-                    {definition.footer?.text ||
-                      'We respect your privacy. Your information is safe with us.'}
-                  </p>
-                </div>
-              </>
-            ) : (
-              <section
-                className="flex min-h-[350px] flex-col items-center justify-center py-8 text-center"
-                aria-live="polite"
+            <div className="mb-7">
+              <h1
+                className="text-3xl font-bold tracking-tight"
+                style={{ color: accent || '#176b5b' }}
               >
-                <div
-                  className="relative flex h-20 w-20 items-center justify-center rounded-full"
-                  style={{
-                    backgroundColor: `${accent}14`,
-                    animation: 'success-pop .55s cubic-bezier(.2,.8,.2,1) both',
-                  }}
-                >
-                  <div
-                    className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg"
-                    style={{ backgroundColor: accent }}
-                  >
-                    <svg
-                      width="30"
-                      height="30"
-                      viewBox="0 0 34 34"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <path
-                        d="M8 17.5l6 6L27 10"
-                        stroke="white"
-                        strokeWidth="3.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{
-                          strokeDasharray: 48,
-                          animation: 'success-draw .6s .25s ease-out both',
-                        }}
-                      />
-                    </svg>
-                  </div>
-                </div>
-                <div style={{ animation: 'soft-rise .45s .2s ease-out both' }}>
-                  <p
-                    className="mt-5 text-xs font-bold uppercase tracking-[0.22em]"
-                    style={{ color: accent }}
-                  >
-                    Submission received
-                  </p>
-                  <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-                    Thank you!
-                  </h1>
-                  <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-slate-500 sm:text-sm">
-                    Your details have been submitted successfully. Our team will
-                    review your enquiry and contact you soon.
-                  </p>
-                  <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500" /> You
-                    may safely close this page
-                  </div>
-                </div>
-              </section>
+                {definition.header?.title || campaign.name}
+              </h1>
+              {(definition.header?.subtitle || campaign.description) && (
+                <p className="mt-3 text-base text-slate-500">
+                  {definition.header?.subtitle || campaign.description}
+                </p>
+              )}
+            </div>
+
+            <div
+              className={
+                definition.layout === 'two'
+                  ? 'grid gap-x-6 gap-y-5 md:grid-cols-2'
+                  : 'grid gap-y-5'
+              }
+            >
+              {fields.map((field: any) => (
+                <div key={field.key}>{renderField(field)}</div>
+              ))}
+            </div>
+
+            {submitError && (
+              <div
+                role="alert"
+                className="mt-6 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-bold">
+                  !
+                </span>
+                <span>{submitError}</span>
+              </div>
             )}
+
+            <div className="mt-10">
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full h-12 rounded-lg text-white font-semibold text-base transition hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                style={{ backgroundColor: accent || '#176b5b' }}
+              >
+                {submitting ? 'Submitting...' : 'Submit enquiry'}
+              </button>
+              <p className="mt-6 text-center text-xs text-slate-400">
+                {definition.footer?.text ||
+                  'We respect your privacy. Your information is safe with us.'}
+              </p>
+            </div>
           </div>
         </form>
         <p className="mt-3 text-center text-xs text-slate-400">
           Powered by Get Fit Malayali
         </p>
+
+        {sent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-2xl">
+              <div
+                className="mx-auto flex h-20 w-20 items-center justify-center rounded-full mb-4"
+                style={{ background: `${accent}14` }}
+              >
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg"
+                  style={{ background: accent }}
+                >
+                  <svg width="28" height="28" viewBox="0 0 34 34" fill="none">
+                    <path
+                      d="M8 17.5l6 6L27 10"
+                      stroke="white"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <h2 className="text-sm font-bold capitalize mb-1">
+                SUBMISSION RECEIVED
+              </h2>
+              {/* <p className="text-2xl font-bold text-slate-900">
+                Thank You!
+              </p> */}
+              <h2 className="mt-2 text-xl sm:text-2xl font-bold text-slate-900">
+                Thank you!
+              </h2>
+
+              <p className="mt-2 text-sm text-slate-500 leading-5">
+                Your details have been submitted successfully. Our team will
+                review your enquiry and contact you soon.
+              </p>
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-[10px] sm:text-xs font-medium text-slate-500 border border-slate-100">
+                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500" />
+                You may safely close this page
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   )
