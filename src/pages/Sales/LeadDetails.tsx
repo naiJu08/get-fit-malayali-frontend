@@ -83,6 +83,96 @@ const parseNotes = (value: any) => {
   }
 }
 
+function getFormFields(formOrSchema?: any): any[] {
+  if (!formOrSchema) return []
+  let def =
+    formOrSchema.definition ||
+    formOrSchema.form_schema ||
+    formOrSchema.form ||
+    formOrSchema
+  if (typeof def === 'string') {
+    try {
+      def = JSON.parse(def)
+    } catch {
+      def = {}
+    }
+  }
+  if (Array.isArray(def)) return def
+  if (Array.isArray(def?.fields)) return def.fields
+  return []
+}
+
+function findFieldDefinition(
+  key: string,
+  formOrSchema?: any,
+  fallbackSchema?: any
+): any {
+  if (!key) return null
+  const fields = [
+    ...getFormFields(formOrSchema),
+    ...getFormFields(fallbackSchema),
+  ]
+  const normalizedKey = String(key).trim().toLowerCase()
+  return (
+    fields.find((f: any) => {
+      const k = String(f?.key || '')
+        .trim()
+        .toLowerCase()
+      const n = String(f?.name || '')
+        .trim()
+        .toLowerCase()
+      const id = String(f?.id || '')
+        .trim()
+        .toLowerCase()
+      return k === normalizedKey || n === normalizedKey || id === normalizedKey
+    }) || null
+  )
+}
+
+function formatFieldKey(key: string, formOrSchema?: any, fallbackSchema?: any) {
+  if (!key) return key
+  const field = findFieldDefinition(key, formOrSchema, fallbackSchema)
+  if (field && field.label) {
+    return field.label
+  }
+
+  const standardLabels: Record<string, string> = {
+    first_name: 'First name',
+    last_name: 'Last name',
+    email: 'Email',
+    phone: 'Phone',
+  }
+  if (standardLabels[key]) return standardLabels[key]
+
+  const clean = key.replace(/^field_/, '').replace(/_/g, ' ')
+  if (key.startsWith('field_')) {
+    return `Field ${clean}`
+  }
+  return clean.replace(/^./, (l) => l.toUpperCase())
+}
+
+function formatFieldValue(val: any, field?: any) {
+  if (val === null || val === undefined || val === '') return '--'
+  if (field && Array.isArray(field.options)) {
+    const matchedOpt = field.options.find(
+      (opt: any) =>
+        (typeof opt === 'object' &&
+          opt !== null &&
+          (String(opt.value) === String(val) ||
+            String(opt.id) === String(val))) ||
+        String(opt) === String(val)
+    )
+    if (matchedOpt) {
+      return typeof matchedOpt === 'object'
+        ? matchedOpt.label || matchedOpt.name || matchedOpt.value
+        : String(matchedOpt)
+    }
+  }
+  return typeof val === 'object' && val !== null
+    ? JSON.stringify(val)
+    : String(val)
+}
+
 const statusLabel = (value: any) => {
   const key = String(value || 'assigned').toLowerCase()
   const labels: Record<string, string> = {
@@ -606,21 +696,31 @@ export default function SalesLeadDetails() {
                 </h3>
                 {formNotes ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {Object.entries(formNotes).map(([key, value]) => (
-                      <div
-                        key={key}
-                        className="rounded border border-formBorder p-3"
-                      >
-                        <div className="text-xs text-secondary capitalize">
-                          {key.replace(/_/g, ' ')}
+                    {Object.entries(formNotes).map(([key, value]) => {
+                      const formSchema =
+                        lead?.form_schema ||
+                        lead?.marketing_form?.definition ||
+                        lead?.marketing_form
+                      const field = findFieldDefinition(key, formSchema)
+                      const label = formatFieldKey(key, formSchema)
+                      return (
+                        <div
+                          key={key}
+                          className="rounded border border-formBorder p-3"
+                        >
+                          <div className="text-xs text-secondary">{label}</div>
+                          <div className="text-sm text-primaryText mt-1 whitespace-pre-wrap">
+                            {Array.isArray(value)
+                              ? value
+                                  .map((item: any) =>
+                                    formatFieldValue(item, field)
+                                  )
+                                  .join(', ')
+                              : formatFieldValue(value, field)}
+                          </div>
                         </div>
-                        <div className="text-sm text-primaryText mt-1 whitespace-pre-wrap">
-                          {Array.isArray(value)
-                            ? value.join(', ')
-                            : String(value ?? '--')}
-                        </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="text-sm text-secondary whitespace-pre-wrap">
