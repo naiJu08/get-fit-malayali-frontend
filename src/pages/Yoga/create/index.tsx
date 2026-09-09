@@ -9,9 +9,21 @@ import CustomeSideViewer from '../../../components/common/drawer/customeSideView
 import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
 // import FormFieldView from '../../../components/common/inputs/FormFieldView'
+import { useQuery } from '@tanstack/react-query'
+
+import { getData } from '../../../apis/api.helpers'
+import apiUrl from '../../../apis/api.url'
 import { useCreateYoga, useUpdateYoga } from '../api'
 import { YogaSchema, formSchema } from './schema'
 import { compressVideo, resetFfmpeg } from '../../Workout/create'
+
+const toTitleCase = (value?: string) => {
+  if (!value) return ''
+  return value
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+}
 
 type Props = {
   isDrawerOpen: boolean
@@ -100,6 +112,8 @@ export default function CreateAdmin({
       description: '',
       intensity_level: '',
       category: '',
+      category_id: undefined,
+      subcategory_ids: [],
       video_source: 'file',
       video_url: '',
       video_file: '',
@@ -130,15 +144,7 @@ export default function CreateAdmin({
       }
     }
   }, [watchedVideoSource, methods])
-  // const [profileLoading, SetProfileLoading] = useState<boolean>(true)
 
-  // useEffect(() => {
-  //   const intervalId = setTimeout(() => {
-  //     SetProfileLoading(false)
-  //   }, 2000)
-
-  //   return () => clearTimeout(intervalId)
-  // }, [])
   const getFileName = (path?: string) => {
     if (!path) return ''
 
@@ -191,14 +197,97 @@ export default function CreateAdmin({
     },
     [clearErrors, methods, setError]
   )
-  const categoryOptions = useMemo(
-    () => [
-      { id: 'basic', name: 'Basic' },
-      { id: 'intermediate', name: 'Intermediate' },
-      { id: 'advanced', name: 'Advanced' },
-    ],
-    []
+
+  const { data: categoriesResponse } = useQuery(
+    ['yoga_categories_create'],
+    () => getData(`${apiUrl.CATEGORIES}?category_type=yoga`)
   )
+
+  const normalizedCategories = useMemo(() => {
+    const categories =
+      (categoriesResponse as any)?.categories ??
+      (categoriesResponse as any)?.category ??
+      categoriesResponse
+    if (Array.isArray(categories)) return categories
+    return []
+  }, [categoriesResponse])
+
+  const categoryOptions = useMemo(
+    () =>
+      normalizedCategories.map((cat: any) => ({
+        id: cat?.id,
+        name: toTitleCase(cat?.name),
+        subcategories: Array.isArray(cat?.subcategories)
+          ? cat.subcategories
+          : [],
+      })),
+    [normalizedCategories]
+  )
+
+  const subcategoryParentMap = useMemo(() => {
+    const map: Record<
+      string,
+      { parentId: number | string; parentName: string; subName: string }
+    > = {}
+    categoryOptions.forEach((cat: any) => {
+      ;(cat?.subcategories ?? []).forEach((sub: any) => {
+        if (sub?.id !== undefined && sub?.id !== null) {
+          map[String(sub.id)] = {
+            parentId: cat.id,
+            parentName: cat.name,
+            subName: sub?.name ?? '',
+          }
+        }
+      })
+    })
+    return map
+  }, [categoryOptions])
+
+  const selectedCategoryId = watch('category_id')
+
+  const subcategoryOptions = useMemo(() => {
+    const category = categoryOptions.find(
+      (cat) => Number(cat.id) === Number(selectedCategoryId)
+    )
+    if (!category) return []
+
+    const categorySubs = Array.isArray(category.subcategories)
+      ? category.subcategories
+      : []
+
+    return categorySubs
+      .filter((sub: any) => sub?.id !== undefined && sub?.id !== null)
+      .map((sub: any) => ({
+        id: sub.id,
+        name: toTitleCase(sub?.name),
+      }))
+  }, [categoryOptions, selectedCategoryId])
+
+  const categoryChangeRef = useRef<any>()
+  const hydratedRowRef = useRef<string | number | null>(null)
+
+  useEffect(() => {
+    if (categoryChangeRef.current === undefined) {
+      categoryChangeRef.current = selectedCategoryId
+      return
+    }
+
+    if (categoryChangeRef.current !== selectedCategoryId) {
+      methods.setValue('subcategory_ids', [] as any, {
+        shouldValidate: false,
+        shouldDirty: true,
+      })
+      clearErrors('subcategory_ids')
+      categoryChangeRef.current = selectedCategoryId
+    }
+  }, [clearErrors, methods, selectedCategoryId])
+
+  useEffect(() => {
+    if (!isDrawerOpen) {
+      hydratedRowRef.current = null
+      categoryChangeRef.current = undefined
+    }
+  }, [isDrawerOpen])
 
   const formBuilderProps = [
     { ...textField('name', 'Name', 'Enter yoga name', true), maxLength: 50 },
@@ -220,13 +309,30 @@ export default function CreateAdmin({
     {
       name: 'category',
       label: 'Category',
-      id: 'category',
-      type: 'custom_select',
-      placeholder: 'Select category',
+      id: 'category_id',
+      type: 'custom_search_select',
+      placeholder: 'Search category',
       desc: 'name',
       descId: 'id',
       required: true,
       data: categoryOptions,
+      notDataMessage: 'No categories found',
+    },
+    {
+      name: 'subcategory_ids',
+      label: 'Subcategories',
+      id: 'subcategory_ids',
+      type: 'multi_select',
+      placeholder: 'Select subcategories',
+      desc: 'name',
+      descId: 'id',
+      required: true,
+      data: subcategoryOptions,
+      getData: () => subcategoryOptions,
+      async: false,
+      initialLoad: true,
+      isMultiple: true,
+      notDataMessage: 'No subcategories found',
     },
     {
       name: 'description',
@@ -331,6 +437,8 @@ export default function CreateAdmin({
       description: '',
       intensity_level: '',
       category: '',
+      category_id: undefined,
+      subcategory_ids: [],
       video_source: 'file',
       video_url: '',
       video_file: '',
@@ -349,6 +457,8 @@ export default function CreateAdmin({
       description: '',
       intensity_level: '',
       category: '',
+      category_id: undefined,
+      subcategory_ids: [],
       video_source: 'file',
       video_url: '',
       video_file: '',
@@ -371,34 +481,88 @@ export default function CreateAdmin({
     useUpdateYoga(onSuccess)
 
   useEffect(() => {
-    if (isDrawerOpen && edit && !viewMode && rowData) {
-      setIsExistingVideoCleared(false)
-      const normalizedCategory =
-        typeof rowData?.category === 'string'
-          ? rowData.category.toLowerCase()
-          : ''
-      const matchedCategory =
-        categoryOptions.find((opt) => opt.id === normalizedCategory) ?? null
-      methods.reset({
-        name: rowData?.name
-          ? rowData.name.charAt(0).toUpperCase() +
-            rowData.name.slice(1).toLowerCase()
-          : '',
-        description: rowData?.description ?? '',
-        intensity_level: rowData?.intensity_level ?? '',
-        category: matchedCategory?.name ?? '',
-        video_source:
-          /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|vimeo\.com)/i.test(
-            rowData?.video_url ?? ''
-          )
-            ? 'url'
-            : 'file',
-        video_file: getFileName(rowData?.video_url) ?? '',
-        video_url: rowData?.video_url ?? '',
-        thumbnail: getFileName(rowData?.thumbnail_url) ?? '',
-      } as any)
-    }
-  }, [isDrawerOpen, edit, viewMode, rowData, categoryOptions, methods])
+    if (!(isDrawerOpen && edit && !viewMode && rowData)) return
+    setIsExistingVideoCleared(false)
+
+    const rawCategory = rowData?.category
+    const mainCategory = rawCategory?.main_category
+    const hydrationKey =
+      rowData?.id ?? rowData?.video_url ?? rowData?.thumbnail_url ?? 'unknown'
+
+    if (hydratedRowRef.current === hydrationKey) return
+
+    const derivedSubcategoryId =
+      rowData?.subcategory_id ??
+      rowData?.subcategory?.id ??
+      rowData?.subcategoryId ??
+      (mainCategory?.id ? rawCategory?.id : undefined)
+
+    const parentInfo =
+      derivedSubcategoryId !== undefined && derivedSubcategoryId !== null
+        ? subcategoryParentMap[String(derivedSubcategoryId)]
+        : undefined
+
+    const derivedCategoryId = (() => {
+      if (mainCategory?.id) return mainCategory.id
+      if (parentInfo?.parentId) return parentInfo.parentId
+      return (
+        rowData?.category_id ??
+        (typeof rawCategory?.id === 'number' ? rawCategory.id : undefined)
+      )
+    })()
+
+    const resolvedCategoryName = (() => {
+      if (mainCategory?.name) return mainCategory.name
+      if (parentInfo?.parentName) return parentInfo.parentName
+      if (derivedCategoryId) {
+        return (
+          normalizedCategories.find(
+            (cat: any) => Number(cat?.id) === Number(derivedCategoryId)
+          )?.name ?? ''
+        )
+      }
+      return typeof rawCategory?.name === 'string'
+        ? rawCategory.name
+        : rowData?.legacy_category || ''
+    })()
+
+    const resolvedSubcategoryName =
+      rowData?.subcategory?.name ??
+      rowData?.subcategory ??
+      rowData?.subcategory_name ??
+      (mainCategory?.id ? rawCategory?.name : (parentInfo?.subName ?? ''))
+
+    methods.reset({
+      name: toTitleCase(rowData?.name) ?? '',
+      description: rowData?.description ?? '',
+      intensity_level: rowData?.intensity_level ?? '',
+      category: resolvedCategoryName ?? '',
+      category_id: derivedCategoryId ?? undefined,
+      subcategory_ids:
+        derivedSubcategoryId !== undefined && derivedSubcategoryId !== null
+          ? [{ id: derivedSubcategoryId, name: resolvedSubcategoryName ?? '' }]
+          : [],
+      video_source:
+        /^https?:\/\/(www\.)?(youtube\.com|youtu\.be|vimeo\.com)/i.test(
+          rowData?.video_url ?? ''
+        )
+          ? 'url'
+          : 'file',
+      video_file: getFileName(rowData?.video_url) ?? '',
+      video_url: rowData?.video_url ?? '',
+      thumbnail: getFileName(rowData?.thumbnail_url) ?? '',
+    } as any)
+
+    hydratedRowRef.current = hydrationKey
+  }, [
+    isDrawerOpen,
+    edit,
+    viewMode,
+    rowData,
+    normalizedCategories,
+    subcategoryParentMap,
+    methods,
+  ])
 
   useEffect(() => {
     const fallbackFromExistingDuration = () => {
@@ -536,6 +700,45 @@ export default function CreateAdmin({
   }
 
   const onSubmit = (details: any) => {
+    const selectedSubcategoryIds = (
+      Array.isArray(details?.subcategory_ids)
+        ? details.subcategory_ids
+        : [details?.subcategory_ids]
+    )
+      .map((item: any) =>
+        typeof item === 'object' && item !== null ? item.id : item
+      )
+      .filter((item: any) => item !== undefined && item !== null && item !== '')
+      .map((item: any) => Number(item))
+      .filter((item: number) => Number.isInteger(item) && item > 0)
+      .filter(
+        (item: number, index: number, items: number[]) =>
+          items.indexOf(item) === index
+      )
+
+    const validSubcategoryIds = new Set(
+      subcategoryOptions.map((option: any) => Number(option.id))
+    )
+    const hasInvalidSubcategory = selectedSubcategoryIds.some(
+      (subcategoryId: number) => !validSubcategoryIds.has(subcategoryId)
+    )
+
+    if (hasInvalidSubcategory) {
+      setError('subcategory_ids', {
+        type: 'manual',
+        message: 'Select valid subcategories for the selected category.',
+      })
+      return
+    }
+
+    if (subcategoryOptions.length > 0 && selectedSubcategoryIds.length === 0) {
+      setError('subcategory_ids', {
+        type: 'manual',
+        message: 'Select at least one subcategory.',
+      })
+      return
+    }
+
     const currentVideoName = details?.video_file
     const hasNewVideoFile = currentVideoName instanceof File
     const hasExistingVideoFile =
@@ -562,12 +765,20 @@ export default function CreateAdmin({
       })
       return
     }
-    clearErrors(['video_file', 'video_url'])
+    clearErrors(['video_file', 'video_url', 'subcategory_ids'])
     const fd = new FormData()
     fd.append('yoga[name]', details?.name ?? '')
     fd.append('yoga[description]', details?.description ?? '')
     fd.append('yoga[intensity_level]', details?.intensity_level ?? '')
-    fd.append('yoga[category]', extractSelectValue(details?.category))
+    if (details?.category_id) {
+      fd.append('yoga[category_id]', String(details.category_id))
+    }
+    selectedSubcategoryIds.forEach((subId: number) => {
+      fd.append('yoga[subcategory_ids][]', String(subId))
+    })
+    if (details?.category && typeof details.category === 'string') {
+      fd.append('yoga[category]', extractSelectValue(details.category))
+    }
     if (details?.video_source === 'file' && hasNewVideoFile) {
       fd.append('video', currentVideoName)
       fd.append('yoga[video_source]', 'file')

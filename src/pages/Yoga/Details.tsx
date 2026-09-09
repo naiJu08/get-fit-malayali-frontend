@@ -82,10 +82,27 @@ export default function YogaDetails() {
             <DetailItem
               label="Category"
               value={
-                typeof yoga?.category === 'string'
-                  ? yoga.category.charAt(0).toUpperCase() +
-                    yoga.category.slice(1).toLowerCase()
-                  : yoga?.category
+                typeof yoga?.category === 'object' && yoga?.category !== null
+                  ? yoga.category.main_category?.name ||
+                    yoga.category.name ||
+                    '-'
+                  : typeof yoga?.category === 'string'
+                    ? yoga.category.charAt(0).toUpperCase() +
+                      yoga.category.slice(1).toLowerCase()
+                    : yoga?.legacy_category
+                      ? yoga.legacy_category.charAt(0).toUpperCase() +
+                        yoga.legacy_category.slice(1).toLowerCase()
+                      : '-'
+              }
+            />
+            <DetailItem
+              label="Subcategory"
+              value={
+                typeof yoga?.category === 'object' &&
+                yoga?.category !== null &&
+                yoga?.category?.main_category
+                  ? yoga.category.name
+                  : '-'
               }
             />
             {/* <DetailItem label="Average Rating" value={yoga?.average_rating} /> */}

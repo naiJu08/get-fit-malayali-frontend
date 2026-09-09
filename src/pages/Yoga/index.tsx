@@ -2,7 +2,10 @@ import SmartTable from '../../components/common/table/SmartTable'
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useSnackbar } from 'notistack'
+import { useQuery } from '@tanstack/react-query'
 
+import { getData } from '../../apis/api.helpers'
+import apiUrl from '../../apis/api.url'
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ListingHeader from '../../components/common/ListingTiles'
@@ -202,14 +205,53 @@ export default function YogaMain() {
   }
 
   const intensityOptions = useMemo(() => ['Moderate', 'High', 'Low'], [])
-  const categoryOptions = useMemo(
-    () => [
-      { label: 'Basic', value: 'basic' },
-      { label: 'Intermediate', value: 'intermediate' },
-      { label: 'Advanced', value: 'advanced' },
-    ],
-    []
+
+  const { data: categoriesResponse, isLoading: categoriesLoading } = useQuery(
+    ['yoga-filter-categories'],
+    () => getData(`${apiUrl.CATEGORIES}?category_type=yoga`)
   )
+
+  const categoryOptions = useMemo(
+    () =>
+      (categoriesResponse?.categories ?? []).map((category: any) => ({
+        id: category?.id,
+        name: category?.name ?? '-',
+        subcategories: Array.isArray(category?.subcategories)
+          ? category.subcategories
+          : [],
+      })),
+    [categoriesResponse?.categories]
+  )
+
+  const currentCategoryId =
+    (filters as any)?.category_id !== undefined &&
+    (filters as any)?.category_id !== null
+      ? String((filters as any)?.category_id)
+      : ''
+
+  const currentSubcategoryIds = useMemo(() => {
+    const raw = (filters as any)?.subcategory_ids
+    if (!raw) return []
+    if (Array.isArray(raw)) return raw.map((item) => String(item))
+    return String(raw)
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }, [filters])
+
+  const currentSubcategoryValue = currentSubcategoryIds[0] ?? ''
+
+  const selectedCategory = useMemo(
+    () =>
+      categoryOptions.find(
+        (category: { id?: number }) =>
+          String(category?.id) === currentCategoryId
+      ),
+    [categoryOptions, currentCategoryId]
+  )
+
+  const subcategoryOptions: { id?: number; name?: string }[] =
+    selectedCategory?.subcategories ?? []
 
   const currentIntensity = (filters as any)?.intensity_level || ''
   const onIntensityChange = (val: string) => {
@@ -218,12 +260,26 @@ export default function YogaMain() {
     else delete (newFilters as any).intensity_level
     setPageParams({ ...pageParams, filters: newFilters, page: 1 })
   }
-  const currentCategory = (filters as any)?.category || ''
+
   const onCategoryChange = (val: string) => {
     const newFilters = { ...(filters || {}) }
-    if (val) newFilters.category = val
-    else delete (newFilters as any).category
+    if (val) newFilters.category_id = Number(val)
+    else delete (newFilters as any).category_id
+    delete (newFilters as any).subcategory_ids
     setPageParams({ ...pageParams, filters: newFilters, page: 1 })
+  }
+
+  const onSubcategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value
+    const newFilters = { ...(filters || {}) }
+    if (val) newFilters.subcategory_ids = val
+    else delete (newFilters as any).subcategory_ids
+    setPageParams({ ...pageParams, filters: newFilters, page: 1 })
+  }
+
+  const capitalizeWords = (val?: string) => {
+    if (!val) return ''
+    return val.charAt(0).toUpperCase() + val.slice(1).toLowerCase()
   }
 
   const actions: any[] = []
@@ -293,19 +349,47 @@ export default function YogaMain() {
                       ))}
                     </select>
                   </div>
-                  <div className="flex flex-col gap-1 ">
+                  <div className="flex flex-col gap-1">
                     <label className="text-xs text-gray-600">Category</label>
                     <select
-                      className="w-64 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-xl bg-white text-xs outline-none focus:outline-none focus:ring-0 focus:border-gray-300"
-                      value={currentCategory}
+                      className="w-64 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-xl bg-white text-xs outline-none focus:outline-none focus:ring-0 focus:border-gray-300 disabled:bg-gray-100"
+                      value={currentCategoryId}
                       onChange={(e) => onCategoryChange(e.target.value)}
+                      disabled={categoriesLoading}
                     >
                       <option value="">All</option>
-                      {categoryOptions.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
+                      {categoryOptions.map((category: any) => (
+                        <option key={category.id} value={category.id}>
+                          {capitalizeWords(category.name)}
                         </option>
                       ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-600">Subcategory</label>
+                    <select
+                      className="w-64 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-xl bg-white text-xs outline-none focus:outline-none focus:ring-0 focus:border-gray-300 disabled:bg-gray-100"
+                      value={currentSubcategoryValue}
+                      onChange={onSubcategoryChange}
+                      disabled={
+                        !currentCategoryId ||
+                        (subcategoryOptions?.length ?? 0) === 0
+                      }
+                    >
+                      <option value="" disabled hidden>
+                        Select subcategory
+                      </option>
+                      {subcategoryOptions.length === 0 ? (
+                        <option value="" disabled>
+                          No subcategories found
+                        </option>
+                      ) : (
+                        subcategoryOptions.map((subcategory) => (
+                          <option key={subcategory.id} value={subcategory.id}>
+                            {subcategory.name}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
                 </div>

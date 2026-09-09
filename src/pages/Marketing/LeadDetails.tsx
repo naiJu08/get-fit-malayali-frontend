@@ -16,6 +16,7 @@ import {
   createLeadActivity,
   getSalesTeam,
   assignMarketingLead,
+  useMarketingForm,
 } from './api'
 // import { usePlans } from '../Plans/api'
 
@@ -100,33 +101,94 @@ function parseNotes(rawNotes: any) {
   return { isJson: false, data: null, text: String(rawNotes) }
 }
 
-function formatFieldKey(key: string, form?: any) {
-  if (!key) return key
-  if (form) {
-    let definition = form.definition || form
-    if (typeof definition === 'string') {
-      try {
-        definition = JSON.parse(definition)
-      } catch {
-        definition = {}
-      }
-    }
-    const fields = definition?.fields
-    if (Array.isArray(fields)) {
-      const matchedField = fields.find(
-        (f: any) => f.key === key || f.name === key || f.id === key
-      )
-      if (matchedField && matchedField.label) {
-        return matchedField.label
-      }
+function getFormFields(formOrSchema?: any): any[] {
+  if (!formOrSchema) return []
+  let def =
+    formOrSchema.definition ||
+    formOrSchema.form_schema ||
+    formOrSchema.form ||
+    formOrSchema
+  if (typeof def === 'string') {
+    try {
+      def = JSON.parse(def)
+    } catch {
+      def = {}
     }
   }
+  if (Array.isArray(def)) return def
+  if (Array.isArray(def?.fields)) return def.fields
+  return []
+}
+
+function findFieldDefinition(
+  key: string,
+  formOrSchema?: any,
+  fallbackSchema?: any
+): any {
+  if (!key) return null
+  const fields = [
+    ...getFormFields(formOrSchema),
+    ...getFormFields(fallbackSchema),
+  ]
+  const normalizedKey = String(key).trim().toLowerCase()
+  return (
+    fields.find((f: any) => {
+      const k = String(f?.key || '')
+        .trim()
+        .toLowerCase()
+      const n = String(f?.name || '')
+        .trim()
+        .toLowerCase()
+      const id = String(f?.id || '')
+        .trim()
+        .toLowerCase()
+      return k === normalizedKey || n === normalizedKey || id === normalizedKey
+    }) || null
+  )
+}
+
+function formatFieldKey(key: string, formOrSchema?: any, fallbackSchema?: any) {
+  if (!key) return key
+  const field = findFieldDefinition(key, formOrSchema, fallbackSchema)
+  if (field && field.label) {
+    return field.label
+  }
+
+  const standardLabels: Record<string, string> = {
+    first_name: 'First name',
+    last_name: 'Last name',
+    email: 'Email',
+    phone: 'Phone',
+  }
+  if (standardLabels[key]) return standardLabels[key]
 
   const clean = key.replace(/^field_/, '').replace(/_/g, ' ')
   if (key.startsWith('field_')) {
     return `Field ${clean}`
   }
   return clean.replace(/^./, (l) => l.toUpperCase())
+}
+
+function formatFieldValue(val: any, field?: any) {
+  if (val === null || val === undefined || val === '') return '--'
+  if (field && Array.isArray(field.options)) {
+    const matchedOpt = field.options.find(
+      (opt: any) =>
+        (typeof opt === 'object' &&
+          opt !== null &&
+          (String(opt.value) === String(val) ||
+            String(opt.id) === String(val))) ||
+        String(opt) === String(val)
+    )
+    if (matchedOpt) {
+      return typeof matchedOpt === 'object'
+        ? matchedOpt.label || matchedOpt.name || matchedOpt.value
+        : String(matchedOpt)
+    }
+  }
+  return typeof val === 'object' && val !== null
+    ? JSON.stringify(val)
+    : String(val)
 }
 
 export default function LeadDetails() {
@@ -150,6 +212,26 @@ export default function LeadDetails() {
   const campaign = lead?.campaign
   const form = lead?.marketing_form
   const effectiveCampaignId = campaignId || campaign?.id
+
+  const formId = form?.id
+  const hasEmbeddedFields =
+    getFormFields(lead?.form_schema).length > 0 ||
+    getFormFields(form?.definition).length > 0
+
+  const { data: fetchedFormData } = useMarketingForm(
+    !hasEmbeddedFields && formId ? formId : null
+  )
+  const fetchedForm = fetchedFormData?.marketing_form || fetchedFormData
+
+  const formSchema = useMemo(() => {
+    return (
+      lead?.form_schema ||
+      form?.definition ||
+      fetchedForm?.definition ||
+      form ||
+      fetchedForm
+    )
+  }, [lead?.form_schema, form, fetchedForm])
 
   const activeTab = useMemo(() => {
     const parts = location.pathname.split('/').filter(Boolean)
@@ -472,7 +554,8 @@ export default function LeadDetails() {
                 {parsedNotesInfo.isJson && parsedNotesInfo.data ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {Object.entries(parsedNotesInfo.data).map(([k, v]) => {
-                      const label = formatFieldKey(k, form)
+                      const field = findFieldDefinition(k, formSchema, form)
+                      const label = formatFieldKey(k, formSchema, form)
                       let valDisplay: any = '--'
                       if (Array.isArray(v)) {
                         valDisplay = (
@@ -482,7 +565,7 @@ export default function LeadDetails() {
                                 key={idx}
                                 className="px-2 py-0.5 text-xs bg-gray-100 text-gray-800 rounded font-medium border border-gray-200"
                               >
-                                {String(item)}
+                                {formatFieldValue(item, field)}
                               </span>
                             ))}
                           </div>
@@ -490,7 +573,7 @@ export default function LeadDetails() {
                       } else if (typeof v === 'object' && v !== null) {
                         valDisplay = JSON.stringify(v)
                       } else {
-                        valDisplay = String(v ?? '--')
+                        valDisplay = formatFieldValue(v, field)
                       }
                       return (
                         <DetailItem key={k} label={label} value={valDisplay} />
