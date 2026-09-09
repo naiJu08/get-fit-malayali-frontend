@@ -485,6 +485,28 @@ export default function LeadDetails() {
               />
             </div>
           )}
+          {!leadLoading &&
+            lead &&
+            lead.assigned_to &&
+            (() => {
+              const s = String(lead.status || '').toLowerCase()
+              return (
+                s !== 'accepted' && s !== 'client_accepted' && s !== 'converted'
+              )
+            })() && (
+              <div className="flex items-center gap-2">
+                <Button
+                  label="Reassign"
+                  icon="external-link"
+                  onClick={() => {
+                    setSelectedSalesId(lead.assigned_to?.id || null)
+                    setSalesSearch('')
+                    setSalesPage(1)
+                    setAssigning(lead)
+                  }}
+                />
+              </div>
+            )}
         </div>
       </div>
 
