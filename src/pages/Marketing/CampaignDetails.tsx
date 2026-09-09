@@ -1,5 +1,5 @@
 import moment from 'moment'
-import { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
 import { useSnackbarManager } from '../../components/common/snackbar'
@@ -184,7 +184,40 @@ const formPreviewHtml = (form: any) => {
   const image = definition.header?.image_url
     ? `<img class="hero" src="${definition.header.image_url}" alt="">`
     : ''
-  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:${theme.page_background || '#eef2f1'};font-family:Arial,sans-serif;color:#374151}.page{min-height:1123px;background:${theme.background || '#fff'};overflow:hidden}.hero{width:100%;height:170px;object-fit:cover}.content{padding:48px}.title{color:${theme.accent || '#176b5b'};font-size:30px;font-weight:700}.subtitle{margin:12px 0 28px;color:#6b7280}.fields{display:${definition.layout === 'two' ? 'grid' : 'block'};grid-template-columns:1fr 1fr;gap:18px}.field{margin-bottom:18px}label{display:block;margin-bottom:8px;font-size:13px;font-weight:600}label b{color:#ef4444}input,textarea,select{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:12px;background:#f9fafb;font-size:13px;cursor:not-allowed}input:disabled,textarea:disabled,select:disabled{opacity:0.7}textarea{min-height:82px}.check{margin:8px 0;font-size:13px}.check input{width:auto}.submit{margin-top:40px;width:100%;border:0;border-radius:8px;padding:13px;color:#fff;background:${theme.accent || '#176b5b'};font-weight:600}.footer{margin-top:22px;text-align:center;color:#9ca3af;font-size:11px}</style></head><body><div class="page">${image}<div class="content"><div class="title">${escapeHtml(definition.header?.title || form.name)}</div><div class="subtitle">${escapeHtml(definition.header?.subtitle || form.description)}</div><div class="fields">${fields}</div><button class="submit" disabled>Submit enquiry</button><div class="footer">${escapeHtml(definition.footer?.text || '')}</div></div></div></body></html>`
+  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box}body{margin:0;background:${theme.page_background || '#eef2f1'};font-family:Arial,sans-serif;color:#374151}.page{background:${theme.background || '#fff'};overflow:hidden}.hero{width:100%;height:170px;object-fit:cover}.content{padding:48px}.title{color:${theme.accent || '#176b5b'};font-size:30px;font-weight:700}.subtitle{margin:12px 0 28px;color:#6b7280}.fields{display:${definition.layout === 'two' ? 'grid' : 'block'};grid-template-columns:1fr 1fr;gap:18px}.field{margin-bottom:18px}label{display:block;margin-bottom:8px;font-size:13px;font-weight:600}label b{color:#ef4444}input,textarea,select{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:12px;background:#f9fafb;font-size:13px;cursor:not-allowed}input:disabled,textarea:disabled,select:disabled{opacity:0.7}textarea{min-height:82px}.check{margin:8px 0;font-size:13px}.check input{width:auto}.submit{margin-top:40px;width:100%;border:0;border-radius:8px;padding:13px;color:#fff;background:${theme.accent || '#176b5b'};font-weight:600}.footer{margin-top:22px;text-align:center;color:#9ca3af;font-size:11px}</style></head><body><div class="page">${image}<div class="content"><div class="title">${escapeHtml(definition.header?.title || form.name)}</div><div class="subtitle">${escapeHtml(definition.header?.subtitle || form.description)}</div><div class="fields">${fields}</div><button class="submit" disabled>Submit enquiry</button><div class="footer">${escapeHtml(definition.footer?.text || '')}</div></div></div><script>function send(){var h=document.querySelector('.page');if(h&&parent)parent.postMessage({type:'formHeight',height:h.scrollHeight},'*')}send();window.addEventListener('load',send);</script></body></html>`
+}
+
+function FormPreviewFrame({ form }: { form: any }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const bg = (() => {
+    let d = form?.definition || {}
+    if (typeof d === 'string') {
+      try {
+        d = JSON.parse(d)
+      } catch {
+        d = {}
+      }
+    }
+    return d.theme?.page_background || '#eef2f1'
+  })()
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'formHeight' && iframeRef.current) {
+        iframeRef.current.style.height = e.data.height + 'px'
+      }
+    }
+    window.addEventListener('message', handler)
+    return () => window.removeEventListener('message', handler)
+  }, [])
+  return (
+    <iframe
+      ref={iframeRef}
+      title={form?.name || 'Form preview'}
+      srcDoc={formPreviewHtml(form)}
+      className="mx-auto w-[794px] max-w-none rounded-sm border-0 shadow-xl transition-[height] duration-200"
+      style={{ backgroundColor: bg }}
+    />
+  )
 }
 
 export default function CampaignDetails() {
@@ -818,7 +851,7 @@ export default function CampaignDetails() {
   const [leadSubmitted, setLeadSubmitted] = useState(false)
   const [formParams, setFormParams] = useState({
     page: 1,
-    per_page: 4,
+    per_page: 3,
     search: '',
     status: 'active',
   })
@@ -1149,11 +1182,12 @@ export default function CampaignDetails() {
               </div>
               {campaign.public_url && (
                 <div className="border rounded-lg p-3 bg-white">
-                  <div className="flex items-center gap-2 mb-1">
+                  <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="text-xs text-gray-500">Public Link</span>
                     <button
                       onClick={copyLink}
-                      className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                      // className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
                     >
                       <Icons name="external-link" />
                       Copy link
@@ -1515,71 +1549,43 @@ export default function CampaignDetails() {
         title=""
         small
         body={
-          <div className="flex flex-col items-center py-8 text-center">
-            <style>{`@keyframes success-pop{0%{opacity:0;transform:scale(.72)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}@keyframes success-draw{from{stroke-dashoffset:48}to{stroke-dashoffset:0}}@keyframes soft-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
+          <div className="flex flex-col items-center py-6 px-4 text-center">
             <div
-              className="relative flex h-20 w-20 items-center justify-center rounded-full"
-              style={{
-                backgroundColor: '#176b5b14',
-                animation: 'success-pop .55s cubic-bezier(.2,.8,.2,1) both',
-              }}
+              className="mx-auto flex h-20 w-20 items-center justify-center rounded-full mb-4"
+              style={{ background: '#0fc8cd14' }}
             >
               <div
                 className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg"
-                style={{ backgroundColor: '#176b5b' }}
+                style={{ background: '#0fc8cd' }}
               >
-                <svg width="30" height="30" viewBox="0 0 34 34" fill="none">
+                <svg width="28" height="28" viewBox="0 0 34 34" fill="none">
                   <path
                     d="M8 17.5l6 6L27 10"
                     stroke="white"
                     strokeWidth="3.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    style={{
-                      strokeDasharray: 48,
-                      animation: 'success-draw .6s .25s ease-out both',
-                    }}
                   />
                 </svg>
               </div>
             </div>
-            {/* <div style={{ animation: 'soft-rise .45s .2s ease-out both' }}>
-              <p className="mt-5 text-xs font-bold uppercase tracking-[0.22em] text-primaryGreen">
-                Submission received
-              </p>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-                Thank you!
-              </h2>
-              <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-slate-500 sm:text-sm">
-                Your details have been submitted successfully. Our team will
-                review your enquiry and contact you soon.
-              </p>
-              <button
-                onClick={() => setLeadSubmitted(false)}
-                className="mt-6 rounded-lg bg-primaryGreen px-6 py-2.5 text-sm font-semibold text-white hover:opacity-90"
-              >
-                Done
-              </button>
-            </div> */}
+            <h2 className="text-sm font-bold capitalize mb-1">
+              SUBMISSION RECEIVED
+            </h2>
+            {/* <p className="text-2xl font-bold text-slate-900">
+                Thank You!
+              </p> */}
+            <h2 className="mt-2 text-xl sm:text-2xl font-bold text-slate-900">
+              Thank you!
+            </h2>
 
-            <div style={{ animation: 'soft-rise .45s .2s ease-out both' }}>
-              <p
-                className="mt-5 text-xs font-bold uppercase tracking-[0.22em]"
-                // style={{ color: accent }}
-              >
-                Submission received
-              </p>
-              <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-                Thank you!
-              </h1>
-              <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-slate-500 sm:text-sm">
-                Your details have been submitted successfully. Our team will
-                review your enquiry and contact you soon.
-              </p>
-              <div className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-500">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" /> You may
-                safely close this page
-              </div>
+            <p className="mt-2 text-sm text-slate-500 leading-5">
+              Your details have been submitted successfully. Our team will
+              review your enquiry and contact you soon.
+            </p>
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-[10px] sm:text-xs font-medium text-slate-500 border border-slate-100">
+              <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500" />
+              You may safely close this page
             </div>
           </div>
         }
@@ -1699,7 +1705,7 @@ export default function CampaignDetails() {
                         : 'hover:border-primaryGreen')
                     }
                   >
-                    <div className="h-20 bg-gray-100 overflow-hidden">
+                    <div className="h-9 bg-gray-100 overflow-hidden">
                       {form.definition?.header?.image_url ? (
                         <img
                           src={form.definition.header.image_url}
@@ -1802,25 +1808,7 @@ export default function CampaignDetails() {
               )}
             </div>
             {selectedForm ? (
-              (() => {
-                let def = selectedForm?.definition || {}
-                if (typeof def === 'string') {
-                  try {
-                    def = JSON.parse(def)
-                  } catch {
-                    def = {}
-                  }
-                }
-                const bg = def.theme?.page_background || '#eef2f1'
-                return (
-                  <iframe
-                    title={selectedForm?.name || 'Form preview'}
-                    srcDoc={formPreviewHtml(selectedForm)}
-                    className="mx-auto h-[1123px] w-[794px] max-w-none rounded-sm border-0 shadow-xl"
-                    style={{ backgroundColor: bg }}
-                  />
-                )
-              })()
+              <FormPreviewFrame form={selectedForm} />
             ) : (
               <div className="flex min-h-[600px] items-center justify-center text-sm text-gray-500">
                 Select a form to preview it.
