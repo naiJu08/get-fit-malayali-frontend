@@ -34,7 +34,7 @@ export default function PublicCampaign() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
+      <div className="flex min-h-screen items-center justify-center bg-white px-5">
         <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-slate-100 border-t-primaryGreen" />
           <h1 className="mt-5 text-lg font-semibold text-slate-800">
@@ -50,7 +50,7 @@ export default function PublicCampaign() {
 
   if (error || !data?.campaign) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
+      <div className="flex min-h-screen items-center justify-center bg-white px-5">
         <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-2xl">
             !
@@ -98,6 +98,14 @@ export default function PublicCampaign() {
         !/^\S+@\S+\.\S+$/.test(String(value))
       ) {
         nextErrors[field.key] = { message: 'Enter a valid email address' }
+      } else if (
+        (field.type === 'phone' || field.key === 'phone') &&
+        !isEmpty(value) &&
+        String(value).length !== 10
+      ) {
+        nextErrors[field.key] = {
+          message: 'Phone number must be exactly 10 digits',
+        }
       }
     })
     setErrors(nextErrors)

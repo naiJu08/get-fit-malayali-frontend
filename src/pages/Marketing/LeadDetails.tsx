@@ -171,6 +171,17 @@ function formatFieldKey(key: string, formOrSchema?: any, fallbackSchema?: any) {
 
 function formatFieldValue(val: any, field?: any) {
   if (val === null || val === undefined || val === '') return '--'
+  if (field && field.type === 'date' && val) {
+    try {
+      const d = new Date(val)
+      if (!isNaN(d.getTime())) {
+        const dd = String(d.getDate()).padStart(2, '0')
+        const mm = String(d.getMonth() + 1).padStart(2, '0')
+        const yyyy = d.getFullYear()
+        return `${dd}-${mm}-${yyyy}`
+      }
+    } catch {}
+  }
   if (field && Array.isArray(field.options)) {
     const matchedOpt = field.options.find(
       (opt: any) =>
@@ -460,7 +471,7 @@ export default function LeadDetails() {
             </div>
           </div>
 
-          {!leadLoading && lead && (
+          {!leadLoading && lead && !lead.assigned_to && (
             <div className="flex items-center gap-2">
               <Button
                 label="Assign"

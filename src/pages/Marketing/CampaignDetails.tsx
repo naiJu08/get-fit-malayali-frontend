@@ -326,6 +326,7 @@ export default function CampaignDetails() {
           name: 'phone',
           label: 'Phone number',
           type: 'text',
+          required: true,
           placeholder: 'Enter phone number',
           maxLength: 10,
           digitsOnly: true,
@@ -476,6 +477,18 @@ export default function CampaignDetails() {
 
     if (!valid || missingRequired) {
       enqueueSnackbar('Complete all required lead fields', {
+        variant: 'error',
+      })
+      return
+    }
+
+    const phoneVal = String(values.phone || '').trim()
+    if (phoneVal && phoneVal.length !== 10) {
+      methods.setError('phone', {
+        type: 'manual',
+        message: 'Phone number must be exactly 10 digits',
+      })
+      enqueueSnackbar('Phone number must be exactly 10 digits', {
         variant: 'error',
       })
       return
@@ -694,58 +707,64 @@ export default function CampaignDetails() {
   const selectedLeads = rows.filter((row: any) =>
     selectedLeadIds.includes(row.id)
   )
+  const isPendingView = leadsParams.assignment_status === 'pending'
   const columns: any[] = [
-    {
-      title: (
-        <input
-          type="checkbox"
-          aria-label="Select all leads"
-          checked={
-            rows.length > 0 &&
-            rows.every((row: any) => selectedLeadIds.includes(row.id))
-          }
-          ref={(element) => {
-            if (element) {
-              const selectedVisibleCount = rows.filter((row: any) =>
-                selectedLeadIds.includes(row.id)
-              ).length
-              element.indeterminate =
-                selectedVisibleCount > 0 && selectedVisibleCount < rows.length
-            }
-          }}
-          onChange={(event) => {
-            const visibleIds = rows.map((row: any) => row.id)
-            setSelectedLeadIds((current) =>
-              event.target.checked
-                ? Array.from(new Set([...current, ...visibleIds]))
-                : current.filter((leadId) => !visibleIds.includes(leadId))
-            )
-          }}
-        />
-      ),
-      field: 'selection',
-      colWidth: '56px',
-      align: 'center',
-      customCell: true,
-      renderCell: (row: any) => ({
-        cell: (
-          <input
-            type="checkbox"
-            aria-label={'Select ' + (row.first_name || 'lead')}
-            checked={selectedLeadIds.includes(row.id)}
-            onChange={() =>
-              setSelectedLeadIds((current) =>
-                current.includes(row.id)
-                  ? current.filter((leadId) => leadId !== row.id)
-                  : [...current, row.id]
-              )
-            }
-          />
-        ),
-      }),
-      sortable: false,
-      isVisible: true,
-    },
+    ...(isPendingView
+      ? [
+          {
+            title: (
+              <input
+                type="checkbox"
+                aria-label="Select all leads"
+                checked={
+                  rows.length > 0 &&
+                  rows.every((row: any) => selectedLeadIds.includes(row.id))
+                }
+                ref={(element) => {
+                  if (element) {
+                    const selectedVisibleCount = rows.filter((row: any) =>
+                      selectedLeadIds.includes(row.id)
+                    ).length
+                    element.indeterminate =
+                      selectedVisibleCount > 0 &&
+                      selectedVisibleCount < rows.length
+                  }
+                }}
+                onChange={(event) => {
+                  const visibleIds = rows.map((row: any) => row.id)
+                  setSelectedLeadIds((current) =>
+                    event.target.checked
+                      ? Array.from(new Set([...current, ...visibleIds]))
+                      : current.filter((leadId) => !visibleIds.includes(leadId))
+                  )
+                }}
+              />
+            ),
+            field: 'selection',
+            colWidth: '56px',
+            align: 'center',
+            customCell: true,
+            renderCell: (row: any) => ({
+              cell: (
+                <input
+                  type="checkbox"
+                  aria-label={'Select ' + (row.first_name || 'lead')}
+                  checked={selectedLeadIds.includes(row.id)}
+                  onChange={() =>
+                    setSelectedLeadIds((current) =>
+                      current.includes(row.id)
+                        ? current.filter((leadId) => leadId !== row.id)
+                        : [...current, row.id]
+                    )
+                  }
+                />
+              ),
+            }),
+            sortable: false,
+            isVisible: true,
+          },
+        ]
+      : []),
     {
       title: 'Name',
       field: 'first_name',
@@ -847,9 +866,13 @@ export default function CampaignDetails() {
   }
 
   const [showAddLeadModal, setShowAddLeadModal] = useState(false)
+  const [iframeLoading, setIframeLoading] = useState(false)
+  const iframeLoadTimeRef = React.useRef(0)
 
   const openAddLead = () => {
     if (campaign?.public_token || campaign?.public_url) {
+      iframeLoadTimeRef.current = Date.now()
+      setIframeLoading(true)
       setShowAddLeadModal(true)
     } else {
       enqueueSnackbar('Public form link is not available for this campaign', {
@@ -1193,24 +1216,37 @@ export default function CampaignDetails() {
                   value={formatDate(campaign.created_at)}
                 />
               </div>
-              {campaign.public_url && (
-                <div className="border rounded-lg p-3 bg-white">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="text-xs text-gray-500">Public Link</span>
-                    <button
-                      onClick={copyLink}
-                      // className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
-                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
-                    >
-                      <Icons name="external-link" />
-                      Copy link
-                    </button>
+              {campaign.public_url &&
+                String(campaign.status || '').toLowerCase() !== 'inactive' && (
+                  <div className="border rounded-lg p-3 bg-white">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="text-xs text-gray-500">Public Link</span>
+                      <div className="flex items-center gap-2">
+                        {/* <button
+                        onClick={() => {
+                          iframeLoadTimeRef.current = Date.now()
+                          setIframeLoading(true)
+                          setShowAddLeadModal(true)
+                        }}
+                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
+                      >
+                        <Icons name="external-link" />
+                        Open
+                      </button> */}
+                        <button
+                          onClick={copyLink}
+                          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
+                        >
+                          <Icons name="external-link" />
+                          Copy link
+                        </button>
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-700 break-all font-mono">
+                      {campaign.public_url}
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-700 break-all font-mono">
-                    {campaign.public_url}
-                  </div>
-                </div>
-              )}
+                )}
             </div>
           </Tab>
           <Tab id="leads">
@@ -1309,7 +1345,7 @@ export default function CampaignDetails() {
               }
               createButton={
                 <div className="flex items-center gap-2">
-                  {selectedLeadIds.length > 0 && (
+                  {isPendingView && selectedLeadIds.length > 0 && (
                     <Button
                       label={
                         'Assign ' +
@@ -1368,6 +1404,7 @@ export default function CampaignDetails() {
                   toolTip: 'Assign lead to sales member',
                   icon: <Icons name="external-link" />,
                   action: (row: any) => openAssignModal(row),
+                  hide: (row: any) => Boolean(row.assigned_to),
                 },
               ]}
             />
@@ -1590,30 +1627,58 @@ export default function CampaignDetails() {
         isOpen={showAddLeadModal}
         onClose={() => {
           setShowAddLeadModal(false)
+          setIframeLoading(false)
           refetchLeads()
         }}
         small={false}
         className="max-w-4xl w-full"
         body={
-          campaign?.public_token ? (
-            <iframe
-              src={`/public/campaigns/${campaign.public_token}`}
-              className="w-full h-[700px] border-0"
-              title="Add lead form"
-            />
-          ) : campaign?.public_url ? (
-            <iframe
-              src={campaign.public_url}
-              className="w-full h-[700px] border-0"
-              title="Add lead form"
-            />
-          ) : (
-            <div className="flex h-40 items-center justify-center p-6 text-gray-500">
-              Public form is not available for this campaign.
-            </div>
-          )
+          <div className="relative min-h-[700px]">
+            {campaign?.public_token ? (
+              <iframe
+                src={`/public/campaigns/${campaign.public_token}`}
+                className={`w-full h-[700px] border-0 ${iframeLoading ? 'invisible' : ''}`}
+                title="Add lead form"
+                onLoad={() => {
+                  const elapsed = Date.now() - iframeLoadTimeRef.current
+                  const remaining = Math.max(0, 2000 - elapsed)
+                  setTimeout(() => setIframeLoading(false), remaining)
+                }}
+              />
+            ) : campaign?.public_url ? (
+              <iframe
+                src={campaign.public_url}
+                className={`w-full h-[700px] border-0 ${iframeLoading ? 'invisible' : ''}`}
+                title="Add lead form"
+                onLoad={() => {
+                  const elapsed = Date.now() - iframeLoadTimeRef.current
+                  const remaining = Math.max(0, 2000 - elapsed)
+                  setTimeout(() => setIframeLoading(false), remaining)
+                }}
+              />
+            ) : (
+              <div className="flex h-40 items-center justify-center p-6 text-gray-500">
+                Public form is not available for this campaign.
+              </div>
+            )}
+          </div>
         }
       />
+
+      {iframeLoading && showAddLeadModal && (
+        <div className="fixed inset-0 z-[1600] flex items-center justify-center bg-white">
+          <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-slate-100 border-t-primaryGreen" />
+            <h1 className="mt-5 text-lg font-semibold text-slate-800">
+              Preparing your form
+            </h1>
+            <p className="mt-2 text-sm text-slate-500">
+              This will only take a moment.
+            </p>
+          </div>
+        </div>
+      )}
+      {/* /> */}
 
       <DialogModal
         isOpen={leadSubmitted}
