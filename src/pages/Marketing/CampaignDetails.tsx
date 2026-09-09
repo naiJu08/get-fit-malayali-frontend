@@ -13,7 +13,6 @@ import Icons from '../../components/common/icons'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import CustomDrawer from '../../components/common/drawer'
 import SearchInput from '../../components/common/inputs/SearchInput'
-import ToggleSwitch from '../../components/common/inputs/ToggleSwitch'
 import DatePicker from '../../components/common/inputs/DatePicker'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { getApiErrorMessage } from '../../utilities/commonUtilities'
@@ -1224,22 +1223,50 @@ export default function CampaignDetails() {
                       ))}
                     </select>
                   </div>
-                  <div className="flex items-center gap-2 py-2.5 text-sm">
-                    <span>Assigned</span>
-                    <ToggleSwitch
-                      id="lead-assignment-pending"
-                      checked={leadsParams.assignment_status === 'pending'}
-                      onChange={(checked: boolean) =>
-                        setLeadsParams((current) => ({
-                          ...current,
-                          assignment_status: checked ? 'pending' : 'assigned',
-                          page: 1,
-                        }))
-                      }
-                    />
-                    <label htmlFor="lead-assignment-pending">
-                      Assignment pending
-                    </label>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-600">Assignment</span>
+                    <div
+                      className="relative grid w-[196px] grid-cols-2 rounded-lg border border-cyan-200 bg-cyan-50 p-1 shadow-inner"
+                      role="group"
+                      aria-label="Filter leads by assignment"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`absolute bottom-1 left-1 top-1 w-[calc(50%_-_4px)] rounded-md bg-primaryGreen shadow-sm transition-transform duration-300 ease-out ${
+                          leadsParams.assignment_status === 'assigned'
+                            ? 'translate-x-full'
+                            : 'translate-x-0'
+                        }`}
+                      />
+                      {[
+                        { value: 'pending', label: 'Pending' },
+                        { value: 'assigned', label: 'Assigned' },
+                      ].map((option) => {
+                        const active =
+                          leadsParams.assignment_status === option.value
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            aria-pressed={active}
+                            className={`relative z-10 rounded-md px-4 py-2 text-sm font-medium transition-colors duration-300 ${
+                              active
+                                ? 'text-white'
+                                : 'text-cyan-800 hover:text-cyan-950'
+                            }`}
+                            onClick={() =>
+                              setLeadsParams((current) => ({
+                                ...current,
+                                assignment_status: option.value,
+                                page: 1,
+                              }))
+                            }
+                          >
+                            {option.label}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
               }
