@@ -339,6 +339,29 @@ const YOGA_TEMPLATE_DAY: RouterMenuProps = {
   key: 'yoga-template-day',
   permission_slugs: [],
 }
+const YOGA_CATEGORIES: RouterMenuProps = {
+  id: 228,
+  path: '/yoga-categories',
+  parent_id: 201,
+  label: 'Yoga categories',
+  key: 'yoga-categories',
+  icon: 'category-icon',
+  breadcrumb: ['YOGA_CATEGORIES'],
+  module: 'yoga',
+  permission_slugs: MODULE_ACCESS.yoga,
+  slugOptions: ['YOGA_CATEGORIES'],
+  isSidebarMenu: true,
+}
+const YOGA_CATEGORIES_DETAILS: RouterMenuProps = {
+  id: 229,
+  path: '/yoga-categories/:id',
+  parent_id: 228,
+  isDetails: true,
+  icon: 'user',
+  label: 'Yoga Category Details',
+  key: 'yoga-category-details',
+  permission_slugs: [],
+}
 const DIET_TEMPLATE: RouterMenuProps = {
   id: 220,
   path: '/diet-template',
@@ -786,6 +809,8 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   YOGA_TEMPLATE,
   YOGA_TEMPLATE_DETAILS,
   YOGA_TEMPLATE_DAY,
+  YOGA_CATEGORIES,
+  YOGA_CATEGORIES_DETAILS,
   WORKOUT_TEMPLATE_DETAILS,
   WORKOUT_TEMPLATE_DAY,
   DIET_TEMPLATE_DETAILS,

@@ -40,6 +40,7 @@ const leadStatusOptions = [
 const leadStatusFilterOptions = [
   ...leadStatusOptions,
   { id: 'confirmation_pending', name: 'Confirmation pending' },
+  { id: 'accepted', name: 'Accepted' },
   { id: 'client_accepted', name: 'Client accepted' },
 ]
 
@@ -222,6 +223,7 @@ export default function CampaignDetails() {
     per_page: 100,
     search: '',
     status: '',
+    assignment_status: 'pending',
   })
   const {
     data: leadsData,
@@ -248,6 +250,10 @@ export default function CampaignDetails() {
   const [selectedLeadIds, setSelectedLeadIds] = useState<
     Array<string | number>
   >([])
+  useEffect(() => {
+    setSelectedLeadIds([])
+  }, [leadsParams.search, leadsParams.status, leadsParams.assignment_status])
+
   const [selectedSalesId, setSelectedSalesId] = useState<
     string | number | null
   >(null)
@@ -644,6 +650,13 @@ export default function CampaignDetails() {
     }
   }
 
+  const statusCounts: Record<string, number> = leadsData?.status_counts || {}
+  const totalStatusCount = leadStatusFilterOptions.reduce(
+    (total, option) =>
+      total +
+      (statusCounts[option.id === 'new_lead' ? 'assigned' : option.id] ?? 0),
+    0
+  )
   const rows = leadsData?.leads || leadsData?.marketing_leads || []
   const selectedLeads = rows.filter((row: any) =>
     selectedLeadIds.includes(row.id)
@@ -1176,26 +1189,85 @@ export default function CampaignDetails() {
               searchPlaceholder="Search leads"
               searchValue={leadsParams.search}
               toolbarExtra={
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs text-gray-600">Status</label>
-                  <select
-                    className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200 w-40"
-                    value={leadsParams.status}
-                    onChange={(event) =>
-                      setLeadsParams({
-                        ...leadsParams,
-                        status: event.target.value,
-                        page: 1,
-                      })
-                    }
-                  >
-                    <option value="">All statuses</option>
-                    {leadStatusFilterOptions.map((option) => (
-                      <option key={option.id} value={option.id}>
-                        {option.name}
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label
+                      htmlFor="lead-status-filter"
+                      className="text-xs text-gray-600"
+                    >
+                      Status
+                    </label>
+                    <select
+                      id="lead-status-filter"
+                      className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200 w-56"
+                      value={leadsParams.status}
+                      onChange={(event) =>
+                        setLeadsParams({
+                          ...leadsParams,
+                          status: event.target.value,
+                          page: 1,
+                        })
+                      }
+                    >
+                      <option value="">
+                        All statuses ({totalStatusCount})
                       </option>
-                    ))}
-                  </select>
+                      {leadStatusFilterOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.name} (
+                          {statusCounts[
+                            option.id === 'new_lead' ? 'assigned' : option.id
+                          ] ?? 0}
+                          )
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-600">Assignment</span>
+                    <div
+                      className="relative grid w-[196px] grid-cols-2 rounded-lg border border-cyan-200 bg-cyan-50 p-1 shadow-inner"
+                      role="group"
+                      aria-label="Filter leads by assignment"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`absolute bottom-1 left-1 top-1 w-[calc(50%_-_4px)] rounded-md bg-primaryGreen shadow-sm transition-transform duration-300 ease-out ${
+                          leadsParams.assignment_status === 'assigned'
+                            ? 'translate-x-full'
+                            : 'translate-x-0'
+                        }`}
+                      />
+                      {[
+                        { value: 'pending', label: 'Pending' },
+                        { value: 'assigned', label: 'Assigned' },
+                      ].map((option) => {
+                        const active =
+                          leadsParams.assignment_status === option.value
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            aria-pressed={active}
+                            className={`relative z-10 rounded-md px-4 py-2 text-sm font-medium transition-colors duration-300 ${
+                              active
+                                ? 'text-white'
+                                : 'text-cyan-800 hover:text-cyan-950'
+                            }`}
+                            onClick={() =>
+                              setLeadsParams((current) => ({
+                                ...current,
+                                assignment_status: option.value,
+                                page: 1,
+                              }))
+                            }
+                          >
+                            {option.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
                 </div>
               }
               onSearchChange={(value: string) =>
