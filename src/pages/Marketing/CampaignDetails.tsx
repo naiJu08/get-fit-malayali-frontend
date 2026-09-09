@@ -1406,6 +1406,21 @@ export default function CampaignDetails() {
                   action: (row: any) => openAssignModal(row),
                   hide: (row: any) => Boolean(row.assigned_to),
                 },
+                {
+                  title: 'Reassign',
+                  toolTip: 'Reassign lead to another sales member',
+                  icon: <Icons name="external-link" />,
+                  action: (row: any) => openAssignModal(row),
+                  hide: (row: any) => {
+                    if (!row.assigned_to) return true
+                    const s = String(row.status || '').toLowerCase()
+                    return (
+                      s === 'accepted' ||
+                      s === 'client_accepted' ||
+                      s === 'converted'
+                    )
+                  },
+                },
               ]}
             />
           </Tab>
