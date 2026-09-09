@@ -388,6 +388,27 @@ export default function SalesClientDetails() {
                 .map((v: string) => v.charAt(0).toUpperCase() + v.slice(1))
                 .join(', '),
             ],
+            [
+              'Language',
+              client.profile?.language
+                ? client.profile.language.charAt(0).toUpperCase() +
+                  client.profile.language.slice(1)
+                : '',
+            ],
+            [
+              'Work Schedule',
+              client.profile?.work_schedule
+                ? client.profile.work_schedule.charAt(0).toUpperCase() +
+                  client.profile.work_schedule.slice(1)
+                : '',
+            ],
+            [
+              'Occupation',
+              client.profile?.occupation
+                ? client.profile.occupation.charAt(0).toUpperCase() +
+                  client.profile.occupation.slice(1)
+                : '',
+            ],
           ].map(([label, value]) => (
             <div key={String(label)}>
               <div className="text-xs text-secondary">{label}</div>
@@ -713,7 +734,7 @@ export default function SalesClientDetails() {
                             <div className="flex items-center gap-2">
                               <span
                                 className={
-                                  'truncate text-sm font-semibold ' +
+                                  'truncate text-sm font-semibold capitalize ' +
                                   (isSelected
                                     ? 'text-primaryGreen'
                                     : 'text-primaryText')
@@ -844,7 +865,7 @@ export default function SalesClientDetails() {
                     <div className="text-xs text-secondary">
                       Selected package
                     </div>
-                    <div className="mt-1 text-sm font-medium text-primaryText">
+                    <div className="mt-1 text-sm font-medium text-primaryText capitalize">
                       {selectedPlan.name}
                       {selectedPlan.category
                         ? ` — ${selectedPlan.category}`

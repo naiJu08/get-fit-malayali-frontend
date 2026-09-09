@@ -16,12 +16,14 @@ export default function PublicConfirmation() {
 
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   const confirmation = data?.confirmation || data
 
   const accept = async () => {
     try {
       setBusy(true)
-      await acceptPublicLeadConfirmation(token)
+      const res = await acceptPublicLeadConfirmation(token)
+      setSuccessMessage(res?.message || 'Confirmation accepted successfully.')
       setAccepted(true)
     } catch (e: any) {
       setMessage(e?.response?.data?.error || 'Unable to accept confirmation.')
@@ -323,7 +325,8 @@ export default function PublicConfirmation() {
                 Thank you!
               </h2>
               <p className="mt-2 text-xs sm:text-sm text-slate-500 leading-5">
-                Your confirmation has been recorded successfully.
+                {successMessage ||
+                  'Your confirmation has been recorded successfully.'}
               </p>
               <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-[10px] sm:text-xs font-medium text-slate-500 border border-slate-100">
                 <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500" />
