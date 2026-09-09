@@ -253,7 +253,7 @@ const CATEGORIES: RouterMenuProps = {
   id: 20,
   path: '/categories',
   parent_id: 200,
-  label: 'Exercise categories',
+  label: 'Exercise Categories',
   key: 'categories',
   icon: 'category-icon',
   breadcrumb: ['CATEGORIES'],
@@ -343,7 +343,7 @@ const YOGA_CATEGORIES: RouterMenuProps = {
   id: 228,
   path: '/yoga-categories',
   parent_id: 201,
-  label: 'Yoga categories',
+  label: 'Yoga Categories',
   key: 'yoga-categories',
   icon: 'category-icon',
   breadcrumb: ['YOGA_CATEGORIES'],
@@ -793,6 +793,10 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   ASSESSMENT_CATEGORY_DETAILS,
   NOTIFICATIONS,
 
+  // Children under YOGA_MODULE
+  YOGA_CATEGORIES,
+  YOGA_CATEGORIES_DETAILS,
+
   // Children under FITNESS
   CATEGORIES,
   CATEGORIES_DETAILS,
@@ -809,8 +813,6 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   YOGA_TEMPLATE,
   YOGA_TEMPLATE_DETAILS,
   YOGA_TEMPLATE_DAY,
-  YOGA_CATEGORIES,
-  YOGA_CATEGORIES_DETAILS,
   WORKOUT_TEMPLATE_DETAILS,
   WORKOUT_TEMPLATE_DAY,
   DIET_TEMPLATE_DETAILS,
