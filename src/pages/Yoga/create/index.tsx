@@ -776,7 +776,11 @@ export default function CreateAdmin({
     selectedSubcategoryIds.forEach((subId: number) => {
       fd.append('yoga[subcategory_ids][]', String(subId))
     })
-    if (details?.category && typeof details.category === 'string') {
+    if (
+      !details?.category_id &&
+      details?.category &&
+      typeof details.category === 'string'
+    ) {
       fd.append('yoga[category]', extractSelectValue(details.category))
     }
     if (details?.video_source === 'file' && hasNewVideoFile) {
