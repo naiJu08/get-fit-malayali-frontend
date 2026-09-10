@@ -20,7 +20,29 @@ export default function SalesPackages() {
       }),
       isVisible: true,
     },
-    { title: 'Fees', field: 'fees', isVisible: true },
+    {
+      title: 'Actual Fees',
+      field: 'actual_price',
+      customCell: true,
+      renderCell: (row: any) => ({
+        cell: row.actual_price != null ? `₹ ${row.actual_price}` : '--',
+      }),
+      isVisible: true,
+    },
+    {
+      title: 'Discount Fees',
+      field: 'discounted_sale_price',
+      customCell: true,
+      renderCell: (row: any) => ({
+        cell:
+          row.discounted_sale_price != null
+            ? `₹ ${row.discounted_sale_price}`
+            : row.fees != null
+              ? `₹ ${row.fees}`
+              : '--',
+      }),
+      isVisible: true,
+    },
     {
       title: 'Status',
       field: 'active',
