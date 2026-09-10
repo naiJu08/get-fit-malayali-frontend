@@ -125,12 +125,48 @@ export const getColumns = ({
     //   ...defaultColumnProps,
     // },
     {
-      title: 'Fees',
-      field: 'fees',
+      title: 'Actual Fees',
+      field: 'actual_price',
       customCell: true,
       ...defaultColumnProps,
       renderCell: (row: any) => {
-        const value = getNestedProperty(row, 'fees')
+        const value = getNestedProperty(row, 'actual_price')
+        const num = typeof value === 'number' ? value : Number(value ?? 0)
+        if (value === null || value === undefined || Number.isNaN(num)) {
+          return {
+            cell: '--',
+            toolTip: '',
+          }
+        }
+        const formatted = num.toLocaleString('en-IN', {
+          maximumFractionDigits: 2,
+        })
+        const label = `₹ ${formatted}`
+        const display = (
+          <span
+            style={{
+              fontFamily: '"Roboto Condensed", sans-serif',
+              fontWeight: '600',
+            }}
+          >
+            {label}
+          </span>
+        )
+        return {
+          cell: display,
+          toolTip: label,
+        }
+      },
+    },
+    {
+      title: 'Discount Fees',
+      field: 'discounted_sale_price',
+      customCell: true,
+      ...defaultColumnProps,
+      renderCell: (row: any) => {
+        const value =
+          getNestedProperty(row, 'discounted_sale_price') ??
+          getNestedProperty(row, 'fees')
         const num = typeof value === 'number' ? value : Number(value ?? 0)
         if (Number.isNaN(num)) {
           return {

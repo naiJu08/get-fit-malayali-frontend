@@ -143,7 +143,20 @@ export const planFormSchema = z.object({
       invalid_type_error: 'Duration must be a number',
     })
     .positive('Duration must be greater than 0'),
-  fees: z.preprocess(
+  actual_price: z.preprocess(
+    (val: unknown) => {
+      if (val === '' || val === null || val === undefined) return undefined
+      return val
+    },
+    z.coerce
+      .number({
+        required_error: 'Actual fees is required',
+        invalid_type_error: 'Actual fees must be a number',
+      })
+      .min(0, 'Actual fees cannot be negative')
+      .positive('Actual fees must be greater than 0')
+  ),
+  discounted_sale_price: z.preprocess(
     (val: unknown) => {
       // Treat empty input as missing so we can show a proper required message
       if (val === '' || val === null || val === undefined) return undefined
@@ -151,11 +164,11 @@ export const planFormSchema = z.object({
     },
     z.coerce
       .number({
-        required_error: 'Fees is required',
-        invalid_type_error: 'Fees must be a number',
+        required_error: 'Discount fees is required',
+        invalid_type_error: 'Discount fees must be a number',
       })
-      .min(0, 'Fees cannot be negative')
-      .positive('Fees must be greater than 0')
+      .min(0, 'Discount fees cannot be negative')
+      .positive('Discount fees must be greater than 0')
   ),
   meditation_included: z.boolean().default(false),
   thumbnail: z.any().optional().nullable(),

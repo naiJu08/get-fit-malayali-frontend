@@ -100,7 +100,9 @@ export default function SalesClientDetails() {
           pkg.name,
           pkg.category,
           pkg.description,
-          String(pkg.fees || pkg.price || pkg.amount),
+          String(
+            pkg.discounted_sale_price || pkg.fees || pkg.price || pkg.amount
+          ),
         ].some((v) =>
           String(v || '')
             .toLowerCase()
@@ -787,7 +789,10 @@ export default function SalesClientDetails() {
                                 <span>{pkg.duration_days} days</span>
                               </span>
                             )}
-                            {(pkg.fees || pkg.price || pkg.amount) && (
+                            {(pkg.discounted_sale_price ||
+                              pkg.fees ||
+                              pkg.price ||
+                              pkg.amount) && (
                               <span
                                 className={
                                   'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ' +
@@ -797,7 +802,10 @@ export default function SalesClientDetails() {
                                 }
                               >
                                 {'₹'}
-                                {pkg.fees || pkg.price || pkg.amount}
+                                {pkg.discounted_sale_price ||
+                                  pkg.fees ||
+                                  pkg.price ||
+                                  pkg.amount}
                               </span>
                             )}
                           </div>
@@ -873,10 +881,11 @@ export default function SalesClientDetails() {
                       {selectedPlan.duration_days
                         ? ` — ${selectedPlan.duration_days} days`
                         : ''}
-                      {selectedPlan.fees ||
+                      {selectedPlan.discounted_sale_price ||
+                      selectedPlan.fees ||
                       selectedPlan.price ||
                       selectedPlan.amount
-                        ? ` — ${selectedPlan.fees || selectedPlan.price || selectedPlan.amount}`
+                        ? ` — ${selectedPlan.discounted_sale_price || selectedPlan.fees || selectedPlan.price || selectedPlan.amount}`
                         : ''}
                     </div>
                   </div>
