@@ -1,5 +1,6 @@
 import moment from 'moment'
 
+import PriceBadge from '../../components/common/PriceBadge'
 import { convertUTCtoBrowserTimeZone } from '../../utilities/format'
 import { getNestedProperty } from '../../utilities/parsers'
 
@@ -125,76 +126,28 @@ export const getColumns = ({
     //   ...defaultColumnProps,
     // },
     {
-      title: 'Actual Fees',
+      title: 'Price',
       field: 'actual_price',
       customCell: true,
       ...defaultColumnProps,
       renderCell: (row: any) => {
-        const value = getNestedProperty(row, 'actual_price')
-        const num = typeof value === 'number' ? value : Number(value ?? 0)
-        if (value === null || value === undefined || Number.isNaN(num)) {
-          return {
-            cell: '--',
-            toolTip: '',
-          }
-        }
-        const formatted = num.toLocaleString('en-IN', {
-          maximumFractionDigits: 2,
-        })
-        const label = `₹ ${formatted}`
-        const display = (
-          <span
-            style={{
-              fontFamily: '"Roboto Condensed", sans-serif',
-              fontWeight: '600',
-            }}
-          >
-            {label}
-          </span>
-        )
-        return {
-          cell: display,
-          toolTip: label,
-        }
-      },
-    },
-    {
-      title: 'Discount Fees',
-      field: 'discounted_sale_price',
-      customCell: true,
-      ...defaultColumnProps,
-      renderCell: (row: any) => {
-        const value =
+        const actual = getNestedProperty(row, 'actual_price')
+        const discounted =
           getNestedProperty(row, 'discounted_sale_price') ??
           getNestedProperty(row, 'fees')
-        const num = typeof value === 'number' ? value : Number(value ?? 0)
-        if (Number.isNaN(num)) {
-          return {
-            cell: '',
-            toolTip: '',
-          }
-        }
-        const formatted = num.toLocaleString('en-IN', {
-          maximumFractionDigits: 2,
-        })
-        const label = `₹ ${formatted}`
         const display = (
-          <span
-            style={{
-              fontFamily: '"Roboto Condensed", sans-serif',
-              fontWeight: '600',
-            }}
-          >
-            {label}
-          </span>
+          <PriceBadge
+            actualPrice={actual}
+            discountedPrice={discounted}
+            variant="table"
+          />
         )
         return {
           cell: display,
-          toolTip: label,
+          toolTip: `${actual || '--'} / ${discounted || '--'}`,
         }
       },
     },
-
     {
       title: 'Status',
       field: 'active',

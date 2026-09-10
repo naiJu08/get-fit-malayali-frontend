@@ -6,6 +6,15 @@ import { calcWindowHeight } from '../../../utilities/calcHeight'
 import { useUserMarketingCampaigns } from '../../Marketing/api'
 import { useSnackbarManager } from '../../../components/common/snackbar'
 
+const formatDate = (value: any) => {
+  if (!value) return '-'
+  const d = new Date(value)
+  const dd = String(d.getDate()).padStart(2, '0')
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  return `${dd}-${mm}-${yyyy}`
+}
+
 const displayStatus = (value: any) =>
   String(value || 'draft')
     .replace(/_/g, ' ')
@@ -15,7 +24,7 @@ const statusColor = (value: any) => {
   const s = String(value || '').toLowerCase()
   if (s === 'active') return 'bg-green-50 text-green-700 border-green-200'
   if (s === 'draft') return 'bg-yellow-50 text-yellow-700 border-yellow-200'
-  if (s === 'inactive') return 'bg-gray-100 text-gray-600 border-gray-200'
+  if (s === 'inactive') return 'bg-red-50 text-red-700 border-red-200'
   return 'bg-gray-100 text-gray-600 border-gray-200'
 }
 
@@ -118,8 +127,8 @@ export default function UserCampaigns({ user }: { user: any }) {
         title: 'Starts On',
         field: 'starts_on',
         renderCell: (r: any) => ({
-          cell: r.starts_on || '-',
-          toolTip: r.starts_on || '-',
+          cell: formatDate(r.starts_on),
+          toolTip: formatDate(r.starts_on),
         }),
         customCell: true,
         sortable: false,
@@ -130,8 +139,8 @@ export default function UserCampaigns({ user }: { user: any }) {
         title: 'Ends On',
         field: 'ends_on',
         renderCell: (r: any) => ({
-          cell: r.ends_on || '-',
-          toolTip: r.ends_on || '-',
+          cell: formatDate(r.ends_on),
+          toolTip: formatDate(r.ends_on),
         }),
         customCell: true,
         sortable: false,

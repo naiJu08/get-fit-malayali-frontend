@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import SmartTable from '../../components/common/table/SmartTable'
 import ListingHeader from '../../components/common/ListingTiles'
+import PriceBadge from '../../components/common/PriceBadge'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useSalesPackages } from './api'
 
@@ -21,25 +22,18 @@ export default function SalesPackages() {
       isVisible: true,
     },
     {
-      title: 'Actual Fees',
+      title: 'Price',
       field: 'actual_price',
       customCell: true,
       renderCell: (row: any) => ({
-        cell: row.actual_price != null ? `₹ ${row.actual_price}` : '--',
-      }),
-      isVisible: true,
-    },
-    {
-      title: 'Discount Fees',
-      field: 'discounted_sale_price',
-      customCell: true,
-      renderCell: (row: any) => ({
-        cell:
-          row.discounted_sale_price != null
-            ? `₹ ${row.discounted_sale_price}`
-            : row.fees != null
-              ? `₹ ${row.fees}`
-              : '--',
+        cell: (
+          <PriceBadge
+            actualPrice={row.actual_price}
+            discountedPrice={row.discounted_sale_price}
+            fees={row.fees}
+            variant="table"
+          />
+        ),
       }),
       isVisible: true,
     },

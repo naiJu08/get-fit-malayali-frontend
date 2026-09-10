@@ -125,7 +125,13 @@ export default function SalesLeads() {
         customCell: true,
         renderCell: (row: any) => ({
           cell: row.assigned_at
-            ? new Date(row.assigned_at).toLocaleDateString()
+            ? (() => {
+                const d = new Date(row.assigned_at)
+                const dd = String(d.getDate()).padStart(2, '0')
+                const mm = String(d.getMonth() + 1).padStart(2, '0')
+                const yyyy = d.getFullYear()
+                return `${dd}-${mm}-${yyyy}`
+              })()
             : '--',
         }),
         isVisible: true,
