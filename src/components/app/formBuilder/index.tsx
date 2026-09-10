@@ -178,8 +178,18 @@ const FormBuilder: React.FC<Props> = (props) => {
               control={control}
               key={`${updatekey}${field.name}`}
               rules={
-                field.required
-                  ? { required: `${field.label || 'This field'} is required` }
+                field.required || field.minLength
+                  ? {
+                      ...(field.required && {
+                        required: `${field.label || 'This field'} is required`,
+                      }),
+                      ...(field.minLength && {
+                        minLength: {
+                          value: field.minLength,
+                          message: `${field.label || 'This field'} must be at least ${field.minLength} digits`,
+                        },
+                      }),
+                    }
                   : undefined
               }
               render={({ field: { onChange, value } }) => (

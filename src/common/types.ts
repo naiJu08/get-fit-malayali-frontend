@@ -452,6 +452,7 @@ export interface StoreFilterParams {
 export interface FormBuilderProps {
   wordCount: any
   maxLength: number | undefined
+  minLength?: number
   setAttachmentName?: (value: any) => void
   needConfirmation?: boolean | undefined
   fileDeleteFlag?: boolean | undefined
