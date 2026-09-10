@@ -81,7 +81,11 @@ export default function CreatePlan({
     fd.append('plan[category]', categoryStr)
     fd.append('plan[description]', values.description ?? '')
     fd.append('plan[duration_days]', String(values.duration_days ?? ''))
-    fd.append('plan[fees]', String(values.fees ?? ''))
+    fd.append('plan[actual_price]', String(values.actual_price ?? ''))
+    fd.append(
+      'plan[discounted_sale_price]',
+      String(values.discounted_sale_price ?? '')
+    )
     const meditationIncluded = Boolean(values.meditation_included)
     fd.append('plan[meditation_included]', String(meditationIncluded))
 
@@ -127,7 +131,9 @@ export default function CreatePlan({
         category: resolvedPlan?.category ?? '',
         description: resolvedPlan?.description ?? '',
         duration_days: resolvedPlan?.duration_days ?? 0,
-        fees: resolvedPlan?.fees ?? 0,
+        actual_price: resolvedPlan?.actual_price ?? 0,
+        discounted_sale_price:
+          resolvedPlan?.discounted_sale_price ?? resolvedPlan?.fees ?? 0,
         meditation_included: Boolean(
           resolvedPlan?.meditation_included ?? false
         ),
@@ -141,7 +147,8 @@ export default function CreatePlan({
         category: '',
         description: '',
         duration_days: 0,
-        fees: 0,
+        actual_price: 0,
+        discounted_sale_price: 0,
         meditation_included: true,
         thumbnail: '',
       })
@@ -187,7 +194,16 @@ export default function CreatePlan({
       required: true,
     },
     {
-      ...textField('fees', 'Fees', 'Enter fees', true),
+      ...textField('actual_price', 'Actual Fees', 'Enter actual fees', true),
+      type: 'number',
+    },
+    {
+      ...textField(
+        'discounted_sale_price',
+        'Discount Fees',
+        'Enter discount fees',
+        true
+      ),
       type: 'number',
     },
 
@@ -339,8 +355,18 @@ export default function CreatePlan({
                 </div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Fees</div>
-                <div className="font-medium">{rowData?.plan?.fees ?? '-'}</div>
+                <div className="text-sm text-gray-500">Actual Fees</div>
+                <div className="font-medium">
+                  {rowData?.plan?.actual_price ?? '-'}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Discount Fees</div>
+                <div className="font-medium">
+                  {rowData?.plan?.discounted_sale_price ??
+                    rowData?.plan?.fees ??
+                    '-'}
+                </div>
               </div>
               <div>
                 <div className="text-sm text-gray-500">Meditation Included</div>

@@ -168,6 +168,26 @@ function formatFieldValue(val: any, field?: any) {
         : String(matchedOpt)
     }
   }
+  if (field && (field.type === 'date' || field.fieldType === 'date')) {
+    const d = new Date(val)
+    if (!isNaN(d.getTime())) {
+      const dd = String(d.getDate()).padStart(2, '0')
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const yyyy = d.getFullYear()
+      return `${dd}-${mm}-${yyyy}`
+    }
+  }
+  if (
+    typeof val === 'string' &&
+    !isNaN(Date.parse(val)) &&
+    /^\d{4}-\d{2}-\d{2}/.test(val)
+  ) {
+    const d = new Date(val)
+    const dd = String(d.getDate()).padStart(2, '0')
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const yyyy = d.getFullYear()
+    return `${dd}-${mm}-${yyyy}`
+  }
   return typeof val === 'object' && val !== null
     ? JSON.stringify(val)
     : String(val)
@@ -342,6 +362,7 @@ export default function SalesLeadDetails() {
         type: 'text',
         required: true,
         maxLength: 10,
+        minLength: 10,
       },
       { name: 'email', label: 'Email', type: 'text', required: true },
       {
@@ -603,7 +624,15 @@ export default function SalesLeadDetails() {
                     [
                       'Assigned date',
                       lead.assigned_at
-                        ? new Date(lead.assigned_at).toLocaleString()
+                        ? (() => {
+                            const d = new Date(lead.assigned_at)
+                            const dd = String(d.getDate()).padStart(2, '0')
+                            const mm = String(d.getMonth() + 1).padStart(2, '0')
+                            const yyyy = d.getFullYear()
+                            const hh = String(d.getHours()).padStart(2, '0')
+                            const min = String(d.getMinutes()).padStart(2, '0')
+                            return `${dd}-${mm}-${yyyy} ${hh}:${min}`
+                          })()
                         : null,
                     ],
                   ].map(([label, value]) => (
@@ -645,9 +674,21 @@ export default function SalesLeadDetails() {
                         <div className="text-xs text-secondary">Sent at</div>
                         <div className="text-sm text-primaryText mt-1">
                           {lead.confirmation.sent_at
-                            ? new Date(
-                                lead.confirmation.sent_at
-                              ).toLocaleString()
+                            ? (() => {
+                                const d = new Date(lead.confirmation.sent_at)
+                                const dd = String(d.getDate()).padStart(2, '0')
+                                const mm = String(d.getMonth() + 1).padStart(
+                                  2,
+                                  '0'
+                                )
+                                const yyyy = d.getFullYear()
+                                const hh = String(d.getHours()).padStart(2, '0')
+                                const min = String(d.getMinutes()).padStart(
+                                  2,
+                                  '0'
+                                )
+                                return `${dd}-${mm}-${yyyy} ${hh}:${min}`
+                              })()
                             : '--'}
                         </div>
                       </div>
@@ -657,9 +698,23 @@ export default function SalesLeadDetails() {
                         </div>
                         <div className="text-sm text-primaryText mt-1">
                           {lead.confirmation.client_confirmed_at
-                            ? new Date(
-                                lead.confirmation.client_confirmed_at
-                              ).toLocaleString()
+                            ? (() => {
+                                const d = new Date(
+                                  lead.confirmation.client_confirmed_at
+                                )
+                                const dd = String(d.getDate()).padStart(2, '0')
+                                const mm = String(d.getMonth() + 1).padStart(
+                                  2,
+                                  '0'
+                                )
+                                const yyyy = d.getFullYear()
+                                const hh = String(d.getHours()).padStart(2, '0')
+                                const min = String(d.getMinutes()).padStart(
+                                  2,
+                                  '0'
+                                )
+                                return `${dd}-${mm}-${yyyy} ${hh}:${min}`
+                              })()
                             : 'Not yet confirmed'}
                         </div>
                       </div>
@@ -669,21 +724,23 @@ export default function SalesLeadDetails() {
                         <div className="text-xs text-secondary mb-1">
                           Confirmation link
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 break-all text-sm text-primaryText bg-cardWrapperBg rounded border border-formBorder p-3">
+                        <div className="flex items-center justify-between gap-2 bg-cardWrapperBg rounded border border-formBorder p-3">
+                          <div className="flex-1 break-all text-sm text-primaryText">
                             {lead.confirmation.public_url}
                           </div>
-                          <Button
-                            label="Copy"
-                            icon="link"
-                            outlined
+                          <button
+                            type="button"
+                            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer shrink-0"
                             onClick={() =>
                               copyLink(
                                 lead.confirmation.public_url,
                                 'Confirmation link'
                               )
                             }
-                          />
+                          >
+                            <Icons name="link" className="h-3.5 w-3.5" />
+                            Copy Link
+                          </button>
                         </div>
                       </div>
                     )}
@@ -766,9 +823,16 @@ export default function SalesLeadDetails() {
                       <span className="text-secondary">Date of birth</span>
                       <div className="text-primaryText">
                         {lead.client.date_of_birth
-                          ? new Date(
-                              lead.client.date_of_birth
-                            ).toLocaleDateString()
+                          ? (() => {
+                              const d = new Date(lead.client.date_of_birth)
+                              const dd = String(d.getDate()).padStart(2, '0')
+                              const mm = String(d.getMonth() + 1).padStart(
+                                2,
+                                '0'
+                              )
+                              const yyyy = d.getFullYear()
+                              return `${dd}-${mm}-${yyyy}`
+                            })()
                           : '--'}
                       </div>
                     </div>
@@ -784,7 +848,21 @@ export default function SalesLeadDetails() {
                       <span className="text-secondary">Converted at</span>
                       <div className="text-primaryText">
                         {lead.client.converted_at
-                          ? new Date(lead.client.converted_at).toLocaleString()
+                          ? (() => {
+                              const d = new Date(lead.client.converted_at)
+                              const dd = String(d.getDate()).padStart(2, '0')
+                              const mm = String(d.getMonth() + 1).padStart(
+                                2,
+                                '0'
+                              )
+                              const yyyy = d.getFullYear()
+                              const hh = String(d.getHours()).padStart(2, '0')
+                              const min = String(d.getMinutes()).padStart(
+                                2,
+                                '0'
+                              )
+                              return `${dd}-${mm}-${yyyy} ${hh}:${min}`
+                            })()
                           : '--'}
                       </div>
                     </div>
@@ -824,7 +902,27 @@ export default function SalesLeadDetails() {
                           </span>
                           <span className="text-xs text-secondary">
                             {activity.occurred_at
-                              ? new Date(activity.occurred_at).toLocaleString()
+                              ? (() => {
+                                  const d = new Date(activity.occurred_at)
+                                  const dd = String(d.getDate()).padStart(
+                                    2,
+                                    '0'
+                                  )
+                                  const mm = String(d.getMonth() + 1).padStart(
+                                    2,
+                                    '0'
+                                  )
+                                  const yyyy = d.getFullYear()
+                                  const hh = String(d.getHours()).padStart(
+                                    2,
+                                    '0'
+                                  )
+                                  const min = String(d.getMinutes()).padStart(
+                                    2,
+                                    '0'
+                                  )
+                                  return `${dd}-${mm}-${yyyy} ${hh}:${min}`
+                                })()
                               : '--'}
                           </span>
                         </div>
@@ -908,14 +1006,16 @@ export default function SalesLeadDetails() {
                 <div className="break-all text-sm text-primaryText font-medium bg-white rounded-lg border border-formBorder p-3 mb-3">
                   {lead.confirmation.public_url}
                 </div>
-                <Button
-                  label="Copy link"
-                  icon="link"
-                  outlined
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
                   onClick={() =>
                     copyLink(lead.confirmation.public_url, 'Confirmation link')
                   }
-                />
+                >
+                  <Icons name="link" className="h-3.5 w-3.5" />
+                  Copy link
+                </button>
               </div>
             ) : (
               <p className="text-sm text-secondary mb-4">

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import { DialogModal } from '../../components/common'
 import Button from '../../components/common/buttons/Button'
+import PriceBadge from '../../components/common/PriceBadge'
 import SmartTable from '../../components/common/table/SmartTable'
 import Icons from '../../components/common/icons'
 import { calcWindowHeight } from '../../utilities/calcHeight'
@@ -108,7 +109,9 @@ export function ClientWorkflowDetails({
       const catMatch = (p.category || p.plan_category)
         ?.toLowerCase()
         .includes(q)
-      const priceMatch = String(p.fees || p.price || p.amount || '').includes(q)
+      const priceMatch = String(
+        p.discounted_sale_price || p.fees || p.price || p.amount || ''
+      ).includes(q)
       return nameMatch || catMatch || priceMatch
     })
   }, [plans, pkgSearch])
@@ -298,10 +301,12 @@ export function ClientWorkflowDetails({
                     </div>
                     <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
                       <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                        Fees
+                        Discount Fees
                       </div>
                       <div className="mt-1 text-sm font-semibold text-gray-800">
-                        {proposedPkg?.plan?.fees ?? '--'}
+                        {proposedPkg?.plan?.discounted_sale_price ??
+                          proposedPkg?.plan?.fees ??
+                          '--'}
                       </div>
                     </div>
                   </>
@@ -531,19 +536,14 @@ export function ClientWorkflowDetails({
                                 <span>{pkg.duration_days} days</span>
                               </span>
                             )}
-                            {(pkg.fees || pkg.price || pkg.amount) && (
-                              <span
-                                className={
-                                  'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ' +
-                                  (isSelected
-                                    ? 'bg-primaryGreen text-white'
-                                    : 'bg-successColor/10 text-successColor')
-                                }
-                              >
-                                {'₹'}
-                                {pkg.fees || pkg.price || pkg.amount}
-                              </span>
-                            )}
+                            <PriceBadge
+                              actualPrice={pkg.actual_price}
+                              discountedPrice={pkg.discounted_sale_price}
+                              fees={pkg.fees}
+                              price={pkg.price}
+                              amount={pkg.amount}
+                              variant={isSelected ? 'selected' : 'default'}
+                            />
                           </div>
                           {isSelected && (
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primaryGreen shadow-sm">
@@ -616,12 +616,23 @@ export function ClientWorkflowDetails({
                       {selectedPlan.duration_days
                         ? ` — ${selectedPlan.duration_days} days`
                         : ''}
-                      {selectedPlan.fees ||
-                      selectedPlan.price ||
-                      selectedPlan.amount
-                        ? ` — ₹${selectedPlan.fees || selectedPlan.price || selectedPlan.amount}`
-                        : ''}
                     </div>
+                    {(selectedPlan.discounted_sale_price ||
+                      selectedPlan.fees ||
+                      selectedPlan.price ||
+                      selectedPlan.amount) && (
+                      <div className="mt-2">
+                        <PriceBadge
+                          actualPrice={selectedPlan.actual_price}
+                          discountedPrice={selectedPlan.discounted_sale_price}
+                          fees={selectedPlan.fees}
+                          price={selectedPlan.price}
+                          amount={selectedPlan.amount}
+                          variant="selected"
+                          size="md"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
                 <label className="block text-sm font-medium text-gray-700">
