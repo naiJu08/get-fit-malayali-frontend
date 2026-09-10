@@ -734,7 +734,7 @@ export default function SalesClientDetails() {
                             <div className="flex items-center gap-2">
                               <span
                                 className={
-                                  'truncate text-sm font-semibold capitalize ' +
+                                  'truncate text-sm font-semibold ' +
                                   (isSelected
                                     ? 'text-primaryGreen'
                                     : 'text-primaryText')
@@ -865,7 +865,7 @@ export default function SalesClientDetails() {
                     <div className="text-xs text-secondary">
                       Selected package
                     </div>
-                    <div className="mt-1 text-sm font-medium text-primaryText capitalize">
+                    <div className="mt-1 text-sm font-medium text-primaryText">
                       {selectedPlan.name}
                       {selectedPlan.category
                         ? ` — ${selectedPlan.category}`

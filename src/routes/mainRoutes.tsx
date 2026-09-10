@@ -744,6 +744,22 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
+        path="/users/nutritionist/:id/accepted-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/nutritionist/:id/assigned-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
         path="/users/physiotherapist/:id/clients"
       />
       <Route
@@ -752,7 +768,39 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
+        path="/users/physiotherapist/:id/accepted-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/physiotherapist/:id/assigned-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
         path="/users/yogist/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/:id/accepted-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/:id/assigned-clients"
       />
       <Route
         element={

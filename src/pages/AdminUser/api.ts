@@ -270,9 +270,13 @@ export const sendAdminInvitation = (id?: string) => {
   return postData(`${apiUrl.ADMIN_USER}/${id}/invite`, {})
 }
 
-// Assigned Clients (for Nutritionist)
+// Assigned Clients (for Nutritionist, Physiotherapist, Yogist)
 const fetchAssignedClients = async (
-  input: QueryParams & { admin_id?: string | number }
+  input: QueryParams & {
+    admin_id?: string | number
+    status?: string
+    search?: string
+  }
 ) => {
   const url = buildUrlWithParams(apiUrl.ASSIGNED_CLIENTS, {
     ...input,
@@ -287,7 +291,11 @@ const fetchAssignedClients = async (
 }
 
 export const useAssignedClients = (
-  input: QueryParams & { admin_id?: string | number }
+  input: QueryParams & {
+    admin_id?: string | number
+    status?: string
+    search?: string
+  }
 ) => {
   return useQuery(
     ['assigned_clients', input],
