@@ -86,7 +86,14 @@ export default function DetailsInfo({
               value={safeStr(plan?.duration_days)}
             />
             <DetailItem label="Status" value={mapActive(plan?.active)} />
-            <DetailItem label="Fees" value={renderFees(plan?.fees)} />
+            <DetailItem
+              label="Actual Fees"
+              value={renderFees(plan?.actual_price)}
+            />
+            <DetailItem
+              label="Discount Fees"
+              value={renderFees(plan?.discounted_sale_price ?? plan?.fees)}
+            />
             <DetailItem
               label="Meditation Plans"
               value={safeStr(plan?.meditations_count)}

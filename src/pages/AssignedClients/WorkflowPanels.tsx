@@ -108,7 +108,9 @@ export function ClientWorkflowDetails({
       const catMatch = (p.category || p.plan_category)
         ?.toLowerCase()
         .includes(q)
-      const priceMatch = String(p.fees || p.price || p.amount || '').includes(q)
+      const priceMatch = String(
+        p.discounted_sale_price || p.fees || p.price || p.amount || ''
+      ).includes(q)
       return nameMatch || catMatch || priceMatch
     })
   }, [plans, pkgSearch])
@@ -298,10 +300,12 @@ export function ClientWorkflowDetails({
                     </div>
                     <div className="rounded-xl bg-white/80 p-3 ring-1 ring-blue-100">
                       <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-                        Fees
+                        Discount Fees
                       </div>
                       <div className="mt-1 text-sm font-semibold text-gray-800">
-                        {proposedPkg?.plan?.fees ?? '--'}
+                        {proposedPkg?.plan?.discounted_sale_price ??
+                          proposedPkg?.plan?.fees ??
+                          '--'}
                       </div>
                     </div>
                   </>
@@ -531,7 +535,10 @@ export function ClientWorkflowDetails({
                                 <span>{pkg.duration_days} days</span>
                               </span>
                             )}
-                            {(pkg.fees || pkg.price || pkg.amount) && (
+                            {(pkg.discounted_sale_price ||
+                              pkg.fees ||
+                              pkg.price ||
+                              pkg.amount) && (
                               <span
                                 className={
                                   'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ' +
@@ -541,7 +548,10 @@ export function ClientWorkflowDetails({
                                 }
                               >
                                 {'₹'}
-                                {pkg.fees || pkg.price || pkg.amount}
+                                {pkg.discounted_sale_price ||
+                                  pkg.fees ||
+                                  pkg.price ||
+                                  pkg.amount}
                               </span>
                             )}
                           </div>
@@ -616,10 +626,11 @@ export function ClientWorkflowDetails({
                       {selectedPlan.duration_days
                         ? ` — ${selectedPlan.duration_days} days`
                         : ''}
-                      {selectedPlan.fees ||
+                      {selectedPlan.discounted_sale_price ||
+                      selectedPlan.fees ||
                       selectedPlan.price ||
                       selectedPlan.amount
-                        ? ` — ₹${selectedPlan.fees || selectedPlan.price || selectedPlan.amount}`
+                        ? ` — ₹${selectedPlan.discounted_sale_price || selectedPlan.fees || selectedPlan.price || selectedPlan.amount}`
                         : ''}
                     </div>
                   </div>
