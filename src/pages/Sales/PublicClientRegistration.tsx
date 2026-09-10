@@ -315,7 +315,7 @@ const steps: StepDef[] = [
     title: "What's your current weight?",
     type: 'slider',
     fieldName: 'weight',
-    config: { min: 30, max: 200, unit: 'kg', step: 1 },
+    config: { min: 30, max: 200, unit: 'kg', step: 0.1 },
   },
   {
     id: 'medical',
@@ -946,7 +946,9 @@ export default function PublicClientRegistration() {
                 </h3>
                 <div className="pt-4 sm:pt-6 lg:pt-8">
                   <div className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black text-slate-900 mb-1">
-                    {watch(fieldName) || step.config.min}
+                    {step.config.step < 1
+                      ? Number(watch(fieldName) || step.config.min).toFixed(1)
+                      : watch(fieldName) || step.config.min}
                   </div>
                   <div className="text-lg sm:text-xl lg:text-2xl text-slate-400 font-medium mb-6 sm:mb-8 lg:mb-10">
                     {step.config.unit}

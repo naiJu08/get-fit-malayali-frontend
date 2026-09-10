@@ -7,6 +7,7 @@ import FormBuilder from '../../components/app/formBuilder'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import Button from '../../components/common/buttons/Button'
 import Icons from '../../components/common/icons'
+import PriceBadge from '../../components/common/PriceBadge'
 import { DialogModal } from '../../components/common'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { getApiErrorMessage } from '../../utilities/commonUtilities'
@@ -30,7 +31,7 @@ const formatDate = (value: any) =>
 const accountStatusColor = (value: any) => {
   switch (String(value || '').toLowerCase()) {
     case 'active':
-      return 'border-green-200 bg-green-50 text-green-700'
+      return 'border-green-200 bg-green-50 text-[#0fc8cd]'
     case 'pending':
     case 'inactive':
       return 'border-yellow-200 bg-yellow-50 text-yellow-700'
@@ -59,16 +60,21 @@ export default function SalesClientDetails() {
   const { id = '' } = useParams()
   const { enqueueSnackbar } = useSnackbarManager()
   const { data, isLoading, refetch } = useSalesClient(id)
+  const [pkgSearch, setPkgSearch] = useState('')
+  const [pkgPage, setPkgPage] = useState(1)
+  const pkgPageSize = 4
   const { data: packagesData, isFetching: packagesLoading } = useSalesPackages({
-    page: 1,
-    per_page: 100,
-    search: '',
+    page: pkgPage,
+    per_page: pkgPageSize,
+    search: pkgSearch,
   })
   const client = data?.client
   const packages = useMemo(
     () => packagesData?.packages || [],
     [packagesData?.packages]
   )
+  const pkgMeta = packagesData?.meta || {}
+  const pkgTotalPages = pkgMeta.total_pages || 1
   const [proposalModal, setProposalModal] = useState(false)
   const [editingProposal, setEditingProposal] = useState<any>(null)
   const [proposalStep, setProposalStep] = useState(1)
@@ -83,41 +89,15 @@ export default function SalesClientDetails() {
   })
   const [staffSearch, setStaffSearch] = useState('')
   const [staffPage, setStaffPage] = useState(1)
-  const [pkgSearch, setPkgSearch] = useState('')
-  const [pkgPage, setPkgPage] = useState(1)
-  const pkgPageSize = 4
   const selectedPlanId = proposalMethods.watch('plan_id')
   const anticipatedStart = proposalMethods.watch('start_date')
-  const selectedPlan = packages.find(
-    (plan: any) => String(plan.id) === String(selectedPlanId)
-  )
-  const filteredPackages = useMemo(() => {
-    const term = pkgSearch.trim().toLowerCase()
-    return packages.filter(
-      (pkg: any) =>
-        !term ||
-        [
-          pkg.name,
-          pkg.category,
-          pkg.description,
-          String(
-            pkg.discounted_sale_price || pkg.fees || pkg.price || pkg.amount
-          ),
-        ].some((v) =>
-          String(v || '')
-            .toLowerCase()
-            .includes(term)
-        )
-    )
-  }, [packages, pkgSearch])
-  const pkgTotalPages = Math.max(
-    1,
-    Math.ceil(filteredPackages.length / pkgPageSize)
-  )
-  const visiblePackages = filteredPackages.slice(
-    (pkgPage - 1) * pkgPageSize,
-    pkgPage * pkgPageSize
-  )
+  const [selectedPlanDetails, setSelectedPlanDetails] = useState<any>(null)
+  const selectedPlan = selectedPlanId
+    ? packages.find(
+        (plan: any) => String(plan.id) === String(selectedPlanId)
+      ) || selectedPlanDetails
+    : null
+  const visiblePackages = packages
   const anticipatedEnd =
     selectedPlan?.duration_days && anticipatedStart
       ? moment(anticipatedStart).add(
@@ -196,6 +176,7 @@ export default function SalesClientDetails() {
       start_date: proposal?.start_date || '',
       notes: proposal?.notes || '',
     })
+    setSelectedPlanDetails(proposal?.plan || null)
     setProposalStep(1)
     setPkgSearch('')
     setPkgPage(1)
@@ -613,6 +594,7 @@ export default function SalesClientDetails() {
         onClose={() => {
           setProposalModal(false)
           setEditingProposal(null)
+          setSelectedPlanDetails(null)
           setProposalStep(1)
         }}
         title={
@@ -678,8 +660,11 @@ export default function SalesClientDetails() {
                 </div>
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-sm font-medium text-primaryText">
-                    {filteredPackages.length} package
-                    {filteredPackages.length === 1 ? '' : 's'} found
+                    {pkgMeta.total_count || packages.length} package
+                    {(pkgMeta.total_count || packages.length) === 1
+                      ? ''
+                      : 's'}{' '}
+                    found
                   </span>
                   {packagesLoading && (
                     <span className="text-xs text-secondary">Loading...</span>
@@ -697,6 +682,7 @@ export default function SalesClientDetails() {
                             shouldValidate: true,
                           })
                           proposalMethods.setValue('plan_name', pkg.name || '')
+                          setSelectedPlanDetails(pkg)
                         }}
                         className={
                           'relative w-full rounded-xl border-2 p-4 text-left transition-all duration-200 hover:shadow-md ' +
@@ -736,13 +722,18 @@ export default function SalesClientDetails() {
                             <div className="flex items-center gap-2">
                               <span
                                 className={
-                                  'truncate text-sm font-semibold capitalize ' +
+                                  'truncate text-sm font-semibold ' +
                                   (isSelected
                                     ? 'text-primaryGreen'
                                     : 'text-primaryText')
                                 }
                               >
-                                {pkg.name || 'Unnamed'}
+                                {(() => {
+                                  const name = pkg.name || 'Unnamed'
+                                  return (
+                                    name.charAt(0).toUpperCase() + name.slice(1)
+                                  )
+                                })()}
                               </span>
                               {pkg.category && (
                                 <span
@@ -789,25 +780,14 @@ export default function SalesClientDetails() {
                                 <span>{pkg.duration_days} days</span>
                               </span>
                             )}
-                            {(pkg.discounted_sale_price ||
-                              pkg.fees ||
-                              pkg.price ||
-                              pkg.amount) && (
-                              <span
-                                className={
-                                  'inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ' +
-                                  (isSelected
-                                    ? 'bg-primaryGreen text-white'
-                                    : 'bg-successColor/10 text-successColor')
-                                }
-                              >
-                                {'₹'}
-                                {pkg.discounted_sale_price ||
-                                  pkg.fees ||
-                                  pkg.price ||
-                                  pkg.amount}
-                              </span>
-                            )}
+                            <PriceBadge
+                              actualPrice={pkg.actual_price}
+                              discountedPrice={pkg.discounted_sale_price}
+                              fees={pkg.fees}
+                              price={pkg.price}
+                              amount={pkg.amount}
+                              variant={isSelected ? 'selected' : 'default'}
+                            />
                           </div>
                           {isSelected && (
                             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primaryGreen shadow-sm">
@@ -830,7 +810,7 @@ export default function SalesClientDetails() {
                       </button>
                     )
                   })}
-                  {!packagesLoading && filteredPackages.length === 0 && (
+                  {!packagesLoading && packages.length === 0 && (
                     <div className="rounded-lg border border-dashed border-formBorder p-8 text-center text-sm text-secondary">
                       {pkgSearch
                         ? 'No packages match your search.'
@@ -881,13 +861,23 @@ export default function SalesClientDetails() {
                       {selectedPlan.duration_days
                         ? ` — ${selectedPlan.duration_days} days`
                         : ''}
-                      {selectedPlan.discounted_sale_price ||
+                    </div>
+                    {(selectedPlan.discounted_sale_price ||
                       selectedPlan.fees ||
                       selectedPlan.price ||
-                      selectedPlan.amount
-                        ? ` — ${selectedPlan.discounted_sale_price || selectedPlan.fees || selectedPlan.price || selectedPlan.amount}`
-                        : ''}
-                    </div>
+                      selectedPlan.amount) && (
+                      <div className="mt-2">
+                        <PriceBadge
+                          actualPrice={selectedPlan.actual_price}
+                          discountedPrice={selectedPlan.discounted_sale_price}
+                          fees={selectedPlan.fees}
+                          price={selectedPlan.price}
+                          amount={selectedPlan.amount}
+                          variant="selected"
+                          size="md"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
                 <FormProvider {...proposalMethods}>
