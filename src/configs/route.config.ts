@@ -314,7 +314,7 @@ const YOGA_TEMPLATE: RouterMenuProps = {
   parent_id: 201,
   label: 'Yoga Templates',
   key: 'yoga-templates',
-  icon: 'yoga',
+  icon: 'yoga-icon',
   breadcrumb: ['YOGA_TEMPLATE'],
   module: 'yoga',
   permission_slugs: MODULE_ACCESS.yoga,

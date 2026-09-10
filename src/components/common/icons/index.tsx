@@ -536,6 +536,7 @@ const Icons: React.FC<IconsProps> = ({
 
       case 'title-icon':
         return <TitleIcon />
+      case 'yoga':
       case 'yoga-icon':
         return <YogaIcon />
       case 'yoga-white-icon':
