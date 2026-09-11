@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FormProvider, useForm } from 'react-hook-form'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import ToggleSwitch from '../../../components/common/inputs/ToggleSwitch'
 import { planFormSchema, PlanSchema } from './schema'
 import FormBuilder from '../../../components/app/formBuilder'
@@ -35,9 +35,41 @@ export default function CreatePlan({
     reValidateMode: 'onChange',
   })
 
-  const { handleSubmit, reset, setError, clearErrors } = methods
-  const { mutate: createPlanMutate } = useCreatePlan()
-  const { mutate: updatePlanMutate } = useUpdatePlan()
+  const { handleSubmit, reset, setError, clearErrors, watch, setValue } =
+    methods
+  const actualPrice = watch('actual_price')
+  const discountedPrice = watch('discounted_sale_price')
+
+  useEffect(() => {
+    if (
+      actualPrice !== undefined &&
+      actualPrice !== null &&
+      discountedPrice !== undefined &&
+      discountedPrice !== null
+    ) {
+      const numActual = Number(actualPrice)
+      const numDiscount = Number(discountedPrice)
+
+      if (
+        !isNaN(numActual) &&
+        !isNaN(numDiscount) &&
+        numActual > 0 &&
+        String(actualPrice) !== '' &&
+        String(discountedPrice) !== ''
+      ) {
+        if (numDiscount > numActual) {
+          setValue('discounted_sale_price', numActual, {
+            shouldValidate: true,
+            shouldTouch: true,
+          })
+        }
+      }
+    }
+  }, [actualPrice, discountedPrice, setValue])
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { mutate: createPlanMutate, isLoading: isCreating } = useCreatePlan()
+  const { mutate: updatePlanMutate, isLoading: isUpdating } = useUpdatePlan()
   const queryClient = useQueryClient()
   const editingPlanId = edit
     ? (rowData?.plan?.id ?? rowData?.plan_id ?? rowData?.id)
@@ -56,6 +88,8 @@ export default function CreatePlan({
   }
 
   const onSubmit = (values: PlanSchema | any) => {
+    if (isSubmitting || isCreating || isUpdating) return
+
     const thumbVal: any = values.thumbnail
     const hasNewThumbnail = thumbVal instanceof File
     const hasExistingThumbnail = typeof thumbVal === 'string' && thumbVal !== ''
@@ -68,6 +102,8 @@ export default function CreatePlan({
       return
     }
     clearErrors?.('thumbnail' as any)
+
+    setIsSubmitting(true)
 
     const fd = new FormData()
 
@@ -103,6 +139,7 @@ export default function CreatePlan({
         { id: rowData.plan.id, payload: fd },
         {
           onSuccess: () => {
+            setIsSubmitting(false)
             if (editingPlanId) {
               queryClient.invalidateQueries(['plan_detail', editingPlanId])
             }
@@ -110,15 +147,22 @@ export default function CreatePlan({
             handleRefresh?.()
             handleClose()
           },
+          onError: () => {
+            setIsSubmitting(false)
+          },
         }
       )
     } else {
       createPlanMutate(fd, {
         onSuccess: () => {
+          setIsSubmitting(false)
           // Refresh the listing and close
           queryClient.invalidateQueries(['plans_list'])
           handleRefresh?.()
           handleClose()
+        },
+        onError: () => {
+          setIsSubmitting(false)
         },
       })
     }
@@ -196,6 +240,7 @@ export default function CreatePlan({
     {
       ...textField('actual_price', 'Actual Fees', 'Enter actual fees', true),
       type: 'number',
+      maxLength: 6,
     },
     {
       ...textField(
@@ -205,6 +250,7 @@ export default function CreatePlan({
         true
       ),
       type: 'number',
+      maxLength: 6,
     },
 
     {
@@ -277,13 +323,23 @@ export default function CreatePlan({
     setEdit?.(true)
   }
 
+  const isPending = isCreating || isUpdating || isSubmitting
+
   return (
     <DialogModal
       isOpen={isDrawerOpen}
       onClose={handleClose}
       title={edit ? 'Edit Plan' : viewMode ? 'View Plan' : 'Create Plan'}
       actionLabel={viewMode ? 'Edit' : edit ? 'Save' : 'Save'}
-      onSubmit={viewMode ? handleChangeMode : handleSubmit(onSubmit)}
+      actionDisabled={isPending}
+      actionLoader={isPending}
+      onSubmit={
+        viewMode
+          ? handleChangeMode
+          : isPending
+            ? undefined
+            : handleSubmit(onSubmit)
+      }
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"
       small={false}

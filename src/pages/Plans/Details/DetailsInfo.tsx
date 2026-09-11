@@ -53,6 +53,18 @@ export default function DetailsInfo({
 }) {
   const canEdit = typeof onEdit === 'function' && Boolean(plan?.id)
 
+  const hasMeditationPlan = (() => {
+    const medFlag = plan?.meditation_included ?? plan?.meditationIncluded
+    if (typeof medFlag === 'string') {
+      const normalized = medFlag.trim().toLowerCase()
+      return normalized === 'true' || normalized === '1' || normalized === 'yes'
+    }
+    if (typeof medFlag === 'number') {
+      return medFlag === 1
+    }
+    return Boolean(medFlag)
+  })()
+
   return (
     <>
       {loading && (
@@ -98,10 +110,12 @@ export default function DetailsInfo({
                 />
               }
             />
-            <DetailItem
-              label="Meditation Plans"
-              value={safeStr(plan?.meditations_count)}
-            />
+            {hasMeditationPlan && (
+              <DetailItem
+                label="Meditation Plans"
+                value={safeStr(plan?.meditations_count)}
+              />
+            )}
             <DetailItem
               label="Subscribers"
               value={safeStr(plan?.subscribers_count)}
