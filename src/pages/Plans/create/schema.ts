@@ -120,58 +120,76 @@
 
 import { z } from 'zod'
 
-export const planFormSchema = z.object({
-  name: z
-    .string()
-    .min(2, 'Plan name is required')
-    .max(100, 'Plan name must be under 100 characters'),
-  category: z.preprocess(
-    (val) => {
-      if (val && typeof val === 'object') {
-        return (val as any).name ?? (val as any).id ?? ''
+export const planFormSchema = z
+  .object({
+    name: z
+      .string()
+      .min(2, 'Plan name is required')
+      .max(100, 'Plan name must be under 100 characters'),
+    category: z.preprocess(
+      (val) => {
+        if (val && typeof val === 'object') {
+          return (val as any).name ?? (val as any).id ?? ''
+        }
+        return val
+      },
+      z.string().min(2, 'Category is required')
+    ),
+    description: z
+      .string()
+      .min(1, 'Description is required')
+      .max(250, 'Description must be under 250 characters'),
+    duration_days: z.coerce
+      .number({
+        invalid_type_error: 'Duration must be a number',
+      })
+      .positive('Duration must be greater than 0'),
+    actual_price: z.preprocess(
+      (val: unknown) => {
+        if (val === '' || val === null || val === undefined) return undefined
+        return val
+      },
+      z.coerce
+        .number({
+          required_error: 'Actual fees is required',
+          invalid_type_error: 'Actual fees must be a number',
+        })
+        .min(0, 'Actual fees cannot be negative')
+        .positive('Actual fees must be greater than 0')
+        .max(999999, 'Actual fees cannot exceed 6 digits')
+    ),
+    discounted_sale_price: z.preprocess(
+      (val: unknown) => {
+        // Treat empty input as missing so we can show a proper required message
+        if (val === '' || val === null || val === undefined) return undefined
+        return val
+      },
+      z.coerce
+        .number({
+          required_error: 'Discount fees is required',
+          invalid_type_error: 'Discount fees must be a number',
+        })
+        .min(0, 'Discount fees cannot be negative')
+        .positive('Discount fees must be greater than 0')
+        .max(999999, 'Discount fees cannot exceed 6 digits')
+    ),
+    meditation_included: z.boolean().default(false),
+    thumbnail: z.any().optional().nullable(),
+  })
+  .refine(
+    (data) => {
+      if (
+        typeof data.actual_price === 'number' &&
+        typeof data.discounted_sale_price === 'number'
+      ) {
+        return data.discounted_sale_price <= data.actual_price
       }
-      return val
+      return true
     },
-    z.string().min(2, 'Category is required')
-  ),
-  description: z
-    .string()
-    .min(1, 'Description is required')
-    .max(250, 'Description must be under 250 characters'),
-  duration_days: z.coerce
-    .number({
-      invalid_type_error: 'Duration must be a number',
-    })
-    .positive('Duration must be greater than 0'),
-  actual_price: z.preprocess(
-    (val: unknown) => {
-      if (val === '' || val === null || val === undefined) return undefined
-      return val
-    },
-    z.coerce
-      .number({
-        required_error: 'Actual fees is required',
-        invalid_type_error: 'Actual fees must be a number',
-      })
-      .min(0, 'Actual fees cannot be negative')
-      .positive('Actual fees must be greater than 0')
-  ),
-  discounted_sale_price: z.preprocess(
-    (val: unknown) => {
-      // Treat empty input as missing so we can show a proper required message
-      if (val === '' || val === null || val === undefined) return undefined
-      return val
-    },
-    z.coerce
-      .number({
-        required_error: 'Discount fees is required',
-        invalid_type_error: 'Discount fees must be a number',
-      })
-      .min(0, 'Discount fees cannot be negative')
-      .positive('Discount fees must be greater than 0')
-  ),
-  meditation_included: z.boolean().default(false),
-  thumbnail: z.any().optional().nullable(),
-})
+    {
+      message: 'Discount fees must be less than or equal to actual fees',
+      path: ['discounted_sale_price'],
+    }
+  )
 
 export type PlanSchema = z.infer<typeof planFormSchema>
