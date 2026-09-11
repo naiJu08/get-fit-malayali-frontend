@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
+import { createElement, useEffect, useState, type ComponentType } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
+import type { IconBaseProps, IconType } from 'react-icons'
 import { useNavigate } from 'react-router-dom'
 
 import { Button } from '../../../components/common'
@@ -12,6 +13,9 @@ import { ForgotPasswordSchema, forgotSchema } from '../schema'
 
 const fixedInputClass =
   'rounded appearance-none relative block w-full px-3 py-2 border border-formBorder placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-gray-300 focus:z-10 sm:text-sm'
+
+const renderIcon = (Icon: IconType, props?: IconBaseProps) =>
+  createElement(Icon as ComponentType<IconBaseProps>, props)
 
 export default function ForceChangePassword() {
   const { enqueueSnackbar } = useSnackbarManager()
@@ -84,7 +88,7 @@ export default function ForceChangePassword() {
                   <div className="w-full">
                     <input
                       id={'old_password'}
-                      type={showPassword.password ? 'text' : 'password'}
+                      type={showPassword.old_password ? 'text' : 'password'}
                       required={true}
                       className={fixedInputClass}
                       placeholder={'Enter Old Password'}
@@ -101,11 +105,9 @@ export default function ForceChangePassword() {
                       })
                     }
                   >
-                    {showPassword.password ? (
-                      <AiFillEye color="primary" />
-                    ) : (
-                      <AiFillEyeInvisible color="primary" />
-                    )}
+                    {showPassword.old_password
+                      ? renderIcon(AiFillEye, { color: 'primary' })
+                      : renderIcon(AiFillEyeInvisible, { color: 'primary' })}
                   </div>
 
                   {/* {showPassword ? (
@@ -149,11 +151,9 @@ export default function ForceChangePassword() {
                       })
                     }
                   >
-                    {showPassword.password ? (
-                      <AiFillEye color="primary" />
-                    ) : (
-                      <AiFillEyeInvisible color="primary" />
-                    )}
+                    {showPassword.password
+                      ? renderIcon(AiFillEye, { color: 'primary' })
+                      : renderIcon(AiFillEyeInvisible, { color: 'primary' })}
                   </div>
 
                   {/* {showPassword ? (
@@ -196,11 +196,9 @@ export default function ForceChangePassword() {
                       })
                     }
                   >
-                    {showPassword.confirm_password ? (
-                      <AiFillEye color="primary" />
-                    ) : (
-                      <AiFillEyeInvisible color="primary" />
-                    )}
+                    {showPassword.confirm_password
+                      ? renderIcon(AiFillEye, { color: 'primary' })
+                      : renderIcon(AiFillEyeInvisible, { color: 'primary' })}
                   </div>
                 </div>
                 {errors.confirm_password && (

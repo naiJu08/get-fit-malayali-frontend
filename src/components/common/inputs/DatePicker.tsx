@@ -16,6 +16,8 @@ type Props = {
   placeholder?: string
   selectRange?: boolean
   name?: string
+  fromPopup?: boolean
+  portalId?: string
 }
 
 const DatePickerConponent = (props: Props) => {
@@ -31,6 +33,8 @@ const DatePickerConponent = (props: Props) => {
     placeholder,
     selectRange,
     name,
+    fromPopup = false,
+    portalId,
   } = props
 
   const handleClear = () => {
@@ -66,6 +70,7 @@ const DatePickerConponent = (props: Props) => {
           showYearDropdown
           scrollableYearDropdown={true}
           yearDropdownItemNumber={100}
+          portalId={fromPopup ? 'root-portal' : portalId}
           value={value ? value : ''}
           disabled={disabled}
           data-testid={name}

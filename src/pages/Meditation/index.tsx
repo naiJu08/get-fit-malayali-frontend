@@ -1,0 +1,343 @@
+import SmartTable from '../../components/common/table/SmartTable'
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useSnackbar } from 'notistack'
+
+import { TableColumns } from '../../common/types'
+import InfoBox from '../../components/app/alertBox/infoBox'
+import Icons from '../../components/common/icons'
+import ListingHeader from '../../components/common/ListingTiles'
+import { checkPermissions } from '../../layout/store'
+import { useAuthStore } from '../../store/authStore'
+import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
+import { calcWindowHeight } from '../../utilities/calcHeight'
+import { getSortedColumnName } from '../../utilities/parsers'
+import { handleReturnEmptyMsg } from '../../utilities/validation'
+import {
+  getMeditationDetails,
+  useMeditationList,
+  DISABLE_NONLOGIN_APIS,
+  deleteMeditation,
+} from './api'
+import { getColumns } from './columns'
+import CreateAdmin from './create'
+import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
+
+export default function MeditationMain() {
+  const navigate = useNavigate()
+  const { enqueueSnackbar } = useSnackbar()
+  const [columns, setColumns] = useState<TableColumns[]>([])
+  const [createOpen, setCreateOpen] = useState(false)
+  const [viewMode, setViewMode] = useState(false)
+  const [edit, setEdit] = useState(false)
+  const [rowData, setRowData] = useState<any>()
+  const [editViewIndicator, setEditViewIndicator] = useState(false)
+  const [viewIndicator, setViewIndicator] = useState(false)
+  const [searchDebounce, setSearchDebounce] = useState<any>(null)
+  const [deleteMeditationModal, setDeleteMeditationModal] = useState(false)
+  const [deleteMeditationId, setDeleteMeditationId] = useState<string>('')
+  const [loader, setLoader] = useState(false)
+  const { roleData } = useAuthStore()
+  const isNutritionist = roleData?.name === 'nutritionist'
+  const params = useParams()
+
+  const { pageParams, setPageParams } = useAdminUserFilterStore()
+  const { page, per_page, search, ordering, filters } = pageParams
+  const searchParams = {
+    page: page,
+    per_page: per_page || 10,
+    search: search,
+    ordering: ordering,
+    ...filters,
+  }
+  const location = useLocation()
+  const { data, refetch, isFetching } = useMeditationList(searchParams)
+  useEffect(() => {
+    if (pageParams?.search) {
+      setPageParams({ ...pageParams, search: '', page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    const totalPages = data?.meta?.total_pages
+    if (typeof totalPages === 'number' && totalPages > 0) {
+      if ((pageParams?.page ?? 1) > totalPages) {
+        setPageParams({ ...pageParams, page: totalPages })
+      } else if ((pageParams?.page ?? 1) < 1) {
+        setPageParams({ ...pageParams, page: 1 })
+      }
+    } else if ((pageParams?.page ?? 1) < 1) {
+      setPageParams({ ...pageParams, page: 1 })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.meta?.total_pages])
+  // Refetch when filters/pagination/sort/search change (align with Notifications)
+  useEffect(() => {
+    refetch()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, per_page, search, ordering, JSON.stringify(filters)])
+  const onChangePage = (row: number) => {
+    setPageParams({
+      ...pageParams,
+      page: row,
+    })
+  }
+  const onChangeRowsPerPage = (count: number | string) => {
+    setPageParams({
+      ...pageParams,
+      per_page: Number(count),
+      page: 1,
+    })
+  }
+  useEffect(() => {
+    const currentParams = useAdminUserFilterStore.getState().pageParams
+    useAdminUserFilterStore.getState().setPageParams({
+      ...currentParams,
+      page: 1,
+      search: '',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
+  const onViewAction = async (row: any) => {
+    setViewIndicator(true)
+    if (row?.id) {
+      const data = await getMeditationDetails(String(row?.id))
+      setRowData((data as any)?.meditation ?? data)
+      setViewMode(true)
+      setCreateOpen(true)
+    }
+  }
+  useEffect(() => {
+    setColumns(
+      getColumns({
+        onViewAction: onViewAction,
+        onNameClick: (row: any) => navigate(`/meditation/${row?.id}`),
+      })
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // const handleSeach = (key?: string) => {
+  //   setPageParams({
+  //     ...pageParams,
+  //     search: key as string,
+  //     page: 1,
+  //   })
+  // }
+
+  const handleEdit = async (rowData: any) => {
+    if (rowData?.id) {
+      const data = await getMeditationDetails(String(rowData?.id))
+      setRowData((data as any)?.meditation ?? data)
+      setCreateOpen(true)
+      setViewMode(false)
+      setEdit(true)
+    }
+  }
+
+  const handleClose = () => {
+    setCreateOpen(false)
+    setViewMode(false)
+    setEdit(false)
+    if (viewIndicator && editViewIndicator) {
+      setViewIndicator(false)
+      setEditViewIndicator(false)
+      onViewAction(rowData)
+    }
+  }
+
+  const handleRefresh = () => {
+    refetch()
+  }
+  const handleDeleteMeditation = async () => {
+    if (!deleteMeditationId) return
+    try {
+      setLoader(true)
+      await deleteMeditation(String(deleteMeditationId))
+      setDeleteMeditationModal(false)
+      setDeleteMeditationId('')
+      refetch()
+    } catch (error: any) {
+      console.error('Delete meditation error:', error)
+
+      // Extract error message from response
+      let errorMessage = 'Failed to delete meditation'
+
+      if (error?.response?.data?.errors) {
+        // If response has errors array, use the first error
+        errorMessage = error.response.data.errors[0]
+      } else if (error?.response?.data?.message) {
+        // If response has message field
+        errorMessage = error.response.data.message
+      } else if (error?.message) {
+        // Fallback to error message
+        errorMessage = error.message
+      }
+
+      // Show the error message to user
+      enqueueSnackbar(errorMessage, { variant: 'error' })
+
+      // Close the delete modal after showing error
+      setDeleteMeditationModal(false)
+      setDeleteMeditationId('')
+    } finally {
+      setLoader(false)
+    }
+  }
+  const basicData = {
+    title: 'Meditation',
+    icon: 'meditation-icon',
+  }
+  const openDrawer = () => {
+    setCreateOpen(true)
+    setRowData({})
+  }
+  const headerProps = {
+    actionTitle: 'Create Meditation',
+  }
+  const handleSort = (orderColumn: any, orderDirection: any) => {
+    setPageParams({
+      ...pageParams,
+      sortColumn: orderColumn,
+      sortType: orderDirection,
+      ordering: getSortedColumnName(orderColumn, orderDirection),
+    })
+  }
+
+  // const intensityOptions = useMemo(() => ['Moderate', 'High', 'Low'], [])
+
+  // const currentIntensity = (filters as any)?.intensity_level || ''
+  // const onIntensityChange = (val: string) => {
+  //   const newFilters = { ...(filters || {}) }
+  //   if (val) newFilters.intensity_level = val
+  //   else delete (newFilters as any).intensity_level
+  //   setPageParams({ ...pageParams, filters: newFilters, page: 1 })
+  // }
+
+  const actions: any[] = []
+
+  if (!isNutritionist) {
+    actions.push(
+      {
+        icon: <Icons name="eye" />,
+        action: (row: any) => navigate(`/meditation/${row?.id}`),
+        title: 'View',
+        toolTip: 'View',
+      },
+      {
+        icon: <Icons name="edit" />,
+        action: (row: any) => handleEdit(row),
+        title: 'Edit',
+        toolTip: 'Edit',
+      },
+      {
+        icon: <Icons name="table-delete" />,
+        action: (row: any) => {
+          if (!row?.id) return
+          setDeleteMeditationId(String(row.id))
+          setDeleteMeditationModal(true)
+        },
+        title: 'Delete',
+        toolTip: 'Delete',
+      }
+    )
+  }
+
+  return (
+    <div>
+      {DISABLE_NONLOGIN_APIS ? (
+        <div className="p-6">
+          <InfoBox content={'This section is disabled for this build.'} />
+        </div>
+      ) : (
+        <>
+          <ListingHeader
+            data={basicData}
+            onActionClick={isNutritionist ? undefined : openDrawer}
+            actionProps={headerProps}
+            checkPermission={
+              !isNutritionist && checkPermissions('Employee', 'create')
+            }
+          />
+          <div className=" p-4">
+            <SmartTable
+              data={data?.meditations ?? []}
+              dataRowKey="id"
+              toolbar={true}
+              toolbarExtra={<div className="flex items-end gap-3"></div>}
+              height={
+                (data?.meditations?.length ?? 0) === 0
+                  ? calcWindowHeight(218)
+                  : calcWindowHeight(150)
+              }
+              search={true}
+              searchPlaceholder="Search Title"
+              searchValue={pageParams?.search || ''}
+              onSearchChange={(val) => {
+                setPageParams({ ...pageParams, search: val, page: 1 })
+                if (searchDebounce) clearTimeout(searchDebounce)
+                const t = setTimeout(() => refetch(), 300)
+                setSearchDebounce(t)
+              }}
+              onSearch={() => refetch()}
+              isLoading={isFetching}
+              sortType={pageParams.sortType}
+              sortColumn={pageParams.sortColumn}
+              handleColumnSort={handleSort}
+              emptyTitle="No records to display"
+              emptySubTitle={handleReturnEmptyMsg(search)}
+              columns={columns}
+              pagination={true}
+              paginationProps={{
+                onPagination: onChangePage,
+                total: data?.meta?.total_count ?? 0,
+                currentPage:
+                  typeof data?.meta?.current_page === 'number'
+                    ? (data?.meta?.current_page as number)
+                    : (pageParams?.page ?? 1),
+                rowsPerPage: Number(pageParams?.per_page ?? 10),
+                onRowsPerPage: onChangeRowsPerPage,
+                totalPages: Math.max(
+                  1,
+                  Math.ceil(
+                    (Number(data?.meta?.total_count ?? 0) || 0) /
+                      Number(pageParams?.per_page ?? 10)
+                  )
+                ),
+                dropOptions: [10, 20, 30, 50, 100],
+              }}
+              actionProps={actions}
+              columnToggle
+              externalActions={true}
+            />
+          </div>
+          <ConfirmDeleteModal
+            isOpen={deleteMeditationModal}
+            onClose={() => setDeleteMeditationModal(false)}
+            onConfirm={() => handleDeleteMeditation()}
+            loading={loader}
+            title={'Are you sure?'}
+            subTitle={
+              'Do you really want to delete this meditation? This process cannot be undone.'
+            }
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+          />
+          <CreateAdmin
+            isDrawerOpen={createOpen}
+            rowData={rowData}
+            edit={edit}
+            setViewMode={setViewMode}
+            setEdit={setEdit}
+            viewMode={viewMode}
+            paramsId={params?.id}
+            handleClose={handleClose}
+            handleRefresh={handleRefresh}
+            editViewIndicator={editViewIndicator}
+            setEditViewIndicator={setEditViewIndicator}
+          />
+        </>
+      )}
+    </div>
+  )
+}

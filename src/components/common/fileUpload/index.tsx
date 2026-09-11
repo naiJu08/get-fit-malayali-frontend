@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useFormContext } from 'react-hook-form'
 
 import { FileUploadProps } from '../../../common/types'
-import { isValidFile } from '../../../utilities/commonUtilities'
+import {
+  getFileNameFromUrl,
+  isValidFile,
+} from '../../../utilities/commonUtilities'
 import InfoBox from '../../app/alertBox/infoBox'
 import Icons from '../icons'
 import DialogModal from '../modal/DialogModal'
@@ -12,6 +15,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   name,
   id,
   label,
+  labelAddon,
   fullwidth = true,
   type = 'file',
   disabled = false,
@@ -30,6 +34,10 @@ const FileUpload: React.FC<FileUploadProps> = ({
   setAttachmentName,
   accept = '*',
   subName,
+  aspectRatio,
+  requiredWidth,
+  requiredHeight,
+  dimensionLabel,
 }) => {
   const getErrors = (err: any) => {
     let errMsg = ''
@@ -42,12 +50,24 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const [deleteModal, setDeleteModal] = useState(false)
   const [item, setItem] = useState<any>([])
   const { enqueueSnackbar } = useSnackbarManager()
+  const { setValue, watch } = useFormContext()
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const resetInputValue = () => {
+    if (inputRef.current) {
+      inputRef.current.value = ''
+    }
+  }
+
   const handleClearFile = (indexToRemove?: number, item?: any) => {
     if (isMultiple) {
       const newFiles = file.filter(
         (_: any, ind: number) => indexToRemove !== ind
       )
       setFile(newFiles)
+      if (newFiles.length === 0) {
+        resetInputValue()
+      }
     } else if (item?.link) {
       if (needConfirmation === true) {
         setDeleteModal(true)
@@ -58,14 +78,90 @@ const FileUpload: React.FC<FileUploadProps> = ({
         onChange?.('')
         setFile('')
         setAttachmentName?.('')
+        // Clear both name and subName fields in react-hook-form
+        setValue(name, '', { shouldValidate: false })
+        if (subName) {
+          setValue(subName, '', { shouldValidate: false })
+        }
+        resetInputValue()
       }
     } else {
       onChange?.('')
       setFile('')
       setAttachmentName?.('')
+      // Clear both name and subName fields in react-hook-form
+      setValue(name, '', { shouldValidate: false })
+      if (subName) {
+        setValue(subName, '', { shouldValidate: false })
+      }
+      resetInputValue()
     }
   }
-  const handleFileChange = (e: any) => {
+  const getImageDimensions = (file: File) => {
+    return new Promise<{ width: number; height: number }>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        const img = new Image()
+        img.onload = () => {
+          resolve({ width: img.naturalWidth, height: img.naturalHeight })
+        }
+        img.onerror = reject
+        img.src = event?.target?.result as string
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const validateImageDimensions = async (file: File) => {
+    if (!file || !file.type?.startsWith('image/')) return true
+    if (!aspectRatio && !requiredWidth && !requiredHeight) return true
+
+    try {
+      const { width, height } = await getImageDimensions(file)
+
+      if (requiredWidth && width !== requiredWidth) {
+        enqueueSnackbar(
+          `Image must be ${requiredWidth}px wide. Uploaded width is ${width}px.`,
+          { variant: 'error' }
+        )
+        return false
+      }
+
+      if (requiredHeight && height !== requiredHeight) {
+        enqueueSnackbar(
+          `Image must be ${requiredHeight}px tall. Uploaded height is ${height}px.`,
+          { variant: 'error' }
+        )
+        return false
+      }
+
+      if (aspectRatio) {
+        const expected = aspectRatio.width / aspectRatio.height
+        const actual = width / height
+        const tolerance = 0.01
+        if (Math.abs(actual - expected) > tolerance) {
+          const label =
+            dimensionLabel ||
+            `Aspect ratio ${aspectRatio.width}:${aspectRatio.height}`
+          enqueueSnackbar(
+            `Image must follow ${label}. Uploaded image is ${width}x${height}px.`,
+            { variant: 'error' }
+          )
+          return false
+        }
+      }
+
+      return true
+    } catch (error) {
+      enqueueSnackbar('Unable to validate image dimensions.', {
+        variant: 'error',
+      })
+      return false
+    }
+  }
+
+  const handleFileChange = async (e: any) => {
     if (e.target.files.length) {
       let isValid = true
       if (supportedFiles?.length) {
@@ -81,12 +177,26 @@ const FileUpload: React.FC<FileUploadProps> = ({
 
           setFile([...existingFiles, ...filesArray])
         } else {
-          if (e?.target?.files[0].size < 5250000) {
+          const selectedFile = e?.target?.files[0]
+          const maxFileSizeInBytes =
+            sizeLimit && sizeLimit > 0 ? sizeLimit * 1024 * 1024 : null
+
+          if (!maxFileSizeInBytes || selectedFile.size < maxFileSizeInBytes) {
+            const dimensionsValid = await validateImageDimensions(selectedFile)
+            if (!dimensionsValid) {
+              e.target.value = ''
+              setFile('')
+              setAttachmentName?.('')
+              return
+            }
             onChange?.(e)
-            setFile(e?.target?.files[0])
-            setAttachmentName?.(e?.target?.files[0]?.name)
+            setFile(selectedFile)
+            setAttachmentName?.(selectedFile?.name)
+            e.target.value = ''
           } else {
-            enqueueSnackbar('Maximum file size 5mb', { variant: 'error' })
+            enqueueSnackbar(`Maximum file size ${sizeLimit}mb`, {
+              variant: 'error',
+            })
             setFile('')
           }
         }
@@ -101,12 +211,93 @@ const FileUpload: React.FC<FileUploadProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [file])
+
+  // keep internal state in sync with external value for single-file mode
+  useEffect(() => {
+    if (!isMultiple) {
+      setFile(value)
+    }
+  }, [isMultiple, value])
   const handleDeleteConfirmation = () => {
     handleDeleteFile?.(item)
+    onChange?.('')
     setFile('')
+    setAttachmentName?.('')
+    // Clear both name and subName fields in react-hook-form
+    setValue(name, '', { shouldValidate: false })
+    if (subName) {
+      setValue(subName, '', { shouldValidate: false })
+    }
     setDeleteModal(false)
+    resetInputValue()
   }
-  const { watch } = useFormContext()
+  const getSingleFileLabel = () => {
+    if (isMultiple) return ''
+
+    if (typeof file === 'object' && file) {
+      return file?.name ?? (subName ? watch(subName) : '')
+    }
+
+    if (typeof file === 'string' && file) {
+      const trimmed = file.trim()
+      if (!trimmed) return ''
+
+      try {
+        return getFileNameFromUrl(trimmed)
+      } catch (error) {
+        const segments = trimmed.split('?')[0]?.split('/') ?? []
+        return segments.pop() || trimmed
+      }
+    }
+
+    if (subName) {
+      const subValue = watch(subName)
+      if (typeof subValue === 'string') {
+        return subValue
+      }
+    }
+
+    return ''
+  }
+
+  const singleFileLabel = getSingleFileLabel()
+  const handleFilePreview = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const isBrowserFile = (input: unknown): input is File =>
+      typeof File !== 'undefined' && input instanceof File
+
+    let previewUrl = ''
+    let cleanup: (() => void) | undefined
+
+    if (file && typeof file === 'object') {
+      if (file?.link) {
+        previewUrl = file.link
+      } else if (isBrowserFile(file)) {
+        previewUrl = URL.createObjectURL(file)
+        cleanup = () => URL.revokeObjectURL(previewUrl)
+      }
+    }
+
+    if (!previewUrl) {
+      const watchedValue = watch(name) || (subName ? watch(subName) : '')
+      if (typeof watchedValue === 'string') {
+        previewUrl = watchedValue
+      }
+    }
+
+    if (!previewUrl) return
+
+    const opened = window.open(previewUrl, '_blank', 'noopener')
+    if (opened) {
+      opened.opener = null
+    }
+
+    if (cleanup) {
+      setTimeout(cleanup, 1000)
+    }
+  }
 
   return (
     <>
@@ -127,12 +318,19 @@ const FileUpload: React.FC<FileUploadProps> = ({
         }
       />
       <div className={`customFileUpload ${fullwidth ? 'w-full' : 'w-auto'}`}>
-        {label && (
-          <div className="">
-            <label className={`labels label-text`}>
-              {label}
-              {required ? <span className="text-error"> *</span> : <></>}
-            </label>
+        {(label || labelAddon) && (
+          <div className="flex justify-between items-center gap-4">
+            {label && (
+              <label className={`labels label-text`}>
+                {label}
+                {required ? <span className="text-error"> *</span> : <></>}
+              </label>
+            )}
+            {labelAddon ? (
+              <div className="text-xs text-primaryText whitespace-nowrap">
+                {labelAddon}
+              </div>
+            ) : null}
           </div>
         )}
         <div
@@ -140,6 +338,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
         >
           <input
             id={id}
+            ref={inputRef}
             disabled={disabled}
             multiple={isMultiple}
             onChange={handleFileChange}
@@ -156,11 +355,13 @@ const FileUpload: React.FC<FileUploadProps> = ({
               className={` text-xxs leading-4  ${disabled ? 'text-input-disabled' : 'text-primaryText'}`}
             >
               {supportedFiles}
-              <span
-                className={`text-primary text-xxs leading-4 ${disabled && 'opacity-60'}`}
-              >
-                (Max {sizeLimit} MB)
-              </span>
+              {sizeLimit && sizeLimit > 0 ? (
+                <span
+                  className={`text-primary text-xxs leading-4 ${disabled && 'opacity-60'}`}
+                >
+                  (Max {sizeLimit} MB)
+                </span>
+              ) : null}
             </p>
             {/* <p className="text-[#999696] font-bold text-sm">Drag and Drop</p>
           <p className="text-secondary font-bold text-sm uppercase">Or</p> */}
@@ -176,6 +377,14 @@ const FileUpload: React.FC<FileUploadProps> = ({
             </div>
           </label>
         </div>
+        {(dimensionLabel ||
+          aspectRatio ||
+          (requiredWidth && requiredHeight)) && (
+          <p className="text-xxs text-gray-500 mt-1">
+            {dimensionLabel ||
+              `Recommended: ${aspectRatio ? `${aspectRatio.width}:${aspectRatio.height}` : ''} ${requiredWidth && requiredHeight ? `(${requiredWidth}x${requiredHeight}px)` : ''}`}
+          </p>
+        )}
         {errors && errors[name] && (
           <div className="text-error text-error-label mt-[1px]">
             {getErrors(errors[name])}
@@ -202,39 +411,30 @@ const FileUpload: React.FC<FileUploadProps> = ({
                 />
               </div>
             ))}
-          {((typeof file === 'object' && file) || watch(subName)) &&
-            !isMultiple && (
-              <div
-                className={`flex items-center justify-between gap-1.5 px-2.5 py-2  rounded-sm  ${disabled ? 'bg-cardWrapperBg' : 'bg-cardWrapperBg'}`}
+          {singleFileLabel && !isMultiple && (
+            <div
+              className={`flex items-center justify-between gap-1.5 px-2.5 py-2  rounded-sm  ${disabled ? 'bg-cardWrapperBg' : 'bg-cardWrapperBg'}`}
+            >
+              <Icons
+                name="paper-clip"
+                className={`iconWidthSm ${disabled && 'text-disabledText stroke-disabledText '}`}
+              />
+              <a
+                href="#/"
+                onClick={handleFilePreview}
+                className={`flex-1 text-sm font-medium overflow-hidden break-all ${disabled ? 'text-disabledText  cursor-not-allowed' : 'text-primaryText'}`}
               >
+                {singleFileLabel}
+              </a>
+              {!disabled && (
                 <Icons
-                  name="paper-clip"
-                  className={`iconWidthSm ${disabled && 'text-disabledText stroke-disabledText '}`}
+                  name="close"
+                  onClick={() => handleClearFile(0, file)}
+                  className="iconBlack iconWidthSm cursor-pointer"
                 />
-                <a
-                  href="#/"
-                  onClick={() =>
-                    typeof file === 'object' && file?.link
-                      ? window.open(file.link)
-                      : watch(name)
-                        ? window.open(watch(name))
-                        : ''
-                  }
-                  className={`flex-1 text-sm font-medium overflow-hidden break-all ${disabled ? 'text-disabledText  cursor-not-allowed' : 'text-primaryText'}`}
-                >
-                  {file?.name ?? watch(subName)}
-                </a>
-                {!disabled && handleDeleteFile ? (
-                  <Icons
-                    name="close"
-                    onClick={() => handleClearFile(0, file)}
-                    className="iconBlack iconWidthSm cursor-pointer"
-                  />
-                ) : (
-                  ''
-                )}
-              </div>
-            )}
+              )}
+            </div>
+          )}
           {/* {typeof file === 'object' && file && !isMultiple && (
             <div className="flex items-center justify-between gap-1.5 px-2.5 py-2 bg-cardWrapperBg rounded-sm">
               <Icons name="paper-clip" className="iconWidthSm iconBlack" />

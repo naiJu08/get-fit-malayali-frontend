@@ -81,18 +81,18 @@ export default function HeaderMenu({ userData, handleLogout }: Props) {
   //   }
   // }
 
-  const handleChangePassword = () => {
-    setOpenMenu(false)
-    setChangePassword(true)
-  }
+  // const handleChangePassword = () => {
+  //   setOpenMenu(false)
+  //   setChangePassword(true)
+  // }
   const handleClose = () => {
     setChangePassword(false)
   }
-  const handleMyProfile = () => {
-    setOpenMenu(false)
-    setOpenMyprofile(true)
-    setViewMode(true)
-  }
+  // const handleMyProfile = () => {
+  //   setOpenMenu(false)
+  //   setOpenMyprofile(true)
+  //   setViewMode(true)
+  // }
 
   return (
     <div
@@ -147,7 +147,7 @@ export default function HeaderMenu({ userData, handleLogout }: Props) {
             </div>
           </div> */}
 
-          <a
+          {/* <a
             href="#/"
             className={`p-2 leading-7 hover:bg-background `}
             // onClick={() => navigateToProfile()}
@@ -163,9 +163,9 @@ export default function HeaderMenu({ userData, handleLogout }: Props) {
 
               <span className="pl-1.5 ">{'My Profile'}</span>
             </div>
-          </a>
+          </a> */}
 
-          <a
+          {/* <a
             href="#/"
             className={`p-2 leading-7 hover:bg-background `}
             onClick={() => {
@@ -179,7 +179,7 @@ export default function HeaderMenu({ userData, handleLogout }: Props) {
 
               <span className="pl-1.5 ">{'Change Password'}</span>
             </div>
-          </a>
+          </a> */}
 
           <a
             href="#/"

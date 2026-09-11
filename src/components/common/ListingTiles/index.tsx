@@ -26,6 +26,7 @@ type DetailTileProps = {
   setGroupNameCode?: any
   permissions?: any
   checkPermission?: boolean
+  bulkChangeButton?: React.ReactNode
 }
 
 const ListingHeader: React.FC<DetailTileProps> = ({
@@ -37,15 +38,16 @@ const ListingHeader: React.FC<DetailTileProps> = ({
   groupValue,
   setGroupNameCode,
   checkPermission,
+  bulkChangeButton,
 }) => {
   return (
-    <div className="px-5 py-3 flex justify-between flex-wrap gap-3 items-center bg-primaryThin border-b border-formBorder">
+    <div className="px-5 py-3 flex justify-between flex-wrap gap-3 items-center bg-white border-b border-formBorder">
       <div className="flex gap-6">
         <div className="flex items-center flex-wrap gap-5 text-[#222] ">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             {data?.icon && (
-              <div className="w-10 h-10 bg-primary flex  items-center justify-center rounded-lg ">
-                <Icons className="iconWhite" name={data?.icon} />
+              <div className="w-7 h-7 bg-primary flex  items-center justify-center rounded-lg ">
+                <Icons name={data.icon ?? 'title-icon'} />
               </div>
             )}
             <div className="">
@@ -68,6 +70,7 @@ const ListingHeader: React.FC<DetailTileProps> = ({
         )}
       </div>
       <div className="flex gap-2">
+        {bulkChangeButton}
         <div>
           {/* {checkPermission?.('export') && (
             <>
@@ -95,7 +98,7 @@ const ListingHeader: React.FC<DetailTileProps> = ({
           {onActionClick && checkPermission && (
             <div>
               <Button
-                className="primaryButton"
+                className="bg-primaryGreen"
                 label={actionProps?.actionTitle ?? 'Add New'}
                 icon={actionProps?.actionTitle ? 'plus' : 'plus'}
                 onClick={onActionClick}
