@@ -153,7 +153,10 @@ export default function YogaMain() {
     if (!deleteYogaId) return
     try {
       setLoader(true)
-      await deleteYoga(String(deleteYogaId))
+      const res: any = await deleteYoga(String(deleteYogaId))
+      enqueueSnackbar(res?.message || 'Yoga deleted successfully', {
+        variant: 'success',
+      })
       setDeleteYogaModal(false)
       setDeleteYogaId('')
       refetch()
