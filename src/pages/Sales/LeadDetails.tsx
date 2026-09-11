@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { FormProvider, useForm } from 'react-hook-form'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+  useLocation,
+} from 'react-router-dom'
+import { useAuthStore } from '../../store/authStore'
 import Button from '../../components/common/buttons/Button'
 import { DialogModal, TabContainer } from '../../components/common'
 import FormBuilder from '../../components/app/formBuilder'
@@ -234,14 +240,30 @@ const statusColor = (value: any) => {
   }
 }
 
-export default function SalesLeadDetails() {
-  const { id = '' } = useParams()
+export default function SalesLeadDetails({
+  leadData,
+  leadId,
+}: {
+  leadData?: any
+  leadId?: string
+} = {}) {
+  const routeParams = useParams()
+  const id = leadId || routeParams.id || ''
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isSuperAdmin = loginRole === 'superadmin'
   const { enqueueSnackbar } = useSnackbarManager()
   const queryClient = useQueryClient()
-  const { data, isLoading, refetch } = useSalesLead(id)
-  const lead = data?.lead
+  const {
+    data: fetchedData,
+    isLoading: fetchedIsLoading,
+    refetch,
+  } = useSalesLead(leadData ? undefined : id)
+  const data = leadData ? { lead: leadData } : fetchedData
+  const lead = leadData || data?.lead
+  const isLoading = leadData ? false : fetchedIsLoading
   const statusBlockedActivities = ['contacted', 'qualified', 'lost']
   const activityOptions =
     lead &&
@@ -509,7 +531,13 @@ export default function SalesLeadDetails() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => navigate('/sales/leads')}
+              onClick={() =>
+                navigate(
+                  isSuperAdmin && (location.state as any)?.from
+                    ? (location.state as any).from
+                    : '/sales/leads'
+                )
+              }
               className="rounded-lg hover:bg-gray-100 transition"
               aria-label="Back to leads"
             >
@@ -520,14 +548,15 @@ export default function SalesLeadDetails() {
             </h1>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            {lead && !lead.accepted && (
+            {!isSuperAdmin && lead && !lead.accepted && (
               <Button
                 label="Accept lead"
                 icon="check-circle"
                 onClick={accept}
               />
             )}
-            {lead?.accepted &&
+            {!isSuperAdmin &&
+              lead?.accepted &&
               ['accepted', 'contacted', 'qualified'].includes(lead.status) && (
                 <Button
                   label="Confirmation link"
@@ -536,13 +565,15 @@ export default function SalesLeadDetails() {
                   onClick={() => setConfirmationModal(true)}
                 />
               )}
-            {lead?.status === 'client_accepted' && !lead.client && (
-              <Button
-                label="Convert to client"
-                icon="user"
-                onClick={() => setConversionModal(true)}
-              />
-            )}
+            {!isSuperAdmin &&
+              lead?.status === 'client_accepted' &&
+              !lead.client && (
+                <Button
+                  label="Convert to client"
+                  icon="user"
+                  onClick={() => setConversionModal(true)}
+                />
+              )}
           </div>
         </div>
       </div>
@@ -873,23 +904,25 @@ export default function SalesLeadDetails() {
           </Tab>
           <Tab id="activities">
             <div className="space-y-4">
-              {lead.status !== 'assigned' && lead.status !== 'new_lead' && (
-                <div className="flex justify-end">
-                  <Button
-                    label="Add Interaction"
-                    icon="plus"
-                    onClick={() => {
-                      setSelectedActivityType('call')
-                      activityMethods.reset({
-                        activity_type_label: 'Call',
-                        activity_type: 'call',
-                        notes: '',
-                      })
-                      setActivityModal(true)
-                    }}
-                  />
-                </div>
-              )}
+              {!isSuperAdmin &&
+                lead.status !== 'assigned' &&
+                lead.status !== 'new_lead' && (
+                  <div className="flex justify-end">
+                    <Button
+                      label="Add Interaction"
+                      icon="plus"
+                      onClick={() => {
+                        setSelectedActivityType('call')
+                        activityMethods.reset({
+                          activity_type_label: 'Call',
+                          activity_type: 'call',
+                          notes: '',
+                        })
+                        setActivityModal(true)
+                      }}
+                    />
+                  </div>
+                )}
               {(lead.activities || []).length ? (
                 <div className="relative pl-5 border-l-2 border-formBorder space-y-4">
                   {lead.activities.map((activity: any) => (

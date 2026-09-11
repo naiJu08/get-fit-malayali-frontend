@@ -637,3 +637,33 @@ export const useUserMarketingForm = (
     { enabled: Boolean(userId && formId) }
   )
 }
+
+// User Sales Leads (admin view)
+export const useUserSalesLeads = (
+  userId: string | number | undefined,
+  params: Record<string, any>
+) => {
+  return useQuery(
+    ['user_sales_leads', userId, params],
+    () =>
+      getData(
+        `/admin/users/${userId}/sales_leads${parseQueryParams(params || {})}`
+      ),
+    { enabled: Boolean(userId) }
+  )
+}
+
+// User Sales Clients (admin view)
+export const useUserSalesClients = (
+  userId: string | number | undefined,
+  params: Record<string, any>
+) => {
+  return useQuery(
+    ['user_sales_clients', userId, params],
+    () =>
+      getData(
+        `/admin/users/${userId}/sales_clients${parseQueryParams(params || {})}`
+      ),
+    { enabled: Boolean(userId) }
+  )
+}

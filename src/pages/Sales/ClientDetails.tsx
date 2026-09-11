@@ -1,7 +1,8 @@
 import moment from 'moment'
 import { useMemo, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useAuthStore } from '../../store/authStore'
 
 import FormBuilder from '../../components/app/formBuilder'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -57,6 +58,9 @@ const apiDate = (value: any) => {
 
 export default function SalesClientDetails() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isSuperAdmin = loginRole === 'superadmin'
   const { id = '' } = useParams()
   const { enqueueSnackbar } = useSnackbarManager()
   const { data, isLoading, refetch } = useSalesClient(id)
@@ -277,7 +281,13 @@ export default function SalesClientDetails() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => navigate('/sales/clients')}
+              onClick={() =>
+                navigate(
+                  isSuperAdmin && (location.state as any)?.from
+                    ? (location.state as any).from
+                    : '/sales/clients'
+                )
+              }
               className="rounded-lg hover:bg-gray-100 transition"
               aria-label="Back to clients"
             >
