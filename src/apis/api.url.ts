@@ -22,6 +22,7 @@ const ORGANISATION_URL = 'organisation'
 const MY_PROFILE = 'profile'
 const MY_PROFILE_IMAGE = 'profile-image'
 const SUBSCRIPTIONS = 'subscriptions'
+const PAYMENTS = 'payments'
 const COUNTRIES = 'countries'
 const ORGANISATION_DATATABLES = 'datatable'
 
@@ -117,6 +118,7 @@ const apiUrl: { [key: string]: string } = {
   MARKETING_CAMPAIGNS,
   MARKETING_SALES_TEAM,
   USER_MARKETING_FORMS,
+  PAYMENTS,
 }
 
 export default apiUrl

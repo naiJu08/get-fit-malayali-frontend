@@ -1,5 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
-import { getData, postData, updateFromData } from '../../apis/api.helpers'
+import {
+  getData,
+  postData,
+  updateFromData,
+  postFormData,
+  patchFormData,
+  deleteData,
+} from '../../apis/api.helpers'
 import { parseQueryParams } from '../../utilities/parsers'
 
 const list = (path: string, params: Record<string, any> = {}) =>
@@ -41,20 +48,46 @@ export const useSalesClient = (id?: string) =>
     enabled: Boolean(id),
   })
 
-export const createSalesPlanProposal = (clientId: string | number, data: any) =>
-  postData(`/sales/clients/${clientId}/plan-proposals`, { proposal: data })
+export const createSalesPlanProposal = (
+  clientId: string | number,
+  data: any
+) => {
+  if (data instanceof FormData) {
+    return postFormData(`/sales/clients/${clientId}/plan-proposals`, data).then(
+      (res: any) => res?.data ?? res
+    )
+  }
+  return postData(`/sales/clients/${clientId}/plan-proposals`, {
+    proposal: data,
+  })
+}
 
 export const updateSalesPlanProposal = (
   clientId: string | number,
   proposalId: string | number,
   data: any
-) =>
-  updateFromData(`/sales/clients/${clientId}/plan-proposals/${proposalId}`, {
-    proposal: data,
-  })
+) => {
+  if (data instanceof FormData) {
+    return patchFormData(
+      `/sales/clients/${clientId}/plan-proposals/${proposalId}`,
+      data
+    ).then((res: any) => res?.data ?? res)
+  }
+  return updateFromData(
+    `/sales/clients/${clientId}/plan-proposals/${proposalId}`,
+    {
+      proposal: data,
+    }
+  )
+}
 
 export const assignSalesClientStaff = (clientId: string | number, data: any) =>
   postData(`/sales/clients/${clientId}/assignments`, data)
+
+export const unassignSalesClientStaff = (
+  clientId: string | number,
+  role: string
+) => deleteData(`/sales/clients/${clientId}/assignments/${role}`)
 
 export const useSalesPayments = (params: Record<string, any>) =>
   useQuery(['sales_payments', params], () => list('/sales/payments', params))

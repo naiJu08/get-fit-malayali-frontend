@@ -292,7 +292,8 @@ export default function SalesLeadDetails() {
   })
   const conversionMethods = useForm({
     defaultValues: {
-      name: '',
+      first_name: '',
+      last_name: '',
       phone: '',
       email: '',
       date_of_birth: '',
@@ -307,7 +308,8 @@ export default function SalesLeadDetails() {
       lead.confirmation?.message || confirmationTemplate
     )
     conversionMethods.reset({
-      name: `${lead.first_name || ''} ${lead.last_name || ''}`.trim(),
+      first_name: lead.first_name || '',
+      last_name: lead.last_name || '',
       phone: lead.phone || '',
       email: lead.email || '',
       date_of_birth: '',
@@ -355,7 +357,17 @@ export default function SalesLeadDetails() {
   )
   const conversionFields = useMemo(
     () => [
-      { name: 'name', label: 'Name', type: 'text', required: true },
+      {
+        name: 'first_name',
+        label: 'First name',
+        type: 'text',
+        required: true,
+      },
+      {
+        name: 'last_name',
+        label: 'Last name',
+        type: 'text',
+      },
       {
         name: 'phone',
         label: 'Phone number',
@@ -473,7 +485,16 @@ export default function SalesLeadDetails() {
     }
     try {
       setConversionLoader(true)
-      await convertSalesLead(id, conversionMethods.getValues())
+      const values = conversionMethods.getValues()
+      const fullName = [values.first_name, values.last_name]
+        .filter(Boolean)
+        .map((s: string) => String(s).trim())
+        .filter(Boolean)
+        .join(' ')
+      await convertSalesLead(id, {
+        ...values,
+        name: fullName || values.first_name || '',
+      })
       enqueueSnackbar('Client created in pending state', { variant: 'success' })
       setConversionModal(false)
       await refetch()
