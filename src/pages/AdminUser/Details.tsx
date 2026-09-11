@@ -18,6 +18,8 @@ import RecipesTab from './Details/Recipe.tsx/Recipes'
 import SubscriptionHistory from './Details/SubscriptionHistory'
 import DietHistory from './Details/DietHistory'
 import UserCampaigns from './Details/UserCampaigns'
+import UserSalesLeads from './Details/UserSalesLeads'
+import UserSalesClients from './Details/UserSalesClients'
 import { useAuthStore } from '../../store/authStore'
 import CreateAdmin from './create'
 import MarketingFormsTab from './Details/MarketingFormsTab'
@@ -252,7 +254,10 @@ export default function UserDetails() {
             : isFlatWithClients
               ? [{ id: 'clients', label: 'Clients' }]
               : isSales
-                ? []
+                ? [
+                    { id: 'leads', label: 'Leads' },
+                    { id: 'clients', label: 'Clients' },
+                  ]
                 : [
                     { id: 'subscriptions', label: 'Subscriptions' },
                     { id: 'body', label: 'Body measurements' },
@@ -476,6 +481,16 @@ export default function UserDetails() {
           {isMarketing && (
             <Tab id="campaigns">
               <UserCampaigns user={user} />
+            </Tab>
+          )}
+          {isSales && (
+            <Tab id="leads">
+              <UserSalesLeads user={user} />
+            </Tab>
+          )}
+          {isSales && (
+            <Tab id="clients">
+              <UserSalesClients user={user} />
             </Tab>
           )}
         </TabContainer>

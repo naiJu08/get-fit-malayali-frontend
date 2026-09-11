@@ -632,6 +632,14 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
+        path="/users/sales/:id/leads"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
         path="/users/marketing/:id/details"
       />
       <Route
