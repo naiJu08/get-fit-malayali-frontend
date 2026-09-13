@@ -10,7 +10,8 @@ import Subscriptions from './Details/Subscriptions'
 import BodyMeasurements from './Details/BodyMeasurements'
 // import BodyComposition from './Details/BodyComposition'
 import Vitals from './Details/Vitals'
-import Clients from './Details/Clients'
+import AcceptedClients from './Details/AcceptedClients'
+import AssignedClientsTab from './Details/AssignedClientsTab'
 import Reports from './Details/Reports'
 import ReminderSettings from './Details/ReminderSettings'
 import AdditionalInfo from './Details/AdditionalInfo'
@@ -203,11 +204,14 @@ export default function UserDetails() {
     const last = parts[parts.length - 1]
     // If path ends with the user id (no subpath), redirect to details
     if (last === String(id)) return 'details'
+    if (last === 'clients') return 'accepted-clients'
     return last
   }, [location.pathname, id]) as
     | 'details'
     | 'subscriptions'
     | 'clients'
+    | 'accepted-clients'
+    | 'assigned-clients'
     | 'body'
     | 'body-composition'
     | 'vitals'
@@ -221,8 +225,9 @@ export default function UserDetails() {
   useEffect(() => {
     if (location.pathname === `${pathBase}/${id}`) {
       navigate(`${pathBase}/${id}/details`, { replace: true })
+    } else if (location.pathname === `${pathBase}/${id}/clients`) {
+      navigate(`${pathBase}/${id}/accepted-clients`, { replace: true })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, id, navigate, pathBase])
 
   const tabs = useMemo(
@@ -243,7 +248,8 @@ export default function UserDetails() {
           ]
         : isNutritionist
           ? [
-              { id: 'clients', label: 'Clients' },
+              { id: 'accepted-clients', label: 'Accepted Clients' },
+              { id: 'assigned-clients', label: 'Assigned Clients' },
               { id: 'diet-history', label: 'Diet history' },
             ]
           : isMarketing
@@ -252,7 +258,10 @@ export default function UserDetails() {
                 { id: 'campaigns', label: 'Campaigns' },
               ]
             : isFlatWithClients
-              ? [{ id: 'clients', label: 'Clients' }]
+              ? [
+                  { id: 'accepted-clients', label: 'Accepted Clients' },
+                  { id: 'assigned-clients', label: 'Assigned Clients' },
+                ]
               : isSales
                 ? [
                     { id: 'leads', label: 'Leads' },
@@ -360,6 +369,7 @@ export default function UserDetails() {
               </div>
             </div>
             {isWorkflowViewer &&
+              !isSuperAdmin &&
               workflowAssignment?.workflow_status === 'pending' && (
                 <Button
                   primary
@@ -469,8 +479,13 @@ export default function UserDetails() {
               </Tab>
             )}
           {(isNutritionist || isFlatWithClients) && (
-            <Tab id="clients">
-              <Clients user={user} />
+            <Tab id="accepted-clients">
+              <AcceptedClients user={user} />
+            </Tab>
+          )}
+          {(isNutritionist || isFlatWithClients) && (
+            <Tab id="assigned-clients">
+              <AssignedClientsTab user={user} />
             </Tab>
           )}
           {isMarketing && (
