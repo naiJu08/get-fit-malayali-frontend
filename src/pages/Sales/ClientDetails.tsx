@@ -1,7 +1,13 @@
 import moment from 'moment'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import {
+  useNavigate,
+  useParams,
+  useSearchParams,
+  useLocation,
+} from 'react-router-dom'
+import { useAuthStore } from '../../store/authStore'
 
 import FormBuilder from '../../components/app/formBuilder'
 import InfoBox from '../../components/app/alertBox/infoBox'
@@ -228,6 +234,9 @@ const clientTabs = [
 
 export default function SalesClientDetails() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isSuperAdmin = loginRole === 'superadmin'
   const { id = '' } = useParams()
   const [searchParams, setSearchParams] = useSearchParams()
   const { enqueueSnackbar } = useSnackbarManager()
@@ -552,145 +561,47 @@ export default function SalesClientDetails() {
     <div className="p-4 space-y-4">
       {/* Client Header */}
       <div className="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm p-5">
-        <div className="flex flex-col gap-4">
-          {/* Top row: Back button, Name, and Status Badges */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => navigate('/sales/clients')}
-                className="rounded-lg p-1 hover:bg-gray-100 transition"
-                aria-label="Back to clients"
-              >
-                <Icons name="left-arrow-icon" />
-              </button>
-              <h1 className="text-xl font-bold text-gray-900">
-                {client.name || 'Client #' + id}
-              </h1>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <span
-                className={
-                  'inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ' +
-                  accountStatusColor(client.status)
-                }
-              >
-                {statusLabel(client.status)}
-              </span>
-              <span
-                className={
-                  'rounded-full px-3 py-1 text-xs font-medium ' +
-                  (client.profile_completed
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-amber-50 text-amber-700 border border-amber-200')
-                }
-              >
-                {client.profile_completed
-                  ? 'Profile completed'
-                  : 'Profile not completed'}
-              </span>
-            </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  isSuperAdmin && (location.state as any)?.from
+                    ? (location.state as any).from
+                    : '/sales/clients'
+                )
+              }
+              className="rounded-lg hover:bg-gray-100 transition"
+              aria-label="Back to clients"
+            >
+              <Icons name="left-arrow-icon" />
+            </button>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {client.name || 'Client #' + id}
+            </h1>
           </div>
-
-          {/* User Meta Info Row (Email, Phone, Role) */}
-          <div className="flex flex-wrap items-center gap-3 text-sm">
-            {client.email && (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-green-50 text-green-700 border border-green-200/80 text-xs font-medium">
-                <svg
-                  className="h-3.5 w-3.5 text-green-600 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                  />
-                </svg>
-                <span className="font-semibold text-green-800">Email:</span>
-                <span>{client.email}</span>
-              </div>
-            )}
-
-            {client.phone && (
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200/80 text-xs font-medium">
-                <svg
-                  className="h-3.5 w-3.5 text-purple-600 shrink-0"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                  />
-                </svg>
-                <span className="font-semibold text-purple-800">Phone:</span>
-                <span>{client.phone}</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200/80 text-xs font-medium capitalize">
-              <span className="font-semibold text-blue-800">Role:</span>
-              <span>Client</span>
-            </div>
-          </div>
-
-          {/* Assignments Info in Header */}
-          <div className="flex flex-wrap items-center gap-2.5 pt-3 border-t border-gray-100 text-xs">
-            <div className="flex items-center gap-1.5 font-semibold text-gray-600 mr-1">
-              <Icons name="assign-team" className="h-4 w-4 text-primary" />
-              <span>Assignments:</span>
-            </div>
-
-            {Object.entries(serviceRoleConfigs).map(([role, config]) => {
-              const assignment = client.assignments?.find(
-                (item: any) => item.role === role
-              )
-              const isAccepted = Boolean(
-                assignment?.accepted_at ||
-                  (assignment?.workflow_status &&
-                    assignment.workflow_status !== 'pending')
-              )
-
-              return (
-                <div
-                  key={role}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs transition ${
-                    assignment
-                      ? 'bg-gradient-to-r from-emerald-50/60 to-white border-emerald-200 text-emerald-950 shadow-2xs'
-                      : 'bg-gray-50/70 border-gray-200 text-gray-500'
-                  }`}
-                >
-                  <span className="font-semibold text-gray-700">
-                    {config.title}:
-                  </span>
-                  {assignment ? (
-                    <span className="inline-flex items-center gap-1.5 font-medium text-emerald-800">
-                      <span className="truncate max-w-[140px] font-semibold">
-                        {assignment.staff_name || 'Assigned'}
-                      </span>
-                      <span
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                          isAccepted
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-amber-100 text-amber-800'
-                        }`}
-                      >
-                        {isAccepted ? 'Accepted' : 'Pending'}
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="text-gray-400 italic">Not assigned</span>
-                  )}
-                </div>
-              )
-            })}
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <span
+              className={
+                'inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium ' +
+                accountStatusColor(client.status)
+              }
+            >
+              {statusLabel(client.status)}
+            </span>
+            <span
+              className={
+                'rounded-full px-3 py-1 text-xs font-medium ' +
+                (client.profile_completed
+                  ? 'bg-emerald-50 text-emerald-700'
+                  : 'bg-amber-50 text-amber-700')
+              }
+            >
+              {client.profile_completed
+                ? 'Profile completed'
+                : 'Profile not completed'}
+            </span>
           </div>
         </div>
       </div>
