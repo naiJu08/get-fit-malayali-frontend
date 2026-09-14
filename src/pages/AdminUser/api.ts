@@ -270,9 +270,13 @@ export const sendAdminInvitation = (id?: string) => {
   return postData(`${apiUrl.ADMIN_USER}/${id}/invite`, {})
 }
 
-// Assigned Clients (for Nutritionist)
+// Assigned Clients (for Nutritionist, Physiotherapist, Yogist)
 const fetchAssignedClients = async (
-  input: QueryParams & { admin_id?: string | number }
+  input: QueryParams & {
+    admin_id?: string | number
+    status?: string
+    search?: string
+  }
 ) => {
   const url = buildUrlWithParams(apiUrl.ASSIGNED_CLIENTS, {
     ...input,
@@ -287,7 +291,11 @@ const fetchAssignedClients = async (
 }
 
 export const useAssignedClients = (
-  input: QueryParams & { admin_id?: string | number }
+  input: QueryParams & {
+    admin_id?: string | number
+    status?: string
+    search?: string
+  }
 ) => {
   return useQuery(
     ['assigned_clients', input],
@@ -635,5 +643,35 @@ export const useUserMarketingForm = (
     ['user_marketing_form', userId, formId],
     () => getUserMarketingForm(userId!, formId!),
     { enabled: Boolean(userId && formId) }
+  )
+}
+
+// User Sales Leads (admin view)
+export const useUserSalesLeads = (
+  userId: string | number | undefined,
+  params: Record<string, any>
+) => {
+  return useQuery(
+    ['user_sales_leads', userId, params],
+    () =>
+      getData(
+        `/admin/users/${userId}/sales_leads${parseQueryParams(params || {})}`
+      ),
+    { enabled: Boolean(userId) }
+  )
+}
+
+// User Sales Clients (admin view)
+export const useUserSalesClients = (
+  userId: string | number | undefined,
+  params: Record<string, any>
+) => {
+  return useQuery(
+    ['user_sales_clients', userId, params],
+    () =>
+      getData(
+        `/admin/users/${userId}/sales_clients${parseQueryParams(params || {})}`
+      ),
+    { enabled: Boolean(userId) }
   )
 }

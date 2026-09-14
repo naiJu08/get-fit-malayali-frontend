@@ -71,7 +71,7 @@ const generateInvoice = async (row: any) => {
       endDate: row?.end_date
         ? moment(row.end_date).format('DD-MM-YYYY')
         : 'N/A',
-      fees: row?.plan_fees || '0',
+      fees: row?.amount || row?.plan_fees || '0',
       status: row?.status || 'N/A',
     },
     userDetails,
@@ -83,9 +83,9 @@ const generateInvoice = async (row: any) => {
       phone: '+91 98765 43210',
     },
     totals: {
-      subtotal: row?.plan_fees || '0',
+      subtotal: row?.amount || row?.plan_fees || '0',
       tax: '0',
-      total: row?.plan_fees || '0',
+      total: row?.amount || row?.plan_fees || '0',
     },
   }
 
