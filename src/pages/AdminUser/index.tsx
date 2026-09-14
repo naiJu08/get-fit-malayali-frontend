@@ -443,7 +443,7 @@ export default function AdminUser() {
                   data={
                     isServiceStaffLogin
                       ? [
-                          { id: 'clients', label: 'Client' },
+                          { id: 'clients', label: 'Accepted Clients' },
                           { id: 'assigned-clients', label: 'Assigned Clients' },
                           { id: 'inactive-clients', label: 'Inactive Clients' },
                         ]

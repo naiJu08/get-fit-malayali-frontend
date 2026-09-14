@@ -139,7 +139,7 @@ export default function AssignedClients() {
       <div className="px-4">
         <TabContainer
           data={[
-            { id: 'clients', label: 'Client' },
+            { id: 'clients', label: 'Accepted Clients' },
             { id: 'assigned-clients', label: 'Assigned Clients' },
             { id: 'inactive-clients', label: 'Inactive Clients' },
           ]}
