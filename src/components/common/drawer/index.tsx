@@ -11,7 +11,7 @@ type Props = {
   handleClose: () => void
   children: React.ReactNode
   className?: string
-  title: string
+  title: React.ReactNode
   handleSubmit?: () => void
   handleSaveAndContinue?: () => void
   disableSubmit?: boolean
@@ -28,6 +28,9 @@ type Props = {
   }[]
   containerRef?: any
   viewMode?: any
+  unmountOnClose?: boolean
+  accentHeader?: boolean
+  zIndex?: number
 }
 
 export default function CustomDrawer(props: Props) {
@@ -49,6 +52,9 @@ export default function CustomDrawer(props: Props) {
     headerFilter,
     containerRef,
     viewMode,
+    unmountOnClose,
+    accentHeader,
+    zIndex,
   } = props
 
   const { isDark } = useThemeStore()
@@ -83,12 +89,16 @@ export default function CustomDrawer(props: Props) {
     <div>
       <Drawer
         className={`customDrawer ${
-          headerActionProps && headerActionProps?.length > 0
+          zIndex || (headerActionProps && headerActionProps?.length > 0)
             ? ''
             : 'drawer-zindex '
         } ${isDark ? 'dark' : ''}`}
         anchor="right"
         open={open}
+        sx={{ zIndex: zIndex ?? undefined }}
+        ModalProps={{
+          sx: zIndex ? { zIndex } : undefined,
+        }}
       >
         <div
           ref={drawerRef}
@@ -98,20 +108,39 @@ export default function CustomDrawer(props: Props) {
             className={` ${
               headerFilter
                 ? 'h-[118px] relative p-4 flex flex-col gap-3'
-                : 'h-[68px]  p-5 '
-            }  relative  border-b border-divider `}
+                : accentHeader
+                  ? 'h-[78px] p-5'
+                  : 'h-[68px] p-5'
+            }  relative border-b ${
+              accentHeader
+                ? 'border-blue-100 bg-blue-50/70 dark:border-divider dark:bg-[#111827]'
+                : 'border-divider'
+            } `}
           >
             <div className="flex-shrink-1 flex items-center gap-3 justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className=" cursor-pointer text-primaryText dark:text-white flex items-center"
-                  onClick={handleClose}
-                >
-                  <div className="h-4 w-4">
-                    <Icons name="close" />
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                {accentHeader ? (
+                  <button
+                    type="button"
+                    aria-label="Close drawer"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg border border-blue-100 bg-white text-primaryBlue transition-colors dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    onClick={handleClose}
+                  >
+                    <div className="h-4 w-4">
+                      <Icons name="close" />
+                    </div>
+                  </button>
+                ) : (
+                  <div
+                    className=" cursor-pointer text-primaryText dark:text-white flex items-center"
+                    onClick={handleClose}
+                  >
+                    <div className="h-4 w-4">
+                      <Icons name="close" />
+                    </div>
                   </div>
-                </div>
-                <h4 className="text-l font-semibold dark:text-white text-primaryText">
+                )}
+                <h4 className="text-l font-semibold dark:text-white text-primaryText flex flex-1 items-center min-w-0">
                   {title}
                 </h4>
               </div>
@@ -141,7 +170,7 @@ export default function CustomDrawer(props: Props) {
                   : 'px-5 py-4 '
             }`}
           >
-            {children}
+            {!unmountOnClose || open ? children : null}
           </div>
           <div className="p-5 flex items-center justify-between gap-3 border-t border-divider">
             <div>

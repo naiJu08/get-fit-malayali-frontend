@@ -1,0 +1,435 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import moment from 'moment'
+// import moment from 'moment'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { DefaultValues, FormProvider, useForm } from 'react-hook-form'
+
+import InfoBox from '../../../components/app/alertBox/infoBox'
+import FormBuilder from '../../../components/app/formBuilder'
+import { DialogModal } from '../../../components/common'
+import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
+import { humanizeDatetime } from '../../../utilities/format'
+import { useCreateTemplate, useUpdateTemplate } from '../api'
+import { useDietTemplateCategories } from '../../DietTemplateCategories/api'
+import { TemplateSchema, editFormSchema, formSchema } from './schema'
+
+const defaultFormValues: DefaultValues<TemplateSchema> = {
+  name: '',
+  description: `YOUR DIETARY & LIFESTYLE INSTRUCTIONS
+FOOD OPTION & PORTIONS
+•	Your plan is flexible! you can swap cereals ,fruits ,pulses ,or veggies as per yor preference.
+•	Stick to the portion sizes mentioned in your plan.
+•	Total visible fats (oil/ghee)should not exceed 16ml per day. A combination of oils may be used.
+•	Enjoy salads with every meal to boost your fiber intake .Have them before your main meal .
+•	Include any pulses ,lentils ,egg ,chicken ,fish ,curd ,yoghurt ,seeds , paneer ,tofu etc to meet protein requirements.
+	
+HYDRATION & DIGESTION
+•	Daily target 2 litres of water.sip slowly throughout the day instead of gulping.
+•	Allow atleast 2-3 hours of gap in between dinner & sleep for proper digestion and to improve the quality of sleep.
+•	Keep 2-3 hours gap in between meals to improve metabolism.
+
+SLEEP & CONSISTENCY
+•	Ensure 7-8 hours of sleep every night for proper hormonal balance & recovery.
+•	Never skip any meals-it may trigger cravings & lead to nutrient deficiencies.`,
+  duration_days: 7,
+  diet_template_category: '',
+  diet_template_category_id: undefined,
+  thumbnail: undefined,
+}
+
+type Props = {
+  isDrawerOpen: boolean
+  disabled?: boolean
+  handleClose: () => void
+  handleRefresh?: () => void
+  paramsId?: any
+  handleCallback?: () => void
+  model_name?: string
+  rowData?: any
+  isOwnTask?: boolean
+  isGeneral?: boolean
+  viewMode?: boolean
+  setViewMode?: (value: boolean) => void
+  edit?: boolean
+  hasPermission?: boolean
+  setEdit?: (value: boolean) => void
+  subSection?: boolean
+  setEditViewIndicator?: (value: boolean) => void
+  editViewIndicator?: boolean
+}
+
+export default function CreateAdmin({
+  isDrawerOpen,
+  handleClose,
+  handleRefresh,
+  edit,
+  viewMode,
+  setViewMode,
+  setEdit,
+  rowData,
+  setEditViewIndicator,
+}: Props) {
+  const navigate = useNavigate()
+  const titleCase = (value?: string | null) => {
+    const str = value ?? ''
+    if (!str) return ''
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
+  }
+  const textField = (
+    name: string,
+    label: string,
+    placeholder: string,
+    required = false,
+    disabled = false
+  ) => ({
+    name,
+    label,
+    id: name,
+    type: 'text',
+    placeholder,
+    ...(required ? { required: true } : {}),
+    ...(disabled ? { disabled: true } : {}),
+  })
+  const [deleteModal, setDeleteModal] = useState(false)
+  // const [thumbnailPreview, setThumbnailPreview] = useState<any>(undefined)
+  const decodeFileName = (input?: string) => {
+    const raw = String(input ?? '')
+    const fallback = raw.split('/').pop() || raw
+    try {
+      return decodeURIComponent(fallback)
+    } catch {
+      return fallback
+    }
+  }
+  const handleDeleteFile = () => {
+    console.log('handle delete')
+  }
+
+  // const existingThumbnailFile = useMemo(() => {
+  //   if (!edit || !rowData?.thumbnail_url) return undefined
+
+  //   return thumbnailPreview !== undefined
+  //     ? thumbnailPreview
+  //     : {
+  //         name: decodeFileName(rowData.thumbnail_url),
+  //         link: rowData.thumbnail_url,
+  //       }
+  // }, [edit, rowData?.thumbnail_url, thumbnailPreview])
+
+  const methods = useForm<TemplateSchema>({
+    resolver: zodResolver(edit ? editFormSchema : formSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+    defaultValues: defaultFormValues,
+  })
+  const { handleSubmit, getValues, setValue } = methods
+  const { data: dietTemplateCategoriesData } = useDietTemplateCategories({
+    page: 1,
+    per_page: 100,
+    status: 'active',
+  })
+  const dietTemplateCategoryOptions = useMemo(
+    () =>
+      Array.isArray(dietTemplateCategoriesData?.diet_template_categories)
+        ? dietTemplateCategoriesData.diet_template_categories.map(
+            (category: any) => ({
+              id: category.id,
+              name: category.name,
+            })
+          )
+        : [],
+    [dietTemplateCategoriesData?.diet_template_categories]
+  )
+
+  const parseDurationDays = (value: unknown) => {
+    if (value === null || value === undefined || value === '') return undefined
+    const numeric = Number(value)
+    return Number.isNaN(numeric) ? undefined : numeric
+  }
+  const getTemplateCategoryName = (templateData: any) => {
+    return (
+      templateData?.diet_template_category?.name ??
+      templateData?.diet_template_category_name ??
+      templateData?.diet_template_category ??
+      ''
+    )
+  }
+
+  const getTemplateCategoryId = (templateData: any) => {
+    const existingId =
+      templateData?.diet_template_category_id ??
+      templateData?.diet_template_category?.id
+    if (existingId) return existingId
+
+    const categoryName = String(getTemplateCategoryName(templateData))
+      .trim()
+      .toLowerCase()
+    return dietTemplateCategoryOptions.find(
+      (category: any) =>
+        String(category?.name ?? '')
+          .trim()
+          .toLowerCase() === categoryName
+    )?.id
+  }
+
+  useEffect(() => {
+    if (!isDrawerOpen || viewMode) return
+
+    if (edit && rowData) {
+      methods.reset({
+        ...defaultFormValues,
+        name: titleCase(rowData?.name ?? ''),
+        description: rowData?.description ?? '',
+        duration_days: parseDurationDays(rowData?.duration_days) || 7,
+        diet_template_category: getTemplateCategoryName(rowData),
+        diet_template_category_id: getTemplateCategoryId(rowData),
+      })
+      return
+    }
+
+    methods.reset({
+      ...defaultFormValues,
+      duration_days: 7,
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [edit, isDrawerOpen, methods, rowData, viewMode])
+
+  useEffect(() => {
+    if (!isDrawerOpen || !edit || !rowData) return
+    if (getValues('diet_template_category_id')) return
+
+    const categoryId = getTemplateCategoryId(rowData)
+    if (categoryId) {
+      setValue('diet_template_category_id', categoryId, {
+        shouldValidate: true,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dietTemplateCategoryOptions, edit, isDrawerOpen, rowData])
+
+  useEffect(() => {
+    if (isDrawerOpen) return
+    methods.reset(defaultFormValues)
+    // setThumbnailPreview(undefined)
+  }, [isDrawerOpen, methods])
+
+  const formBuilderProps = [
+    { ...textField('name', 'Name', 'Enter name', true), maxLength: 100 },
+    {
+      ...textField('duration_days', 'Duration (Days)', 'Enter duration', true),
+      type: 'text',
+      maxLength: 3,
+      allowPositiveOnly: true,
+      inputMode: 'numeric',
+      disabled: true,
+      value: '7',
+    },
+    {
+      name: 'diet_template_category',
+      label: 'Diet Template Category',
+      type: 'custom_search_select',
+      placeholder: 'Select diet template category',
+      required: true,
+      desc: 'name',
+      descId: 'id',
+      id: 'diet_template_category_id',
+      data: dietTemplateCategoryOptions,
+    },
+    {
+      name: 'description',
+      label: 'Guideline Content',
+      id: 'description',
+      maxLength: 2000,
+      type: 'textarea',
+      placeholder: 'Enter guideline content',
+      required: true,
+    },
+    // {
+    //   name: 'thumbnail',
+    //   label: 'Thumbnail',
+    //   id: 'thumbnail',
+    //   type: 'file_upload',
+    //   placeholder: 'Upload thumbnail image',
+    //   required: false,
+    //   accept: 'image/*',
+    //   supportedExtensions: [
+    //     'image/png',
+    //     'image/jpeg',
+    //     'image/jpg',
+    //     'image/webp',
+    //   ],
+    //   acceptedFiles: 'PNG, JPG, JPEG, WEBP',
+    //   fileSize: 5,
+    //   selectedFiles: existingThumbnailFile,
+    //   handleDeleteFile: () => {
+    //     setThumbnailPreview('')
+    //     setValue('thumbnail', '')
+    //   },
+    //   subName: 'thumbnail',
+    // },
+  ]
+
+  const handleClearAndClose = () => {
+    handleClose()
+  }
+
+  const handleSubmission = () => {
+    handleRefresh?.()
+    handleClearAndClose()
+  }
+  const onSuccess = (response: any) => {
+    handleSubmission()
+    // Navigate to diet plan page after creating template
+    const templateId = response?.diet_plan_template?.id || response?.id
+    if (templateId && !edit) {
+      navigate(`/diet-template/${templateId}/diet-plan`)
+    }
+  }
+  const { mutate, isLoading: isCreating } = useCreateTemplate(onSuccess)
+  const { mutate: updateMutation, isLoading: isUpdating } =
+    useUpdateTemplate(onSuccess)
+  const onSubmit = async (details: any) => {
+    const fd = new FormData()
+    fd.append('diet_plan_template[name]', details?.name ?? '')
+    fd.append('diet_plan_template[description]', details?.description ?? '')
+    fd.append('diet_plan_template[duration_days]', details?.duration_days ?? '')
+    fd.append(
+      'diet_plan_template[diet_template_category_id]',
+      details?.diet_template_category_id ?? ''
+    )
+    // Thumbnail handling - only append if changed
+    const thumbVal = details?.thumbnail
+    const originalThumbnailName = decodeFileName(rowData?.thumbnail_url)
+
+    // Check if thumbnail has changed
+    const thumbnailChanged =
+      thumbVal instanceof File || // New file uploaded
+      (thumbVal === '' && originalThumbnailName !== '') || // Existing thumbnail removed
+      (typeof thumbVal === 'string' && thumbVal !== originalThumbnailName) // Different string value
+
+    // Only append thumbnail key if it has changed
+    if (thumbnailChanged) {
+      // CASE 1: New thumbnail uploaded
+      if (thumbVal instanceof File) {
+        fd.append('diet_plan_template[thumbnail]', thumbVal)
+      }
+      // CASE 2: Thumbnail manually removed - append null
+      else if (thumbVal === '') {
+        fd.append('diet_plan_template[thumbnail]', null as any)
+      }
+      // CASE 3: Different thumbnail URL/string
+      else if (typeof thumbVal === 'string') {
+        fd.append('diet_plan_template[thumbnail]', thumbVal)
+      }
+    }
+    if (rowData?.id) {
+      updateMutation({ id: rowData?.id, data: fd })
+    } else {
+      mutate(fd)
+    }
+  }
+
+  const viewHeaderData = {
+    image: rowData?.user?.profile_image,
+    title: `${rowData?.user?.first_name} ${rowData?.user?.last_name} `,
+    subTitle: rowData?.user?.job_title,
+    // status: rowData?.user?.status,
+  }
+
+  const viewContentData = [
+    {
+      title: 'Communications',
+      divide: true,
+      value: [
+        {
+          label: 'email',
+          icon: 'email',
+          value: rowData?.user?.username,
+        },
+      ],
+    },
+    {
+      title: 'Job Role',
+      value: rowData?.user?.group?.name,
+    },
+    {
+      title: 'Last Login',
+      value: humanizeDatetime(rowData?.user?.last_login),
+    },
+    {
+      title: 'Created At',
+      value: rowData?.user?.datetime_created
+        ? moment(new Date(rowData?.user?.datetime_created)).format(
+            'DD-MM-YYYY h:mm a'
+          )
+        : '- -',
+    },
+    {
+      title: 'Updated At',
+      value: rowData?.user?.datetime_updated
+        ? moment(new Date(rowData?.user?.datetime_updated)).format(
+            'DD-MM-YYYY h:mm a'
+          )
+        : '- -',
+    },
+  ]
+
+  const handleChangeMode = () => {
+    setViewMode?.(false)
+    setEdit?.(true)
+    setEditViewIndicator?.(true)
+  }
+
+  return (
+    <>
+      <DialogModal
+        isOpen={deleteModal}
+        onClose={() => setDeleteModal(false)}
+        title={'Delete File'}
+        onSubmit={() => handleDeleteFile()}
+        secondaryAction={() => setDeleteModal(false)}
+        secondaryActionLabel="No, Cancel"
+        actionLabel="Yes, I am"
+        body={
+          <InfoBox content={'Are you sure you want to delete this file ?'} />
+        }
+      />
+      <DialogModal
+        isOpen={isDrawerOpen}
+        onClose={() => handleClearAndClose()}
+        title={
+          edit
+            ? 'Edit Template'
+            : viewMode
+              ? 'Template Details'
+              : 'Create Template'
+        }
+        actionLabel={viewMode ? 'Edit' : 'Save'}
+        actionLoader={isCreating || isUpdating}
+        onSubmit={
+          viewMode ? handleChangeMode : handleSubmit((data) => onSubmit(data))
+        }
+        secondaryAction={() => handleClearAndClose()}
+        secondaryActionLabel="Cancel"
+        small={false}
+        body={
+          <div className="flex flex-col gap-4">
+            {!viewMode ? (
+              <>
+                <FormProvider {...methods}>
+                  <FormBuilder data={formBuilderProps} edit={true} spacing />
+                </FormProvider>
+              </>
+            ) : (
+              <CustomeSideViewer
+                headerData={viewHeaderData}
+                contentData={viewContentData}
+              />
+            )}
+          </div>
+        }
+      />
+    </>
+  )
+}

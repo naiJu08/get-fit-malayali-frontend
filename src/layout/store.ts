@@ -40,18 +40,43 @@ export const sidebarList: SidebarItem[] = [
   {
     id: 3,
     icon: 'customer-icon',
-    name: 'Customer',
-    path: '/customer',
+    name: 'Users',
+    path: '/users',
   },
   {
     id: 4,
     icon: 'subscription-icon',
-    name: 'Subscription Plans',
-    value: 77,
-    path: '/subscription',
+    name: 'Plans',
+    path: '/plans',
+  },
+
+  {
+    id: 7,
+    icon: 'subscription-icon',
+    name: 'Subscriptions',
+    path: '/subscriptions',
   },
   {
+    id: 11,
+    icon: 'subscription-icon',
+    name: 'Notifications',
+    path: '/notifications',
+  },
+  {
+    id: 10,
+    icon: 'subscription-icon',
+    name: 'Recipes',
+    path: '/recipe',
+  },
+
+  {
     id: 5,
+    icon: 'subscription-icon',
+    name: 'Workout',
+    path: '/workout',
+  },
+  {
+    id: 15,
     icon: 'discount-icon',
     name: 'Discounts Coupons',
     value: 3,
@@ -116,6 +141,8 @@ type PagePermissions = {
   fileRepo?: Action[]
   Charter?: Action[]
   DataTables?: Action[]
+  MEAL_TIMING?: Action[]
+  ASSESSMENT_CATEGORY?: Action[]
 }
 
 type Permissions = {
@@ -133,6 +160,7 @@ const permissions: Permissions = {
       'de-activate',
       'send-invitaion',
       'reset-password',
+      'delete',
     ],
     Assessor: [
       'view',
@@ -159,6 +187,8 @@ const permissions: Permissions = {
     Tabularform: ['view', 'edit', 'create'],
     fileRepo: ['view'],
     DataTables: ['view'],
+    MEAL_TIMING: ['view', 'create', 'edit', 'delete'],
+    ASSESSMENT_CATEGORY: ['view', 'create', 'edit', 'delete'],
   },
   Assessor: {
     Employee: [],
@@ -169,6 +199,8 @@ const permissions: Permissions = {
     DEIStrategy: ['view'],
     fileRepo: ['view'],
     DataTables: ['view'],
+    MEAL_TIMING: ['view'],
+    ASSESSMENT_CATEGORY: ['view'],
   },
   Organisation: {
     Employee: [],
@@ -179,21 +211,39 @@ const permissions: Permissions = {
     DEIStrategy: ['view', 'edit'],
     fileRepo: ['view', 'create', 'delete'],
     DataTables: ['view', 'edit'],
+    MEAL_TIMING: ['view', 'create', 'edit', 'delete'],
+    ASSESSMENT_CATEGORY: ['view', 'create', 'edit', 'delete'],
   },
 }
 
-const domain = useDomainManageStore.getState().domainType as keyof Permissions
 export const checkPermissions = (
   page: keyof PagePermissions,
   action: Action
 ): boolean => {
-  const pagePermissions = permissions[domain][page]
-
-  return pagePermissions?.includes(action) ?? false
+  const current = useDomainManageStore.getState()
+    .domainType as keyof Permissions
+  const safeDomain: keyof Permissions = [
+    'Employee',
+    'Assessor',
+    'Organisation',
+  ].includes((current as unknown as string) || '')
+    ? current
+    : 'Employee'
+  const pagePermissions = permissions[safeDomain]?.[page] || []
+  return pagePermissions.includes(action)
 }
 
 export const checkPath = () => {
-  if (domain == 'Organisation') {
+  const current = useDomainManageStore.getState()
+    .domainType as keyof Permissions
+  const safeDomain: keyof Permissions = [
+    'Employee',
+    'Assessor',
+    'Organisation',
+  ].includes((current as unknown as string) || '')
+    ? current
+    : 'Employee'
+  if (safeDomain == 'Organisation') {
     return ''
   } else {
     return '/organisation'
