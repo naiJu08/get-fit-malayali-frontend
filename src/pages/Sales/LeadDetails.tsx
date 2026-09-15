@@ -291,6 +291,8 @@ export default function SalesLeadDetails({
   const [activityLoader, setActivityLoader] = useState(false)
   const [confirmationLoader, setConfirmationLoader] = useState(false)
   const [conversionLoader, setConversionLoader] = useState(false)
+  const [contactedLoader, setContactedLoader] = useState(false)
+  const [qualifiedLoader, setQualifiedLoader] = useState(false)
 
   useEffect(() => {
     window.localStorage.setItem('sales-lead-tab-' + id, activeTab)
@@ -446,6 +448,60 @@ export default function SalesLeadDetails({
   const accept = () =>
     action(() => acceptSalesLead(id), 'Lead accepted successfully')
 
+  const markAsContacted = async () => {
+    if (!hasRecordedInteraction) {
+      enqueueSnackbar(
+        'A lead in sales can be marked as contacted, qualified, or lost only if an activity such as Call, Email, WhatsApp, Meeting, or Note is recorded.',
+        { variant: 'error' }
+      )
+      setSelectedActivityType('call')
+      activityMethods.reset({
+        activity_type_label: 'Call',
+        activity_type: 'call',
+        notes: '',
+      })
+      setActivityModal(true)
+      return
+    }
+    try {
+      setContactedLoader(true)
+      await createSalesInteraction(id, {
+        activity_type: 'contacted',
+        notes: 'Lead marked as contacted',
+      })
+      enqueueSnackbar('Lead marked as contacted', { variant: 'success' })
+      await refetch()
+      queryClient.invalidateQueries(['sales_leads'])
+    } catch (error: any) {
+      enqueueSnackbar(
+        getApiErrorMessage(error, 'Unable to mark lead as contacted'),
+        { variant: 'error' }
+      )
+    } finally {
+      setContactedLoader(false)
+    }
+  }
+
+  const markAsQualified = async () => {
+    try {
+      setQualifiedLoader(true)
+      await createSalesInteraction(id, {
+        activity_type: 'qualified',
+        notes: 'Lead marked as qualified',
+      })
+      enqueueSnackbar('Lead marked as qualified', { variant: 'success' })
+      await refetch()
+      queryClient.invalidateQueries(['sales_leads'])
+    } catch (error: any) {
+      enqueueSnackbar(
+        getApiErrorMessage(error, 'Unable to mark lead as qualified'),
+        { variant: 'error' }
+      )
+    } finally {
+      setQualifiedLoader(false)
+    }
+  }
+
   const saveActivity = async () => {
     const valid = await activityMethods.trigger()
     if (!valid) {
@@ -592,14 +648,53 @@ export default function SalesLeadDetails({
                 onClick={accept}
               />
             )}
+            {!isSuperAdmin && lead?.accepted && lead?.status === 'accepted' && (
+              <Button
+                label="Contacted"
+                icon="phone"
+                onClick={markAsContacted}
+                isLoading={contactedLoader}
+              />
+            )}
             {!isSuperAdmin &&
               lead?.accepted &&
-              ['accepted', 'contacted', 'qualified'].includes(lead.status) && (
+              lead?.status === 'contacted' && (
+                <Button
+                  label="Qualified"
+                  icon="badge-check"
+                  onClick={markAsQualified}
+                  isLoading={qualifiedLoader}
+                />
+              )}
+            {!isSuperAdmin &&
+              lead?.accepted &&
+              lead?.status === 'qualified' && (
                 <Button
                   label="Confirmation link"
                   icon="link"
                   outlined
                   onClick={() => setConfirmationModal(true)}
+                />
+              )}
+            {!isSuperAdmin &&
+              lead?.accepted &&
+              (lead?.status === 'confirmation_pending' ||
+                lead?.status === 'client_confirmation') && (
+                <Button
+                  label="Confirmation link"
+                  icon="link"
+                  outlined
+                  onClick={() => {
+                    if (lead?.confirmation?.public_url) {
+                      copyLink(
+                        lead.confirmation.public_url,
+                        'Confirmation link'
+                      )
+                      setSuccessModal(true)
+                    } else {
+                      setConfirmationModal(true)
+                    }
+                  }}
                 />
               )}
             {!isSuperAdmin &&
