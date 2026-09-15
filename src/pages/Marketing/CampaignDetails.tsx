@@ -134,17 +134,17 @@ function formatDate(d: any) {
 }
 
 function displayStatus(value: any) {
-  return String(value || 'draft')
+  return String(value || 'upcoming')
     .replace(/_/g, ' ')
     .replace(/^./, (letter) => letter.toUpperCase())
 }
 
 function statusColor(value: any) {
   const s = String(value || '').toLowerCase()
-  if (s === 'active') return 'bg-green-50 text-green-700'
-  if (s === 'draft') return 'bg-yellow-50 text-yellow-700'
-  if (s === 'inactive') return 'bg-gray-100 text-gray-600'
-  return 'bg-gray-100 text-gray-600'
+  if (s === 'active') return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+  if (s === 'upcoming') return 'bg-blue-50 text-blue-700 border-blue-200'
+  if (s === 'expired') return 'bg-rose-50 text-rose-700 border-rose-200'
+  return 'bg-gray-100 text-gray-600 border-gray-200'
 }
 
 const escapeHtml = (value: any) =>
@@ -851,6 +851,12 @@ export default function CampaignDetails() {
 
   const copyLink = async () => {
     if (!campaign) return
+    if (String(campaign?.status || '').toLowerCase() !== 'active') {
+      enqueueSnackbar('Public link is only available for active campaigns', {
+        variant: 'warning',
+      })
+      return
+    }
     try {
       const publicUrl = new URL(
         `/public/campaigns/${campaign.public_token}`,
@@ -870,6 +876,12 @@ export default function CampaignDetails() {
   const iframeLoadTimeRef = React.useRef(0)
 
   const openAddLead = () => {
+    if (String(campaign?.status || '').toLowerCase() !== 'active') {
+      enqueueSnackbar('Campaign form is only available in active mode', {
+        variant: 'warning',
+      })
+      return
+    }
     if (campaign?.public_token || campaign?.public_url) {
       iframeLoadTimeRef.current = Date.now()
       setIframeLoading(true)
@@ -911,11 +923,9 @@ export default function CampaignDetails() {
     }
   }, [selectedFormData])
 
-  const campaignStatusOptions = [
-    { id: 'draft', name: 'Draft' },
-    { id: 'active', name: 'Active' },
-    { id: 'inactive', name: 'Inactive' },
-  ]
+  const isCampaignFormChangeAllowed =
+    !editingCampaign?.id ||
+    String(editingCampaign?.status || '').toLowerCase() === 'upcoming'
 
   const campaignFormFields: any[] = useMemo(
     () => [
@@ -934,17 +944,6 @@ export default function CampaignDetails() {
         placeholder: 'Describe the purpose of this campaign',
         maxLength: 500,
       },
-      {
-        name: 'status',
-        id: 'status_value',
-        label: 'Status',
-        type: 'custom_select',
-        desc: 'name',
-        descId: 'id',
-        data: campaignStatusOptions,
-        required: true,
-        placeholder: 'Select status',
-      },
     ],
     []
   )
@@ -954,8 +953,6 @@ export default function CampaignDetails() {
     defaultValues: {
       name: '',
       description: '',
-      status: 'Active',
-      status_value: 'active',
       starts_on: '',
       ends_on: '',
     },
@@ -970,6 +967,13 @@ export default function CampaignDetails() {
     const d = String(value.getDate()).padStart(2, '0')
     return `${y}-${m}-${d}`
   }
+  const computeStatusFromDates = (startsOn: string, endsOn: string) => {
+    if (!startsOn || !endsOn) return ''
+    const todayStr = dateString(new Date())
+    if (todayStr < startsOn) return 'upcoming'
+    if (todayStr > endsOn) return 'expired'
+    return 'active'
+  }
 
   const openEditCampaign = () => {
     if (!campaign) return
@@ -977,8 +981,6 @@ export default function CampaignDetails() {
     const values = {
       name: campaign.name || '',
       description: campaign.description || '',
-      status: displayStatus(campaign.status),
-      status_value: String(campaign.status || 'draft').toLowerCase(),
       starts_on: campaign.starts_on || '',
       ends_on: campaign.ends_on || '',
     }
@@ -998,8 +1000,6 @@ export default function CampaignDetails() {
     campaignMethods.reset({
       name: '',
       description: '',
-      status: 'Active',
-      status_value: 'active',
       starts_on: '',
       ends_on: '',
     })
@@ -1028,38 +1028,41 @@ export default function CampaignDetails() {
       })
     }
 
-    if (!valid || !rawName || !selectedForm?.id) {
-      enqueueSnackbar(
-        !rawName
-          ? 'Campaign name is required'
-          : !selectedForm?.id
-            ? 'Attach a form before saving'
-            : 'Complete the required campaign fields',
-        { variant: 'error' }
-      )
+    if (!valid || !rawName) {
+      enqueueSnackbar('Campaign name is required', { variant: 'error' })
       return
     }
-    if (
-      values.starts_on &&
-      values.ends_on &&
-      values.ends_on < values.starts_on
-    ) {
+
+    if (!values.starts_on || !values.ends_on) {
+      enqueueSnackbar('Campaign start date and end date are required', {
+        variant: 'error',
+      })
+      return
+    }
+
+    if (values.ends_on < values.starts_on) {
       enqueueSnackbar('End date must be on or after the start date', {
         variant: 'error',
       })
       return
     }
+
+    if (!selectedForm?.id) {
+      enqueueSnackbar('Attach a form before saving', { variant: 'error' })
+      return
+    }
+
     const formattedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
     try {
       setSavingCampaign(true)
-      const payload = {
+      const payload: any = {
         name: formattedName,
         description: values.description,
-        status:
-          values.status_value || String(values.status || 'draft').toLowerCase(),
-        starts_on: values.starts_on || null,
-        ends_on: values.ends_on || null,
-        marketing_form_id: selectedForm.id,
+        starts_on: values.starts_on,
+        ends_on: values.ends_on,
+      }
+      if (isCampaignFormChangeAllowed && selectedForm?.id) {
+        payload.marketing_form_id = selectedForm.id
       }
       await updateMarketingCampaign({ id: editingCampaign.id, data: payload })
       enqueueSnackbar('Campaign updated successfully', { variant: 'success' })
@@ -1075,6 +1078,13 @@ export default function CampaignDetails() {
   }
 
   const attachCampaignForm = () => {
+    if (!isCampaignFormChangeAllowed) {
+      enqueueSnackbar(
+        'Form cannot be changed once the campaign is active or expired',
+        { variant: 'error' }
+      )
+      return
+    }
     if (!selectedForm?.id) {
       enqueueSnackbar('Select a form to attach', { variant: 'error' })
       return
@@ -1217,22 +1227,11 @@ export default function CampaignDetails() {
                 />
               </div>
               {campaign.public_url &&
-                String(campaign.status || '').toLowerCase() !== 'inactive' && (
+                (String(campaign.status || '').toLowerCase() === 'active' ? (
                   <div className="border rounded-lg p-3 bg-white">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <span className="text-xs text-gray-500">Public Link</span>
                       <div className="flex items-center gap-2">
-                        {/* <button
-                        onClick={() => {
-                          iframeLoadTimeRef.current = Date.now()
-                          setIframeLoading(true)
-                          setShowAddLeadModal(true)
-                        }}
-                        className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
-                      >
-                        <Icons name="external-link" />
-                        Open
-                      </button> */}
                         <button
                           onClick={copyLink}
                           className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
@@ -1246,7 +1245,16 @@ export default function CampaignDetails() {
                       {campaign.public_url}
                     </div>
                   </div>
-                )}
+                ) : (
+                  <div className="border border-dashed border-gray-200 rounded-lg p-3 bg-gray-50 text-xs text-gray-500">
+                    Public form link is only available when the campaign is
+                    active. (Current status:{' '}
+                    <span className="font-semibold capitalize">
+                      {displayStatus(campaign.status)}
+                    </span>
+                    )
+                  </div>
+                ))}
             </div>
           </Tab>
           <Tab id="leads">
@@ -1357,8 +1365,8 @@ export default function CampaignDetails() {
                       onClick={() => openAssignModal(selectedLeads)}
                     />
                   )}
-                  {String(campaign?.status || '').toLowerCase() !==
-                    'inactive' && (
+                  {String(campaign?.status || '').toLowerCase() ===
+                    'active' && (
                     <Button
                       label="Add lead"
                       icon="plus"
@@ -1756,6 +1764,45 @@ export default function CampaignDetails() {
         body={
           <FormProvider {...campaignMethods}>
             <FormBuilder data={campaignFormFields} edit spacing />
+            <div className="mt-5 grid grid-cols-6 gap-4">
+              <div className="col-span-6">
+                <DatePicker
+                  label="Campaign date range"
+                  required
+                  name="campaign_date_range"
+                  selectRange
+                  value={campaignDateRange}
+                  onChange={handleCampaignDateRange}
+                  placeholder="Select start and end dates"
+                  fromPopup
+                />
+                {computeStatusFromDates(
+                  campaignMethods.watch('starts_on'),
+                  campaignMethods.watch('ends_on')
+                ) ? (
+                  <div className="mt-2 flex items-center gap-2">
+                    <span className="text-xs text-gray-500">
+                      Calculated status:
+                    </span>
+                    <span
+                      className={`inline-block px-2.5 py-0.5 text-xs font-semibold rounded-full border capitalize ${statusColor(
+                        computeStatusFromDates(
+                          campaignMethods.watch('starts_on'),
+                          campaignMethods.watch('ends_on')
+                        )
+                      )}`}
+                    >
+                      {displayStatus(
+                        computeStatusFromDates(
+                          campaignMethods.watch('starts_on'),
+                          campaignMethods.watch('ends_on')
+                        )
+                      )}
+                    </span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
             <div className="mt-5 w-full rounded-xl border bg-gray-50 p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
@@ -1766,16 +1813,32 @@ export default function CampaignDetails() {
                     Choose the form that will collect campaign leads.
                   </p>
                 </div>
-                <Button
-                  label={selectedForm ? 'Change form' : 'Add form'}
-                  icon="plus"
-                  outlined
-                  onClick={() => {
-                    setFormParams({ ...formParams, page: 1, search: '' })
-                    setFormDrawerOpen(true)
-                  }}
-                />
+                {isCampaignFormChangeAllowed ? (
+                  <Button
+                    label={selectedForm ? 'Change form' : 'Add form'}
+                    icon="plus"
+                    outlined
+                    onClick={() => {
+                      setFormParams({ ...formParams, page: 1, search: '' })
+                      setFormDrawerOpen(true)
+                    }}
+                  />
+                ) : (
+                  <span className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1">
+                    Locked ({displayStatus(editingCampaign?.status)})
+                  </span>
+                )}
               </div>
+              {!isCampaignFormChangeAllowed && (
+                <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 p-2.5 text-xs text-amber-800 flex items-center gap-1.5">
+                  <Icons name="info" className="shrink-0 text-amber-600" />
+                  <span>
+                    Form cannot be changed once the campaign is active or
+                    expired. Changing the form is only allowed for upcoming
+                    campaigns.
+                  </span>
+                </div>
+              )}
               {selectedForm ? (
                 <div className="mt-4 rounded-lg border bg-white p-3 flex items-center justify-between">
                   <div>
@@ -1784,28 +1847,17 @@ export default function CampaignDetails() {
                       {selectedForm.status}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className="text-sm text-red-600"
-                    onClick={() => setSelectedForm(null)}
-                  >
-                    Remove
-                  </button>
+                  {isCampaignFormChangeAllowed ? (
+                    <button
+                      type="button"
+                      className="text-sm text-red-600 hover:underline"
+                      onClick={() => setSelectedForm(null)}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
                 </div>
               ) : null}
-            </div>
-            <div className="mt-5 grid grid-cols-6 gap-4">
-              <div className="col-span-6">
-                <DatePicker
-                  label="Campaign date range"
-                  name="campaign_date_range"
-                  selectRange
-                  value={campaignDateRange}
-                  onChange={handleCampaignDateRange}
-                  placeholder="Select start and end dates"
-                  fromPopup
-                />
-              </div>
             </div>
           </FormProvider>
         }

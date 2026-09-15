@@ -48,26 +48,111 @@ export default function PublicCampaign() {
     )
   }
 
-  if (error || !data?.campaign) {
+  const campaign = data?.campaign
+  const errorData = (error as any)?.response?.data
+  const isInactive =
+    campaign?.is_active === false ||
+    campaign?.status === 'expired' ||
+    campaign?.status === 'inactive' ||
+    errorData?.status === 'expired' ||
+    errorData?.status === 'inactive' ||
+    (errorData?.message &&
+      String(errorData.message).toLowerCase().includes('no longer active'))
+
+  const isUpcoming =
+    campaign?.status === 'upcoming' ||
+    errorData?.status === 'upcoming' ||
+    (errorData?.message &&
+      String(errorData.message).toLowerCase().includes('not started'))
+
+  if (isUpcoming) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white px-5">
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
         <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-2xl">
-            !
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 text-2xl font-bold">
+            <svg
+              className="w-7 h-7 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+              />
+            </svg>
           </div>
-          <h1 className="mt-5 text-xl font-semibold text-slate-800">
-            This form is unavailable
+          <h1 className="mt-5 text-xl font-bold text-slate-800">
+            Campaign Coming Soon
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            The campaign may have ended, been paused, or the link may be
-            incorrect.
+            {campaign?.name ? (
+              <strong>{campaign.name}</strong>
+            ) : (
+              'This campaign'
+            )}{' '}
+            has not started yet. Please check back once the campaign goes live!
           </p>
         </div>
       </div>
     )
   }
 
-  const campaign = data.campaign
+  if (isInactive) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
+        <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600 text-2xl font-bold">
+            <svg
+              className="w-7 h-7 text-amber-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <h1 className="mt-5 text-xl font-bold text-slate-800">
+            This Campaign is No Longer Active
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            {campaign?.name ? (
+              <strong>{campaign.name}</strong>
+            ) : (
+              'This campaign'
+            )}{' '}
+            has ended and is no longer active. Thank you for your interest!
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error || !campaign || !campaign.form) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
+        <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 text-2xl font-bold">
+            !
+          </div>
+          <h1 className="mt-5 text-xl font-bold text-slate-800">
+            Form Not Found
+          </h1>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            The link you followed may be broken or the form does not exist.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   const definition = campaign.form || {}
   const theme = definition.theme || {}
   const fields = definition.fields || []
