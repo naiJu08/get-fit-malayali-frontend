@@ -52,6 +52,7 @@ export const useLogin = (handleOnSuccess: any) => {
         const expiresIn = data?.expires_in // in seconds (e.g., 604800)
         const refreshExpiresIn = data?.refresh_expires_in // in seconds
         const user = data?.user || {}
+        const successMessage = data?.message ?? data?.data?.message
 
         setResetToken?.(undefined as any)
         setToken(token)
@@ -77,6 +78,9 @@ export const useLogin = (handleOnSuccess: any) => {
 
         setAuthenticated(true)
         setIsLoading(false)
+        enqueueSnackbar(successMessage, {
+          variant: 'success',
+        })
         handleOnSuccess?.()
         setRoleData({
           id: user.id,

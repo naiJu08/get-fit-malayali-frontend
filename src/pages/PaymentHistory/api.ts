@@ -17,10 +17,10 @@ const buildUrlWithParams = (baseUrl: string, params: QueryParams) =>
   `${baseUrl}${parseQueryParams(params)}`
 
 const fetchData = async (input: QueryParams) => {
-  const url = buildUrlWithParams(apiUrl.SUBSCRIPTIONS, { ...input })
+  const url = buildUrlWithParams(apiUrl.PAYMENTS, { ...input })
   const response = await getData(url)
   return {
-    items: response?.items || response?.subscriptions || [],
+    items: response?.items || response?.payments || [],
     total: response?.meta?.total_count ?? 0,
     total_pages: response?.meta?.total_pages ?? 1,
     current_page: response?.meta?.current_page ?? 1,
@@ -28,7 +28,7 @@ const fetchData = async (input: QueryParams) => {
 }
 
 export const useSubscriptions = (input: QueryParams) => {
-  return useQuery(['subscription_list', input], () => fetchData(input), {
+  return useQuery(['payment_history_list', input], () => fetchData(input), {
     enabled: !DISABLE_NONLOGIN_APIS,
   })
 }

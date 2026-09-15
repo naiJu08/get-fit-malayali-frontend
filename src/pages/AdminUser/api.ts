@@ -24,6 +24,11 @@ const buildUrlWithParams = (
   return `${baseUrl}${parseQueryParams(params)}`
 }
 
+const getSuccessMessage = (response: any, fallback: string) => {
+  const payload = response?.data ?? response
+  return payload?.message || response?.message || fallback
+}
+
 const fetchData = async (input: QueryParams) => {
   const url = buildUrlWithParams(apiUrl.ADMIN_USER, {
     ...input,
@@ -55,7 +60,7 @@ export const useAdminUser = (input: QueryParams) => {
   return useQuery(
     ['admin_user_list', input, roleName],
     () =>
-      roleName === 'nutritionist'
+      ['nutritionist', 'physiotherapist', 'yogist'].includes(roleName || '')
         ? fetchNutritionistUsers(input)
         : fetchData(input),
     {
@@ -178,24 +183,10 @@ export const createAdmin = (input: any) => {
 export const useCreateAdmin = (handleSubmission: (data: any) => void) => {
   const { enqueueSnackbar } = useSnackbarManager()
   return useMutation(createAdmin, {
-    onSuccess: (res: any, variables: any) => {
-      handleSubmission(res.data)
-
-      // Try to detect role from request payload first, then from response
-      const roleFromPayload = variables?.user?.role
-      const roleFromResponse =
-        res?.data?.user?.role ?? res?.data?.user?.group?.id ?? res?.data?.role
-      const role = roleFromPayload ?? roleFromResponse
-
-      const isNutritionist =
-        role === 2 ||
-        role === '2' ||
-        (typeof role === 'string' && role.toLowerCase() === 'nutritionist')
-
-      const message = isNutritionist
-        ? 'Nutritionist created successfully'
-        : 'Client created successfully'
-
+    onSuccess: (res: any) => {
+      const payload = res?.data ?? res
+      handleSubmission(payload)
+      const message = getSuccessMessage(res, 'Created successfully')
       enqueueSnackbar(message, { variant: 'success' })
     },
 
@@ -228,8 +219,9 @@ export const useUpdateAdmin = (handleSubmission: (data: any) => void) => {
   const { enqueueSnackbar } = useSnackbarManager()
   return useMutation(updateTask, {
     onSuccess: (res: any) => {
-      handleSubmission(res.data)
-      const message = res?.data?.message || res?.message
+      const payload = res?.data ?? res
+      handleSubmission(payload)
+      const message = getSuccessMessage(res, 'Updated successfully')
 
       enqueueSnackbar(message, { variant: 'success' })
     },
@@ -278,9 +270,13 @@ export const sendAdminInvitation = (id?: string) => {
   return postData(`${apiUrl.ADMIN_USER}/${id}/invite`, {})
 }
 
-// Assigned Clients (for Nutritionist)
+// Assigned Clients (for Nutritionist, Physiotherapist, Yogist)
 const fetchAssignedClients = async (
-  input: QueryParams & { admin_id?: string | number }
+  input: QueryParams & {
+    admin_id?: string | number
+    status?: string
+    search?: string
+  }
 ) => {
   const url = buildUrlWithParams(apiUrl.ASSIGNED_CLIENTS, {
     ...input,
@@ -295,7 +291,11 @@ const fetchAssignedClients = async (
 }
 
 export const useAssignedClients = (
-  input: QueryParams & { admin_id?: string | number }
+  input: QueryParams & {
+    admin_id?: string | number
+    status?: string
+    search?: string
+  }
 ) => {
   return useQuery(
     ['assigned_clients', input],
@@ -614,5 +614,64 @@ export const useInactiveUsers = (input: QueryParams) => {
     {
       enabled: !DISABLE_NONLOGIN_APIS,
     }
+  )
+}
+
+export const getUserMarketingForms = (userId: string, params: any) => {
+  const url = `${apiUrl.USER_MARKETING_FORMS}/${userId}/marketing_forms${parseQueryParams(params || {})}`
+  return getData(url)
+}
+
+export const useUserMarketingForms = (userId: string, params: any) => {
+  return useQuery(
+    ['user_marketing_forms', userId, params],
+    () => getUserMarketingForms(userId, params),
+    { enabled: Boolean(userId) }
+  )
+}
+
+export const getUserMarketingForm = (userId: string, formId: string) => {
+  const url = `${apiUrl.USER_MARKETING_FORMS}/${userId}/marketing_forms/${formId}`
+  return getData(url)
+}
+
+export const useUserMarketingForm = (
+  userId: string | null,
+  formId: string | null
+) => {
+  return useQuery(
+    ['user_marketing_form', userId, formId],
+    () => getUserMarketingForm(userId!, formId!),
+    { enabled: Boolean(userId && formId) }
+  )
+}
+
+// User Sales Leads (admin view)
+export const useUserSalesLeads = (
+  userId: string | number | undefined,
+  params: Record<string, any>
+) => {
+  return useQuery(
+    ['user_sales_leads', userId, params],
+    () =>
+      getData(
+        `/admin/users/${userId}/sales_leads${parseQueryParams(params || {})}`
+      ),
+    { enabled: Boolean(userId) }
+  )
+}
+
+// User Sales Clients (admin view)
+export const useUserSalesClients = (
+  userId: string | number | undefined,
+  params: Record<string, any>
+) => {
+  return useQuery(
+    ['user_sales_clients', userId, params],
+    () =>
+      getData(
+        `/admin/users/${userId}/sales_clients${parseQueryParams(params || {})}`
+      ),
+    { enabled: Boolean(userId) }
   )
 }

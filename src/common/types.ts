@@ -190,6 +190,8 @@ export interface QueryParams {
   currentDomain?: string
   parent_id?: string | number
   status?: string
+  category_type?: string
+  [key: string]: any
 }
 export interface SearchParams {
   search?: string
@@ -375,6 +377,7 @@ export interface TabProps {
   data: TabItemProps[]
   activeTab: string | number
   onClick: (item: TabItemProps) => void
+  action?: React.ReactNode
 
   children: React.ReactNode
 }
@@ -449,6 +452,7 @@ export interface StoreFilterParams {
 export interface FormBuilderProps {
   wordCount: any
   maxLength: number | undefined
+  minLength?: number
   setAttachmentName?: (value: any) => void
   needConfirmation?: boolean | undefined
   fileDeleteFlag?: boolean | undefined

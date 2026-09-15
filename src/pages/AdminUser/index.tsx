@@ -5,7 +5,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { TableColumns } from '../../common/types'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import ResetPassword from '../../components/app/resetPassword'
-import { DialogModal, TextField } from '../../components/common'
+import { DialogModal, TabContainer, TextField } from '../../components/common'
 import Button from '../../components/common/buttons/Button'
 // import FreezeUserModal from '../../components/common/modal/FreezeUserModal'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
@@ -68,10 +68,33 @@ const ROLE_HEADER_LABELS: Record<UserRole, string> = {
   marketing: 'Marketing',
   'inactive-user': 'Inactive Clients',
 }
+const getRoleFromPath = (path: string): UserRole => {
+  const matchedRole = (
+    [
+      'nutritionist',
+      'physiotherapist',
+      'yogist',
+      'sales',
+      'marketing',
+    ] as UserRole[]
+  ).find(
+    (role) =>
+      path === ROLE_PATHS[role] || path.startsWith(ROLE_PATHS[role] + '/')
+  )
+  return matchedRole || 'user'
+}
+
+const getSuccessMessage = (response: any, fallback: string) =>
+  response?.message || response?.data?.message || fallback
 
 export default function AdminUser() {
   const navigate = useNavigate()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isServiceStaffLogin = [
+    'nutritionist',
+    'physiotherapist',
+    'yogist',
+  ].includes(loginRole || '')
   const location = useLocation()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
@@ -100,7 +123,7 @@ export default function AdminUser() {
   } | null>(null)
 
   const params = useParams()
-  const [activeRole, setActiveRole] = useState<UserRole>('user')
+  const activeRole = getRoleFromPath(location.pathname)
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
@@ -111,24 +134,8 @@ export default function AdminUser() {
     search: search,
     ordering: ordering,
     ...filters,
+    role: activeRole,
   }
-  useEffect(() => {
-    const path = location.pathname || ''
-    const role = (
-      [
-        'nutritionist',
-        'physiotherapist',
-        'yogist',
-        'sales',
-        'marketing',
-        'inactive-user',
-        'user',
-      ] as UserRole[]
-    ).find((key) => path.startsWith(ROLE_PATHS[key]))
-    setActiveRole(role || 'user')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname])
-
   // Reset pagination when route/section changes so we always start from page 1
   useEffect(() => {
     setPageParams({
@@ -188,14 +195,6 @@ export default function AdminUser() {
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRole])
-
-  // If logged-in role is nutritionist, ensure the tab stays on 'user'
-  useEffect(() => {
-    if (loginRole === 'nutritionist' && activeRole !== 'user') {
-      setActiveRole('user')
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loginRole])
 
   // Ensure role filter follows active tab
   useEffect(() => {
@@ -407,8 +406,10 @@ export default function AdminUser() {
   const handleDeleteUser = () => {
     setloader(true)
     deleteAdmin(deleteUserId)
-      .then(() => {
-        enqueueSnackbar('User deleted successfully', { variant: 'success' })
+      .then((res) => {
+        enqueueSnackbar(getSuccessMessage(res, 'User deleted successfully'), {
+          variant: 'success',
+        })
         setloader(false)
         setDeleteUserModal(false)
         refetch()
@@ -438,39 +439,58 @@ export default function AdminUser() {
           <div className="px-4">
             <div className="flex items-center justify-between">
               {activeRole === 'user' ? (
-                <div className="flex gap-4 border-b">
-                  <button
-                    type="button"
-                    className={
-                      'px-3 py-2 -mb-px ' +
-                      (activeRole === 'user'
-                        ? 'border-b-2 border-blue-600 text-blue-600'
-                        : 'text-gray-600')
-                    }
-                    onClick={() => navigate('/users')}
-                  >
-                    Client
-                  </button>
-                  <button
-                    type="button"
-                    className={'px-3 py-2 -mb-px text-gray-600'}
-                    onClick={() => navigate('/admin/inactive-users')}
-                  >
-                    Inactive Clients
-                  </button>
-                </div>
+                <TabContainer
+                  data={
+                    isServiceStaffLogin
+                      ? [
+                          { id: 'clients', label: 'Accepted Clients' },
+                          { id: 'assigned-clients', label: 'Assigned Clients' },
+                          { id: 'inactive-clients', label: 'Inactive Clients' },
+                        ]
+                      : [
+                          { id: 'clients', label: 'Client' },
+                          { id: 'inactive-clients', label: 'Inactive Clients' },
+                        ]
+                  }
+                  action={
+                    loginRole !== 'nutritionist' &&
+                    checkPermissions('Employee', 'create') ? (
+                      <Button
+                        className="bg-primaryGreen whitespace-nowrap px-3"
+                        label={'Create ' + ROLE_LABELS[activeRole]}
+                        icon={'plus'}
+                        onClick={openDrawer}
+                      />
+                    ) : null
+                  }
+                  activeTab="clients"
+                  onClick={(tab) =>
+                    navigate(
+                      tab.id === 'clients'
+                        ? '/users'
+                        : tab.id === 'inactive-clients'
+                          ? '/admin/inactive-users'
+                          : '/users/' + loginRole + '/assigned-clients'
+                    )
+                  }
+                >
+                  {null}
+                </TabContainer>
               ) : (
                 <div />
               )}
 
-              {loginRole !== 'nutritionist' &&
+              {activeRole !== 'user' &&
+                loginRole !== 'nutritionist' &&
                 checkPermissions('Employee', 'create') && (
-                  <Button
-                    className="bg-primaryGreen mt-4"
-                    label={'Create ' + ROLE_LABELS[activeRole]}
-                    icon={'plus'}
-                    onClick={openDrawer}
-                  />
+                  <div className="mt-4 flex-shrink-0">
+                    <Button
+                      className="bg-primaryGreen whitespace-nowrap px-3"
+                      label={'Create ' + ROLE_LABELS[activeRole]}
+                      icon={'plus'}
+                      onClick={openDrawer}
+                    />
+                  </div>
                 )}
             </div>
           </div>
@@ -533,7 +553,7 @@ export default function AdminUser() {
                       navigate(`${base}/${row?.id}`)
                     },
                     title: 'View',
-                    toolTip: 'View Details',
+                    toolTip: 'View',
                   },
                   {
                     icon: <Icons name="edit" />,
@@ -576,6 +596,10 @@ export default function AdminUser() {
                     action: (rowData) => handleOpenDeleteUser(rowData?.id),
                     icon: <Icons name="delete" />,
                     toolTip: 'Delete',
+                    hide: () =>
+                      ['nutritionist', 'yogist', 'physiotherapist'].includes(
+                        loginRole || ''
+                      ),
                   },
                 ]}
                 searchValue={pageParams?.search}

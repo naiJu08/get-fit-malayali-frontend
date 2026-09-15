@@ -134,6 +134,9 @@ export const deleteWorkoutPlanExercise = (
   })
 }
 
+const capitalizeWords = (text: string) =>
+  text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
+
 // Fetch subcategories for a given category to power Assign drawer multi-select
 // Uses /categories/:id (getCategoriesDetails-like endpoint)
 export const getWorkoutPlanSubcategories = async (
@@ -147,8 +150,20 @@ export const getWorkoutPlanSubcategories = async (
   const container =
     detail?.category ?? detail?.data?.category ?? detail?.data ?? detail
   const subs: any[] = container?.subcategories || container?.subcategory || []
-  return (Array.isArray(subs) ? subs : []).map((sub: any) => ({
-    id: sub?.id,
-    value: sub?.name ?? '',
-  }))
+  const rawCatName = container?.name ?? ''
+  const catName = capitalizeWords(rawCatName)
+
+  return (Array.isArray(subs) ? subs : []).map((sub: any) => {
+    const rawSubName = sub?.name ?? sub?.value ?? ''
+    const subName = capitalizeWords(rawSubName)
+    const formattedValue =
+      catName && subName ? `${catName} - ${subName}` : subName
+    return {
+      id: sub?.id,
+      value: formattedValue,
+      subName,
+      catName,
+      categoryId: parentId,
+    }
+  })
 }

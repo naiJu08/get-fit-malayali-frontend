@@ -5,6 +5,7 @@ import { Route, Routes } from 'react-router-dom'
 // import TabularLoader from '../components/common/tabularLoader'
 import { router_config } from '../configs/route.config'
 import ResetPassword from '../pages/userManagement/resetPasswords'
+import AssignedClients from '../pages/AssignedClients'
 // import ResetPassword from '../pages/userManagement/resetpassword'
 import ChildRoute from './components/childRoute'
 // import ChildRoute from './components/childRoute'
@@ -76,10 +77,45 @@ const YogaTemplateDetails = lazy(() => import('../pages/YogaTemplate/Details'))
 const YogaTemplateDayDetails = lazy(
   () => import('../pages/YogaTemplate/DayDetails')
 )
+const YogaCategoriesMain = lazy(() => import('../pages/YogaCategories'))
+const YogaCategoriesDetails = lazy(
+  () => import('../pages/YogaCategories/Details')
+)
 const DietTemplateCategories = lazy(
   () => import('../pages/DietTemplateCategories')
 )
 const AssessmentCategory = lazy(() => import('../pages/AssessmentCategory'))
+const MarketingForms = lazy(() => import('../pages/Marketing/Forms'))
+const MarketingFormEditor = lazy(() => import('../pages/Marketing/FormEditor'))
+const MarketingFormDetails = lazy(
+  () => import('../pages/Marketing/FormDetails')
+)
+const MarketingCampaigns = lazy(() => import('../pages/Marketing/Campaigns'))
+const MarketingCampaignDetails = lazy(
+  () => import('../pages/Marketing/CampaignDetails')
+)
+const MarketingLeadDetails = lazy(
+  () => import('../pages/Marketing/LeadDetails')
+)
+const PublicCampaign = lazy(() => import('../pages/Marketing/PublicCampaign'))
+const MarketingDashboard = lazy(
+  () => import('../pages/dashboard/module-dashboard')
+)
+const SalesDashboard = lazy(() => import('../pages/dashboard/module-dashboard'))
+const SalesLeads = lazy(() => import('../pages/Sales/Leads'))
+const SalesLeadDetails = lazy(() => import('../pages/Sales/LeadDetails'))
+const SalesClients = lazy(() => import('../pages/Sales/Clients'))
+const SalesClientDetails = lazy(() => import('../pages/Sales/ClientDetails'))
+const AssignedClientDetails = lazy(
+  () => import('../pages/AssignedClients/Details')
+)
+const PublicLeadConfirmation = lazy(
+  () => import('../pages/Sales/PublicConfirmation')
+)
+const PublicClientRegistration = lazy(
+  () => import('../pages/Sales/PublicClientRegistration')
+)
+
 const AssessmentCategoryDetails = lazy(
   () => import('../pages/AssessmentCategory/Details')
 )
@@ -100,6 +136,8 @@ const routes: any = [
   { slug: 'YOGA_TEMPLATE', component: <YogaTemplateMain /> },
   { slug: 'YOGA_TEMPLATE_DETAILS', component: <YogaTemplateDetails /> },
   { slug: 'YOGA_TEMPLATE_DAY', component: <YogaTemplateDayDetails /> },
+  { slug: 'YOGA_CATEGORIES', component: <YogaCategoriesMain /> },
+  { slug: 'YOGA_CATEGORIES_DETAILS', component: <YogaCategoriesDetails /> },
   { slug: 'DIET_TEMPLATE_CATEGORIES', component: <DietTemplateCategories /> },
   { slug: 'DIET_TEMPLATE_DETAILS', component: <DietTemplateDetails /> },
   { slug: 'DIET_TEMPLATE_DIET_PLAN', component: <DietTemplateDetails /> },
@@ -125,6 +163,17 @@ const routes: any = [
   { slug: 'MEAL_TIMING', component: <MealTimingMain /> },
   { slug: 'MEAL_TIMING_DETAILS', component: <MealTimingDetails /> },
   { slug: 'ASSESSMENT_CATEGORY', component: <AssessmentCategory /> },
+  { slug: 'MARKETING', component: <MarketingDashboard mode="marketing" /> },
+  { slug: 'MARKETING_FORMS', component: <MarketingForms /> },
+  { slug: 'MARKETING_FORM_EDITOR', component: <MarketingFormEditor /> },
+  { slug: 'MARKETING_CAMPAIGNS', component: <MarketingCampaigns /> },
+  { slug: 'SALES', component: <SalesDashboard mode="sales" /> },
+  { slug: 'SALES_LEADS', component: <SalesLeads /> },
+  { slug: 'SALES_CLIENTS', component: <SalesClients /> },
+  {
+    slug: 'MARKETING_CAMPAIGN_DETAILS',
+    component: <MarketingCampaignDetails />,
+  },
   {
     slug: 'ASSESSMENT_CATEGORY_DETAILS',
     component: <AssessmentCategoryDetails />,
@@ -206,6 +255,232 @@ export default function MainRoutes() {
         path="*"
       />
 
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_FORMS">
+            <MarketingForms />
+          </UserRoute>
+        }
+        path="/marketing/forms"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_FORM_EDITOR">
+            <MarketingFormEditor />
+          </UserRoute>
+        }
+        path="/marketing/forms/:id/edit"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_FORM_EDITOR">
+            <MarketingFormEditor />
+          </UserRoute>
+        }
+        path="/marketing/forms/new"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_FORMS">
+            <MarketingFormDetails />
+          </UserRoute>
+        }
+        path="/marketing/forms/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGNS">
+            <MarketingCampaigns />
+          </UserRoute>
+        }
+        path="/marketing/campaigns"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/marketing/campaigns/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/marketing/campaigns/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/marketing/campaigns/:id/leads"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:userId/campaigns/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:userId/campaigns/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingCampaignDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:userId/campaigns/:id/leads"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
+        path="/marketing/campaigns/:campaignId/leads/:leadId"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
+        path="/marketing/campaigns/:campaignId/leads/:leadId/:tab"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:userId/campaigns/:campaignId/leads/:leadId"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:userId/campaigns/:campaignId/leads/:leadId/:tab"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
+        path="/marketing/leads/:leadId"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="MARKETING_CAMPAIGN_DETAILS">
+            <MarketingLeadDetails />
+          </UserRoute>
+        }
+        path="/marketing/leads/:leadId/:tab"
+      />
+
+      <Route element={<PublicCampaign />} path="/public/campaigns/:token" />
+      <Route
+        element={<PublicLeadConfirmation />}
+        path="/public/lead-confirmations/:token"
+      />
+      <Route
+        element={<PublicClientRegistration />}
+        path="/public/client-registration/:token"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClients />
+          </UserRoute>
+        }
+        path="/users/nutritionist/assigned-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClients />
+          </UserRoute>
+        }
+        path="/users/physiotherapist/assigned-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClients />
+          </UserRoute>
+        }
+        path="/users/yogist/assigned-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClientDetails />
+          </UserRoute>
+        }
+        path="/users/nutritionist/assigned-clients/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClientDetails />
+          </UserRoute>
+        }
+        path="/users/physiotherapist/assigned-clients/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <AssignedClientDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/assigned-clients/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SALES_LEADS">
+            <SalesLeads />
+          </UserRoute>
+        }
+        path="/sales/leads"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SALES_LEADS">
+            <SalesLeadDetails />
+          </UserRoute>
+        }
+        path="/sales/leads/:id"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SALES_CLIENTS">
+            <SalesClients />
+          </UserRoute>
+        }
+        path="/sales/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SALES_CLIENTS">
+            <SalesClientDetails />
+          </UserRoute>
+        }
+        path="/sales/clients/:id"
+      />
       {/* Explicit routes for sidebar sample pages */}
       <Route
         element={
@@ -333,6 +608,78 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
+        path="/users/physiotherapist/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/sales/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/sales/:id/leads"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/sales/:id/sales_clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:id/forms"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:id/campaigns"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/:id/follow-ups"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
         path="/users/:id/subscriptions"
       />
       <Route
@@ -406,6 +753,86 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/users/nutritionist/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/nutritionist/:id/accepted-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/nutritionist/:id/assigned-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/physiotherapist/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/physiotherapist/:id/accepted-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/physiotherapist/:id/assigned-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/:id/accepted-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/:id/assigned-clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/sales/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/marketing/:id/clients"
       />
       <Route
         element={

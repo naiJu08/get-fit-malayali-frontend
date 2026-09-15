@@ -430,7 +430,7 @@ export default function YogaPlanDetails() {
       setAutoSelectEnabled(false)
     } else {
       setSelectedWorkouts([])
-      setAutoSelectEnabled(true)
+      setAutoSelectEnabled(false)
     }
   }, [assignOpen])
 
@@ -612,10 +612,12 @@ export default function YogaPlanDetails() {
             <button
               className="px-3 py-1 text-sm border rounded btn-primary"
               onClick={() => {
+                setDragIndex(null)
+                setReviewOpen(false)
                 setAssignOpen(true)
               }}
             >
-              Assign
+              Add
             </button>
           </div>
         )}
@@ -690,8 +692,7 @@ export default function YogaPlanDetails() {
                       String(categoryFilter ?? '')
                     setCategoryFilter(nextCategory)
                     if (assignOpen && changed) {
-                      selectAllNextYogasRef.current = true
-                      setSelectedWorkouts([])
+                      selectAllNextYogasRef.current = false
                       setAutoSelectEnabled(false)
                     }
                   }}

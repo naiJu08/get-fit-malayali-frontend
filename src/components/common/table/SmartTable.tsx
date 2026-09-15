@@ -158,12 +158,22 @@ const SmartTable: React.FC<SmartTableProps> = ({
     [visibleColumns]
   )
 
-  const renderCell = (col: TableColumns, row: any) => {
+  const getCellDetails = (col: TableColumns, row: any) => {
     if (col.customCell && col.renderCell) {
-      const { cell } = col.renderCell(row)
-      return cell
+      const res = col.renderCell(row)
+      if (res && typeof res === 'object' && 'cell' in res) {
+        return { cell: res.cell, toolTip: res.toolTip }
+      }
+      return { cell: res, toolTip: undefined }
     }
-    return row[col.field]
+    const val = row[col.field]
+    if (typeof val === 'string' && val.length > 40) {
+      return {
+        cell: `${val.slice(0, 40).trim()}...`,
+        toolTip: val,
+      }
+    }
+    return { cell: val, toolTip: typeof val === 'string' ? val : undefined }
   }
 
   const handleClearSearch = () => {
@@ -532,8 +542,11 @@ const SmartTable: React.FC<SmartTableProps> = ({
 
       {/* Table Content */}
       <div
-        className="overflow-y-scroll overflow-x-auto flex-1 relative"
-        style={{ maxHeight: typeof height === 'number' ? height : undefined }}
+        className="overflow-y-auto overflow-x-auto flex-1 relative"
+        style={{
+          maxHeight:
+            typeof height === 'number' ? `${height}px` : (height ?? undefined),
+        }}
       >
         <table className="min-w-full table-fixed">
           {header}
@@ -561,50 +574,61 @@ const SmartTable: React.FC<SmartTableProps> = ({
                     onMouseEnter={() => setHoveredRow(rowKey)}
                     onMouseLeave={() => setHoveredRow(null)}
                   >
-                    {renderedColumns.map((col) => (
-                      <td
-                        key={col.field}
-                        className={`
-                          px-6 py-3 text-sm text-gray-800 align-middle transition-colors duration-150
-                          ${
-                            col.align === 'right'
-                              ? 'text-right'
-                              : col.align === 'center'
-                                ? 'text-center'
-                                : 'text-left'
-                          }
-                          ${isHovered ? 'text-gray-900' : ''}
-                        `}
-                        style={{
-                          width:
-                            columnWidths[col.field] || col.colWidth || 'auto',
-                          minWidth:
-                            columnWidths[col.field] || col.colWidth || '140px',
-                        }}
-                      >
-                        {(() => {
-                          const content = renderCell(col, row)
-                          const anyCol: any = col as any
-                          if (typeof anyCol.rowClick === 'function') {
-                            return (
-                              <button
-                                type="button"
-                                className={`$${'underline-offset-2'} ${
-                                  anyCol.link
-                                    ? 'text-blue-600 hover:underline'
-                                    : 'hover:opacity-80'
-                                }`}
-                                title={anyCol.toolTip}
-                                onClick={() => anyCol.rowClick(row)}
-                              >
-                                {content}
-                              </button>
-                            )
-                          }
-                          return content
-                        })()}
-                      </td>
-                    ))}
+                    {renderedColumns.map((col) => {
+                      const { cell: content, toolTip: cellToolTip } =
+                        getCellDetails(col, row)
+                      const anyCol: any = col as any
+                      const finalToolTip =
+                        anyCol.toolTip ??
+                        cellToolTip ??
+                        (typeof content === 'string' ? content : undefined)
+
+                      return (
+                        <td
+                          key={col.field}
+                          title={finalToolTip}
+                          className={`
+                            px-6 py-3 text-sm text-gray-800 align-middle transition-colors duration-150
+                            ${
+                              col.align === 'right'
+                                ? 'text-right'
+                                : col.align === 'center'
+                                  ? 'text-center'
+                                  : 'text-left'
+                            }
+                            ${isHovered ? 'text-gray-900' : ''}
+                          `}
+                          style={{
+                            width:
+                              columnWidths[col.field] || col.colWidth || 'auto',
+                            minWidth:
+                              columnWidths[col.field] ||
+                              col.colWidth ||
+                              '140px',
+                          }}
+                        >
+                          {(() => {
+                            if (typeof anyCol.rowClick === 'function') {
+                              return (
+                                <button
+                                  type="button"
+                                  className={`$${'underline-offset-2'} ${
+                                    anyCol.link
+                                      ? 'text-blue-600 hover:underline'
+                                      : 'hover:opacity-80'
+                                  }`}
+                                  title={finalToolTip}
+                                  onClick={() => anyCol.rowClick(row)}
+                                >
+                                  {content}
+                                </button>
+                              )
+                            }
+                            return content
+                          })()}
+                        </td>
+                      )
+                    })}
 
                     {/* Actions Column */}
                     {!!actionProps.length && (

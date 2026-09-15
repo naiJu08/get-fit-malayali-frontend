@@ -21,6 +21,7 @@ import {
   addWorkoutTemplateExercises,
   removeWorkoutTemplateExercises,
 } from './api'
+import { formatDurationMinutes } from '../../utilities/format'
 import WorkoutTemplateDayForm from './DayForm'
 import CopyExercisesDialog, { CopyTargetType } from './CopyExercisesDialog'
 
@@ -272,13 +273,22 @@ function AssignTabContent({
                           {/* VIDEO BOX */}
                           <div className="relative w-full h-36 bg-black/5">
                             {embed ? (
-                              <iframe
-                                src={embed}
-                                title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
-                                className="w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                allowFullScreen
-                              />
+                              <a
+                                href={url || embed}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block w-full h-full relative group cursor-pointer"
+                                title="Open in YouTube"
+                              >
+                                <iframe
+                                  src={embed}
+                                  title={`Workout Video ${ex?.workout_id ?? ex?.id}`}
+                                  className="w-full h-full pointer-events-none"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                  allowFullScreen
+                                />
+                                <div className="absolute inset-0 bg-transparent group-hover:bg-black/10 transition-colors" />
+                              </a>
                             ) : url ? (
                               <video
                                 className="w-full h-full object-cover"
@@ -305,9 +315,7 @@ function AssignTabContent({
                               </span>
                               <span className="items-center gap-1 rounded-sm bg-green-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                                 <Icons name="clock" className="w-3 h-3" />
-                                {ex?.duration_minutes
-                                  ? `${ex.duration_minutes}s`
-                                  : '--'}
+                                {formatDurationMinutes(ex?.duration_minutes)}
                               </span>
                             </div>
                           </div>
@@ -398,6 +406,9 @@ export default function WorkoutPlanDetails() {
     return []
   }, [categoriesResponse])
 
+  const capitalizeWords = (text: string) =>
+    text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
+
   const categoryOptions = useMemo(
     () =>
       normalizedCategories.map((cat: any) => ({
@@ -427,10 +438,17 @@ export default function WorkoutPlanDetails() {
         const subId = sub?.id ?? sub?.value
         if (subId === undefined || subId === null) return
 
+        const catName = capitalizeWords(cat?.name ?? '')
+        const subName = capitalizeWords(
+          sub?.value ?? sub?.name ?? sub?.label ?? ''
+        )
+        const formattedLabel =
+          catName && subName ? `${catName} - ${subName}` : subName
+
         map[String(subId)] = {
           categoryId: cat?.id,
-          categoryName: cat?.name ?? '',
-          label: sub?.value ?? sub?.name ?? sub?.label ?? '',
+          categoryName: catName,
+          label: formattedLabel,
         }
       })
     })
@@ -455,12 +473,19 @@ export default function WorkoutPlanDetails() {
   const userSelectionTouchedRef = useRef(false)
   const wp = data?.workout_template_day || data || {}
 
+  const formattedCategoryOptions = useMemo(() => {
+    return (categoryOptions || []).map((c: any) => ({
+      ...c,
+      name: capitalizeWords(c.name),
+    }))
+  }, [categoryOptions])
+
   const selectedCategoryItems = useMemo(
     () =>
-      categoryOptions.filter((cat: any) =>
+      formattedCategoryOptions.filter((cat: any) =>
         selectedCategoryIds.map(String).includes(String(cat?.id))
       ),
-    [categoryOptions, selectedCategoryIds]
+    [formattedCategoryOptions, selectedCategoryIds]
   )
 
   useEffect(() => {
@@ -779,15 +804,21 @@ export default function WorkoutPlanDetails() {
         if (key === undefined || key === null) return null
         const cached = subcategoryLookup[String(key)]
         if (cached) return cached
+        const mapMeta = subcategoryParentMap[String(key)]
         const label =
-          item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
+          mapMeta?.label ??
+          item?.value ??
+          item?.name ??
+          item?.label ??
+          item?.desc ??
+          ''
         return {
           id: key,
           value: label,
         }
       })
       .filter(Boolean)
-  }, [selectedSubcategories, subcategoryLookup])
+  }, [selectedSubcategories, subcategoryLookup, subcategoryParentMap])
 
   const deriveSubcategorySelection = useCallback((value?: any | any[]) => {
     if (!value) return []
@@ -895,15 +926,8 @@ export default function WorkoutPlanDetails() {
 
     if (!Array.isArray(workouts) || workouts.length === 0) return
 
-    // Default behavior for brand new plans with no assignments: select all once
-    const map = new Map<any, any>()
-    workouts.forEach((w: any) => {
-      if (w && w.id != null) {
-        map.set(w.id, w)
-      }
-    })
-
-    setSelectedWorkouts(Array.from(map.values()))
+    // Default behavior for brand new plans with no assignments: keep unselected initially
+    setSelectedWorkouts([])
     userSelectionTouchedRef.current = false
     drawerSelectionInitializedRef.current = true
   }, [
@@ -1330,14 +1354,6 @@ export default function WorkoutPlanDetails() {
     setDragIndex(null)
     setDragGroup(null)
   }
-  const capitalizeWords = (text: string) =>
-    text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
-  const formattedCategoryOptions = useMemo(() => {
-    return (categoryOptions || []).map((c: any) => ({
-      ...c,
-      name: capitalizeWords(c.name),
-    }))
-  }, [categoryOptions])
 
   return (
     <div className="p-4">
@@ -1373,7 +1389,7 @@ export default function WorkoutPlanDetails() {
                 setWpPage(1)
               }}
             >
-              Assign
+              Add
             </button>
           </div>
         )}
@@ -1471,9 +1487,8 @@ export default function WorkoutPlanDetails() {
                         setWorkoutFiltersEnabled(true)
                       }
                       if (assignOpen && categoryActuallyChanged) {
-                        userSelectionTouchedRef.current = false
-                        selectAllNextWorkoutsRef.current = true
-                        setSelectedWorkouts([])
+                        userSelectionTouchedRef.current = true
+                        selectAllNextWorkoutsRef.current = false
                       }
                     }}
                   />
@@ -1492,17 +1507,36 @@ export default function WorkoutPlanDetails() {
                     paginationEnabled={false}
                     name="assign_subcategories"
                     getData={async (key?: string) => {
-                      if (!selectedCategoryId) return []
+                      if (
+                        !selectedCategoryIds ||
+                        selectedCategoryIds.length === 0
+                      )
+                        return []
 
-                      const raw = (
-                        await Promise.all(
-                          selectedCategoryIds.map((categoryId) =>
-                            getWorkoutPlanSubcategories(categoryId)
-                          )
+                      const results = await Promise.all(
+                        selectedCategoryIds.map((categoryId) =>
+                          getWorkoutPlanSubcategories(categoryId)
                         )
-                      ).flat()
+                      )
+                      const raw = results.flat()
 
                       let options = Array.isArray(raw) ? raw : []
+
+                      options.sort((a: any, b: any) => {
+                        const nameA = String(
+                          a.subName || a.value || ''
+                        ).toLowerCase()
+                        const nameB = String(
+                          b.subName || b.value || ''
+                        ).toLowerCase()
+                        if (nameA < nameB) return -1
+                        if (nameA > nameB) return 1
+                        const catA = String(a.catName || '').toLowerCase()
+                        const catB = String(b.catName || '').toLowerCase()
+                        if (catA < catB) return -1
+                        if (catA > catB) return 1
+                        return 0
+                      })
 
                       if (key) {
                         const lower = String(key).toLowerCase()
@@ -1536,9 +1570,8 @@ export default function WorkoutPlanDetails() {
                       }
 
                       if (assignOpen && prevKey !== nextKey) {
-                        userSelectionTouchedRef.current = false
-                        selectAllNextWorkoutsRef.current = true
-                        setSelectedWorkouts([])
+                        userSelectionTouchedRef.current = true
+                        selectAllNextWorkoutsRef.current = false
                       }
                     }}
                   />
@@ -1646,12 +1679,22 @@ export default function WorkoutPlanDetails() {
                             >
                               <div className="relative w-full h-40 bg-black/5">
                                 {embed ? (
-                                  <iframe
-                                    src={embed}
-                                    title={`Workout Video ${w?.id}`}
-                                    className="w-full h-full"
-                                    allowFullScreen
-                                  />
+                                  <a
+                                    href={url || embed}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block w-full h-full relative group cursor-pointer"
+                                    title="Open in YouTube"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <iframe
+                                      src={embed}
+                                      title={`Workout Video ${w?.id}`}
+                                      className="w-full h-full pointer-events-none"
+                                      allowFullScreen
+                                    />
+                                    <div className="absolute inset-0 bg-transparent group-hover:bg-black/10 transition-colors" />
+                                  </a>
                                 ) : url ? (
                                   <video
                                     className="w-full h-full object-cover"
@@ -1681,10 +1724,10 @@ export default function WorkoutPlanDetails() {
                                   </span>
                                   <span className="items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                                     <Icons name="clock" className="w-3 h-3" />
-                                    {w?.duration_minutes ||
-                                    w?.workout?.duration_minutes
-                                      ? `${w?.duration_minutes || w?.workout?.duration_minutes}s`
-                                      : '--'}
+                                    {formatDurationMinutes(
+                                      w?.duration_minutes ||
+                                        w?.workout?.duration_minutes
+                                    )}
                                   </span>
                                 </div>
                               </div>
@@ -1831,11 +1874,20 @@ export default function WorkoutPlanDetails() {
 
                             <div className="relative w-full h-30 bg-black/5">
                               {embed ? (
-                                <iframe
-                                  className="w-full h-full"
-                                  src={embed}
-                                  allowFullScreen
-                                ></iframe>
+                                <a
+                                  href={url || embed}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block w-full h-full relative group cursor-pointer"
+                                  title="Open in YouTube"
+                                >
+                                  <iframe
+                                    className="w-full h-full pointer-events-none"
+                                    src={embed}
+                                    allowFullScreen
+                                  ></iframe>
+                                  <div className="absolute inset-0 bg-transparent group-hover:bg-black/10 transition-colors" />
+                                </a>
                               ) : url ? (
                                 <video
                                   src={url}

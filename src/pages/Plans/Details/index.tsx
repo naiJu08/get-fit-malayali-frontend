@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { usePlan } from '../api'
+import { useAuthStore } from '../../../store/authStore'
 import Icons from '../../../components/common/icons'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import DietPlanIndex from './DietPlan'
@@ -39,6 +40,8 @@ export default function PlanDetails() {
 
 function PlanDetailsContent() {
   const { id } = useParams()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isSales = roleName === 'sales'
   const navigate = useNavigate()
   const location = useLocation()
   const { data, isLoading, isError, error, refetch } = usePlan(id as string)
@@ -105,7 +108,7 @@ function PlanDetailsContent() {
   }
 
   const showMeditationAssignCTA =
-    activeTab === 'meditationplan' && meditationAssignCTA?.visible
+    !isSales && activeTab === 'meditationplan' && meditationAssignCTA?.visible
 
   return (
     <div>
@@ -141,7 +144,7 @@ function PlanDetailsContent() {
             plan={plan}
             loading={isLoading as boolean}
             error={(isError ? (error as any)?.message : '') as string}
-            onEdit={() => setEditModalOpen(true)}
+            onEdit={isSales ? undefined : () => setEditModalOpen(true)}
           />
         </Tab>
         <Tab id="dietplan">

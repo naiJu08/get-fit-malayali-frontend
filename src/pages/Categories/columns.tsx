@@ -106,6 +106,44 @@ export const getColumns = ({
       customCell: true,
       ...defaultColumnProps,
     },
+    {
+      title: 'Subcategories',
+      field: 'subcategories',
+      renderCell: (row: any) => {
+        const subs = (row?.subcategories || row?.sub_categories || []) as any[]
+        if (!subs.length) {
+          return { cell: '-', toolTip: 'No subcategories' }
+        }
+        const text = subs
+          .map((s: any) =>
+            typeof s === 'string' ? s : s.name || s.title || ''
+          )
+          .filter(Boolean)
+          .join(', ')
+        return {
+          cell: (
+            <div className="flex flex-wrap gap-1">
+              {subs.map((s: any, idx: number) => {
+                const label =
+                  typeof s === 'string' ? s : s.name || s.title || ''
+                const key = typeof s === 'object' && s?.id ? s.id : idx
+                return (
+                  <span
+                    key={key}
+                    className="rounded bg-blue-50 px-2 py-0.5 text-xs text-blue-700"
+                  >
+                    {label}
+                  </span>
+                )
+              })}
+            </div>
+          ),
+          toolTip: text,
+        }
+      },
+      customCell: true,
+      ...defaultColumnProps,
+    },
     // {
     //   title: 'Intensity Level',
     //   renderCell: createRenderCell('intensity_level'),

@@ -10,35 +10,46 @@ const defaultColumnProps = {
   isVisible: true,
 }
 
+const truncateText = (value?: string, limit = 40) => {
+  if (!value) return ''
+  const trimmed = value.trim()
+  if (trimmed.length <= limit) return trimmed
+  return `${trimmed.slice(0, limit).trim()}...`
+}
+
 export const getColumns = ({
   onNameClick,
   activeRole,
 }:
   | {
       onNameClick?: (row: any) => void
-      activeRole?: 'user' | 'nutritionist'
+      activeRole?:
+        | 'user'
+        | 'nutritionist'
+        | 'physiotherapist'
+        | 'yogist'
+        | 'sales'
+        | 'marketing'
     }
   | AdminListResponse
   | any) => {
   const createRenderCell =
     (key: string, isCustom?: string) => (row: AdminListResponse | any) => {
       if (isCustom === 'fullname') {
+        const full =
+          `${row?.user?.first_name || ''} ${row?.user?.last_name || ''}`.trim()
+        const display = truncateText(full, 40)
         return {
-          cell: (
-            <>
-              {`${row?.user?.first_name || ''} ${row?.user?.last_name || ''}`.trim()}
-            </>
-          ),
+          cell: display,
+          toolTip: full,
         }
       } else if (isCustom === 'lastlogin') {
+        const dateStr = row?.user?.last_login
+          ? moment(row?.user?.last_login).format('DD-MM-YYYY')
+          : ''
         return {
-          cell: (
-            <>
-              {row?.user?.last_login
-                ? moment(row?.user?.last_login).format('DD-MM-YYYY')
-                : ''}
-            </>
-          ),
+          cell: dateStr,
+          toolTip: dateStr,
         }
       } else if (isCustom === 'capitalize') {
         const propertyValue = getNestedProperty(row, key)
@@ -49,8 +60,9 @@ export const getColumns = ({
               (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
             )
           : ''
+        const display = truncateText(cap, 40)
         return {
-          cell: cap,
+          cell: display,
           toolTip: cap,
         }
       } else if (isCustom === 'role-capitalize') {
@@ -66,8 +78,9 @@ export const getColumns = ({
                   (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
                 )
               : ''
+        const truncated = truncateText(display, 40)
         return {
-          cell: display,
+          cell: truncated,
           toolTip: display,
         }
       } else if (isCustom === 'fulldate') {
@@ -122,8 +135,9 @@ export const getColumns = ({
               (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
             )
           : ''
+        const truncated = truncateText(display, 40)
         return {
-          cell: display,
+          cell: truncated,
           toolTip: display,
         }
       } else if (isCustom === 'country') {
@@ -137,8 +151,9 @@ export const getColumns = ({
               (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
             )
           : ''
+        const truncated = truncateText(display, 40)
         return {
-          cell: display,
+          cell: truncated,
           toolTip: display,
         }
       } else if (isCustom === 'food-preference') {
@@ -153,8 +168,9 @@ export const getColumns = ({
               (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
             )
           : ''
+        const truncated = truncateText(display, 40)
         return {
-          cell: display,
+          cell: truncated,
           toolTip: display,
         }
       } else if (isCustom === 'allergies') {
@@ -169,8 +185,9 @@ export const getColumns = ({
               (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
             )
           : ''
+        const truncated = truncateText(display, 40)
         return {
-          cell: display,
+          cell: truncated,
           toolTip: display,
         }
       } else if (isCustom === 'active-plan') {
@@ -179,8 +196,9 @@ export const getColumns = ({
           getNestedProperty(row, 'subscribed_plan.plan_name') ||
           getNestedProperty(row, 'active_plan')
         const display = typeof planVal === 'string' ? planVal : ''
+        const truncated = truncateText(display, 40)
         return {
-          cell: display,
+          cell: truncated,
           toolTip: display,
         }
       } else if (isCustom === 'plan-start-date') {
@@ -219,8 +237,9 @@ export const getColumns = ({
               (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
             )
           : ''
+        const truncated = truncateText(display, 40)
         return {
-          cell: display,
+          cell: truncated,
           toolTip: display,
         }
       } else if (isCustom === 'occupation') {
@@ -235,8 +254,9 @@ export const getColumns = ({
               (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
             )
           : ''
+        const truncated = truncateText(display, 40)
         return {
-          cell: display,
+          cell: truncated,
           toolTip: display,
         }
       } else if (isCustom === 'source-enquiry') {
@@ -251,8 +271,9 @@ export const getColumns = ({
               (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
             )
           : ''
+        const truncated = truncateText(display, 40)
         return {
-          cell: display,
+          cell: truncated,
           toolTip: display,
         }
       } else if (isCustom === 'status-colored') {
@@ -269,19 +290,33 @@ export const getColumns = ({
         const pillClass = `inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
           isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
         }`
+        const truncated = truncateText(display, 40)
         return {
-          cell: <span className={pillClass}>{display}</span>,
+          cell: <span className={pillClass}>{truncated}</span>,
           toolTip: display,
         }
       } else {
+        const val = getNestedProperty(row, key)
+        const strVal =
+          typeof val === 'string'
+            ? val
+            : val !== undefined && val !== null
+              ? String(val)
+              : ''
+        const display = typeof val === 'string' ? truncateText(val, 40) : val
         return {
-          cell: getNestedProperty(row, key),
-          toolTip: getNestedProperty(row, key) ?? '',
+          cell: display,
+          toolTip: strVal,
         }
       }
     }
-
   const isNutritionist = activeRole === 'nutritionist'
+  const isPhysiotherapist = activeRole === 'physiotherapist'
+  const isYogist = activeRole === 'yogist'
+  const isSales = activeRole === 'sales'
+  const isMarketing = activeRole === 'marketing'
+  const isFlatRole = isPhysiotherapist || isYogist || isSales || isMarketing
+  const isUserRole = activeRole === 'user'
 
   const column: any[] = [
     {
@@ -293,9 +328,10 @@ export const getColumns = ({
           typeof raw === 'string' && raw.length > 0
             ? raw.charAt(0).toUpperCase() + raw.slice(1)
             : (raw ?? '')
+        const truncated = truncateText(displayValue, 40)
 
         return {
-          cell: displayValue,
+          cell: truncated,
           toolTip: displayValue,
         }
       },
@@ -320,7 +356,38 @@ export const getColumns = ({
     },
   ]
 
-  if (!isNutritionist) {
+  if (isFlatRole || isNutritionist) {
+    column.push(
+      {
+        title: 'DOB',
+        field: 'date_of_birth',
+        renderCell: createRenderCell('date_of_birth', 'dob'),
+        customCell: true,
+        ...defaultColumnProps,
+      },
+      {
+        title: 'Age',
+        field: 'age',
+        renderCell: createRenderCell('age', 'age'),
+        customCell: true,
+        ...defaultColumnProps,
+      },
+      {
+        title: 'Gender',
+        field: 'gender',
+        renderCell: createRenderCell('gender', 'capitalize'),
+        customCell: true,
+        ...defaultColumnProps,
+      }
+      // {
+      //   title: 'Created At',
+      //   field: 'created_at',
+      //   renderCell: createRenderCell('created_at', 'fulldate'),
+      //   customCell: true,
+      //   ...defaultColumnProps,
+      // }
+    )
+  } else if (isUserRole) {
     column.push(
       {
         title: 'DOB',
@@ -340,13 +407,6 @@ export const getColumns = ({
         title: 'Language',
         field: 'language',
         renderCell: createRenderCell('language', 'capitalize'),
-        customCell: true,
-        ...defaultColumnProps,
-      },
-      {
-        title: 'Assigned Team',
-        field: 'assigned_team',
-        renderCell: createRenderCell('assigned_team', 'assigned-team'),
         customCell: true,
         ...defaultColumnProps,
       },
@@ -425,13 +485,6 @@ export const getColumns = ({
         renderCell: createRenderCell('occupation', 'occupation'),
         customCell: true,
         ...defaultColumnProps,
-      },
-      {
-        title: 'Source Enquiry',
-        field: 'source_enquiry',
-        renderCell: createRenderCell('source_enquiry', 'source-enquiry'),
-        customCell: true,
-        ...defaultColumnProps,
       }
     )
   }
@@ -444,7 +497,7 @@ export const getColumns = ({
     ...defaultColumnProps,
   })
 
-  if (!isNutritionist) {
+  if (isUserRole) {
     column.push({
       title: 'BMI',
       field: 'bmi',

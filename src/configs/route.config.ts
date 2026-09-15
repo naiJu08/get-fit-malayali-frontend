@@ -12,16 +12,18 @@ export type RouteModule =
   | 'meditation'
   | 'diet'
   | 'finance'
+  | 'sales'
   | 'core'
 
 // Central module access map. Keep page permissions here so role changes stay consistent.
 export const MODULE_ACCESS: Record<RouteModule, string[]> = {
-  users: ['superadmin', 'nutritionist'],
+  users: ['superadmin', 'nutritionist', 'physiotherapist', 'yogist'],
   workout: ['superadmin', 'nutritionist', 'physiotherapist'],
   yoga: ['superadmin', 'nutritionist', 'yogist'],
   meditation: ['superadmin', 'nutritionist'],
   diet: ['superadmin', 'nutritionist'],
   finance: ['superadmin'],
+  sales: ['sales'],
   core: [
     'superadmin',
     'admin',
@@ -160,7 +162,7 @@ const FINANCE: RouterMenuProps = {
   label: 'Finance',
   key: 'finance',
   icon: 'paymentapproval-icon',
-  permission_slugs: ['superadmin'],
+  permission_slugs: ['superadmin', 'sales'],
   isSidebarMenu: true,
 }
 
@@ -243,7 +245,7 @@ const PLANS: RouterMenuProps = {
   key: 'plans',
   icon: 'plan',
   breadcrumb: ['PLANS', 'PLAN_DETAILS'],
-  permission_slugs: ['superadmin', 'nutritionist'],
+  permission_slugs: ['superadmin', 'nutritionist', 'sales'],
   slugOptions: ['PLANS', 'PLAN_DETAILS', 'DIET_DETAILS'],
   isSidebarMenu: true,
 }
@@ -251,7 +253,7 @@ const CATEGORIES: RouterMenuProps = {
   id: 20,
   path: '/categories',
   parent_id: 200,
-  label: 'Exercise categories',
+  label: 'Exercise Categories',
   key: 'categories',
   icon: 'category-icon',
   breadcrumb: ['CATEGORIES'],
@@ -312,7 +314,7 @@ const YOGA_TEMPLATE: RouterMenuProps = {
   parent_id: 201,
   label: 'Yoga Templates',
   key: 'yoga-templates',
-  icon: 'yoga',
+  icon: 'yoga-icon',
   breadcrumb: ['YOGA_TEMPLATE'],
   module: 'yoga',
   permission_slugs: MODULE_ACCESS.yoga,
@@ -335,6 +337,29 @@ const YOGA_TEMPLATE_DAY: RouterMenuProps = {
   isDetails: true,
   label: 'Yoga Template Day',
   key: 'yoga-template-day',
+  permission_slugs: [],
+}
+const YOGA_CATEGORIES: RouterMenuProps = {
+  id: 228,
+  path: '/yoga-categories',
+  parent_id: 201,
+  label: 'Yoga Categories',
+  key: 'yoga-categories',
+  icon: 'category-icon',
+  breadcrumb: ['YOGA_CATEGORIES'],
+  module: 'yoga',
+  permission_slugs: MODULE_ACCESS.yoga,
+  slugOptions: ['YOGA_CATEGORIES'],
+  isSidebarMenu: true,
+}
+const YOGA_CATEGORIES_DETAILS: RouterMenuProps = {
+  id: 229,
+  path: '/yoga-categories/:id',
+  parent_id: 228,
+  isDetails: true,
+  icon: 'user',
+  label: 'Yoga Category Details',
+  key: 'yoga-category-details',
   permission_slugs: [],
 }
 const DIET_TEMPLATE: RouterMenuProps = {
@@ -668,7 +693,82 @@ const PAYMENT_HISTORY: RouterMenuProps = {
   label: 'Payment History',
   icon: 'paymentapproval-icon',
   key: 'payment-history',
-  permission_slugs: ['superadmin'],
+  permission_slugs: ['superadmin', 'sales'],
+  isSidebarMenu: true,
+}
+
+const MARKETING: RouterMenuProps = {
+  path: '/marketing',
+  id: 700,
+  parent_id: null,
+  label: 'Marketing Module',
+  key: 'marketing',
+  icon: 'customer-icon',
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
+  isSidebarMenu: true,
+}
+const MARKETING_FORMS: RouterMenuProps = {
+  id: 701,
+  path: '/marketing/forms',
+  parent_id: 700,
+  label: 'Forms',
+  key: 'marketing-forms',
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
+  isSidebarMenu: true,
+}
+const MARKETING_CAMPAIGNS: RouterMenuProps = {
+  id: 702,
+  path: '/marketing/campaigns',
+  parent_id: 700,
+  label: 'Campaigns',
+  key: 'marketing-campaigns',
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
+  isSidebarMenu: true,
+}
+const MARKETING_CAMPAIGN_DETAILS: RouterMenuProps = {
+  id: 703,
+  path: '/marketing/campaigns/:id',
+  parent_id: null,
+  label: 'Campaign details',
+  key: 'marketing-campaign-details',
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
+}
+
+const MARKETING_FORM_EDITOR: RouterMenuProps = {
+  id: 704,
+  path: '/marketing/forms/:id/edit',
+  parent_id: null,
+  label: 'Form editor',
+  key: 'marketing-form-editor',
+  permission_slugs: ['superadmin', 'admin', 'marketing'],
+}
+
+const SALES: RouterMenuProps = {
+  // path: '/sales',
+  id: 800,
+  parent_id: null,
+  label: 'Sales Module',
+  key: 'sales-module',
+  icon: 'sales-icon',
+  permission_slugs: ['superadmin', ...MODULE_ACCESS.sales],
+  isSidebarMenu: true,
+}
+const SALES_LEADS: RouterMenuProps = {
+  id: 802,
+  path: '/sales/leads',
+  parent_id: 800,
+  label: 'Leads',
+  key: 'sales-leads',
+  permission_slugs: ['superadmin', ...MODULE_ACCESS.sales],
+  isSidebarMenu: true,
+}
+const SALES_CLIENTS: RouterMenuProps = {
+  id: 803,
+  path: '/sales/clients',
+  parent_id: 800,
+  label: 'Clients',
+  key: 'sales-clients',
+  permission_slugs: ['superadmin', ...MODULE_ACCESS.sales],
   isSidebarMenu: true,
 }
 
@@ -681,9 +781,21 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   YOGA_MODULE,
   DIET_NUTRITION,
   FINANCE,
+  MARKETING,
+  MARKETING_FORMS,
+  MARKETING_CAMPAIGNS,
+  MARKETING_CAMPAIGN_DETAILS,
+  MARKETING_FORM_EDITOR,
+  SALES,
+  SALES_LEADS,
+  SALES_CLIENTS,
   ASSESSMENT_CATEGORY,
   ASSESSMENT_CATEGORY_DETAILS,
   NOTIFICATIONS,
+
+  // Children under YOGA_MODULE
+  YOGA_CATEGORIES,
+  YOGA_CATEGORIES_DETAILS,
 
   // Children under FITNESS
   CATEGORIES,

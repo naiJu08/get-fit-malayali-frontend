@@ -17,6 +17,50 @@ const truncateText = (value?: string, limit = 40) => {
   return `${trimmed.slice(0, limit).trim()}…`
 }
 
+const resolveCategoryInfo = (row: any) => {
+  const categoryData = row?.category
+  if (typeof categoryData === 'string') {
+    return {
+      categoryName: categoryData,
+      subcategoryName: undefined,
+    }
+  }
+
+  const mainCategoryName =
+    typeof categoryData?.main_category?.name === 'string'
+      ? categoryData.main_category.name
+      : undefined
+
+  const primaryCategoryName =
+    mainCategoryName ??
+    (typeof categoryData?.parent?.name === 'string'
+      ? categoryData?.parent?.name
+      : undefined) ??
+    (typeof categoryData?.name === 'string' ? categoryData.name : undefined)
+
+  const explicitSubcategory =
+    (typeof getNestedProperty(row, 'subcategory.name') === 'string'
+      ? (getNestedProperty(row, 'subcategory.name') as string)
+      : undefined) ??
+    (typeof getNestedProperty(row, 'subcategory_name') === 'string'
+      ? (getNestedProperty(row, 'subcategory_name') as string)
+      : undefined) ??
+    (typeof getNestedProperty(row, 'subcategory') === 'string'
+      ? (getNestedProperty(row, 'subcategory') as string)
+      : undefined)
+
+  const derivedSubcategoryName =
+    explicitSubcategory ??
+    (mainCategoryName && typeof categoryData?.name === 'string'
+      ? categoryData.name
+      : undefined)
+
+  return {
+    categoryName: primaryCategoryName,
+    subcategoryName: derivedSubcategoryName,
+  }
+}
+
 export const getColumns = ({
   onNameClick,
   disableNameLink = false,
@@ -182,8 +226,33 @@ export const getColumns = ({
     },
     {
       title: 'Category',
-      renderCell: createRenderCell('category', 'capitalize'),
       field: 'category',
+      renderCell: (row: any) => {
+        const { categoryName } = resolveCategoryInfo(row)
+        const display = categoryName || row?.legacy_category || '-'
+        const formatted =
+          typeof display === 'string'
+            ? display.charAt(0).toUpperCase() + display.slice(1)
+            : display
+        return {
+          cell: <span>{formatted}</span>,
+          toolTip: formatted,
+        }
+      },
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
+      title: 'Subcategory',
+      field: 'subcategory',
+      renderCell: (row: any) => {
+        const { subcategoryName } = resolveCategoryInfo(row)
+        const display = subcategoryName || '-'
+        return {
+          cell: <span>{display}</span>,
+          toolTip: display,
+        }
+      },
       customCell: true,
       ...defaultColumnProps,
     },

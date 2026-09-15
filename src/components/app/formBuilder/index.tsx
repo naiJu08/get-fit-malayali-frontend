@@ -177,6 +177,21 @@ const FormBuilder: React.FC<Props> = (props) => {
               name={`${field.name}`}
               control={control}
               key={`${updatekey}${field.name}`}
+              rules={
+                field.required || field.minLength
+                  ? {
+                      ...(field.required && {
+                        required: `${field.label || 'This field'} is required`,
+                      }),
+                      ...(field.minLength && {
+                        minLength: {
+                          value: field.minLength,
+                          message: `${field.label || 'This field'} must be at least ${field.minLength} digits`,
+                        },
+                      }),
+                    }
+                  : undefined
+              }
               render={({ field: { onChange, value } }) => (
                 <TextField
                   label={field.label}
@@ -189,6 +204,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                   type={field.type}
                   maxLength={field.maxLength}
                   allowPositiveOnly={field.allowPositiveOnly}
+                  digitsOnly={field.digitsOnly}
                   onBlur={() => {
                     handleBlurChange(field)
                   }}
@@ -285,6 +301,11 @@ const FormBuilder: React.FC<Props> = (props) => {
               name={`${field.name}`}
               control={control}
               key={`${updatekey}${field.name}`}
+              rules={
+                field.required
+                  ? { required: `${field.label || 'This field'} is required` }
+                  : undefined
+              }
               render={({ field: { onChange, value } }) => (
                 <Textarea
                   label={field.label}
@@ -298,6 +319,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                   errors={!isEditable() ? errors : undefined}
                   disabled={field?.disabled ?? isEditable()}
                   maxLength={field?.maxLength}
+                  rows={(field as any)?.rows}
                   wordCount={field?.wordCount}
                 />
               )}
@@ -518,6 +540,11 @@ const FormBuilder: React.FC<Props> = (props) => {
             name={`${field.name}`}
             control={control}
             key={`${updatekey}${field.name}`}
+            rules={
+              field.required
+                ? { required: `${field.label || 'This field'} is required` }
+                : undefined
+            }
             render={({ field: { value } }) => (
               <AutoComplete
                 key={`${updatekey}${field.name}`}
@@ -549,6 +576,11 @@ const FormBuilder: React.FC<Props> = (props) => {
             name={`${field.name}`}
             key={`${updatekey}${field.name}`}
             control={control}
+            rules={
+              field.required
+                ? { required: `${field.label || 'This field'} is required` }
+                : undefined
+            }
             render={({ field: { value } }) => {
               return (
                 <>
@@ -887,10 +919,15 @@ const FormBuilder: React.FC<Props> = (props) => {
   return (
     <>
       {props.spacing ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1  gap-4">
           {data.map((field: FormBuilderProps) =>
             !field.hidden ? (
-              <div key={field.name}>{renderForm(field)}</div>
+              <div
+                key={field.name}
+                className={(field as any).fullWidth ? 'md:col-span-2' : ''}
+              >
+                {renderForm(field)}
+              </div>
             ) : null
           )}
         </div>
@@ -898,7 +935,12 @@ const FormBuilder: React.FC<Props> = (props) => {
         <>
           {data.map((field: FormBuilderProps) =>
             !field.hidden ? (
-              <div key={field.name}>{renderForm(field)}</div>
+              <div
+                key={field.name}
+                className={(field as any).fullWidth ? 'md:col-span-2' : ''}
+              >
+                {renderForm(field)}
+              </div>
             ) : null
           )}
         </>

@@ -1,5 +1,6 @@
 import React from 'react'
 import InfoBox from '../../../components/app/alertBox/infoBox'
+import PriceBadge from '../../../components/common/PriceBadge'
 
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
@@ -27,17 +28,17 @@ function DetailItem({ label, value }: { label: string; value: any }) {
   )
 }
 
-function renderFees(v: any) {
-  const num = typeof v === 'number' ? v : Number(v ?? 0)
-  if (Number.isNaN(num)) return '--'
-  const formatted = num.toLocaleString('en-IN', { maximumFractionDigits: 2 })
-  const label = `₹ ${formatted}`
-  return (
-    <span style={{ fontFamily: '"Roboto Condensed", sans-serif' }}>
-      {label}
-    </span>
-  )
-}
+// function renderFees(v: any) {
+//   const num = typeof v === 'number' ? v : Number(v ?? 0)
+//   if (Number.isNaN(num)) return '--'
+//   const formatted = num.toLocaleString('en-IN', { maximumFractionDigits: 2 })
+//   const label = `₹ ${formatted}`
+//   return (
+//     <span style={{ fontFamily: '"Roboto Condensed", sans-serif' }}>
+//       {label}
+//     </span>
+//   )
+// }
 
 export default function DetailsInfo({
   plan,
@@ -51,6 +52,18 @@ export default function DetailsInfo({
   onEdit?: () => void
 }) {
   const canEdit = typeof onEdit === 'function' && Boolean(plan?.id)
+
+  const hasMeditationPlan = (() => {
+    const medFlag = plan?.meditation_included ?? plan?.meditationIncluded
+    if (typeof medFlag === 'string') {
+      const normalized = medFlag.trim().toLowerCase()
+      return normalized === 'true' || normalized === '1' || normalized === 'yes'
+    }
+    if (typeof medFlag === 'number') {
+      return medFlag === 1
+    }
+    return Boolean(medFlag)
+  })()
 
   return (
     <>
@@ -86,11 +99,23 @@ export default function DetailsInfo({
               value={safeStr(plan?.duration_days)}
             />
             <DetailItem label="Status" value={mapActive(plan?.active)} />
-            <DetailItem label="Fees" value={renderFees(plan?.fees)} />
             <DetailItem
-              label="Meditation Plans"
-              value={safeStr(plan?.meditations_count)}
+              label="Price"
+              value={
+                <PriceBadge
+                  actualPrice={plan?.actual_price}
+                  discountedPrice={plan?.discounted_sale_price}
+                  fees={plan?.fees}
+                  variant="table"
+                />
+              }
             />
+            {hasMeditationPlan && (
+              <DetailItem
+                label="Meditation Plans"
+                value={safeStr(plan?.meditations_count)}
+              />
+            )}
             <DetailItem
               label="Subscribers"
               value={safeStr(plan?.subscribers_count)}

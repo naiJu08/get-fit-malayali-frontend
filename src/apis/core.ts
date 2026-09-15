@@ -6,6 +6,7 @@ import axios, {
 
 import { useAuthStore } from '../store/authStore'
 import { domainTypes, useDomainManageStore } from '../store/domainManageStore'
+import { getErrorMessage } from '../utilities/parsers'
 
 const domainSwitch = () => {
   const domainType = useDomainManageStore.getState().domainType
@@ -88,15 +89,23 @@ serverApi.interceptors.response.use(
       // Swallow 409 (Conflict) responses: show red snackbar and pass through as resolved to avoid runtime overlays
       if (err.response.status === 409) {
         const errorObject: any = err.response.data
+        const parsedMsg = getErrorMessage(errorObject)
         const message =
-          errorObject?.message || errorObject?.error?.message || 'Conflict'
+          parsedMsg && parsedMsg !== 'An unexpected error occurred'
+            ? parsedMsg
+            : 'Conflict'
         showError(message)
         // Pass the response along as resolved to prevent runtime overlay
         return Promise.resolve(err.response as any)
       }
       if (err.response.status && err.response.status === 404) {
         const errorObject: any = err.response.data
-        showError(errorObject?.error?.message ?? 'Page not found')
+        const parsedMsg = getErrorMessage(errorObject)
+        const message =
+          parsedMsg && parsedMsg !== 'An unexpected error occurred'
+            ? parsedMsg
+            : 'Page not found'
+        showError(message)
         // Do not navigate away on API 404s; allow callers to handle the error.
         return Promise.reject(err)
       }
@@ -109,10 +118,11 @@ serverApi.interceptors.response.use(
         if (originalRequest.url?.includes('/auth/refresh_token')) {
           console.log('[401] Refresh token endpoint failed - logging out')
           const errorObject: any = err.response.data
+          const parsedMsg = getErrorMessage(errorObject)
           const errorMessage =
-            errorObject?.message ||
-            errorObject?.error?.message ||
-            'Your session has expired. Please login again.'
+            parsedMsg && parsedMsg !== 'An unexpected error occurred'
+              ? parsedMsg
+              : 'Your session has expired. Please login again.'
           showError(errorMessage)
           useAuthStore.getState().clearAuthenticated()
           handleSession()

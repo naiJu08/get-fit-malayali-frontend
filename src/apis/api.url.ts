@@ -22,6 +22,7 @@ const ORGANISATION_URL = 'organisation'
 const MY_PROFILE = 'profile'
 const MY_PROFILE_IMAGE = 'profile-image'
 const SUBSCRIPTIONS = 'subscriptions'
+const PAYMENTS = 'payments'
 const COUNTRIES = 'countries'
 const ORGANISATION_DATATABLES = 'datatable'
 
@@ -54,6 +55,10 @@ const DUPLICATE_DIET_TEMPLATE = '/diet_plan_templates/duplicate'
 const TEMPLATE_CATEGORIES = '/diet_template_categories'
 const NUTRITIONIST_DASHBOARD = '/nutritionist/dashboard'
 const ASSESSSMENT_CATEGORY = '/admin/assessment_categories'
+const MARKETING_FORMS = '/marketing_forms'
+const MARKETING_CAMPAIGNS = '/marketing_campaigns'
+const MARKETING_SALES_TEAM = '/marketing/sales_team'
+const USER_MARKETING_FORMS = '/admin/users'
 const apiUrl: { [key: string]: string } = {
   LOGIN_URL,
   ASSESSOR_LIST_URL,
@@ -109,6 +114,11 @@ const apiUrl: { [key: string]: string } = {
   TEMPLATE_CATEGORIES,
   NUTRITIONIST_DASHBOARD,
   ASSESSSMENT_CATEGORY,
+  MARKETING_FORMS,
+  MARKETING_CAMPAIGNS,
+  MARKETING_SALES_TEAM,
+  USER_MARKETING_FORMS,
+  PAYMENTS,
 }
 
 export default apiUrl

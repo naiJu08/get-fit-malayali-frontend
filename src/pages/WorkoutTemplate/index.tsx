@@ -8,6 +8,7 @@ import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal
 import { useSnackbarManager } from '../../components/common/snackbar'
 import WorkoutTemplateForm from './create'
 import { useAuthStore } from '../../store/authStore'
+import { shortDate } from '../../utilities/format'
 import {
   useWorkoutTemplateList,
   deleteWorkoutTemplate,
@@ -19,7 +20,7 @@ export default function WorkoutTemplateIndex() {
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
   const role = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
-  const [params, setParams] = useState({ page: 1, per_page: 20, search: '' })
+  const [params, setParams] = useState({ page: 1, per_page: 10, search: '' })
   const [open, setOpen] = useState(false)
   const [editRow, setEditRow] = useState<any>(null)
   const [deleteId, setDeleteId] = useState<number | null>(null)
@@ -85,9 +86,7 @@ export default function WorkoutTemplateIndex() {
       field: 'created_at',
       customCell: true,
       renderCell: (row: any) => ({
-        cell: row.created_at
-          ? new Date(row.created_at).toLocaleDateString()
-          : '-',
+        cell: row.created_at ? shortDate(row.created_at) : '-',
       }),
     },
   ]

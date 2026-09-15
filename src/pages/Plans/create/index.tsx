@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FormProvider, useForm } from 'react-hook-form'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import ToggleSwitch from '../../../components/common/inputs/ToggleSwitch'
 import { planFormSchema, PlanSchema } from './schema'
 import FormBuilder from '../../../components/app/formBuilder'
@@ -35,9 +35,41 @@ export default function CreatePlan({
     reValidateMode: 'onChange',
   })
 
-  const { handleSubmit, reset, setError, clearErrors } = methods
-  const { mutate: createPlanMutate } = useCreatePlan()
-  const { mutate: updatePlanMutate } = useUpdatePlan()
+  const { handleSubmit, reset, setError, clearErrors, watch, setValue } =
+    methods
+  const actualPrice = watch('actual_price')
+  const discountedPrice = watch('discounted_sale_price')
+
+  useEffect(() => {
+    if (
+      actualPrice !== undefined &&
+      actualPrice !== null &&
+      discountedPrice !== undefined &&
+      discountedPrice !== null
+    ) {
+      const numActual = Number(actualPrice)
+      const numDiscount = Number(discountedPrice)
+
+      if (
+        !isNaN(numActual) &&
+        !isNaN(numDiscount) &&
+        numActual > 0 &&
+        String(actualPrice) !== '' &&
+        String(discountedPrice) !== ''
+      ) {
+        if (numDiscount > numActual) {
+          setValue('discounted_sale_price', numActual, {
+            shouldValidate: true,
+            shouldTouch: true,
+          })
+        }
+      }
+    }
+  }, [actualPrice, discountedPrice, setValue])
+
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { mutate: createPlanMutate, isLoading: isCreating } = useCreatePlan()
+  const { mutate: updatePlanMutate, isLoading: isUpdating } = useUpdatePlan()
   const queryClient = useQueryClient()
   const editingPlanId = edit
     ? (rowData?.plan?.id ?? rowData?.plan_id ?? rowData?.id)
@@ -56,6 +88,8 @@ export default function CreatePlan({
   }
 
   const onSubmit = (values: PlanSchema | any) => {
+    if (isSubmitting || isCreating || isUpdating) return
+
     const thumbVal: any = values.thumbnail
     const hasNewThumbnail = thumbVal instanceof File
     const hasExistingThumbnail = typeof thumbVal === 'string' && thumbVal !== ''
@@ -69,6 +103,8 @@ export default function CreatePlan({
     }
     clearErrors?.('thumbnail' as any)
 
+    setIsSubmitting(true)
+
     const fd = new FormData()
 
     const catVal: any = values.category
@@ -81,7 +117,11 @@ export default function CreatePlan({
     fd.append('plan[category]', categoryStr)
     fd.append('plan[description]', values.description ?? '')
     fd.append('plan[duration_days]', String(values.duration_days ?? ''))
-    fd.append('plan[fees]', String(values.fees ?? ''))
+    fd.append('plan[actual_price]', String(values.actual_price ?? ''))
+    fd.append(
+      'plan[discounted_sale_price]',
+      String(values.discounted_sale_price ?? '')
+    )
     const meditationIncluded = Boolean(values.meditation_included)
     fd.append('plan[meditation_included]', String(meditationIncluded))
 
@@ -99,6 +139,7 @@ export default function CreatePlan({
         { id: rowData.plan.id, payload: fd },
         {
           onSuccess: () => {
+            setIsSubmitting(false)
             if (editingPlanId) {
               queryClient.invalidateQueries(['plan_detail', editingPlanId])
             }
@@ -106,15 +147,22 @@ export default function CreatePlan({
             handleRefresh?.()
             handleClose()
           },
+          onError: () => {
+            setIsSubmitting(false)
+          },
         }
       )
     } else {
       createPlanMutate(fd, {
         onSuccess: () => {
+          setIsSubmitting(false)
           // Refresh the listing and close
           queryClient.invalidateQueries(['plans_list'])
           handleRefresh?.()
           handleClose()
+        },
+        onError: () => {
+          setIsSubmitting(false)
         },
       })
     }
@@ -127,7 +175,9 @@ export default function CreatePlan({
         category: resolvedPlan?.category ?? '',
         description: resolvedPlan?.description ?? '',
         duration_days: resolvedPlan?.duration_days ?? 0,
-        fees: resolvedPlan?.fees ?? 0,
+        actual_price: resolvedPlan?.actual_price ?? 0,
+        discounted_sale_price:
+          resolvedPlan?.discounted_sale_price ?? resolvedPlan?.fees ?? 0,
         meditation_included: Boolean(
           resolvedPlan?.meditation_included ?? false
         ),
@@ -141,7 +191,8 @@ export default function CreatePlan({
         category: '',
         description: '',
         duration_days: 0,
-        fees: 0,
+        actual_price: 0,
+        discounted_sale_price: 0,
         meditation_included: true,
         thumbnail: '',
       })
@@ -187,8 +238,19 @@ export default function CreatePlan({
       required: true,
     },
     {
-      ...textField('fees', 'Fees', 'Enter fees', true),
+      ...textField('actual_price', 'Actual Fees', 'Enter actual fees', true),
       type: 'number',
+      maxLength: 6,
+    },
+    {
+      ...textField(
+        'discounted_sale_price',
+        'Discount Fees',
+        'Enter discount fees',
+        true
+      ),
+      type: 'number',
+      maxLength: 6,
     },
 
     {
@@ -261,13 +323,23 @@ export default function CreatePlan({
     setEdit?.(true)
   }
 
+  const isPending = isCreating || isUpdating || isSubmitting
+
   return (
     <DialogModal
       isOpen={isDrawerOpen}
       onClose={handleClose}
       title={edit ? 'Edit Plan' : viewMode ? 'View Plan' : 'Create Plan'}
       actionLabel={viewMode ? 'Edit' : edit ? 'Save' : 'Save'}
-      onSubmit={viewMode ? handleChangeMode : handleSubmit(onSubmit)}
+      actionDisabled={isPending}
+      actionLoader={isPending}
+      onSubmit={
+        viewMode
+          ? handleChangeMode
+          : isPending
+            ? undefined
+            : handleSubmit(onSubmit)
+      }
       secondaryAction={handleClose}
       secondaryActionLabel="Cancel"
       small={false}
@@ -339,8 +411,18 @@ export default function CreatePlan({
                 </div>
               </div>
               <div>
-                <div className="text-sm text-gray-500">Fees</div>
-                <div className="font-medium">{rowData?.plan?.fees ?? '-'}</div>
+                <div className="text-sm text-gray-500">Actual Fees</div>
+                <div className="font-medium">
+                  {rowData?.plan?.actual_price ?? '-'}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Discount Fees</div>
+                <div className="font-medium">
+                  {rowData?.plan?.discounted_sale_price ??
+                    rowData?.plan?.fees ??
+                    '-'}
+                </div>
               </div>
               <div>
                 <div className="text-sm text-gray-500">Meditation Included</div>

@@ -7,7 +7,6 @@ import { FormProvider, useForm } from 'react-hook-form'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
-import { useSnackbarManager } from '../../../components/common/snackbar'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
 import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
@@ -44,6 +43,13 @@ const medicalConditionOptions: MedicalConditionOption[] = [
   { id: 'Diabetes', name: 'Diabetes' },
   { id: 'Hypertension', name: 'Hypertension' },
   { id: 'Other', name: 'Other' },
+]
+
+const workScheduleOptions = [
+  { id: 'Day shift', name: 'Day shift' },
+  { id: 'Night shift', name: 'Night shift' },
+  { id: 'Rotational shift', name: 'Rotational shift' },
+  { id: 'Flexible', name: 'Flexible' },
 ]
 
 const foodAllergyOptions: FoodAllergyOption[] = [
@@ -321,8 +327,6 @@ export default function CreateAdmin({
   setEditViewIndicator,
   activeRole,
 }: Props) {
-  const { enqueueSnackbar } = useSnackbarManager()
-
   const textField = (
     name: string,
     label: string,
@@ -362,8 +366,9 @@ export default function CreateAdmin({
 
   const isNutritionistTab =
     activeRole !== 'user' && activeRole !== 'inactive-user'
+  const isClientTab = activeRole === 'user'
   const formBuilderProps = [
-    { ...textField('name', 'Name', 'Enter full name', true) },
+    { ...textField('name', 'Name', 'Enter full name', true), maxLength: 25 },
     {
       ...textField('email', 'Email', 'Enter email', true),
       type: 'email',
@@ -387,8 +392,10 @@ export default function CreateAdmin({
     },
     {
       ...textField('phone', 'Phone Number', 'Enter phone number', true),
-      type: 'number',
+      type: 'text',
       allowPositiveOnly: true,
+      digitsOnly: true,
+      maxLength: 10,
     },
 
     {
@@ -449,7 +456,7 @@ export default function CreateAdmin({
     //   initialLoad: true,
     //   hidden: !edit,
     // },
-    ...(!isNutritionistTab
+    ...(isClientTab
       ? [
           {
             ...textField('height', 'Height (cm)', 'Enter height in cm', true),
@@ -566,7 +573,21 @@ export default function CreateAdmin({
             isMultiple: true,
           },
           { ...textField('state', 'State', 'Enter state') },
-          { ...textField('ethnicity', 'Nationality', 'e.g., Indian') },
+          { ...textField('country', 'Country', 'Enter country') },
+          { ...textField('language', 'Language', 'Enter language') },
+          {
+            name: 'work_schedule',
+            label: 'Work Schedule',
+            id: 'work_schedule',
+            desc: 'name',
+            descId: 'id',
+            data: workScheduleOptions,
+            type: 'custom_select',
+            placeholder: 'Select work schedule',
+            async: false,
+            initialLoad: true,
+          },
+          { ...textField('occupation', 'Occupation', 'Enter occupation') },
         ]
       : []),
   ]
@@ -598,6 +619,10 @@ export default function CreateAdmin({
       food_allergies: [],
       state: '',
       ethnicity: '',
+      country: '',
+      language: '',
+      work_schedule: '',
+      occupation: '',
       status: '',
     } as any)
     handleClose()
@@ -624,6 +649,10 @@ export default function CreateAdmin({
       food_allergies: [],
       state: '',
       ethnicity: '',
+      country: '',
+      language: '',
+      work_schedule: '',
+      occupation: '',
       status: '',
     } as any)
 
@@ -757,6 +786,10 @@ export default function CreateAdmin({
             ? rowData?.user?.ethnicity.charAt(0).toUpperCase() +
               rowData?.user?.ethnicity.slice(1).toLowerCase()
             : '',
+          country: rowData?.user?.country ?? rowData?.user?.ethnicity ?? '',
+          language: rowData?.user?.language ?? '',
+          work_schedule: rowData?.user?.work_schedule ?? '',
+          occupation: rowData?.user?.occupation ?? '',
           status: deriveStatusLabel(rowData?.user?.status),
         } as any)
       }
@@ -791,6 +824,10 @@ export default function CreateAdmin({
       food_allergies: [],
       state: '',
       ethnicity: '',
+      country: '',
+      language: '',
+      work_schedule: '',
+      occupation: '',
       status: '',
     } as any,
     resolver: zodResolver(
@@ -804,12 +841,6 @@ export default function CreateAdmin({
     reValidateMode: 'onChange',
   })
   const { handleSubmit } = methods
-  const handleInvalidSubmit = (formErrors: any) => {
-    const firstError = Object.values(formErrors || {})[0] as any
-    if (firstError?.message) {
-      enqueueSnackbar(String(firstError.message), { variant: 'error' })
-    }
-  }
   // Prefill role based on active tab when creating (not edit/view)
   useEffect(() => {
     if (isDrawerOpen && !edit && !viewMode) {
@@ -1061,7 +1092,14 @@ export default function CreateAdmin({
         })(),
         food_allergies: foodAllergiesToPayload(details?.food_allergies),
         state: details?.state ?? '',
-        ethnicity: details?.ethnicity ?? '',
+        ethnicity: details?.ethnicity ?? details?.country ?? '',
+        country: details?.country ?? details?.ethnicity ?? '',
+        language: details?.language ?? '',
+        work_schedule:
+          typeof details?.work_schedule === 'object'
+            ? (details?.work_schedule?.name ?? details?.work_schedule?.id ?? '')
+            : (details?.work_schedule ?? ''),
+        occupation: details?.occupation ?? '',
         ...(statusValue !== undefined ? { status: statusValue } : {}),
       },
     }
@@ -1323,9 +1361,7 @@ export default function CreateAdmin({
         actionLabel={viewMode ? 'Edit' : 'Save'}
         actionLoader={isCreating || isUpdating}
         onSubmit={
-          viewMode
-            ? handleChangeMode
-            : handleSubmit((data) => onSubmit(data), handleInvalidSubmit)
+          viewMode ? handleChangeMode : handleSubmit((data) => onSubmit(data))
         }
         secondaryAction={() => handleClearAndClose()}
         secondaryActionLabel="Cancel"

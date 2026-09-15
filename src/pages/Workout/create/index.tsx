@@ -21,7 +21,10 @@ import { FFmpeg } from '@ffmpeg/ffmpeg'
 import { fetchFile, toBlobURL } from '@ffmpeg/util'
 const toTitleCase = (value?: string) => {
   if (!value) return ''
-  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+  return value
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
 const ffmpeg = new FFmpeg()
@@ -265,12 +268,9 @@ export default function CreateAdmin({
   //   }
   //   : undefined
 
-  const { data: categoriesResponse } = useQuery(
+  const { data: categoriesResponse, refetch: refetchCategories } = useQuery(
     ['workout_categories'],
-    () => getData(apiUrl.CATEGORIES),
-    {
-      staleTime: 5 * 60 * 1000,
-    }
+    () => getData(apiUrl.CATEGORIES)
   )
 
   const normalizedCategories = useMemo(() => {
@@ -445,8 +445,9 @@ export default function CreateAdmin({
   useEffect(() => {
     if (!isDrawerOpen) return
 
+    refetchCategories()
     loadFfmpeg().catch(() => null)
-  }, [isDrawerOpen])
+  }, [isDrawerOpen, refetchCategories])
 
   const onSuccess = () => {
     handleSubmission()
@@ -476,10 +477,17 @@ export default function CreateAdmin({
       (cat) => Number(cat.id) === Number(selectedCategoryId)
     )
     if (!category) return []
-    return (category.subcategories ?? []).map((sub: any) => ({
-      id: sub?.id,
-      name: toTitleCase(sub?.name),
-    }))
+
+    const categorySubs = Array.isArray(category.subcategories)
+      ? category.subcategories
+      : []
+
+    return categorySubs
+      .filter((sub: any) => sub?.id !== undefined && sub?.id !== null)
+      .map((sub: any) => ({
+        id: sub.id,
+        name: toTitleCase(sub?.name),
+      }))
   }, [categoryOptions, selectedCategoryId])
 
   const categoryChangeRef = useRef<any>()
@@ -795,6 +803,21 @@ export default function CreateAdmin({
         (item: number, index: number, items: number[]) =>
           items.indexOf(item) === index
       )
+
+    const validSubcategoryIds = new Set(
+      subcategoryOptions.map((option: any) => Number(option.id))
+    )
+    const hasInvalidSubcategory = selectedSubcategoryIds.some(
+      (subcategoryId: number) => !validSubcategoryIds.has(subcategoryId)
+    )
+
+    if (hasInvalidSubcategory) {
+      setError('subcategory_ids', {
+        type: 'manual',
+        message: 'Select valid subcategories for the selected category.',
+      })
+      return
+    }
 
     if (subcategoryOptions.length > 0 && selectedSubcategoryIds.length === 0) {
       setError('subcategory_ids', {

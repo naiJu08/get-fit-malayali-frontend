@@ -52,28 +52,42 @@ export default function WorkoutMain() {
   if (cleanedFilters.active === false || cleanedFilters.active === 'false') {
     delete cleanedFilters.active
   }
+  const effectivePerPage = Number(per_page ?? 10)
   const searchParams = {
-    page: page,
-    per_page: per_page,
+    page: page || 1,
+    per_page: effectivePerPage,
     search: search,
     ...(ordering ? { ordering } : {}),
     ...cleanedFilters,
   }
 
   const { data, refetch, isFetching } = useWorkoutList(searchParams)
+
+  const totalCount =
+    typeof data?.meta?.total_count === 'number'
+      ? data.meta.total_count
+      : typeof data?.total_count === 'number'
+        ? data.total_count
+        : typeof data?.total === 'number'
+          ? data.total
+          : typeof data?.count === 'number'
+            ? data.count
+            : undefined
+  const calculatedTotalPages =
+    typeof totalCount === 'number'
+      ? Math.max(1, Math.ceil(totalCount / effectivePerPage))
+      : null
+
   useEffect(() => {
-    const totalPages = data?.meta?.total_pages
-    if (typeof totalPages === 'number' && totalPages > 0) {
-      if ((pageParams?.page ?? 1) > totalPages) {
-        setPageParams({ ...pageParams, page: totalPages })
+    if (calculatedTotalPages !== null && !isFetching) {
+      if ((pageParams?.page ?? 1) > calculatedTotalPages) {
+        setPageParams({ ...pageParams, page: calculatedTotalPages })
       } else if ((pageParams?.page ?? 1) < 1) {
         setPageParams({ ...pageParams, page: 1 })
       }
-    } else if ((pageParams?.page ?? 1) < 1) {
-      setPageParams({ ...pageParams, page: 1 })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.meta?.total_pages])
+  }, [calculatedTotalPages, isFetching])
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,
@@ -139,12 +153,13 @@ export default function WorkoutMain() {
     )
   }, [isNutritionist, navigate])
   useEffect(() => {
-    const sanitizedFilters = { ...(pageParams?.filters || {}) }
+    const currentParams = useAdminUserFilterStore.getState().pageParams
+    const sanitizedFilters = { ...(currentParams?.filters || {}) }
     delete (sanitizedFilters as any).category_id
     delete (sanitizedFilters as any).subcategory_ids
 
-    setPageParams({
-      ...pageParams,
+    useAdminUserFilterStore.getState().setPageParams({
+      ...currentParams,
       page: 1,
       search: '',
       sortColumn: undefined,
@@ -153,7 +168,7 @@ export default function WorkoutMain() {
       filters: sanitizedFilters,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, setPageParams])
+  }, [location.pathname])
   // const handleSeach = (key?: string) => {
   //   setPageParams({
   //     ...pageParams,
@@ -401,20 +416,11 @@ export default function WorkoutMain() {
               pagination={true}
               paginationProps={{
                 onPagination: onChangePage,
-                total: data?.meta?.total_count ?? 0,
-                currentPage:
-                  typeof data?.meta?.current_page === 'number'
-                    ? (data?.meta?.current_page as number)
-                    : (pageParams?.page ?? 1),
-                rowsPerPage: Number(pageParams?.per_page ?? 10),
+                total: totalCount ?? data?.workouts?.length ?? 0,
+                currentPage: pageParams?.page ?? 1,
+                rowsPerPage: effectivePerPage,
                 onRowsPerPage: onChangeRowsPerPage,
-                totalPages: Math.max(
-                  1,
-                  Math.ceil(
-                    (Number(data?.meta?.total_count ?? 0) || 0) /
-                      Number(pageParams?.per_page ?? 10)
-                  )
-                ),
+                totalPages: calculatedTotalPages ?? 1,
                 dropOptions: [10, 20, 30, 50, 100],
               }}
               actionProps={
@@ -425,7 +431,7 @@ export default function WorkoutMain() {
                         icon: <Icons name="eye" />,
                         action: (row) => navigate(`/workout/${row?.id}`),
                         title: 'View',
-                        toolTip: 'View Details',
+                        toolTip: 'View',
                       },
                       {
                         icon: <Icons name="edit" />,

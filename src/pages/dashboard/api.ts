@@ -26,11 +26,10 @@ const fetchUserProfile = async () => {
 export const useAdminDashboard = () => {
   const { roleData } = useAuthStore()
   const roleName = roleData?.name
-  const isUserRole = roleName === 'user'
-  const isNutritionistRole = roleName === 'nutritionist'
+  const isAdminRole = roleName === 'admin' || roleName === 'superadmin'
 
   return useQuery(['admin-dashboard'], fetchDashboard, {
-    enabled: !isUserRole && !isNutritionistRole,
+    enabled: isAdminRole,
     refetchOnWindowFocus: false,
   })
 }
@@ -48,8 +47,7 @@ export const useNutritionistDashboard = () => {
 
 export const useUserProfile = () => {
   const { roleData } = useAuthStore()
-  const roleName = roleData?.name
-  const isUserRole = roleName === 'user'
+  const isUserRole = roleData?.name === 'user'
 
   return useQuery(['userProfile'], fetchUserProfile, {
     enabled: isUserRole, // Only enable if role is "user"

@@ -1,5 +1,6 @@
 import moment from 'moment'
 
+import PriceBadge from '../../components/common/PriceBadge'
 import { convertUTCtoBrowserTimeZone } from '../../utilities/format'
 import { getNestedProperty } from '../../utilities/parsers'
 
@@ -73,7 +74,7 @@ export const getColumns = ({
         const value = getNestedProperty(row, 'name') as string | undefined
         const displayValue =
           typeof value === 'string' && value.length > 0
-            ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+            ? value.charAt(0).toUpperCase() + value.slice(1)
             : (value ?? '')
 
         if (!disableNameLink && onNameClick) {
@@ -125,40 +126,28 @@ export const getColumns = ({
     //   ...defaultColumnProps,
     // },
     {
-      title: 'Fees',
-      field: 'fees',
+      title: 'Price',
+      field: 'actual_price',
       customCell: true,
       ...defaultColumnProps,
       renderCell: (row: any) => {
-        const value = getNestedProperty(row, 'fees')
-        const num = typeof value === 'number' ? value : Number(value ?? 0)
-        if (Number.isNaN(num)) {
-          return {
-            cell: '',
-            toolTip: '',
-          }
-        }
-        const formatted = num.toLocaleString('en-IN', {
-          maximumFractionDigits: 2,
-        })
-        const label = `₹ ${formatted}`
+        const actual = getNestedProperty(row, 'actual_price')
+        const discounted =
+          getNestedProperty(row, 'discounted_sale_price') ??
+          getNestedProperty(row, 'fees')
         const display = (
-          <span
-            style={{
-              fontFamily: '"Roboto Condensed", sans-serif',
-              fontWeight: '600',
-            }}
-          >
-            {label}
-          </span>
+          <PriceBadge
+            actualPrice={actual}
+            discountedPrice={discounted}
+            variant="table"
+          />
         )
         return {
           cell: display,
-          toolTip: label,
+          toolTip: `${actual || '--'} / ${discounted || '--'}`,
         }
       },
     },
-
     {
       title: 'Status',
       field: 'active',

@@ -1,4 +1,5 @@
 import moment from 'moment'
+import { formatDurationMinutes } from '../../../utilities/format'
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import type { DragEvent } from 'react'
 import { useQuery } from '@tanstack/react-query'
@@ -29,7 +30,9 @@ import apiUrl from '../../../apis/api.url'
 import { getData } from '../../../apis/api.helpers'
 import { getWorkoutPlanSubcategories } from '../../Plans/Details/WorkoutPlan/api'
 import DayDetailTabsSection from './DayDetailTabsSection'
+import { ClientWorkflowDetails } from '../../AssignedClients/WorkflowPanels'
 import jsPDF from 'jspdf'
+import { getErrorMessage } from '../../../utilities/parsers'
 
 type DayDetailTab = 'diet' | 'workout' | 'yoga' | 'meditation'
 
@@ -53,22 +56,27 @@ export default function Subscriptions({
   loading,
   error,
   onRefresh,
+  workflowAssignment,
+  onWorkflowRefresh,
 }: {
   id: string
   user: any
   loading: boolean
   error: string
   onRefresh: (data?: any) => void
+  workflowAssignment?: any
+  onWorkflowRefresh?: () => Promise<any>
 }) {
-  const plans = Array.isArray(user?.interested_plans)
-    ? user.interested_plans.filter((p: any) => p?.active)
-    : []
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = loginRole === 'nutritionist'
+  const isServiceRole = ['nutritionist', 'yogist', 'physiotherapist'].includes(
+    loginRole || ''
+  )
 
   const subscribedPlan = user?.subscribed_plan
   const [overview, setOverview] = useState<any>(null)
   const [overviewLoading, setOverviewLoading] = useState(false)
+  const [overviewError, setOverviewError] = useState<string>('')
   const [currentMonth, setCurrentMonth] = useState<string>('')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [subscriptionEditMode, setSubscriptionEditMode] = useState(false)
@@ -133,7 +141,7 @@ export default function Subscriptions({
       window.location.reload()
     }
   }, [])
-  const shouldLoadPlans = drawerOpen
+  const shouldLoadPlans = drawerOpen || Boolean(workflowAssignment)
   const shouldLoadWorkouts = assignOpen
   const shouldLoadYoga = yogaAssignOpen
   const shouldLoadMeditations = medAssignOpen
@@ -392,21 +400,64 @@ export default function Subscriptions({
 
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
-    if (!u) return ''
     if (u.includes('youtube.com/watch')) {
-      try {
-        const v = new URL(u).searchParams.get('v')
-        return v ? `https://www.youtube.com/embed/${v}` : ''
-      } catch {
-        return ''
-      }
+      const id = u.split('v=')[1]?.split('&')[0]
+      return id ? `https://www.youtube.com/embed/${id}` : u
     }
     if (u.includes('youtu.be/')) {
-      const id = u.split('youtu.be/')[1]?.split(/[?&]/)[0]
-      return id ? `https://www.youtube.com/embed/${id}` : ''
+      const id = u.split('youtu.be/')[1]?.split('?')[0]
+      return id ? `https://www.youtube.com/embed/${id}` : u
     }
-    return ''
+    return u
   }
+
+  useEffect(() => {
+    const fetchOverview = async () => {
+      if (!user?.id) return
+      try {
+        setOverviewLoading(true)
+        setOverviewError('')
+        const res = await getActivePlanOverview(user.id)
+        setOverview(res)
+
+        const todayStr = moment().format('YYYY-MM-DD')
+        const hasToday = Array.isArray(res?.days)
+          ? res.days.some((d: any) => {
+              const dateMatch = d?.date === todayStr
+              const statusStr = String(d?.status || '').toLowerCase()
+              return dateMatch && statusStr === 'today'
+            })
+          : false
+
+        if (hasToday) {
+          setCurrentMonth(
+            moment(todayStr, 'YYYY-MM-DD').startOf('month').format('YYYY-MM')
+          )
+        } else {
+          const sd = res?.subscription?.start_date
+          if (sd) {
+            setCurrentMonth(
+              moment(sd, 'YYYY-MM-DD').startOf('month').format('YYYY-MM')
+            )
+          } else {
+            setCurrentMonth('')
+          }
+        }
+      } catch (e: any) {
+        setOverview(null)
+        const parsedErr = getErrorMessage(e)
+        if (parsedErr && parsedErr !== 'An unexpected error occurred') {
+          setOverviewError(parsedErr)
+        } else {
+          setOverviewError('')
+        }
+      } finally {
+        setOverviewLoading(false)
+      }
+    }
+    fetchOverview()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, workflowAssignment?.package_confirmed_at])
 
   const getYogaId = (item: any) => {
     if (!item) return undefined
@@ -775,11 +826,6 @@ export default function Subscriptions({
   useEffect(() => {
     const fetchOverview = async () => {
       if (!user?.id) return
-      if (!user?.subscribed_plan) {
-        setOverview(null)
-        setCurrentMonth('')
-        return
-      }
       try {
         setOverviewLoading(true)
         const res = await getActivePlanOverview(user.id)
@@ -816,7 +862,7 @@ export default function Subscriptions({
     }
     fetchOverview()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id])
+  }, [user?.id, workflowAssignment?.package_confirmed_at])
 
   const statusColor = (day: any) => {
     if (day?.freeze)
@@ -2927,375 +2973,302 @@ export default function Subscriptions({
       )}
       {!loading && !error && (
         <div className="flex flex-col gap-4">
-          {loginRole !== 'nutritionist' &&
-            !hasPlanOverview &&
-            !subscribedPlan && (
-              <div className="flex justify-end">
-                <Button
-                  className="primaryButton"
-                  label="Add Subscription"
-                  onClick={() => openSubscriptionDrawer(false)}
-                />
-              </div>
-            )}
-          <div
-            className={`relative border rounded-lg p-4 pt-6 h-full min-h-[calc(100vh-200px)] ${
-              subscribedPlan ? 'mt-4' : ''
-            }`}
-          >
-            <div className="absolute -top-3 left-3 px-2 z-10 bg-mainBgColor">
-              <span className="text-lg font-medium text-gray-700">
-                {hasPlanOverview || subscribedPlan
-                  ? 'Subscribed Plan'
-                  : 'Interested Plans'}
-              </span>
+          {workflowAssignment && (
+            <div className="flex flex-wrap items-center gap-2">
+              {(workflowAssignment.assignments || [workflowAssignment]).map(
+                (item: any) => (
+                  <span
+                    key={item.id}
+                    className="inline-flex items-center gap-1 rounded-full border border-primaryBlue/30 bg-blue-50 px-3 py-1 text-xs font-medium text-primaryBlue"
+                  >
+                    <span className="capitalize">{item.role || 'service'}</span>
+                    <span className="text-gray-600">
+                      · {item.staff_name || 'Assigned'}
+                    </span>
+                    <span
+                      className={
+                        item.workflow_status === 'pending'
+                          ? 'rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700'
+                          : 'rounded-full px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700'
+                      }
+                    >
+                      {item.workflow_status === 'pending'
+                        ? 'Not accepted'
+                        : 'Accepted'}
+                    </span>
+                  </span>
+                )
+              )}
             </div>
-            {hasPlanOverview || subscribedPlan ? (
-              <div className="flex flex-col gap-4 h-full">
-                <div className="border rounded-lg p-3 bg-white flex items-start justify-between gap-4">
-                  <div>
-                    <div className="text-sm font-medium mb-1">
-                      {toTitleCase(
-                        safeStr(
-                          overview?.subscription?.plan_name ??
-                            overview?.subscription?.name
-                        )
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Category:{' '}
-                      {safeStr(
-                        overview?.subscription?.plan_category ??
-                          overview?.subscription?.category
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      {overview?.subscription?.start_date &&
-                      overview?.subscription?.end_date ? (
-                        <>
-                          <span>
-                            Start Date:{' '}
-                            <span className="font-semibold">
-                              {moment(overview.subscription.start_date).format(
-                                'MMM D, YYYY'
-                              )}
-                            </span>
-                          </span>
+          )}
+          <ClientWorkflowDetails
+            assignment={workflowAssignment}
+            assignmentId={workflowAssignment?.id}
+            role={loginRole || 'nutritionist'}
+            plans={allPlans}
+            showWorkflowActions={loginRole !== 'superadmin'}
+            onRefresh={onWorkflowRefresh || onRefresh}
+            subscription={overview?.subscription || subscribedPlan}
+            onUpdateSubscription={() => openSubscriptionDrawer(true)}
+            onAddSubscription={() => openSubscriptionDrawer(false)}
+            isServiceRole={isServiceRole}
+          />
 
-                          <span className="mx-2">•</span>
-                          <span>
-                            End Date:{' '}
-                            <span className="font-semibold">
-                              {moment(overview.subscription.end_date).format(
-                                'MMM D, YYYY'
-                              )}
-                            </span>
-                          </span>
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    {overview?.subscription?.plan_id ? (
-                      <a
-                        href={`/plans/${overview.subscription.plan_id}`}
-                        className="text-xs text-primaryBlue underline whitespace-nowrap mt-1"
-                      >
-                        View plan details →
-                      </a>
-                    ) : null}
-                    {loginRole !== 'nutritionist' && (
-                      <Button
-                        className="primaryButton"
-                        label="Update Subscription"
-                        onClick={() => openSubscriptionDrawer(true)}
-                      />
-                    )}
-                  </div>
+          {(overview?.subscription || subscribedPlan || hasPlanOverview) && (
+            <div className="flex justify-end gap-2 mt-4 mb-2">
+              <Button
+                className="primaryButton"
+                label={
+                  downloadingTemplate
+                    ? 'Downloading...'
+                    : 'Download Diet Template'
+                }
+                onClick={handleDownloadDietTemplate}
+                disabled={
+                  downloadingTemplate ||
+                  !overview?.subscription?.diet_plan_template_id
+                }
+              />
+              <Button
+                className="primaryButton"
+                label={
+                  isFrozen(overview?.subscription)
+                    ? 'Unfreeze Subscription'
+                    : 'Freeze Subscription'
+                }
+                onClick={() => {
+                  setFreezeMode(
+                    isFrozen(overview?.subscription) ? 'unfreeze' : 'freeze'
+                  )
+                  setToggleFreezeRow(overview?.subscription)
+                  setToggleFreezeOpen(true)
+                  setFreezeForm({
+                    reason: '',
+                    start_date: '',
+                    end_date: '',
+                  })
+                }}
+              />
+            </div>
+          )}
+          <div className="bg-white border border-gray-300 rounded-lg p-3 flex flex-col flex-1 min-h-[420px]">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-medium">Plan Calendar</div>
+              <div className="flex gap-3 text-xs">
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded bg-primaryBlue inline-block"></span>
+                  Today
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    className="primaryButton"
-                    label={
-                      downloadingTemplate
-                        ? 'Downloading...'
-                        : 'Download Diet Template'
-                    }
-                    onClick={handleDownloadDietTemplate}
-                    disabled={
-                      downloadingTemplate ||
-                      !overview?.subscription?.diet_plan_template_id
-                    }
-                  />
-                  <Button
-                    className="primaryButton"
-                    label={
-                      isFrozen(overview?.subscription)
-                        ? 'Unfreeze Subscription'
-                        : 'Freeze Subscription'
-                    }
-                    onClick={() => {
-                      setFreezeMode(
-                        isFrozen(overview?.subscription) ? 'unfreeze' : 'freeze'
-                      )
-                      setToggleFreezeRow(overview?.subscription)
-                      setToggleFreezeOpen(true)
-                      setFreezeForm({
-                        reason: '',
-                        start_date: '',
-                        end_date: '',
-                      })
-                    }}
-                  />
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded bg-orange-400 inline-block"></span>
+                  Upcoming
                 </div>
-                <div className="bg-white border border-gray-300 rounded-lg p-3 flex flex-col flex-1 min-h-[420px]">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="text-sm font-medium">Plan Calendar</div>
-                    <div className="flex gap-3 text-xs">
-                      <div className="flex items-center gap-1">
-                        <span className="w-3 h-3 rounded bg-primaryBlue inline-block"></span>
-                        Today
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="w-3 h-3 rounded bg-orange-400 inline-block"></span>
-                        Upcoming
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="w-3 h-3 rounded bg-green-500 inline-block"></span>
-                        Complete
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="w-3 h-3 rounded bg-red-400 inline-block"></span>
-                        Freeze
-                      </div>
-                    </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded bg-green-500 inline-block"></span>
+                  Complete
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-3 h-3 rounded bg-red-400 inline-block"></span>
+                  Freeze
+                </div>
+              </div>
+            </div>
+            {overviewLoading && (
+              <div className="text-xs text-gray-500">Loading calendar...</div>
+            )}
+            {!overviewLoading &&
+            overview?.subscription?.start_date &&
+            overview?.subscription?.end_date ? (
+              <div className="flex flex-col gap-2 flex-1 overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={goPrev}
+                    disabled={!canPrev()}
+                    className={`px-2 py-1 text-xs border rounded ${canPrev() ? 'text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                  >
+                    ◀
+                  </button>
+                  <div className="text-xs font-medium">
+                    {buildMonthCells(currentMonth).title}
                   </div>
-                  {overviewLoading && (
-                    <div className="text-xs text-gray-500">
-                      Loading calendar...
-                    </div>
-                  )}
-                  {!overviewLoading &&
-                  overview?.subscription?.start_date &&
-                  overview?.subscription?.end_date ? (
-                    <div className="flex flex-col gap-2 flex-1 overflow-hidden">
-                      <div className="flex items-center justify-between">
-                        <button
-                          type="button"
-                          onClick={goPrev}
-                          disabled={!canPrev()}
-                          className={`px-2 py-1 text-xs border rounded ${canPrev() ? 'text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
-                        >
-                          ◀
-                        </button>
-                        <div className="text-xs font-medium">
-                          {buildMonthCells(currentMonth).title}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={goNext}
-                          disabled={!canNext()}
-                          className={`px-2 py-1 text-xs border rounded ${canNext() ? 'text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
-                        >
-                          ▶
-                        </button>
+                  <button
+                    type="button"
+                    onClick={goNext}
+                    disabled={!canNext()}
+                    className={`px-2 py-1 text-xs border rounded ${canNext() ? 'text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                  >
+                    ▶
+                  </button>
+                </div>
+                {(() => {
+                  const m = buildMonthCells(currentMonth)
+                  return (
+                    <>
+                      <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-1 bg-white">
+                        {WEEK_DAYS.map((w) => (
+                          <div key={w} className="py-1 text-center">
+                            {w}
+                          </div>
+                        ))}
                       </div>
-                      {(() => {
-                        const m = buildMonthCells(currentMonth)
-                        return (
-                          <>
-                            <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-1 bg-white">
-                              {WEEK_DAYS.map((w) => (
-                                <div key={w} className="py-1 text-center">
-                                  {w}
-                                </div>
-                              ))}
-                            </div>
-                            <div className="flex-1 overflow-auto">
-                              <div className="grid grid-cols-7 auto-rows-fr gap-px">
-                                {m.cells.map((c: any) => (
-                                  <div
-                                    key={c.key}
-                                    className={`relative min-h-[180px] border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)}`}
-                                    title={
-                                      c?.meta?.date
-                                        ? `${c.meta.date}  •  Diet: ${
-                                            c?.meta?.diet_summary
-                                              ?.total_items ?? 0
-                                          }  •  Workout: ${
-                                            c?.meta?.workout_summary
-                                              ?.total_exercises ?? 0
-                                          }  •  Yoga: ${
-                                            c?.meta?.yoga_summary
-                                              ?.total_exercises ?? 0
-                                          }  •  Meditation: ${
-                                            c?.meta?.meditation_summary
-                                              ?.total_items ?? 0
-                                          }`
-                                        : ''
-                                    }
-                                    role={c?.inRange ? 'button' : undefined}
-                                    tabIndex={c?.inRange ? 0 : -1}
-                                    onClick={() => {
-                                      if (!c?.inRange) return
-                                      if (c?.meta?.freeze) {
-                                        setFreezeMode('unfreeze')
-                                        setToggleFreezeRow({
-                                          ...overview?.subscription,
-                                          freeze_date: c?.meta?.date || c.key,
-                                        })
-                                        setToggleFreezeOpen(true)
-                                        return
-                                      }
-                                      openDayDetail(c?.meta?.date || c.key)
-                                    }}
-                                    onKeyDown={(e) => {
-                                      if (!c?.inRange) return
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault()
-                                        if (c?.meta?.freeze) {
-                                          setFreezeMode('unfreeze')
-                                          setToggleFreezeRow({
-                                            ...overview?.subscription,
-                                            freeze_date: c?.meta?.date || c.key,
-                                          })
-                                          setToggleFreezeOpen(true)
-                                        } else {
-                                          openDayDetail(c?.meta?.date || c.key)
-                                        }
-                                      }
-                                    }}
-                                  >
-                                    <div className="flex flex-col h-full w-full">
-                                      <div className="flex justify-between">
-                                        <div className="text-[12px] font-medium">
-                                          {c?.label ?? ''}
-                                        </div>
-                                        {c?.meta?.day_number ? (
-                                          <div className="text-[12px] font-medium">
-                                            Day - {c?.meta?.day_number}
-                                          </div>
-                                        ) : null}
-                                      </div>
-                                      {c?.inRange && c?.meta ? (
-                                        <div className="mt-1 text-[10px] leading-4">
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              openDayDetail(
-                                                c?.meta?.date || c.key,
-                                                'diet'
-                                              )
-                                            }}
-                                            className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 text-left bg-red-100 hover:bg-red-200"
-                                          >
-                                            <span>Diet</span>
-                                            <span className="font-medium">
-                                              {c?.meta?.diet_summary
-                                                ?.total_items ?? 0}
-                                            </span>
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              openDayDetail(
-                                                c?.meta?.date || c.key,
-                                                'workout'
-                                              )
-                                            }}
-                                            className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-violet-200 hover:bg-violet-300"
-                                          >
-                                            <span>Workout</span>
-                                            <span className="font-medium">
-                                              {c?.meta?.workout_summary
-                                                ?.total_exercises ?? 0}
-                                            </span>
-                                          </button>
-                                          {c?.meta?.yoga_summary && (
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation()
-                                                openDayDetail(
-                                                  c?.meta?.date || c.key,
-                                                  'yoga'
-                                                )
-                                              }}
-                                              className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-green-200 hover:bg-green-300"
-                                            >
-                                              <span>Yoga</span>
-                                              <span className="font-medium">
-                                                {c?.meta?.yoga_summary
-                                                  ?.total_exercises ?? 0}
-                                              </span>
-                                            </button>
-                                          )}
-
-                                          <button
-                                            type="button"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              openDayDetail(
-                                                c?.meta?.date || c.key,
-                                                'meditation'
-                                              )
-                                            }}
-                                            className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-blue-200 hover:bg-blue-300"
-                                          >
-                                            <span>Meditation</span>
-                                            <span className="font-medium">
-                                              {c?.meta?.meditation_summary
-                                                ?.total_items ?? 0}
-                                            </span>
-                                          </button>
-                                        </div>
-                                      ) : null}
-                                    </div>
+                      <div className="flex-1 overflow-auto">
+                        <div className="grid grid-cols-7 auto-rows-fr gap-px">
+                          {m.cells.map((c: any) => (
+                            <div
+                              key={c.key}
+                              className={`relative min-h-[180px] border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)}`}
+                              title={
+                                c?.meta?.date
+                                  ? `${c.meta.date}  •  Diet: ${
+                                      c?.meta?.diet_summary?.total_items ?? 0
+                                    }  •  Workout: ${
+                                      c?.meta?.workout_summary
+                                        ?.total_exercises ?? 0
+                                    }  •  Yoga: ${
+                                      c?.meta?.yoga_summary?.total_exercises ??
+                                      0
+                                    }  •  Meditation: ${
+                                      c?.meta?.meditation_summary
+                                        ?.total_items ?? 0
+                                    }`
+                                  : ''
+                              }
+                              role={c?.inRange ? 'button' : undefined}
+                              tabIndex={c?.inRange ? 0 : -1}
+                              onClick={() => {
+                                if (!c?.inRange) return
+                                if (c?.meta?.freeze) {
+                                  setFreezeMode('unfreeze')
+                                  setToggleFreezeRow({
+                                    ...overview?.subscription,
+                                    freeze_date: c?.meta?.date || c.key,
+                                  })
+                                  setToggleFreezeOpen(true)
+                                  return
+                                }
+                                openDayDetail(c?.meta?.date || c.key)
+                              }}
+                              onKeyDown={(e) => {
+                                if (!c?.inRange) return
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  if (c?.meta?.freeze) {
+                                    setFreezeMode('unfreeze')
+                                    setToggleFreezeRow({
+                                      ...overview?.subscription,
+                                      freeze_date: c?.meta?.date || c.key,
+                                    })
+                                    setToggleFreezeOpen(true)
+                                  } else {
+                                    openDayDetail(c?.meta?.date || c.key)
+                                  }
+                                }
+                              }}
+                            >
+                              <div className="flex flex-col h-full w-full">
+                                <div className="flex justify-between">
+                                  <div className="text-[12px] font-medium">
+                                    {c?.label ?? ''}
                                   </div>
-                                ))}
+                                  {c?.meta?.day_number ? (
+                                    <div className="text-[12px] font-medium">
+                                      Day - {c?.meta?.day_number}
+                                    </div>
+                                  ) : null}
+                                </div>
+                                {c?.inRange && c?.meta ? (
+                                  <div className="mt-1 text-[10px] leading-4">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        openDayDetail(
+                                          c?.meta?.date || c.key,
+                                          'diet'
+                                        )
+                                      }}
+                                      className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 text-left bg-red-100 hover:bg-red-200"
+                                    >
+                                      <span>Diet</span>
+                                      <span className="font-medium">
+                                        {c?.meta?.diet_summary?.total_items ??
+                                          0}
+                                      </span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        openDayDetail(
+                                          c?.meta?.date || c.key,
+                                          'workout'
+                                        )
+                                      }}
+                                      className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-violet-200 hover:bg-violet-300"
+                                    >
+                                      <span>Workout</span>
+                                      <span className="font-medium">
+                                        {c?.meta?.workout_summary
+                                          ?.total_exercises ?? 0}
+                                      </span>
+                                    </button>
+                                    {c?.meta?.yoga_summary && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          openDayDetail(
+                                            c?.meta?.date || c.key,
+                                            'yoga'
+                                          )
+                                        }}
+                                        className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-green-200 hover:bg-green-300"
+                                      >
+                                        <span>Yoga</span>
+                                        <span className="font-medium">
+                                          {c?.meta?.yoga_summary
+                                            ?.total_exercises ?? 0}
+                                        </span>
+                                      </button>
+                                    )}
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        openDayDetail(
+                                          c?.meta?.date || c.key,
+                                          'meditation'
+                                        )
+                                      }}
+                                      className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-blue-200 hover:bg-blue-300"
+                                    >
+                                      <span>Meditation</span>
+                                      <span className="font-medium">
+                                        {c?.meta?.meditation_summary
+                                          ?.total_items ?? 0}
+                                      </span>
+                                    </button>
+                                  </div>
+                                ) : null}
                               </div>
                             </div>
-                          </>
-                        )
-                      })()}
-                    </div>
-                  ) : (
-                    !overviewLoading && (
-                      <div className="text-xs text-gray-500">
-                        No calendar data
+                          ))}
+                        </div>
                       </div>
-                    )
-                  )}
-                </div>
+                    </>
+                  )
+                })()}
               </div>
             ) : (
-              <div
-                className={`grid grid-cols-1 ${
-                  Array.isArray(plans) && plans.length > 0
-                    ? 'md:grid-cols-2'
-                    : 'md:grid-cols-1'
-                } gap-4`}
-              >
-                {Array.isArray(plans) && plans.length > 0 ? (
-                  plans.map((p: any) => (
-                    <div key={p?.id} className="border rounded-lg p-3 bg-white">
-                      <div className="text-sm font-medium mb-1">
-                        {toTitleCase(safeStr(p?.name))}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Category: {toTitleCase(safeStr(p?.category))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-10 min-h-[60vh] flex flex-col items-center justify-center text-gray-500">
-                    <Icons name="no-data-icon" />
-                    <div className="mt-3 text-sm">No interested plans</div>
+              !overviewLoading && (
+                <div className="flex flex-col items-center justify-center p-6 text-center flex-1">
+                  <div className="text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3 max-w-md shadow-sm">
+                    {overviewError || 'No calendar data available'}
                   </div>
-                )}
-              </div>
+                </div>
+              )
             )}
           </div>
         </div>
@@ -3536,10 +3509,10 @@ export default function Subscriptions({
                                   </span>
                                   <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                                     <Icons name="clock" className="w-3 h-3" />
-                                    {w?.duration_minutes ||
-                                    w?.workout?.duration_minutes
-                                      ? `${w?.duration_minutes || w?.workout?.duration_minutes}s`
-                                      : '--'}
+                                    {formatDurationMinutes(
+                                      w?.duration_minutes ||
+                                        w?.workout?.duration_minutes
+                                    )}
                                   </span>
                                 </div>
                               </div>

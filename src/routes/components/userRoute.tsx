@@ -29,21 +29,26 @@ const UserRoute = ({ children, slug_key, hasChild = false }: Props) => {
   if (!authenticated) return <Navigate to="/login" replace />
 
   const hasPermission = () => {
-    // if (!authenticated) return false // Admin has full permissions
-
     const currentRouteConfig = router_config[slug_key]
-    if (currentRouteConfig?.permission_slugs.length === 0) {
-      return true
-    } else if (
-      roleData &&
-      roleData?.name &&
-      currentRouteConfig &&
-      currentRouteConfig?.permission_slugs.length > 0
+    if (
+      !currentRouteConfig ||
+      !currentRouteConfig?.permission_slugs ||
+      currentRouteConfig.permission_slugs.length === 0
     ) {
-      const trimmedRoleName = roleData?.name.trim() // Trim whitespace
-      return currentRouteConfig?.permission_slugs.includes(
-        trimmedRoleName as string
-      )
+      return true
+    }
+
+    if (roleData && roleData?.name) {
+      const trimmedRoleName = roleData.name.trim().toLowerCase()
+      if (trimmedRoleName === 'superadmin' || trimmedRoleName === 'admin') {
+        return true
+      }
+      const allowedRoles = Array.isArray(currentRouteConfig.permission_slugs)
+        ? currentRouteConfig.permission_slugs.map((s: string) =>
+            String(s).toLowerCase()
+          )
+        : [String(currentRouteConfig.permission_slugs).toLowerCase()]
+      return allowedRoles.includes(trimmedRoleName)
     }
 
     return true // No specific permissions required or roleData not available

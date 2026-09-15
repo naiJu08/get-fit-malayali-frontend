@@ -64,8 +64,10 @@ export default function Sidenav() {
     buildMenuHierarchy(generateArray(router_config))
   )
 
-  const navSubmenu = (item: any) => {
-    if (item.hasChild) {
+  const navSubmenu = (e: React.MouseEvent, item: any) => {
+    const visibleChildren = item.hasChild?.filter(checkPermission)
+    if (visibleChildren && visibleChildren.length > 0) {
+      e.preventDefault()
       setExpandedGroups((prev) => ({
         ...prev,
         [item.label]: !prev[item.label],
@@ -73,7 +75,7 @@ export default function Sidenav() {
       if (!expand) {
         setExpand(true)
       }
-    } else {
+    } else if (item?.path) {
       navigate(item?.path)
     }
   }
@@ -134,13 +136,14 @@ export default function Sidenav() {
       const candidates = candidatePathsForItem(item as RouterMenuProps)
       if (
         item.key === 'client-users' &&
+        String(roleData?.name || '').toLowerCase() === 'superadmin' &&
         ROLE_USER_PATHS.some((base) => pathMatches(pathname, base))
       ) {
         return false
       }
       return candidates.some((candidate) => pathMatches(pathname, candidate))
     },
-    [pathname, candidatePathsForItem, pathMatches]
+    [pathname, candidatePathsForItem, pathMatches, roleData?.name]
   )
 
   const verifyChildLink = useCallback(
@@ -191,15 +194,20 @@ export default function Sidenav() {
               return null
             }
 
+            const visibleChildren = item.hasChild?.filter(checkPermission)
             const isActive =
-              isItemActive(item) || verifyChildLink(item.hasChild)
+              isItemActive(item) || verifyChildLink(visibleChildren)
             const isOpen = isSubmenuOpen(item)
 
             return (
               <li key={item.id}>
                 <Link
-                  to={item.path || pathname}
-                  onClick={() => navSubmenu(item)}
+                  to={
+                    visibleChildren && visibleChildren.length > 0
+                      ? '#'
+                      : item.path || pathname
+                  }
+                  onClick={(e) => navSubmenu(e, item)}
                   className={`flex items-center gap-2.5 p-3 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 ${isActive ? 'bg-white/20 text-white' : 'text-white'} ${!expand ? 'justify-center' : 'justify-start'}`}
                 >
                   <div
@@ -217,7 +225,7 @@ export default function Sidenav() {
                   >
                     {item.label}
                   </span>
-                  {item.hasChild && (
+                  {visibleChildren && visibleChildren.length > 0 && (
                     <div
                       className={`w-4 h-4 ms-auto text-white group-hover:text-white transition-transform duration-200 ${isOpen ? 'rotate-180' : ''} ${isActive ? 'text-white' : ''} ${!expand ? 'hidden' : 'block'}`}
                     >
@@ -226,63 +234,67 @@ export default function Sidenav() {
                   )}
                 </Link>
 
-                {item.hasChild && (
+                {visibleChildren && visibleChildren.length > 0 && (
                   <ul
                     className={`overflow-hidden submenu transition-[max-height] ease-in-out duration-300 ${!expand ? 'ps-0' : 'ps-5'} ${isOpen ? 'max-h-96' : 'max-h-0'}`}
                   >
-                    {item.hasChild?.map((childItem: any, childIdx: number) => (
-                      <React.Fragment key={childItem.id}>
-                        {!expand && childItem.path === pathname ? (
-                          <li
-                            className={`relative before:absolute before:h-[50px] before:w-[8px] before:border before:border-grey-borderAlt before:border-r-0 before:border-t-0 before:-left-[5%] before:-top-[30px] ${!expand ? 'before:hidden' : ''}`}
-                          >
-                            <div>
-                              <div
-                                onClick={() => selectedSub(childIdx, childItem)}
-                                className={`flex items-center p-2 transition mb-2 rounded-sm cursor-pointer hover:bg-primary bg-primary ${!expand ? 'justify-center py-3 font-semibold' : 'justify-between'}`}
-                              >
-                                <span className="text-common text-bgWhite">
-                                  {!expand
-                                    ? childItem.label.slice(0, 2)
-                                    : childItem.label}
-                                </span>
-                              </div>
-                              <div className="flex justify-center stroke-primary mb-3">
-                                <Icons name="three_dot_horizontal" />
-                              </div>
-                            </div>
-                          </li>
-                        ) : (
-                          <>
-                            {expand && (
-                              <li
-                                className={`relative before:absolute before:h-[50px] before:w-[8px] before:border before:border-grey-borderAlt before:border-r-0 before:border-t-0 before:-left-[5%] before:-top-[30px]`}
-                              >
-                                <div>
-                                  <div
-                                    onClick={() =>
-                                      selectedSub(childIdx, childItem)
-                                    }
-                                    className={`flex items-center p-2 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 justify-between ${isItemActive(childItem) ? 'bg-white/20' : ''}`}
-                                  >
-                                    <span
-                                      className={`text-common text-white group-hover:text-white ${isItemActive(childItem) ? 'text-white' : ''}`}
-                                    >
-                                      {childItem.label}
-                                    </span>
-                                    <span
-                                      className={`text-common text-white group-hover:text-white ${isItemActive(childItem) ? 'text-white' : ''}`}
-                                    >
-                                      {childItem.value}
-                                    </span>
-                                  </div>
+                    {visibleChildren?.map(
+                      (childItem: any, childIdx: number) => (
+                        <React.Fragment key={childItem.id}>
+                          {!expand && childItem.path === pathname ? (
+                            <li
+                              className={`relative before:absolute before:h-[50px] before:w-[8px] before:border before:border-grey-borderAlt before:border-r-0 before:border-t-0 before:-left-[5%] before:-top-[30px] ${!expand ? 'before:hidden' : ''}`}
+                            >
+                              <div>
+                                <div
+                                  onClick={() =>
+                                    selectedSub(childIdx, childItem)
+                                  }
+                                  className={`flex items-center p-2 transition mb-2 rounded-sm cursor-pointer hover:bg-primary bg-primary ${!expand ? 'justify-center py-3 font-semibold' : 'justify-between'}`}
+                                >
+                                  <span className="text-common text-bgWhite">
+                                    {!expand
+                                      ? childItem.label.slice(0, 2)
+                                      : childItem.label}
+                                  </span>
                                 </div>
-                              </li>
-                            )}
-                          </>
-                        )}
-                      </React.Fragment>
-                    ))}
+                                <div className="flex justify-center stroke-primary mb-3">
+                                  <Icons name="three_dot_horizontal" />
+                                </div>
+                              </div>
+                            </li>
+                          ) : (
+                            <>
+                              {expand && (
+                                <li
+                                  className={`relative before:absolute before:h-[50px] before:w-[8px] before:border before:border-grey-borderAlt before:border-r-0 before:border-t-0 before:-left-[5%] before:-top-[30px]`}
+                                >
+                                  <div>
+                                    <div
+                                      onClick={() =>
+                                        selectedSub(childIdx, childItem)
+                                      }
+                                      className={`flex items-center p-2 transition-colors duration-200 mb-3 group rounded-md cursor-pointer hover:bg-white/10 justify-between ${isItemActive(childItem) ? 'bg-white/20' : ''}`}
+                                    >
+                                      <span
+                                        className={`text-common text-white group-hover:text-white ${isItemActive(childItem) ? 'text-white' : ''}`}
+                                      >
+                                        {childItem.label}
+                                      </span>
+                                      <span
+                                        className={`text-common text-white group-hover:text-white ${isItemActive(childItem) ? 'text-white' : ''}`}
+                                      >
+                                        {childItem.value}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </li>
+                              )}
+                            </>
+                          )}
+                        </React.Fragment>
+                      )
+                    )}
                   </ul>
                 )}
               </li>

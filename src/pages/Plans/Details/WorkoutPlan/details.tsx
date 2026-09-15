@@ -21,6 +21,7 @@ import { useAddExercises } from './api'
 import { TabContainer } from '../../../../components/common'
 import apiUrl from '../../../../apis/api.url'
 import { getData } from '../../../../apis/api.helpers'
+import { formatDurationMinutes } from '../../../../utilities/format'
 import WorkoutPlanForm from './create'
 
 const getWorkoutSelectableId = (item: any) =>
@@ -251,9 +252,7 @@ function AssignTabContent({
                               </span>
                               <span className="items-center gap-1 rounded-sm bg-green-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                                 <Icons name="clock" className="w-3 h-3" />
-                                {ex?.duration_minutes
-                                  ? `${ex.duration_minutes}s`
-                                  : '--'}
+                                {formatDurationMinutes(ex?.duration_minutes)}
                               </span>
                             </div>
                           </div>
@@ -831,15 +830,8 @@ export default function WorkoutPlanDetails() {
 
     if (!Array.isArray(workouts) || workouts.length === 0) return
 
-    // Default behavior for brand new plans with no assignments: select all once
-    const map = new Map<any, any>()
-    workouts.forEach((w: any) => {
-      if (w && w.id != null) {
-        map.set(w.id, w)
-      }
-    })
-
-    setSelectedWorkouts(Array.from(map.values()))
+    // Default behavior for brand new plans with no assignments: keep unselected initially
+    setSelectedWorkouts([])
     userSelectionTouchedRef.current = false
     drawerSelectionInitializedRef.current = true
   }, [
@@ -1301,7 +1293,7 @@ export default function WorkoutPlanDetails() {
                 setWpPage(1)
               }}
             >
-              Assign
+              Add
             </button>
           </div>
         )}
@@ -1394,9 +1386,8 @@ export default function WorkoutPlanDetails() {
                         setWorkoutFiltersEnabled(true)
                       }
                       if (assignOpen && categoryActuallyChanged) {
-                        userSelectionTouchedRef.current = false
-                        selectAllNextWorkoutsRef.current = true
-                        setSelectedWorkouts([])
+                        userSelectionTouchedRef.current = true
+                        selectAllNextWorkoutsRef.current = false
                       }
                     }}
                   />
@@ -1454,9 +1445,8 @@ export default function WorkoutPlanDetails() {
                       }
 
                       if (assignOpen && prevKey !== nextKey) {
-                        userSelectionTouchedRef.current = false
-                        selectAllNextWorkoutsRef.current = true
-                        setSelectedWorkouts([])
+                        userSelectionTouchedRef.current = true
+                        selectAllNextWorkoutsRef.current = false
                       }
                     }}
                   />
@@ -1599,10 +1589,10 @@ export default function WorkoutPlanDetails() {
                                   </span>
                                   <span className="items-center gap-1 rounded-sm bg-emerald-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
                                     <Icons name="clock" className="w-3 h-3" />
-                                    {w?.duration_minutes ||
-                                    w?.workout?.duration_minutes
-                                      ? `${w?.duration_minutes || w?.workout?.duration_minutes}s`
-                                      : '--'}
+                                    {formatDurationMinutes(
+                                      w?.duration_minutes ||
+                                        w?.workout?.duration_minutes
+                                    )}
                                   </span>
                                 </div>
                               </div>

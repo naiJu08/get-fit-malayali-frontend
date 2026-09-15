@@ -1,4 +1,5 @@
 import DashboardView from './dashboard'
+import ModuleDashboard from './module-dashboard'
 import NutritionistDashboardView from './nutritionist-dashboard'
 import {
   useAdminDashboard,
@@ -37,6 +38,8 @@ export default function DashboardPage() {
   // Check if role is specifically "user"
   const isUserRole = roleName === 'user'
   const isNutritionistRole = roleName === 'nutritionist'
+  const isMarketingRole = roleName === 'marketing'
+  const isSalesRole = roleName === 'sales'
 
   // API hooks now handle conditional logic internally based on auth store role
   const {
@@ -82,7 +85,15 @@ export default function DashboardPage() {
     )
   }
 
-  // All other admin roles see admin dashboard
+  if (isMarketingRole) {
+    return <ModuleDashboard mode="marketing" />
+  }
+
+  if (isSalesRole) {
+    return <ModuleDashboard mode="sales" />
+  }
+
+  // Admin and superadmin roles see the admin dashboard
   return (
     <DashboardView
       data={adminData as DashboardResponse | undefined}

@@ -1,5 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
-import { useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import {
   getData,
@@ -30,17 +29,8 @@ const fetchData = async (input: QueryParams) => {
 export const useCategoriesList = (input: QueryParams) => {
   return useQuery(['categories_list', input], () => fetchData(input))
 }
-export const getSubCategories = (
-  parentId: string | number,
-  input: QueryParams = { page: 1 } as QueryParams
-) => {
-  const params: QueryParams = {
-    ...input,
-    page: input.page ?? 1,
-    parent_id: parentId,
-  }
-  const url = buildUrlWithParams(apiUrl.CATEGORIES, params)
-  return getData(url)
+export const getSubCategories = (parentId: string | number) => {
+  return getData(`${apiUrl.CATEGORIES}/${parentId}`)
 }
 export const deActivateAdmin = (id?: string) => {
   return updateFromData(`${apiUrl.ADMIN_USER}/${id}/status`, {})
@@ -76,8 +66,13 @@ export const useCreateCategories = (
   successMessage = 'Categories created successfully'
 ) => {
   const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
   return useMutation(createCategories, {
     onSuccess: (res: any) => {
+      queryClient.invalidateQueries(['categories_list'])
+      queryClient.invalidateQueries(['workout_categories'])
+      queryClient.invalidateQueries(['workout-filter-categories'])
+      queryClient.invalidateQueries(['workout_categories_for_assign'])
       handleSubmission(res)
       enqueueSnackbar(successMessage, { variant: 'success' })
     },
@@ -104,24 +99,28 @@ export const useUpdateCategories = (
   successMessage = 'Category updated successfully'
 ) => {
   const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
   return useMutation(updateCategories, {
     onSuccess: (res: any) => {
+      queryClient.invalidateQueries(['categories_list'])
+      queryClient.invalidateQueries(['workout_categories'])
+      queryClient.invalidateQueries(['workout-filter-categories'])
+      queryClient.invalidateQueries(['workout_categories_for_assign'])
       handleSubmission(res)
       enqueueSnackbar(successMessage, { variant: 'success' })
     },
 
     onError: (error: any) => {
-      // enqueueSnackbar(getErrorMessage(error.response.data.error), {
-      //   variant: 'error',
-      // })
-      enqueueSnackbar(
-        error?.response?.data?.detail
-          ? getErrorMessage(error?.response?.data?.detail)
-          : error?.response?.data?.message,
-        {
-          variant: 'error',
-        }
-      )
+      const serverError =
+        error?.response?.data?.errors ??
+        error?.response?.data?.detail ??
+        error?.response?.data?.message ??
+        error?.response?.error ??
+        error
+
+      enqueueSnackbar(getErrorMessage(serverError), {
+        variant: 'error',
+      })
     },
   })
 }

@@ -13,6 +13,7 @@ import apiUrl from '../../apis/api.url'
 import { useAdminUser, DISABLE_NONLOGIN_APIS } from './api'
 import { getColumns } from './columns'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../../store/authStore'
 import Icons from '../../components/common/icons'
 import { getAdminDetails } from '../AdminUser/api'
 import moment from 'moment'
@@ -70,7 +71,7 @@ const generateInvoice = async (row: any) => {
       endDate: row?.end_date
         ? moment(row.end_date).format('DD-MM-YYYY')
         : 'N/A',
-      fees: row?.plan_fees || '0',
+      fees: row?.amount || row?.plan_fees || '0',
       status: row?.status || 'N/A',
     },
     userDetails,
@@ -82,9 +83,9 @@ const generateInvoice = async (row: any) => {
       phone: '+91 98765 43210',
     },
     totals: {
-      subtotal: row?.plan_fees || '0',
+      subtotal: row?.amount || row?.plan_fees || '0',
       tax: '0',
-      total: row?.plan_fees || '0',
+      total: row?.amount || row?.plan_fees || '0',
     },
   }
 
@@ -450,6 +451,8 @@ const generateInvoice = async (row: any) => {
 
 export default function Subscriptions() {
   const navigate = useNavigate()
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isSuperAdmin = loginRole === 'superadmin'
   const [columns, setColumns] = useState<TableColumns[]>([])
   const [planIdFilter, setPlanIdFilter] = useState<string>('')
   const [planLabel, setPlanLabel] = useState<string>('All Plans')
@@ -530,7 +533,7 @@ export default function Subscriptions() {
     })
   }
   useEffect(() => {
-    setColumns(getColumns(navigate))
+    setColumns(getColumns(navigate, isSuperAdmin))
   }, [])
 
   const handleSeach = (key?: string) => {
@@ -675,6 +678,15 @@ export default function Subscriptions() {
                 dropOptions: [10, 20, 30, 50, 100],
               }}
               actionProps={[
+                {
+                  icon: <Icons name="eye" />,
+                  action: (row: any) =>
+                    navigate(
+                      `/sales/clients/${row?.client_id || row?.user_id}`
+                    ),
+                  title: 'View',
+                  toolTip: 'View client details',
+                },
                 {
                   icon: <Icons name="download" />,
                   action: (row: any) => generateInvoice(row),

@@ -32,6 +32,32 @@ function formatDate(d: any) {
   const m = moment(d)
   return m.isValid() ? m.format('DD-MM-YYYY') : String(d)
 }
+function formatAge(dob: any) {
+  if (!dob) return '--'
+  const m = moment(dob)
+  return m.isValid() ? String(moment().diff(m, 'years')) : '--'
+}
+function formatInterestedPlans(plans: any) {
+  if (!Array.isArray(plans) || plans.length === 0) return '--'
+  return plans
+    .map((plan) => {
+      if (typeof plan === 'string') return plan
+      return plan?.name || plan?.plan_name || plan?.title || ''
+    })
+    .filter(Boolean)
+    .join(', ')
+}
+function hasInterestedPlans(plans: any) {
+  if (Array.isArray(plans)) return plans.length > 0
+  if (typeof plans === 'string') return plans.trim() !== ''
+  return Boolean(plans)
+}
+function hasValue(value: any) {
+  if (value === null || value === undefined) return false
+  if (typeof value === 'string') return value.trim() !== ''
+  if (Array.isArray(value)) return value.length > 0
+  return true
+}
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
   return String(v)
@@ -51,15 +77,32 @@ export default function DetailsInfo({
   loading,
   error,
   isNutritionist,
+  isPhysiotherapist,
+  isYogist,
+  isSales,
+  isMarketing,
+  detailRole,
   onEdit,
 }: {
   user: any
   loading: boolean
   error: string
   isNutritionist: boolean
+  isPhysiotherapist?: boolean
+  isYogist?: boolean
+  isSales?: boolean
+  isMarketing?: boolean
+  detailRole?:
+    | 'user'
+    | 'nutritionist'
+    | 'physiotherapist'
+    | 'yogist'
+    | 'sales'
+    | 'marketing'
   onEdit?: () => void
 }) {
   const canEdit = typeof onEdit === 'function' && Boolean(user?.id)
+  const isFlatRole = isPhysiotherapist || isYogist || isSales || isMarketing
   return (
     <>
       {loading && (
@@ -90,12 +133,49 @@ export default function DetailsInfo({
             <DetailItem label="Email" value={user?.email || user?.username} />
             <DetailItem label="Phone" value={user?.phone} />
             <DetailItem label="Role" value={mapRole(user?.role)} /> */}
-            <DetailItem label="Gender" value={mapGender(user?.gender)} />
-            <DetailItem
-              label="Date of Birth"
-              value={formatDate(user?.date_of_birth)}
-            />
-            {!isNutritionist && (
+            {isFlatRole ? (
+              <>
+                <DetailItem
+                  label="Date of Birth"
+                  value={formatDate(user?.date_of_birth)}
+                />
+                <DetailItem
+                  label="Age"
+                  value={formatAge(user?.date_of_birth)}
+                />
+                <DetailItem label="Gender" value={mapGender(user?.gender)} />
+                {hasValue(user?.state) && (
+                  <DetailItem
+                    label="State"
+                    value={capitalizeWord(user?.state)}
+                  />
+                )}
+                {hasValue(user?.goal) && (
+                  <DetailItem label="Goal" value={capitalizeWord(user?.goal)} />
+                )}
+                {hasInterestedPlans(user?.interested_plans) && (
+                  <DetailItem
+                    label="Interested Plans"
+                    value={formatInterestedPlans(user?.interested_plans)}
+                  />
+                )}
+                {hasValue(user?.created_at) && (
+                  <DetailItem
+                    label="Created At"
+                    value={formatDate(user?.created_at)}
+                  />
+                )}
+              </>
+            ) : (
+              <>
+                <DetailItem label="Gender" value={mapGender(user?.gender)} />
+                <DetailItem
+                  label="Date of Birth"
+                  value={formatDate(user?.date_of_birth)}
+                />
+              </>
+            )}
+            {!isNutritionist && !isFlatRole && (
               <>
                 <DetailItem label="Height (cm)" value={safeStr(user?.height)} />
                 <DetailItem label="Weight (kg)" value={safeStr(user?.weight)} />
@@ -114,10 +194,25 @@ export default function DetailsInfo({
                   value={capitalizeWord(user?.food_allergies)}
                 />
                 <DetailItem
-                  label="Nationality"
-                  value={capitalizeWord(user?.ethnicity)}
+                  label="Country"
+                  value={capitalizeWord(user?.country ?? user?.ethnicity)}
+                />
+                <DetailItem
+                  label="Language"
+                  value={capitalizeWord(user?.language)}
                 />
                 <DetailItem label="State" value={capitalizeWord(user?.state)} />
+                <DetailItem
+                  label="Work Schedule"
+                  value={capitalizeWord(user?.work_schedule)}
+                />
+                <DetailItem
+                  label="Occupation"
+                  value={capitalizeWord(user?.occupation)}
+                />
+                {detailRole === 'user' && (
+                  <DetailItem label="BMI" value={safeStr(user?.bmi)} />
+                )}
               </>
             )}
             <DetailItem label="Status" value={mapStatus(user?.status)} />
