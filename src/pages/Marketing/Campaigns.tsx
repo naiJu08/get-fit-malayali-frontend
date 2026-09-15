@@ -428,7 +428,8 @@ export default function Campaigns() {
         renderCell: (row: any) => ({
           cell:
             (row.public_url || row.public_token) &&
-            String(row.status || '').toLowerCase() !== 'inactive' ? (
+            String(row.status || '').toLowerCase() !== 'inactive' &&
+            String(row.status || '').toLowerCase() !== 'draft' ? (
               <button
                 type="button"
                 className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
@@ -524,6 +525,9 @@ export default function Campaigns() {
               toolTip: 'Copy public link',
               icon: <Icons name="external-link" />,
               action: copyLink,
+              hide: (row: any) =>
+                String(row.status || '').toLowerCase() === 'draft' ||
+                String(row.status || '').toLowerCase() === 'inactive',
             },
             {
               title: 'Edit',
