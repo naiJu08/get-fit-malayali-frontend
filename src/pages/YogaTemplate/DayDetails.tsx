@@ -915,15 +915,8 @@ export default function YogaPlanDetails() {
 
     if (!Array.isArray(yogas) || yogas.length === 0) return
 
-    // Default behavior for brand new plans with no assignments: select all once
-    const map = new Map<any, any>()
-    yogas.forEach((w: any) => {
-      if (w && w.id != null) {
-        map.set(w.id, w)
-      }
-    })
-
-    setSelectedYogas(Array.from(map.values()))
+    // Default behavior for brand new plans with no assignments: keep unselected initially
+    setSelectedYogas([])
     userSelectionTouchedRef.current = false
     drawerSelectionInitializedRef.current = true
   }, [
@@ -1378,7 +1371,7 @@ export default function YogaPlanDetails() {
                 setWpPage(1)
               }}
             >
-              Assign
+              Add
             </button>
           </div>
         )}
@@ -1475,9 +1468,8 @@ export default function YogaPlanDetails() {
                         setYogaFiltersEnabled(true)
                       }
                       if (assignOpen && categoryActuallyChanged) {
-                        userSelectionTouchedRef.current = false
-                        selectAllNextYogasRef.current = true
-                        setSelectedYogas([])
+                        userSelectionTouchedRef.current = true
+                        selectAllNextYogasRef.current = false
                       }
                     }}
                   />
@@ -1559,9 +1551,8 @@ export default function YogaPlanDetails() {
                       }
 
                       if (assignOpen && prevKey !== nextKey) {
-                        userSelectionTouchedRef.current = false
-                        selectAllNextYogasRef.current = true
-                        setSelectedYogas([])
+                        userSelectionTouchedRef.current = true
+                        selectAllNextYogasRef.current = false
                       }
                     }}
                   />

@@ -830,15 +830,8 @@ export default function WorkoutPlanDetails() {
 
     if (!Array.isArray(workouts) || workouts.length === 0) return
 
-    // Default behavior for brand new plans with no assignments: select all once
-    const map = new Map<any, any>()
-    workouts.forEach((w: any) => {
-      if (w && w.id != null) {
-        map.set(w.id, w)
-      }
-    })
-
-    setSelectedWorkouts(Array.from(map.values()))
+    // Default behavior for brand new plans with no assignments: keep unselected initially
+    setSelectedWorkouts([])
     userSelectionTouchedRef.current = false
     drawerSelectionInitializedRef.current = true
   }, [
@@ -1300,7 +1293,7 @@ export default function WorkoutPlanDetails() {
                 setWpPage(1)
               }}
             >
-              Assign
+              Add
             </button>
           </div>
         )}
@@ -1393,9 +1386,8 @@ export default function WorkoutPlanDetails() {
                         setWorkoutFiltersEnabled(true)
                       }
                       if (assignOpen && categoryActuallyChanged) {
-                        userSelectionTouchedRef.current = false
-                        selectAllNextWorkoutsRef.current = true
-                        setSelectedWorkouts([])
+                        userSelectionTouchedRef.current = true
+                        selectAllNextWorkoutsRef.current = false
                       }
                     }}
                   />
@@ -1453,9 +1445,8 @@ export default function WorkoutPlanDetails() {
                       }
 
                       if (assignOpen && prevKey !== nextKey) {
-                        userSelectionTouchedRef.current = false
-                        selectAllNextWorkoutsRef.current = true
-                        setSelectedWorkouts([])
+                        userSelectionTouchedRef.current = true
+                        selectAllNextWorkoutsRef.current = false
                       }
                     }}
                   />
