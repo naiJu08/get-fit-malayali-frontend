@@ -225,7 +225,7 @@ export default function ModuleDashboard({
             <StatCard key={card.title} {...card} />
           ))}
         </div>
-        {slices.length > 0 && (
+        {!marketing && slices.length > 0 && (
           <div className="mt-6">
             <h2 className="mb-3 text-sm font-semibold text-gray-500 uppercase tracking-wider">
               Lead Status Breakdown
