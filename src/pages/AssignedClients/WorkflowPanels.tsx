@@ -429,7 +429,7 @@ export function ClientWorkflowDetails({
                       setPkgSearch(e.target.value)
                       setPkgPage(1)
                     }}
-                    placeholder="Search packages by name, category ..."
+                    placeholder="Search packages by name"
                     className="w-full rounded-lg border border-formBorder bg-cardWrapperBg py-2.5 pl-10 pr-4 text-sm text-primaryText placeholder-gray-400 outline-none focus:border-primaryGreen focus:bg-white focus:ring-2 focus:ring-primaryGreen/20 transition"
                   />
                 </div>

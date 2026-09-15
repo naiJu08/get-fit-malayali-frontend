@@ -202,7 +202,11 @@ export default function SalesLeads() {
               toolTip: 'Open confirmation link flow',
               icon: <Icons name="link" />,
               hide: (row: any) =>
-                !['accepted', 'contacted', 'qualified'].includes(row.status),
+                ![
+                  'qualified',
+                  'confirmation_pending',
+                  'client_confirmation',
+                ].includes(row.status),
               action: (row: any) =>
                 navigate(`/sales/leads/${row.id}?action=confirmation`),
             },

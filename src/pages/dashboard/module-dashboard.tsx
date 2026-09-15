@@ -334,15 +334,15 @@ export default function ModuleDashboard({
                 }
               />
               <MetricRow
-                label={marketing ? 'Draft campaigns' : 'Active follow-ups'}
+                label={marketing ? 'Upcoming campaigns' : 'Active follow-ups'}
                 value={
                   marketing
-                    ? metrics.campaigns?.draft
+                    ? metrics.campaigns?.upcoming
                     : salesMetrics.active_follow_ups
                 }
                 hint={
                   marketing
-                    ? 'Campaigns still being prepared.'
+                    ? 'Campaigns scheduled to start in the future.'
                     : 'Accepted leads requiring ongoing contact.'
                 }
               />
