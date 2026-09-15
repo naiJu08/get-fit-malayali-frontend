@@ -258,11 +258,13 @@ const steps: StepDef[] = [
           name: 'country',
           placeholder: 'Enter your nationality',
           label: "What's your Nationality?",
+          maxLength: 15,
         },
         {
           name: 'state',
           placeholder: 'Enter your state',
           label: "What's your state?",
+          maxLength: 15,
         },
       ],
     },
