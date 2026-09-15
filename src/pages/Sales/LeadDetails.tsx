@@ -265,6 +265,12 @@ export default function SalesLeadDetails({
   const lead = leadData || data?.lead
   const isLoading = leadData ? false : fetchedIsLoading
   const statusBlockedActivities = ['contacted', 'qualified', 'lost']
+  const hasRecordedInteraction = useMemo(() => {
+    const validTypes = ['call', 'email', 'whatsapp', 'meeting', 'note']
+    return (lead?.activities || []).some((act: any) =>
+      validTypes.includes(String(act?.activity_type || '').toLowerCase())
+    )
+  }, [lead?.activities])
   const activityOptions =
     lead &&
     statusProgression.indexOf(lead.status) >=
@@ -451,6 +457,16 @@ export default function SalesLeadDetails({
     try {
       setActivityLoader(true)
       const values = activityMethods.getValues()
+      const isStatusActivity = ['contacted', 'qualified', 'lost'].includes(
+        String(values.activity_type || '').toLowerCase()
+      )
+      if (isStatusActivity && !hasRecordedInteraction) {
+        enqueueSnackbar(
+          'A lead in sales can be marked as contacted, qualified, or lost only if an activity such as Call, Email, WhatsApp, Meeting, or Note is recorded.',
+          { variant: 'error' }
+        )
+        return
+      }
       await createSalesInteraction(id, {
         activity_type: values.activity_type,
         notes: values.notes || '',
@@ -1117,15 +1133,25 @@ export default function SalesLeadDetails({
                 <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
                   {activityOptions.map((option) => {
                     const selected = selectedActivityType === option.id
+                    const isRestricted =
+                      !hasRecordedInteraction &&
+                      ['contacted', 'qualified', 'lost'].includes(option.id)
                     return (
                       <button
                         key={option.id}
                         type="button"
                         className={
-                          'flex min-h-[60px] flex-col items-center justify-center gap-2 rounded-xl border p-2 text-[11px] font-medium transition ' +
+                          'flex min-h-[60px] flex-col items-center justify-center gap-2 rounded-xl border p-2 text-[11px] font-medium transition relative ' +
                           (selected
                             ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                            : 'border-formBorder bg-white text-secondary hover:border-primary/50 hover:bg-gray-50')
+                            : isRestricted
+                              ? 'border-dashed border-gray-300 bg-gray-50 text-gray-400 hover:border-amber-300'
+                              : 'border-formBorder bg-white text-secondary hover:border-primary/50 hover:bg-gray-50')
+                        }
+                        title={
+                          isRestricted
+                            ? 'Requires at least one Call, Email, WhatsApp, Meeting, or Note interaction first'
+                            : undefined
                         }
                         onClick={() => {
                           setSelectedActivityType(option.id)
@@ -1137,6 +1163,12 @@ export default function SalesLeadDetails({
                             'activity_type_label',
                             option.name
                           )
+                          if (isRestricted) {
+                            enqueueSnackbar(
+                              'A lead in sales can be marked as contacted, qualified, or lost only if an activity such as Call, Email, WhatsApp, Meeting, or Note is recorded.',
+                              { variant: 'warning' }
+                            )
+                          }
                         }}
                       >
                         <span
@@ -1144,7 +1176,9 @@ export default function SalesLeadDetails({
                             'flex h-7 w-7 items-center justify-center rounded-full ' +
                             (selected
                               ? 'bg-blue-600 text-white'
-                              : 'bg-gray-100 text-gray-500')
+                              : isRestricted
+                                ? 'bg-gray-100 text-gray-400'
+                                : 'bg-gray-100 text-gray-500')
                           }
                         >
                           <Icons
@@ -1157,6 +1191,22 @@ export default function SalesLeadDetails({
                     )
                   })}
                 </div>
+                {!hasRecordedInteraction &&
+                  ['contacted', 'qualified', 'lost'].includes(
+                    selectedActivityType
+                  ) && (
+                    <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+                      <Icons
+                        name="exclamation-circle"
+                        className="h-4 w-4 text-amber-600 shrink-0 mt-0.5"
+                      />
+                      <span>
+                        A lead in sales can be marked as contacted, qualified,
+                        or lost only if an activity such as Call, Email,
+                        WhatsApp, Meeting, or Note is recorded.
+                      </span>
+                    </div>
+                  )}
               </div>
               <div className="border-t border-formBorder pt-5">
                 <FormBuilder data={[activityFields[1]]} edit spacing />
