@@ -1032,14 +1032,14 @@ export default function SalesClientDetails() {
                   Assign a package plan to set expected duration, pricing, and
                   services for this client.
                 </p>
-                <div className="mt-4">
+                {/* <div className="mt-4">
                   <Button
                     label="Add proposed package"
                     icon="plus"
                     onClick={() => openProposalModal()}
                     disabled={!client.profile_completed}
                   />
-                </div>
+                </div> */}
               </div>
             )}
           </section>
@@ -1775,7 +1775,12 @@ export default function SalesClientDetails() {
                                     : 'text-primaryText')
                                 }
                               >
-                                {pkg.name || 'Unnamed'}
+                                {(() => {
+                                  const name = pkg.name || 'Unnamed'
+                                  return (
+                                    name.charAt(0).toUpperCase() + name.slice(1)
+                                  )
+                                })()}
                               </span>
                               {pkg.category && (
                                 <span

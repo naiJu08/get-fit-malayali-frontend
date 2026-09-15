@@ -33,7 +33,7 @@ export default function FormEditor() {
 
   useEffect(() => {
     if (isNew) {
-      const timer = setTimeout(() => setReady(true), 300)
+      const timer = setTimeout(() => setReady(true), 4000)
       return () => clearTimeout(timer)
     }
   }, [isNew])
@@ -55,7 +55,8 @@ export default function FormEditor() {
         header_title: nextDefinition.header?.title || '',
         header_image: nextDefinition.header?.image_url || '',
       })
-      setReady(true)
+      const timer = setTimeout(() => setReady(true), 4000)
+      return () => clearTimeout(timer)
     }
   }, [data, isNew, methods, id])
 

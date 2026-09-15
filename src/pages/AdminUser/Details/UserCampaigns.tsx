@@ -151,27 +151,28 @@ export default function UserCampaigns({ user }: { user: any }) {
         title: 'Public URL',
         field: 'public_url',
         renderCell: (r: any) => ({
-          cell: r.public_url ? (
-            <button
-              type="button"
-              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation()
-                navigator.clipboard.writeText(r.public_url)
-                enqueueSnackbar('Public link copied to clipboard', {
-                  variant: 'success',
-                })
-              }}
-            >
-              <Icons
-                name="link"
-                className="inline-flex items-center justify-center text-white shrink-0"
-              />
-              <span className="leading-none">Copy link</span>
-            </button>
-          ) : (
-            '-'
-          ),
+          cell:
+            r.public_url && r.status !== 'draft' && r.status !== 'inactive' ? (
+              <button
+                type="button"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  navigator.clipboard.writeText(r.public_url)
+                  enqueueSnackbar('Public link copied to clipboard', {
+                    variant: 'success',
+                  })
+                }}
+              >
+                <Icons
+                  name="link"
+                  className="inline-flex items-center justify-center text-white shrink-0"
+                />
+                <span className="leading-none">Copy link</span>
+              </button>
+            ) : (
+              '-'
+            ),
           toolTip: r.public_url || '',
         }),
         customCell: true,

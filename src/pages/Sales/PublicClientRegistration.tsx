@@ -364,6 +364,7 @@ const steps: StepDef[] = [
           name: 'language',
           placeholder: 'e.g. English, Malayalam, Hindi',
           label: "What's your preferred language?",
+          maxLength: 20,
         },
       ],
     },
@@ -392,6 +393,7 @@ const steps: StepDef[] = [
           name: 'occupation',
           placeholder: 'e.g. Software Engineer, Teacher',
           label: "What's your occupation?",
+          maxLength: 25,
         },
       ],
     },
@@ -461,6 +463,17 @@ export default function PublicClientRegistration() {
         const val = watch(fn)
         if (!val || (typeof val === 'string' && !val.trim())) {
           setMessage('Please fill in all required fields.')
+          return
+        }
+        const fieldConfig = step.config?.fields?.find((f: any) => f.name === fn)
+        if (
+          fieldConfig?.maxLength &&
+          typeof val === 'string' &&
+          val.length > fieldConfig.maxLength
+        ) {
+          setMessage(
+            `${fieldConfig.label || fn} must be at most ${fieldConfig.maxLength} characters.`
+          )
           return
         }
       }
@@ -837,6 +850,7 @@ export default function PublicClientRegistration() {
                           let val = e.target.value
                           if (f.maxLength && f.name === 'phone')
                             val = val.replace(/\D/g, '').slice(0, f.maxLength)
+                          else if (f.maxLength) val = val.slice(0, f.maxLength)
                           setValue(f.name, val, {
                             shouldDirty: true,
                             shouldValidate: true,
