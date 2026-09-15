@@ -44,7 +44,7 @@ export default function UserSalesClients({ user }: { user: any }) {
                 className="text-blue-600 hover:underline font-medium text-left"
                 onClick={() =>
                   navigate('/sales/clients/' + row.id, {
-                    state: { from: `/users/sales/${user?.id}/clients` },
+                    state: { from: `/users/sales/${user?.id}/sales_clients` },
                   })
                 }
               >
@@ -114,7 +114,7 @@ export default function UserSalesClients({ user }: { user: any }) {
           icon: <Icons name="eye" />,
           action: (row: any) =>
             navigate('/sales/clients/' + row.id, {
-              state: { from: `/users/sales/${user?.id}/clients` },
+              state: { from: `/users/sales/${user?.id}/sales_clients` },
             }),
         },
       ]}

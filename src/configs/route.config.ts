@@ -750,7 +750,7 @@ const SALES: RouterMenuProps = {
   label: 'Sales Module',
   key: 'sales-module',
   icon: 'sales-icon',
-  permission_slugs: MODULE_ACCESS.sales,
+  permission_slugs: ['superadmin', ...MODULE_ACCESS.sales],
   isSidebarMenu: true,
 }
 const SALES_LEADS: RouterMenuProps = {
@@ -759,7 +759,7 @@ const SALES_LEADS: RouterMenuProps = {
   parent_id: 800,
   label: 'Leads',
   key: 'sales-leads',
-  permission_slugs: MODULE_ACCESS.sales,
+  permission_slugs: ['superadmin', ...MODULE_ACCESS.sales],
   isSidebarMenu: true,
 }
 const SALES_CLIENTS: RouterMenuProps = {
@@ -768,7 +768,7 @@ const SALES_CLIENTS: RouterMenuProps = {
   parent_id: 800,
   label: 'Clients',
   key: 'sales-clients',
-  permission_slugs: MODULE_ACCESS.sales,
+  permission_slugs: ['superadmin', ...MODULE_ACCESS.sales],
   isSidebarMenu: true,
 }
 

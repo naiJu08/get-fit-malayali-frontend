@@ -204,9 +204,10 @@ export default function UserDetails() {
     const last = parts[parts.length - 1]
     // If path ends with the user id (no subpath), redirect to details
     if (last === String(id)) return 'details'
-    if (last === 'clients') return 'accepted-clients'
+    if (last === 'clients' && !isSales) return 'accepted-clients'
+    if (last === 'sales_clients') return 'sales_clients'
     return last
-  }, [location.pathname, id]) as
+  }, [location.pathname, id, isSales]) as
     | 'details'
     | 'subscriptions'
     | 'clients'
@@ -221,6 +222,8 @@ export default function UserDetails() {
     | 'follow-ups'
     | 'forms'
     | 'campaigns'
+    | 'leads'
+    | 'sales_clients'
 
   useEffect(() => {
     if (location.pathname === `${pathBase}/${id}`) {
@@ -265,7 +268,7 @@ export default function UserDetails() {
               : isSales
                 ? [
                     { id: 'leads', label: 'Leads' },
-                    { id: 'clients', label: 'Clients' },
+                    { id: 'sales_clients', label: 'Clients' },
                   ]
                 : [
                     { id: 'subscriptions', label: 'Subscriptions' },
@@ -504,7 +507,7 @@ export default function UserDetails() {
             </Tab>
           )}
           {isSales && (
-            <Tab id="clients">
+            <Tab id="sales_clients">
               <UserSalesClients user={user} />
             </Tab>
           )}

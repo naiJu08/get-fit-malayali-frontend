@@ -1578,7 +1578,12 @@ export default function CampaignDetails() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 justify-between">
                             <div className="font-semibold text-sm text-gray-900 truncate">
-                              {user.name || 'Unnamed'}
+                              {(() => {
+                                const name = user.name || 'Unnamed'
+                                return (
+                                  name.charAt(0).toUpperCase() + name.slice(1)
+                                )
+                              })()}
                             </div>
                             {user.phone && (
                               <span className="text-xs text-gray-400 shrink-0">

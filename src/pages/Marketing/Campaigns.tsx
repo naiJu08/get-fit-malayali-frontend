@@ -541,6 +541,9 @@ export default function Campaigns() {
               toolTip: 'Copy public link',
               icon: <Icons name="external-link" />,
               action: copyLink,
+              hide: (row: any) =>
+                String(row.status || '').toLowerCase() === 'draft' ||
+                String(row.status || '').toLowerCase() === 'inactive',
             },
             {
               title: 'Edit',
