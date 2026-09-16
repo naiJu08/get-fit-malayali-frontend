@@ -40,10 +40,23 @@ export const useAssignedClientForUser = (
             user_id: userId,
             ...(role === 'superadmin' ? {} : { role }),
             include_all: true,
-            per_page: role === 'superadmin' ? 100 : 1,
+            per_page: 100,
           })
       )
-      const assignments = response?.assigned_clients || []
+      const today = new Date().toLocaleDateString('en-CA')
+      const priority = (assignment: any) => {
+        if (
+          assignment.subscription_id &&
+          assignment.package_start_date <= today &&
+          assignment.package_end_date >= today
+        )
+          return 0
+        if (!assignment.cycle_id) return 1
+        return 2
+      }
+      const assignments = [...(response?.assigned_clients || [])].sort(
+        (a: any, b: any) => priority(a) - priority(b)
+      )
       if (!assignments.length) return null
       const details = await Promise.all(
         assignments.map(async (assignment: any) => {

@@ -24,6 +24,7 @@ import UserSalesClients from './Details/UserSalesClients'
 import { useAuthStore } from '../../store/authStore'
 import CreateAdmin from './create'
 import MarketingFormsTab from './Details/MarketingFormsTab'
+import ClientPackagesTab from '../Sales/ClientPackagesTab'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import {
   acceptAssignedClient,
@@ -220,6 +221,8 @@ export default function UserDetails() {
     | 'reminders'
     | 'additional-info'
     | 'follow-ups'
+    | 'packages'
+    | 'assignments'
     | 'forms'
     | 'campaigns'
     | 'leads'
@@ -248,6 +251,8 @@ export default function UserDetails() {
             { id: 'diet-history', label: 'Diet history' },
             { id: 'reports', label: 'Reports' },
             { id: 'follow-ups', label: 'Follow-ups' },
+            { id: 'packages', label: 'Packages' },
+            { id: 'assignments', label: 'Assignments' },
           ]
         : isNutritionist
           ? [
@@ -288,6 +293,12 @@ export default function UserDetails() {
                       : []),
                     ...(isSuperAdmin
                       ? [{ id: 'follow-ups', label: 'Follow-ups' }]
+                      : []),
+                    ...(isSuperAdmin && detailRole === 'user'
+                      ? [
+                          { id: 'packages', label: 'Packages' },
+                          { id: 'assignments', label: 'Assignments' },
+                        ]
                       : []),
                   ]),
     ],
@@ -419,7 +430,9 @@ export default function UserDetails() {
                 user={user}
                 loading={loading}
                 error={error}
-                onRefresh={(fresh: any) => fresh && setData(fresh)}
+                onRefresh={(fresh: any) =>
+                  fresh ? setData(fresh) : refreshUserDetails()
+                }
                 workflowAssignment={
                   isWorkflowViewer ? workflowAssignment : undefined
                 }
@@ -511,6 +524,28 @@ export default function UserDetails() {
               <UserSalesClients user={user} />
             </Tab>
           )}
+          {/* Packages & Assignments — service staff viewing assigned client, or superadmin viewing any user */}
+          {(isServiceClient || (isSuperAdmin && detailRole === 'user')) &&
+            id && (
+              <>
+                <Tab id="packages" activeTab={urlTab}>
+                  <ClientPackagesTab
+                    clientId={String(id)}
+                    canManage={isSuperAdmin || isServiceClient}
+                    apiPrefix="/clients"
+                    mode="packages"
+                  />
+                </Tab>
+                <Tab id="assignments" activeTab={urlTab}>
+                  <ClientPackagesTab
+                    clientId={String(id)}
+                    canManage={isSuperAdmin || isServiceClient}
+                    apiPrefix="/clients"
+                    mode="assignments"
+                  />
+                </Tab>
+              </>
+            )}
         </TabContainer>
       </div>
 

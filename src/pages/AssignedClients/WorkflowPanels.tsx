@@ -47,6 +47,7 @@ const toTitleCaseStr = (str?: string): string => {
 
 type WorkflowProps = {
   assignment?: any
+  proposedPackage?: any
   assignmentId?: string | number
   role?: string
   onRefresh?: (data?: any) => Promise<any> | void
@@ -56,10 +57,14 @@ type WorkflowProps = {
   onUpdateSubscription?: () => void
   onAddSubscription?: () => void
   isServiceRole?: boolean
+  onConfirmPackage?: () => void | Promise<void>
+  confirmLoading?: boolean
+  canConfirmPackage?: boolean
 }
 
 export function ClientWorkflowDetails({
   assignment,
+  proposedPackage,
   assignmentId,
   onRefresh,
   plans = [],
@@ -68,10 +73,13 @@ export function ClientWorkflowDetails({
   onUpdateSubscription,
   onAddSubscription,
   isServiceRole,
+  onConfirmPackage,
+  confirmLoading,
+  canConfirmPackage,
 }: WorkflowProps) {
   const { enqueueSnackbar } = useSnackbarManager()
   const activeSub = subscription
-  const proposedPkg = assignment?.anticipated_package
+  const proposedPkg = proposedPackage ?? assignment?.anticipated_package
 
   const isSubscribed = Boolean(
     activeSub ||
@@ -331,6 +339,67 @@ export function ClientWorkflowDetails({
                 </div>
               )}
 
+              {activeSub && proposedPkg && (
+                <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50/70 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
+                        Upcoming Proposed Package
+                      </span>
+                      <span className="text-sm font-semibold text-gray-800">
+                        {toTitleCaseStr(
+                          proposedPkg?.plan?.name ||
+                            proposedPkg?.name ||
+                            'Proposed Package'
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <span>
+                        Start:{' '}
+                        <strong>
+                          {proposedPkg?.start_date
+                            ? moment(proposedPkg.start_date).format(
+                                'MMM D, YYYY'
+                              )
+                            : '--'}
+                        </strong>
+                      </span>
+                      <span>•</span>
+                      <span>
+                        End:{' '}
+                        <strong>
+                          {proposedPkg?.end_date
+                            ? moment(proposedPkg.end_date).format('MMM D, YYYY')
+                            : '--'}
+                        </strong>
+                      </span>
+                    </div>
+                  </div>
+                  {proposedPkg?.notes && (
+                    <div className="mt-2 text-xs text-gray-600">
+                      <span className="font-semibold text-gray-700">
+                        Sales note:
+                      </span>{' '}
+                      {proposedPkg.notes}
+                    </div>
+                  )}
+                  {onConfirmPackage && (canConfirmPackage ?? true) && (
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        className="primaryButton"
+                        size="xs"
+                        label={
+                          confirmLoading ? 'Confirming...' : 'Confirm Package'
+                        }
+                        disabled={confirmLoading}
+                        onClick={onConfirmPackage}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-blue-100 pt-4">
                 <p className="text-xs text-gray-500">
                   {isSubscribed
@@ -348,6 +417,20 @@ export function ClientWorkflowDetails({
                       onClick={onUpdateSubscription}
                     />
                   )}
+                  {!activeSub &&
+                    proposedPkg &&
+                    onConfirmPackage &&
+                    (canConfirmPackage ?? true) && (
+                      <Button
+                        className="primaryButton"
+                        size="xs"
+                        label={
+                          confirmLoading ? 'Confirming...' : 'Confirm Package'
+                        }
+                        disabled={confirmLoading}
+                        onClick={onConfirmPackage}
+                      />
+                    )}
                   {!onUpdateSubscription &&
                     showWorkflowActions &&
                     assignment?.can_confirm_package && (

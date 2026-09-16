@@ -772,7 +772,18 @@ const SALES_CLIENTS: RouterMenuProps = {
   isSidebarMenu: true,
 }
 
+const SALES_RENEWALS: RouterMenuProps = {
+  id: 804,
+  path: '/sales/renewal-requests',
+  parent_id: 800,
+  label: 'Renewal Requests',
+  key: 'sales-renewals',
+  permission_slugs: ['superadmin', ...MODULE_ACCESS.sales],
+  isSidebarMenu: true,
+}
+
 export const router_config: { [key: string]: RouterMenuProps } = {
+  SALES_RENEWALS,
   DASHBOARD,
   ADMIN_USER,
   ...Object.fromEntries(USER_ROLE_MENUS.map((item) => [item.key, item])),

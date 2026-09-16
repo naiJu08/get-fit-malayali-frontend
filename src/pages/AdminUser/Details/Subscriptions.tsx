@@ -2,7 +2,7 @@ import moment from 'moment'
 import { formatDurationMinutes } from '../../../utilities/format'
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react'
 import type { DragEvent } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import Button from '../../../components/common/buttons/Button'
 import { AutoComplete } from 'qbs-core'
@@ -31,6 +31,11 @@ import { getData } from '../../../apis/api.helpers'
 import { getWorkoutPlanSubcategories } from '../../Plans/Details/WorkoutPlan/api'
 import DayDetailTabsSection from './DayDetailTabsSection'
 import { ClientWorkflowDetails } from '../../AssignedClients/WorkflowPanels'
+import {
+  useClientDetail,
+  useClientPackageCycles,
+  confirmClientPackageCycle,
+} from '../../Sales/api'
 import jsPDF from 'jspdf'
 import { getErrorMessage } from '../../../utilities/parsers'
 
@@ -67,11 +72,64 @@ export default function Subscriptions({
   workflowAssignment?: any
   onWorkflowRefresh?: () => Promise<any>
 }) {
+  const queryClient = useQueryClient()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = loginRole === 'nutritionist'
   const isServiceRole = ['nutritionist', 'yogist', 'physiotherapist'].includes(
     loginRole || ''
   )
+  // Sales proposals belong to the client and can exist before staff assignment.
+  const canLoadClientProposal = Boolean(
+    isServiceRole || loginRole === 'superadmin' || loginRole === 'admin'
+  )
+  const { data: clientDetail, refetch: refetchClientDetail } = useClientDetail(
+    canLoadClientProposal ? id : undefined,
+    '/clients'
+  )
+  const { data: cycleData, refetch: refetchCycles } = useClientPackageCycles(
+    canLoadClientProposal ? id : undefined,
+    '/clients'
+  )
+  const cycles = useMemo(() => cycleData?.cycles || [], [cycleData?.cycles])
+
+  const proposedCycle = useMemo(() => {
+    return (
+      cycles.find(
+        (c: any) =>
+          c.status === 'proposed' ||
+          (!c.subscription_id && c.proposal?.status === 'proposed')
+      ) || (cycles.length > 0 && !cycles[0].subscription_id ? cycles[0] : null)
+    )
+  }, [cycles])
+
+  const proposedPackage = useMemo(() => {
+    return (
+      workflowAssignment?.anticipated_package ||
+      (proposedCycle?.proposal
+        ? {
+            ...proposedCycle.proposal,
+            plan: proposedCycle.plan || proposedCycle.proposal?.plan,
+            start_date:
+              proposedCycle.start_date || proposedCycle.proposal?.start_date,
+            end_date:
+              proposedCycle.end_date || proposedCycle.proposal?.end_date,
+          }
+        : null) ||
+      clientDetail?.client?.plan_proposals?.find(
+        (proposal: any) => proposal.status === 'proposed'
+      )
+    )
+  }, [workflowAssignment, proposedCycle, clientDetail])
+
+  const canConfirmPackage = Boolean(
+    proposedCycle &&
+      (proposedCycle.can_confirm ||
+        loginRole === 'superadmin' ||
+        loginRole === 'admin')
+  )
+
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false)
+  const [confirmingPackage, setConfirmingPackage] = useState(false)
 
   const subscribedPlan = user?.subscribed_plan
   const [overview, setOverview] = useState<any>(null)
@@ -411,53 +469,115 @@ export default function Subscriptions({
     return u
   }
 
-  useEffect(() => {
-    const fetchOverview = async () => {
-      if (!user?.id) return
-      try {
-        setOverviewLoading(true)
-        setOverviewError('')
-        const res = await getActivePlanOverview(user.id)
-        setOverview(res)
+  const fetchOverview = useCallback(async () => {
+    const targetUserId = user?.id || id
+    if (!targetUserId) return
+    try {
+      setOverviewLoading(true)
+      setOverviewError('')
+      const res = await getActivePlanOverview(targetUserId)
+      setOverview(res)
 
-        const todayStr = moment().format('YYYY-MM-DD')
-        const hasToday = Array.isArray(res?.days)
-          ? res.days.some((d: any) => {
-              const dateMatch = d?.date === todayStr
-              const statusStr = String(d?.status || '').toLowerCase()
-              return dateMatch && statusStr === 'today'
-            })
-          : false
+      const todayStr = moment().format('YYYY-MM-DD')
+      const hasToday = Array.isArray(res?.days)
+        ? res.days.some((d: any) => {
+            const dateMatch = d?.date === todayStr
+            const statusStr = String(d?.status || '').toLowerCase()
+            return dateMatch && statusStr === 'today'
+          })
+        : false
 
-        if (hasToday) {
+      if (hasToday) {
+        setCurrentMonth(
+          moment(todayStr, 'YYYY-MM-DD').startOf('month').format('YYYY-MM')
+        )
+      } else {
+        const sd = res?.subscription?.start_date
+        if (sd) {
           setCurrentMonth(
-            moment(todayStr, 'YYYY-MM-DD').startOf('month').format('YYYY-MM')
+            moment(sd, 'YYYY-MM-DD').startOf('month').format('YYYY-MM')
           )
         } else {
-          const sd = res?.subscription?.start_date
-          if (sd) {
-            setCurrentMonth(
-              moment(sd, 'YYYY-MM-DD').startOf('month').format('YYYY-MM')
-            )
-          } else {
-            setCurrentMonth('')
-          }
+          setCurrentMonth('')
         }
-      } catch (e: any) {
-        setOverview(null)
-        const parsedErr = getErrorMessage(e)
-        if (parsedErr && parsedErr !== 'An unexpected error occurred') {
-          setOverviewError(parsedErr)
-        } else {
-          setOverviewError('')
-        }
-      } finally {
-        setOverviewLoading(false)
       }
+    } catch (e: any) {
+      setOverview(null)
+      const parsedErr = getErrorMessage(e)
+      if (parsedErr && parsedErr !== 'An unexpected error occurred') {
+        setOverviewError(parsedErr)
+      } else {
+        setOverviewError('')
+      }
+    } finally {
+      setOverviewLoading(false)
     }
+  }, [user?.id, id])
+
+  useEffect(() => {
     fetchOverview()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, workflowAssignment?.package_confirmed_at])
+  }, [fetchOverview, workflowAssignment?.package_confirmed_at])
+
+  const handleConfirmPackage = async () => {
+    const targetCycle =
+      proposedCycle ||
+      cycles.find((c: any) => c.status === 'proposed' || !c.subscription_id)
+
+    if (!targetCycle?.id) {
+      enqueueSnackbar('No package cycle found to confirm.', {
+        variant: 'error',
+      })
+      return
+    }
+
+    try {
+      setConfirmingPackage(true)
+      const res = await confirmClientPackageCycle(
+        id,
+        targetCycle.id,
+        '/clients'
+      )
+      enqueueSnackbar(
+        res?.message ||
+          'Package confirmed and converted to active subscription.',
+        { variant: 'success' }
+      )
+      setConfirmModalOpen(false)
+
+      await Promise.allSettled([
+        refetchCycles(),
+        canLoadClientProposal ? refetchClientDetail() : Promise.resolve(),
+        fetchOverview(),
+        onWorkflowRefresh ? onWorkflowRefresh() : Promise.resolve(),
+      ])
+
+      try {
+        const fresh = await getAdminDetails(String(id))
+        if (onRefresh) onRefresh(fresh)
+      } catch {}
+
+      await queryClient.invalidateQueries({
+        predicate: (q: any) =>
+          [
+            'client_package_cycles',
+            'client_detail',
+            'assigned_client_workflow_client',
+            'assigned_client_workflow_detail',
+            'sales_renewal_requests',
+          ].includes(String(q.queryKey?.[0])),
+      })
+    } catch (err: any) {
+      enqueueSnackbar(
+        err?.response?.data?.error ||
+          err?.response?.data?.errors?.[0] ||
+          err?.message ||
+          'Failed to confirm package.',
+        { variant: 'error' }
+      )
+    } finally {
+      setConfirmingPackage(false)
+    }
+  }
 
   const getYogaId = (item: any) => {
     if (!item) return undefined
@@ -822,47 +942,6 @@ export default function Subscriptions({
         .format('YYYY-MM')
     )
   }
-
-  useEffect(() => {
-    const fetchOverview = async () => {
-      if (!user?.id) return
-      try {
-        setOverviewLoading(true)
-        const res = await getActivePlanOverview(user.id)
-        setOverview(res)
-
-        const todayStr = moment().format('YYYY-MM-DD')
-        const hasToday = Array.isArray(res?.days)
-          ? res.days.some((d: any) => {
-              const dateMatch = d?.date === todayStr
-              const statusStr = String(d?.status || '').toLowerCase()
-              return dateMatch && statusStr === 'today'
-            })
-          : false
-
-        if (hasToday) {
-          setCurrentMonth(
-            moment(todayStr, 'YYYY-MM-DD').startOf('month').format('YYYY-MM')
-          )
-        } else {
-          const sd = res?.subscription?.start_date
-          if (sd) {
-            setCurrentMonth(
-              moment(sd, 'YYYY-MM-DD').startOf('month').format('YYYY-MM')
-            )
-          } else {
-            setCurrentMonth('')
-          }
-        }
-      } catch (e) {
-        setOverview(null)
-      } finally {
-        setOverviewLoading(false)
-      }
-    }
-    fetchOverview()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, workflowAssignment?.package_confirmed_at])
 
   const statusColor = (day: any) => {
     if (day?.freeze)
@@ -3003,15 +3082,27 @@ export default function Subscriptions({
           )}
           <ClientWorkflowDetails
             assignment={workflowAssignment}
+            proposedPackage={proposedPackage}
             assignmentId={workflowAssignment?.id}
             role={loginRole || 'nutritionist'}
             plans={allPlans}
             showWorkflowActions={loginRole !== 'superadmin'}
-            onRefresh={onWorkflowRefresh || onRefresh}
+            onRefresh={async () => {
+              await (onWorkflowRefresh || onRefresh)()
+              if (canLoadClientProposal) {
+                await Promise.allSettled([
+                  refetchClientDetail(),
+                  refetchCycles(),
+                ])
+              }
+            }}
             subscription={overview?.subscription || subscribedPlan}
             onUpdateSubscription={() => openSubscriptionDrawer(true)}
             onAddSubscription={() => openSubscriptionDrawer(false)}
             isServiceRole={isServiceRole}
+            onConfirmPackage={() => setConfirmModalOpen(true)}
+            confirmLoading={confirmingPackage}
+            canConfirmPackage={canConfirmPackage}
           />
 
           {(overview?.subscription || subscribedPlan || hasPlanOverview) && (
@@ -4332,6 +4423,85 @@ export default function Subscriptions({
                 onChange={(e) => handleSubFormChange('notes', e.target.value)}
                 placeholder="Optional notes"
               />
+            </div>
+          </div>
+        }
+      />
+
+      <DialogModal
+        isOpen={confirmModalOpen}
+        onClose={() => {
+          if (!confirmingPackage) setConfirmModalOpen(false)
+        }}
+        title="Confirm Package"
+        subTitle="Convert this proposed package into an active subscription."
+        onSubmit={handleConfirmPackage}
+        actionLabel={
+          confirmingPackage
+            ? 'Confirming...'
+            : 'Confirm & Activate Subscription'
+        }
+        actionLoader={confirmingPackage}
+        secondaryAction={() => setConfirmModalOpen(false)}
+        secondaryActionLabel="Cancel"
+        small={false}
+        className="w-full max-w-lg"
+        body={
+          <div className="space-y-4 text-sm text-gray-700">
+            <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+              <div className="text-xs font-semibold uppercase tracking-wider text-blue-700 mb-3">
+                Package Details
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-xs text-gray-500 block">Plan Name</span>
+                  <span className="font-semibold text-gray-900">
+                    {toTitleCase(
+                      proposedPackage?.plan?.name ||
+                        proposedCycle?.plan?.name ||
+                        '--'
+                    )}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500 block">Category</span>
+                  <span className="font-semibold text-gray-900 capitalize">
+                    {proposedPackage?.plan?.category ||
+                      proposedPackage?.plan?.plan_category ||
+                      '--'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500 block">
+                    Start Date
+                  </span>
+                  <span className="font-semibold text-gray-900">
+                    {proposedPackage?.start_date || proposedCycle?.start_date
+                      ? moment(
+                          proposedPackage?.start_date ||
+                            proposedCycle?.start_date
+                        ).format('MMM D, YYYY')
+                      : '--'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-xs text-gray-500 block">End Date</span>
+                  <span className="font-semibold text-gray-900">
+                    {proposedPackage?.end_date || proposedCycle?.end_date
+                      ? moment(
+                          proposedPackage?.end_date || proposedCycle?.end_date
+                        ).format('MMM D, YYYY')
+                      : '--'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+              <span className="font-semibold">Note:</span> Confirming this
+              package will activate the subscription and make its calendar days
+              immediately available. Existing staff assignments for this package
+              will be locked in as confirmed.
             </div>
           </div>
         }
