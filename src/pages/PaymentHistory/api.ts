@@ -13,6 +13,11 @@ import { getErrorMessage } from '../../utilities/parsers'
 
 export const DISABLE_NONLOGIN_APIS = false
 
+export const usePaymentDetail = (id?: string) =>
+  useQuery(['payment_detail', id], () => getData(`${apiUrl.PAYMENTS}/${id}`), {
+    enabled: Boolean(id),
+  })
+
 const buildUrlWithParams = (baseUrl: string, params: QueryParams) =>
   `${baseUrl}${parseQueryParams(params)}`
 

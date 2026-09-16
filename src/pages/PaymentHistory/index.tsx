@@ -13,7 +13,6 @@ import apiUrl from '../../apis/api.url'
 import { useAdminUser, DISABLE_NONLOGIN_APIS } from './api'
 import { getColumns } from './columns'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useAuthStore } from '../../store/authStore'
 import Icons from '../../components/common/icons'
 import { getAdminDetails } from '../AdminUser/api'
 import moment from 'moment'
@@ -451,8 +450,6 @@ const generateInvoice = async (row: any) => {
 
 export default function Subscriptions() {
   const navigate = useNavigate()
-  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
-  const isSuperAdmin = loginRole === 'superadmin'
   const [columns, setColumns] = useState<TableColumns[]>([])
   const [planIdFilter, setPlanIdFilter] = useState<string>('')
   const [planLabel, setPlanLabel] = useState<string>('All Plans')
@@ -533,8 +530,8 @@ export default function Subscriptions() {
     })
   }
   useEffect(() => {
-    setColumns(getColumns(navigate, isSuperAdmin))
-  }, [])
+    setColumns(getColumns(navigate))
+  }, [navigate])
 
   const handleSeach = (key?: string) => {
     setPageParams({
@@ -680,12 +677,9 @@ export default function Subscriptions() {
               actionProps={[
                 {
                   icon: <Icons name="eye" />,
-                  action: (row: any) =>
-                    navigate(
-                      `/sales/clients/${row?.client_id || row?.user_id}`
-                    ),
+                  action: (row: any) => navigate(`/payment-history/${row.id}`),
                   title: 'View',
-                  toolTip: 'View client details',
+                  toolTip: 'View payment details',
                 },
                 {
                   icon: <Icons name="download" />,

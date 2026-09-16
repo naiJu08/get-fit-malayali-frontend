@@ -45,6 +45,8 @@ const BatchHistoryDetail = lazy(
 )
 const RecipeDetail = lazy(() => import('../pages/Recipe/Detail'))
 const UserDetails = lazy(() => import('../pages/AdminUser/Details'))
+const PaymentDetails = lazy(() => import('../pages/PaymentHistory/Details'))
+const RenewalRequests = lazy(() => import('../pages/Sales/RenewalRequests'))
 // const SubscriptionHistory = lazy(() => import('../pages/AdminUser/Details/SubscriptionHistory'))
 const WorkoutDetails = lazy(() => import('../pages/Workout/Details'))
 const CategoriesMain = lazy(() => import('../pages/Categories'))
@@ -209,6 +211,22 @@ const routes: any = [
 export default function MainRoutes() {
   return (
     <Routes>
+      <Route
+        path="/sales/renewal-requests"
+        element={
+          <UserRoute slug_key="SALES_RENEWALS">
+            <RenewalRequests />
+          </UserRoute>
+        }
+      />
+      <Route
+        path="/payment-history/:id"
+        element={
+          <UserRoute slug_key="PAYMENT_HISTORY">
+            <PaymentDetails />
+          </UserRoute>
+        }
+      />
       {routes.map((route: any) => (
         <React.Fragment key={route.slug}>
           {route.isAuthRoute ? (
@@ -600,7 +618,39 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
+        path="/users/:id/packages"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/:id/assignments"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
         path="/users/nutritionist/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/nutritionist/:id/packages"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/nutritionist/:id/assignments"
       />
       <Route
         element={
@@ -616,7 +666,39 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
+        path="/users/physiotherapist/:id/packages"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/physiotherapist/:id/assignments"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
         path="/users/yogist/:id/details"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/:id/packages"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/yogist/:id/assignments"
       />
       <Route
         element={

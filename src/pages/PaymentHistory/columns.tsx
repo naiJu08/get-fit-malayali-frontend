@@ -49,10 +49,7 @@ const getModeBadge = (mode?: string) => {
   }
 }
 
-export const getColumns = (
-  navigate?: (path: string) => void,
-  isSuperAdmin?: boolean
-) => {
+export const getColumns = (navigate?: (path: string) => void) => {
   const createRenderCell =
     (key: string, formatter?: (v: any, row?: any) => any) => (row: any) => {
       const val = getNestedProperty(row, key)
@@ -70,14 +67,7 @@ export const getColumns = (
         <button
           type="button"
           className="text-blue-600 hover:underline font-medium text-left"
-          onClick={() =>
-            navigate &&
-            navigate(
-              isSuperAdmin
-                ? `/users/${row?.user_id || row?.client_id || val}/details`
-                : `/sales/clients/${row?.client_id || row?.user_id || val}`
-            )
-          }
+          onClick={() => navigate && navigate(`/payment-history/${row.id}`)}
         >
           {val || row?.client_name || '-'}
         </button>
@@ -173,6 +163,20 @@ export const getColumns = (
           </a>
         )
       }),
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
+      title: 'Payment Notes',
+      field: 'notes',
+      renderCell: createRenderCell('notes', (val) => val || '-'),
+      customCell: true,
+      ...defaultColumnProps,
+    },
+    {
+      title: 'Recorded By',
+      field: 'recorded_by.name',
+      renderCell: createRenderCell('recorded_by.name', (val) => val || '-'),
       customCell: true,
       ...defaultColumnProps,
     },
