@@ -14,7 +14,7 @@ export default function AdditionalInfoTab({
       <div className="p-6">
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="text-yellow-800">
-            User information is unavailable to view nutritional assessment.
+            User information is unavailable to view assessment.
           </div>
         </div>
       </div>

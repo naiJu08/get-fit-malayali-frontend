@@ -169,8 +169,33 @@ export const getColumns = ({
             )
           : ''
         const truncated = truncateText(display, 40)
+        const lower = raw.toLowerCase()
+        let pillClass = 'bg-gray-200 text-gray-800 border-gray-300'
+        if (lower === 'vegetarian') {
+          pillClass = 'bg-green-200 text-green-800 border-green-400'
+        } else if (
+          lower === 'non-vegetarian' ||
+          lower === 'non veg' ||
+          lower === 'nonveg'
+        ) {
+          pillClass = 'bg-red-200 text-red-800 border-red-400'
+        } else if (lower === 'vegan') {
+          pillClass = 'bg-emerald-200 text-emerald-800 border-emerald-400'
+        } else if (lower === 'eggetarian') {
+          pillClass = 'bg-amber-200 text-amber-800 border-amber-400'
+        } else if (lower === 'pescatarian') {
+          pillClass = 'bg-blue-200 text-blue-800 border-blue-400'
+        }
         return {
-          cell: truncated,
+          cell: display ? (
+            <span
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${pillClass}`}
+            >
+              {truncated}
+            </span>
+          ) : (
+            truncated
+          ),
           toolTip: display,
         }
       } else if (isCustom === 'allergies') {

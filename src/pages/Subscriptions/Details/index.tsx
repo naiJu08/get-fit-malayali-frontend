@@ -65,7 +65,7 @@ export default function SubscriptionDetailsMain() {
     { id: 'body', label: 'Body measurements' },
     // { id: 'body-composition', label: 'Body composition' },
     { id: 'vitals', label: 'Vitals' },
-    { id: 'additional-information', label: 'Nutritional assessment' },
+    { id: 'additional-information', label: 'Assessment' },
     { id: 'reminders', label: 'Reminder settings' },
     { id: 'diet-history', label: 'Diet history' },
     { id: 'reports', label: 'Reports' },
