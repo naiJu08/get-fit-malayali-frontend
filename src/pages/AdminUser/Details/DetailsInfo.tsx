@@ -83,6 +83,7 @@ export default function DetailsInfo({
   isMarketing,
   detailRole,
   onEdit,
+  onAssignSales,
 }: {
   user: any
   loading: boolean
@@ -100,6 +101,7 @@ export default function DetailsInfo({
     | 'sales'
     | 'marketing'
   onEdit?: () => void
+  onAssignSales?: () => void
 }) {
   const canEdit = typeof onEdit === 'function' && Boolean(user?.id)
   const isFlatRole = isPhysiotherapist || isYogist || isSales || isMarketing
@@ -211,7 +213,46 @@ export default function DetailsInfo({
                   value={capitalizeWord(user?.occupation)}
                 />
                 {detailRole === 'user' && (
-                  <DetailItem label="BMI" value={safeStr(user?.bmi)} />
+                  <>
+                    <DetailItem label="BMI" value={safeStr(user?.bmi)} />
+                    <div className="border rounded-lg p-3 bg-white flex items-center justify-between">
+                      <div>
+                        <div className="text-xs text-gray-500 mb-1 flex items-center gap-1.5">
+                          <span>Sales Representative</span>
+                          {(user?.registration_source === 'lead_conversion' ||
+                            user?.lead) && (
+                            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded-full">
+                              Lead Converted
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm font-medium">
+                          {user?.sales_rep?.name ? (
+                            <span className="inline-flex items-center gap-1.5 text-blue-700">
+                              <span className="h-2 w-2 rounded-full bg-blue-500" />
+                              {user.sales_rep.name}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-amber-600">
+                              <span className="h-2 w-2 rounded-full bg-amber-400" />
+                              Unassigned
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {onAssignSales && (
+                        <button
+                          type="button"
+                          onClick={onAssignSales}
+                          className="px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors"
+                        >
+                          {user?.sales_rep?.name
+                            ? 'Change Sales'
+                            : 'Assign Sales'}
+                        </button>
+                      )}
+                    </div>
+                  </>
                 )}
               </>
             )}

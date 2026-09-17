@@ -498,13 +498,44 @@ export const getColumns = ({
   })
 
   if (isUserRole) {
-    column.push({
-      title: 'BMI',
-      field: 'bmi',
-      renderCell: createRenderCell('bmi'),
-      customCell: true,
-      ...defaultColumnProps,
-    })
+    column.push(
+      {
+        title: 'Sales Rep',
+        field: 'sales_rep',
+        renderCell: (row: any) => {
+          const rep = row?.sales_rep
+          if (rep?.name) {
+            return {
+              cell: (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                  {rep.name}
+                </span>
+              ),
+              toolTip: `${rep.name} (${rep.email || ''})`,
+            }
+          }
+          return {
+            cell: (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                Unassigned
+              </span>
+            ),
+            toolTip: 'No sales representative assigned',
+          }
+        },
+        customCell: true,
+        ...defaultColumnProps,
+      },
+      {
+        title: 'BMI',
+        field: 'bmi',
+        renderCell: createRenderCell('bmi'),
+        customCell: true,
+        ...defaultColumnProps,
+      }
+    )
   }
 
   column.push({

@@ -54,8 +54,6 @@ type WorkflowProps = {
   plans?: any[]
   showWorkflowActions?: boolean
   subscription?: any
-  onUpdateSubscription?: () => void
-  onAddSubscription?: () => void
   isServiceRole?: boolean
   onConfirmPackage?: () => void | Promise<void>
   confirmLoading?: boolean
@@ -70,9 +68,6 @@ export function ClientWorkflowDetails({
   plans = [],
   showWorkflowActions = true,
   subscription,
-  onUpdateSubscription,
-  onAddSubscription,
-  isServiceRole,
   onConfirmPackage,
   confirmLoading,
   canConfirmPackage,
@@ -384,56 +379,8 @@ export function ClientWorkflowDetails({
                       {proposedPkg.notes}
                     </div>
                   )}
-                  {onConfirmPackage && (canConfirmPackage ?? true) && (
-                    <div className="mt-3 flex justify-end">
-                      <Button
-                        className="primaryButton"
-                        size="xs"
-                        label={
-                          confirmLoading ? 'Confirming...' : 'Confirm Package'
-                        }
-                        disabled={confirmLoading}
-                        onClick={onConfirmPackage}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-blue-100 pt-4">
-                <p className="text-xs text-gray-500">
-                  {isSubscribed
-                    ? 'Manage your active subscription package details.'
-                    : 'Nutritionist leads multi-service clients; solo Physio/Yoga assignments confirm their own package.'}
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  {onUpdateSubscription && (
-                    <Button
-                      outlined
-                      size="xs"
-                      icon="edit"
-                      className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
-                      label="Update Subscription"
-                      onClick={onUpdateSubscription}
-                    />
-                  )}
-                  {!activeSub &&
-                    proposedPkg &&
-                    onConfirmPackage &&
-                    (canConfirmPackage ?? true) && (
-                      <Button
-                        className="primaryButton"
-                        size="xs"
-                        label={
-                          confirmLoading ? 'Confirming...' : 'Confirm Package'
-                        }
-                        disabled={confirmLoading}
-                        onClick={onConfirmPackage}
-                      />
-                    )}
-                  {!onUpdateSubscription &&
-                    showWorkflowActions &&
-                    assignment?.can_confirm_package && (
+                  <div className="mt-3 flex items-center justify-end gap-2">
+                    {showWorkflowActions && assignment?.can_confirm_package && (
                       <Button
                         outlined
                         size="xs"
@@ -444,35 +391,61 @@ export function ClientWorkflowDetails({
                         disabled={saving || !plans.length}
                       />
                     )}
+                    {onConfirmPackage && (canConfirmPackage ?? true) && (
+                      <Button
+                        className="primaryButton"
+                        size="xs"
+                        label={
+                          confirmLoading ? 'Confirming...' : 'Confirm Package'
+                        }
+                        disabled={confirmLoading}
+                        onClick={onConfirmPackage}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-blue-100 pt-4">
+                <p className="text-xs text-gray-500">
+                  {isSubscribed
+                    ? 'Active subscription package details.'
+                    : 'Review the proposed package. You can update details or confirm package to activate.'}
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  {!activeSub && proposedPkg && (
+                    <>
+                      {showWorkflowActions &&
+                        assignment?.can_confirm_package && (
+                          <Button
+                            outlined
+                            size="xs"
+                            icon="edit"
+                            className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
+                            label="Update package"
+                            onClick={openProposalModal}
+                            disabled={saving || !plans.length}
+                          />
+                        )}
+                      {onConfirmPackage && (canConfirmPackage ?? true) && (
+                        <Button
+                          className="primaryButton"
+                          size="xs"
+                          label={
+                            confirmLoading ? 'Confirming...' : 'Confirm Package'
+                          }
+                          disabled={confirmLoading}
+                          onClick={onConfirmPackage}
+                        />
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </>
           ) : (
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <InfoBox content="No proposed package is available yet." />
-              <div className="flex items-center gap-3">
-                {onAddSubscription && !isServiceRole && (
-                  <Button
-                    className="primaryButton"
-                    size="xs"
-                    label="Add Subscription"
-                    onClick={onAddSubscription}
-                  />
-                )}
-                {showWorkflowActions &&
-                  assignment &&
-                  (assignment?.can_confirm_package ?? true) && (
-                    <Button
-                      outlined
-                      size="xs"
-                      icon="edit"
-                      className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
-                      label="Select package"
-                      onClick={openProposalModal}
-                      disabled={saving || !plans.length}
-                    />
-                  )}
-              </div>
             </div>
           )}
         </div>

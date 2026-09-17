@@ -14,7 +14,6 @@ import { useMeditationList } from '../../Meditation/api'
 import { useWorkoutList } from '../../Workout/api'
 import { useYogaList } from '../../Yoga/api'
 import {
-  createSubscription,
   getAdminDetails,
   getActivePlanOverview,
   getOverviewDetail,
@@ -74,7 +73,21 @@ export default function Subscriptions({
 }) {
   const queryClient = useQueryClient()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isSuperAdmin = loginRole === 'superadmin'
+  const isAdmin = loginRole === 'admin'
+  const isSuperOrAdmin = isSuperAdmin || isAdmin
   const isNutritionist = loginRole === 'nutritionist'
+  const isPhysio = loginRole === 'physiotherapist' || loginRole === 'physio'
+  const isYogist =
+    loginRole === 'yogist' ||
+    loginRole === 'yoga_trainer' ||
+    loginRole === 'yoga'
+
+  const canAccessDiet = isSuperOrAdmin || isNutritionist
+  const canAccessWorkout = isSuperOrAdmin || isPhysio
+  const canAccessYoga = isSuperOrAdmin || isYogist
+  const canAccessMeditation = isSuperOrAdmin || isNutritionist || isYogist
+
   const isServiceRole = ['nutritionist', 'yogist', 'physiotherapist'].includes(
     loginRole || ''
   )
@@ -136,8 +149,6 @@ export default function Subscriptions({
   const [overviewLoading, setOverviewLoading] = useState(false)
   const [overviewError, setOverviewError] = useState<string>('')
   const [currentMonth, setCurrentMonth] = useState<string>('')
-  const [drawerOpen, setDrawerOpen] = useState(false)
-  const [subscriptionEditMode, setSubscriptionEditMode] = useState(false)
   const [dayDetailOpen, setDayDetailOpen] = useState(false)
   const [dayDetail, setDayDetail] = useState<any>(null)
   const [dayDetailLoading, setDayDetailLoading] = useState(false)
@@ -156,16 +167,6 @@ export default function Subscriptions({
     start_date: '',
     end_date: '',
   })
-  const [subForm, setSubForm] = useState<{
-    start_date: string
-    end_date: string
-    status: number | ''
-    notes: string
-    plan_id: number | ''
-  }>({ start_date: '', end_date: '', status: 0, notes: '', plan_id: '' })
-  const [subSubmitAttempted, setSubSubmitAttempted] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [selectedPlanOption, setSelectedPlanOption] = useState<any>(null)
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
@@ -199,7 +200,7 @@ export default function Subscriptions({
       window.location.reload()
     }
   }, [])
-  const shouldLoadPlans = drawerOpen || Boolean(workflowAssignment)
+  const shouldLoadPlans = Boolean(workflowAssignment)
   const shouldLoadWorkouts = assignOpen
   const shouldLoadYoga = yogaAssignOpen
   const shouldLoadMeditations = medAssignOpen
@@ -447,14 +448,6 @@ export default function Subscriptions({
       return nameA < nameB ? -1 : 1
     })
   }, [meditations])
-
-  const computeEndDate = (start: string, days?: number) => {
-    if (!start || !days || isNaN(days as any)) return ''
-    const d = moment(start, 'YYYY-MM-DD', true)
-    if (!d.isValid()) return ''
-    const end = d.clone().add((days as number) - 1, 'days')
-    return end.format('YYYY-MM-DD')
-  }
 
   const getEmbedUrl = (url?: string) => {
     const u = String(url || '')
@@ -1408,16 +1401,31 @@ export default function Subscriptions({
     selectAllNextWorkoutsRef.current = false
   }, [assignOpen, workoutsLoading, workouts])
 
-  const openDayDetail = async (
-    dateStr: string,
-    focusTab: DayDetailTab = 'diet'
-  ) => {
+  const getDefaultDayDetailTab = (): DayDetailTab => {
+    if (canAccessDiet) return 'diet'
+    if (canAccessWorkout) return 'workout'
+    if (canAccessYoga) return 'yoga'
+    if (canAccessMeditation) return 'meditation'
+    return 'diet'
+  }
+
+  const openDayDetail = async (dateStr: string, focusTab?: DayDetailTab) => {
     if (!user?.id || !dateStr) return
+    let targetTab = focusTab || getDefaultDayDetailTab()
+    if (targetTab === 'diet' && !canAccessDiet)
+      targetTab = getDefaultDayDetailTab()
+    if (targetTab === 'workout' && !canAccessWorkout)
+      targetTab = getDefaultDayDetailTab()
+    if (targetTab === 'yoga' && !canAccessYoga)
+      targetTab = getDefaultDayDetailTab()
+    if (targetTab === 'meditation' && !canAccessMeditation)
+      targetTab = getDefaultDayDetailTab()
+
     try {
       setSelectedDate(dateStr)
       setDayDetail(null)
       setDayDetailOpen(true)
-      setDayDetailTab(focusTab)
+      setDayDetailTab(targetTab)
       setDayDetailLoading(true)
       const res = await getOverviewDetail(String(user.id), dateStr)
       setDayDetail(res)
@@ -2909,119 +2917,6 @@ export default function Subscriptions({
     }
   }
 
-  const handleSubFormChange = (
-    name: 'start_date' | 'end_date' | 'status' | 'notes' | 'plan_id',
-    value: any
-  ) => {
-    if (name === 'start_date') {
-      const plan = allPlans?.find?.(
-        (p: any) => String(p?.id) === String(subForm.plan_id)
-      )
-      const computed = computeEndDate(value, plan?.duration_days)
-      setSubForm((prev) => ({
-        ...prev,
-        start_date: value,
-        end_date: computed || prev.end_date,
-      }))
-      return
-    }
-    setSubForm((prev) => ({ ...prev, [name]: value }))
-  }
-  const canSubmit = useMemo(() => {
-    return (
-      !!user?.id &&
-      typeof subForm.plan_id === 'number' &&
-      subForm.plan_id > 0 &&
-      !!subForm.start_date &&
-      !!subForm.end_date &&
-      (subForm.status === 0 || subForm.status === 1 || subForm.status === 2)
-    )
-  }, [user?.id, subForm])
-
-  const subFormErrors = useMemo(() => {
-    const errs: {
-      plan_id?: string
-      start_date?: string
-      end_date?: string
-    } = {}
-
-    if (!(typeof subForm.plan_id === 'number' && subForm.plan_id > 0)) {
-      errs.plan_id = 'Required'
-    }
-
-    if (!subForm.start_date) {
-      errs.start_date = 'Required'
-    }
-
-    if (!subForm.end_date) {
-      errs.end_date = 'Required'
-    } else if (
-      subForm.start_date &&
-      moment(subForm.end_date, 'YYYY-MM-DD', true).isValid() &&
-      moment(subForm.start_date, 'YYYY-MM-DD', true).isValid() &&
-      moment(subForm.end_date).isBefore(moment(subForm.start_date), 'day')
-    ) {
-      errs.end_date = 'End date cannot be before start date.'
-    }
-
-    return errs
-  }, [subForm.plan_id, subForm.start_date, subForm.end_date])
-
-  const openSubscriptionDrawer = (isUpdate = false) => {
-    setSubscriptionEditMode(isUpdate)
-    setSelectedPlanOption(null)
-    setSubSubmitAttempted(false)
-    setSubForm({
-      start_date: '',
-      end_date: '',
-      status: 0,
-      notes: '',
-      plan_id: '',
-    })
-    setDrawerOpen(true)
-  }
-  const closeSubscriptionDrawer = () => {
-    setDrawerOpen(false)
-    setSubscriptionEditMode(false)
-  }
-
-  const handleSubmitSubscription = async () => {
-    setSubSubmitAttempted(true)
-    if (!canSubmit) return
-    try {
-      setSubmitting(true)
-      const payload: any = {
-        subscription: {
-          user_id: user?.id,
-          plan_id: subForm.plan_id,
-          start_date: subForm.start_date,
-          end_date: subForm.end_date,
-          status: 0,
-        },
-      }
-      if (subForm.notes && String(subForm.notes).trim() !== '') {
-        payload.subscription.notes = subForm.notes
-      }
-      await createSubscription(payload)
-      try {
-        const fresh = await getAdminDetails(String(id))
-        onRefresh(fresh)
-      } catch {}
-      enqueueSnackbar('Subscription created successfully', {
-        variant: 'success',
-      })
-      setSelectedPlanOption(null)
-      setDrawerOpen(false)
-      // Force full page refresh to reflect new subscription state
-      if (typeof window !== 'undefined' && window.location) {
-        window.location.reload()
-      }
-    } catch {
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   const onDragStart = (index: number, groupName?: string) => {
     setDragIndex(index)
     setDragGroup(groupName ?? null)
@@ -3055,28 +2950,38 @@ export default function Subscriptions({
           {workflowAssignment && (
             <div className="flex flex-wrap items-center gap-2">
               {(workflowAssignment.assignments || [workflowAssignment]).map(
-                (item: any) => (
-                  <span
-                    key={item.id}
-                    className="inline-flex items-center gap-1 rounded-full border border-primaryBlue/30 bg-blue-50 px-3 py-1 text-xs font-medium text-primaryBlue"
-                  >
-                    <span className="capitalize">{item.role || 'service'}</span>
-                    <span className="text-gray-600">
-                      · {item.staff_name || 'Assigned'}
-                    </span>
+                (item: any) => {
+                  const isItemAccepted = Boolean(
+                    item.accepted_at ||
+                      (item.workflow_status &&
+                        item.workflow_status !== 'pending' &&
+                        item.workflow_status !== 'package_confirmed') ||
+                      (item.workflow_status === 'package_confirmed' &&
+                        item.accepted_at)
+                  )
+                  return (
                     <span
-                      className={
-                        item.workflow_status === 'pending'
-                          ? 'rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700'
-                          : 'rounded-full px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700'
-                      }
+                      key={item.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-primaryBlue/30 bg-blue-50 px-3 py-1 text-xs font-medium text-primaryBlue"
                     >
-                      {item.workflow_status === 'pending'
-                        ? 'Not accepted'
-                        : 'Accepted'}
+                      <span className="capitalize">
+                        {item.role || 'service'}
+                      </span>
+                      <span className="text-gray-600">
+                        · {item.staff_name || 'Assigned'}
+                      </span>
+                      <span
+                        className={
+                          !isItemAccepted
+                            ? 'rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700'
+                            : 'rounded-full px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700'
+                        }
+                      >
+                        {!isItemAccepted ? 'Not accepted' : 'Accepted'}
+                      </span>
                     </span>
-                  </span>
-                )
+                  )
+                }
               )}
             </div>
           )}
@@ -3097,8 +3002,6 @@ export default function Subscriptions({
               }
             }}
             subscription={overview?.subscription || subscribedPlan}
-            onUpdateSubscription={() => openSubscriptionDrawer(true)}
-            onAddSubscription={() => openSubscriptionDrawer(false)}
             isServiceRole={isServiceRole}
             onConfirmPackage={() => setConfirmModalOpen(true)}
             confirmLoading={confirmingPackage}
@@ -3270,41 +3173,47 @@ export default function Subscriptions({
                                 </div>
                                 {c?.inRange && c?.meta ? (
                                   <div className="mt-1 text-[10px] leading-4">
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        openDayDetail(
-                                          c?.meta?.date || c.key,
-                                          'diet'
-                                        )
-                                      }}
-                                      className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 text-left bg-red-100 hover:bg-red-200"
-                                    >
-                                      <span>Diet</span>
-                                      <span className="font-medium">
-                                        {c?.meta?.diet_summary?.total_items ??
-                                          0}
-                                      </span>
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        openDayDetail(
-                                          c?.meta?.date || c.key,
-                                          'workout'
-                                        )
-                                      }}
-                                      className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-violet-200 hover:bg-violet-300"
-                                    >
-                                      <span>Workout</span>
-                                      <span className="font-medium">
-                                        {c?.meta?.workout_summary
-                                          ?.total_exercises ?? 0}
-                                      </span>
-                                    </button>
-                                    {c?.meta?.yoga_summary && (
+                                    {canAccessDiet && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          openDayDetail(
+                                            c?.meta?.date || c.key,
+                                            'diet'
+                                          )
+                                        }}
+                                        className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 text-left bg-red-100 hover:bg-red-200"
+                                      >
+                                        <span>Diet</span>
+                                        <span className="font-medium">
+                                          {c?.meta?.diet_summary?.total_items ??
+                                            0}
+                                        </span>
+                                      </button>
+                                    )}
+
+                                    {canAccessWorkout && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          openDayDetail(
+                                            c?.meta?.date || c.key,
+                                            'workout'
+                                          )
+                                        }}
+                                        className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-violet-200 hover:bg-violet-300"
+                                      >
+                                        <span>Workout</span>
+                                        <span className="font-medium">
+                                          {c?.meta?.workout_summary
+                                            ?.total_exercises ?? 0}
+                                        </span>
+                                      </button>
+                                    )}
+
+                                    {canAccessYoga && c?.meta?.yoga_summary && (
                                       <button
                                         type="button"
                                         onClick={(e) => {
@@ -3324,23 +3233,25 @@ export default function Subscriptions({
                                       </button>
                                     )}
 
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        openDayDetail(
-                                          c?.meta?.date || c.key,
-                                          'meditation'
-                                        )
-                                      }}
-                                      className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-blue-200 hover:bg-blue-300"
-                                    >
-                                      <span>Meditation</span>
-                                      <span className="font-medium">
-                                        {c?.meta?.meditation_summary
-                                          ?.total_items ?? 0}
-                                      </span>
-                                    </button>
+                                    {canAccessMeditation && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          openDayDetail(
+                                            c?.meta?.date || c.key,
+                                            'meditation'
+                                          )
+                                        }}
+                                        className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-blue-200 hover:bg-blue-300"
+                                      >
+                                        <span>Meditation</span>
+                                        <span className="font-medium">
+                                          {c?.meta?.meditation_summary
+                                            ?.total_items ?? 0}
+                                        </span>
+                                      </button>
+                                    )}
                                   </div>
                                 ) : null}
                               </div>
@@ -4291,144 +4202,6 @@ export default function Subscriptions({
       </CustomDrawer>
 
       <DialogModal
-        isOpen={drawerOpen}
-        onClose={() => closeSubscriptionDrawer()}
-        title={
-          subscriptionEditMode ? 'Update Subscription' : 'Add Subscription'
-        }
-        onSubmit={handleSubmitSubscription}
-        secondaryAction={() => closeSubscriptionDrawer()}
-        secondaryActionLabel="Close"
-        actionLabel="Save"
-        actionLoader={submitting}
-        small={false}
-        body={
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">
-                Plans <span className="text-red-500">*</span>
-              </label>
-              <AutoComplete
-                name="plan_id"
-                type="custom_search_select"
-                desc="name"
-                descId="id"
-                data={allPlans}
-                placeholder="Select a plan"
-                value={selectedPlanOption?.name ?? ''}
-                onChange={(opt: any) => {
-                  setSelectedPlanOption(opt)
-                  const pid =
-                    typeof opt?.id === 'number'
-                      ? opt.id
-                      : parseInt(opt?.id, 10) || ''
-                  handleSubFormChange('plan_id', pid)
-                  setSubForm((prev) => ({
-                    ...prev,
-                    start_date: '',
-                    end_date: '',
-                  }))
-                }}
-                required
-              />
-              {subSubmitAttempted && subFormErrors.plan_id && (
-                <div className="mt-1 text-xs text-red-500">
-                  {subFormErrors.plan_id}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">
-                Start date <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  className={`w-full border rounded px-3 py-2 text-xs ${subForm.start_date ? 'pr-7' : ''}`}
-                  value={subForm.start_date}
-                  onChange={(e) =>
-                    handleSubFormChange('start_date', e.target.value)
-                  }
-                  required
-                  min={moment().format('YYYY-MM-DD')}
-                />
-                {subForm.start_date ? (
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    onClick={() => {
-                      setSubForm((prev) => ({
-                        ...prev,
-                        start_date: '',
-                        end_date: '',
-                      }))
-                    }}
-                    aria-label="Clear start date"
-                  >
-                    <Icons name="close" className="text-gray-500" />
-                  </button>
-                ) : null}
-              </div>
-              {subSubmitAttempted && subFormErrors.start_date && (
-                <div className="mt-1 text-xs text-red-500">
-                  {subFormErrors.start_date}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">
-                End date <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  className={`w-full border rounded px-3 py-2 text-xs ${subForm.end_date ? 'pr-7' : ''}`}
-                  value={subForm.end_date}
-                  onChange={(e) =>
-                    handleSubFormChange('end_date', e.target.value)
-                  }
-                  required
-                  disabled
-                />
-                {subForm.end_date ? (
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                    onClick={() => {
-                      setSubForm((prev) => ({
-                        ...prev,
-                        end_date: '',
-                      }))
-                    }}
-                    aria-label="Clear end date"
-                  >
-                    <Icons name="close" className="text-gray-500" />
-                  </button>
-                ) : null}
-              </div>
-              {subSubmitAttempted && subFormErrors.end_date && (
-                <div className="mt-1 text-xs text-red-500">
-                  {subFormErrors.end_date}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-1">
-                Notes (optional)
-              </label>
-              <textarea
-                className="w-full border rounded px-3 py-2 text-xs"
-                rows={3}
-                value={subForm.notes}
-                onChange={(e) => handleSubFormChange('notes', e.target.value)}
-                placeholder="Optional notes"
-              />
-            </div>
-          </div>
-        }
-      />
-
-      <DialogModal
         isOpen={confirmModalOpen}
         onClose={() => {
           if (!confirmingPackage) setConfirmModalOpen(false)
@@ -4688,6 +4461,10 @@ export default function Subscriptions({
               dayDetailTab={dayDetailTab}
               onChangeTab={(tabId) => setDayDetailTab(tabId as DayDetailTab)}
               isNutritionist={isNutritionist}
+              canAccessDiet={canAccessDiet}
+              canAccessWorkout={canAccessWorkout}
+              canAccessYoga={canAccessYoga}
+              canAccessMeditation={canAccessMeditation}
               subscriptionId={overview?.subscription?.id}
               userId={id}
               refreshDayDetail={refreshDayDetail}

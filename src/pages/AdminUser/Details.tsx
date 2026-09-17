@@ -21,11 +21,12 @@ import DietHistory from './Details/DietHistory'
 import UserCampaigns from './Details/UserCampaigns'
 import UserSalesLeads from './Details/UserSalesLeads'
 import UserSalesClients from './Details/UserSalesClients'
-import { useAuthStore } from '../../store/authStore'
 import CreateAdmin from './create'
+import AssignSalesModal from './AssignSalesModal'
 import MarketingFormsTab from './Details/MarketingFormsTab'
 import ClientPackagesTab from '../Sales/ClientPackagesTab'
 import { useSnackbarManager } from '../../components/common/snackbar'
+import { useAuthStore } from '../../store/authStore'
 import {
   acceptAssignedClient,
   useAssignedClientForUser,
@@ -61,7 +62,7 @@ const DETAIL_ROLE_LABELS: Record<DetailRole, string> = {
 export default function UserDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const loginRole = useAuthStore((s: any) => s.roleData?.name?.toLowerCase?.())
   const location = useLocation()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -70,6 +71,7 @@ export default function UserDetails() {
     null
   )
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [assignSalesOpen, setAssignSalesOpen] = useState(false)
 
   const refreshUserDetails = useCallback(() => {
     if (!id) return
@@ -236,82 +238,100 @@ export default function UserDetails() {
     }
   }, [location.pathname, id, navigate, pathBase])
 
-  const tabs = useMemo(
-    () => [
+  const hasSubscription = Boolean(
+    user?.has_subscription ||
+      user?.subscribed_plan ||
+      (Array.isArray(user?.subscriptions) && user.subscriptions.length > 0) ||
+      subscriptionId
+  )
+
+  const canAccessDietAndRecipes =
+    isSuperAdmin || loginRole === 'admin' || loginRole === 'nutritionist'
+
+  const canAccessReports =
+    isSuperAdmin ||
+    loginRole === 'admin' ||
+    isServiceClient ||
+    loginRole === 'sales'
+
+  const canAccessFollowUps =
+    isWorkflowViewer ||
+    isSuperAdmin ||
+    loginRole === 'admin' ||
+    loginRole === 'sales'
+
+  const tabs = useMemo(() => {
+    if (detailRole !== 'user') {
+      if (isNutritionist) {
+        return [
+          { id: 'details', label: 'Details' },
+          { id: 'accepted-clients', label: 'Accepted Clients' },
+          { id: 'assigned-clients', label: 'Assigned Clients' },
+          { id: 'diet-history', label: 'Diet history' },
+        ]
+      }
+      if (isMarketing) {
+        return [
+          { id: 'details', label: 'Details' },
+          { id: 'forms', label: 'Forms' },
+          { id: 'campaigns', label: 'Campaigns' },
+        ]
+      }
+      if (isFlatWithClients) {
+        return [
+          { id: 'details', label: 'Details' },
+          { id: 'accepted-clients', label: 'Accepted Clients' },
+          { id: 'assigned-clients', label: 'Assigned Clients' },
+        ]
+      }
+      if (isSales) {
+        return [
+          { id: 'details', label: 'Details' },
+          { id: 'leads', label: 'Leads' },
+          { id: 'sales_clients', label: 'Clients' },
+        ]
+      }
+    }
+
+    // Client / User detail tabs in exact required order
+    return [
       { id: 'details', label: 'Details' },
-      ...(isServiceClient
+      { id: 'subscriptions', label: 'Subscriptions' },
+      ...(hasSubscription
         ? [
-            { id: 'subscriptions', label: 'Subscriptions' },
             { id: 'body', label: 'Body measurements' },
             { id: 'vitals', label: 'Vitals' },
             { id: 'reminders', label: 'Reminder settings' },
-            { id: 'recipes', label: 'Recipes' },
-            { id: 'additional-info', label: 'Nutritional assessment' },
-            { id: 'subscription-history', label: 'Subscription history' },
-            { id: 'diet-history', label: 'Diet history' },
-            { id: 'reports', label: 'Reports' },
-            { id: 'follow-ups', label: 'Follow-ups' },
-            { id: 'packages', label: 'Packages' },
-            { id: 'assignments', label: 'Assignments' },
           ]
-        : isNutritionist
-          ? [
-              { id: 'accepted-clients', label: 'Accepted Clients' },
-              { id: 'assigned-clients', label: 'Assigned Clients' },
-              { id: 'diet-history', label: 'Diet history' },
-            ]
-          : isMarketing
-            ? [
-                { id: 'forms', label: 'Forms' },
-                { id: 'campaigns', label: 'Campaigns' },
-              ]
-            : isFlatWithClients
-              ? [
-                  { id: 'accepted-clients', label: 'Accepted Clients' },
-                  { id: 'assigned-clients', label: 'Assigned Clients' },
-                ]
-              : isSales
-                ? [
-                    { id: 'leads', label: 'Leads' },
-                    { id: 'sales_clients', label: 'Clients' },
-                  ]
-                : [
-                    { id: 'subscriptions', label: 'Subscriptions' },
-                    { id: 'body', label: 'Body measurements' },
-                    // { id: 'body-composition', label: 'Body composition' },
-                    { id: 'vitals', label: 'Vitals' },
-                    { id: 'reminders', label: 'Reminder settings' },
-                    { id: 'recipes', label: 'Recipes' },
-                    { id: 'additional-info', label: 'Nutritional assessment' },
-                    {
-                      id: 'subscription-history',
-                      label: 'Subscription history',
-                    },
-                    { id: 'diet-history', label: 'Diet history' },
-                    ...(loginRole !== 'nutritionist'
-                      ? [{ id: 'reports', label: 'Reports' }]
-                      : []),
-                    ...(isSuperAdmin
-                      ? [{ id: 'follow-ups', label: 'Follow-ups' }]
-                      : []),
-                    ...(isSuperAdmin && detailRole === 'user'
-                      ? [
-                          { id: 'packages', label: 'Packages' },
-                          { id: 'assignments', label: 'Assignments' },
-                        ]
-                      : []),
-                  ]),
-    ],
-    [
-      isServiceClient,
-      isSuperAdmin,
-      isNutritionist,
-      isMarketing,
-      isFlatWithClients,
-      isSales,
-      loginRole,
+        : []),
+      ...(hasSubscription && canAccessDietAndRecipes
+        ? [{ id: 'recipes', label: 'Recipes' }]
+        : []),
+      { id: 'additional-info', label: 'Nutritional assessment' },
+      { id: 'subscription-history', label: 'Subscription history' },
+      ...(canAccessDietAndRecipes
+        ? [{ id: 'diet-history', label: 'Diet history' }]
+        : []),
+      ...(hasSubscription && canAccessReports
+        ? [{ id: 'reports', label: 'Reports' }]
+        : []),
+      ...(canAccessFollowUps
+        ? [{ id: 'follow-ups', label: 'Follow-ups' }]
+        : []),
+      { id: 'packages', label: 'Packages' },
+      { id: 'assignments', label: 'Assignments' },
     ]
-  )
+  }, [
+    detailRole,
+    isNutritionist,
+    isMarketing,
+    isFlatWithClients,
+    isSales,
+    hasSubscription,
+    canAccessDietAndRecipes,
+    canAccessReports,
+    canAccessFollowUps,
+  ])
 
   const handleTabClick = (item: { id: string | number; label: string }) => {
     navigate(`${pathBase}/${id}/${item.id}`)
@@ -412,18 +432,16 @@ export default function UserDetails() {
               isMarketing={isMarketing}
               detailRole={detailRole}
               onEdit={() => setEditModalOpen(true)}
+              onAssignSales={
+                isSuperAdmin && detailRole === 'user'
+                  ? () => setAssignSalesOpen(true)
+                  : undefined
+              }
             />
           </Tab>
-          {isWorkflowViewer && workflowAssignment && (
-            <Tab id="follow-ups">
-              <ClientWorkflowFollowUps
-                assignment={workflowAssignment}
-                assignmentId={workflowAssignment.id}
-                onRefresh={() => refetchWorkflow()}
-              />
-            </Tab>
-          )}
-          {!isNutritionist && !isFlatRole && (
+
+          {/* Subscriptions */}
+          {detailRole === 'user' && (
             <Tab id="subscriptions">
               <Subscriptions
                 id={String(id)}
@@ -447,53 +465,110 @@ export default function UserDetails() {
               />
             </Tab>
           )}
-          {!isNutritionist && !isFlatRole && (
+
+          {/* Body Measurements (Requires Subscription) */}
+          {detailRole === 'user' && hasSubscription && (
             <Tab id="body">
               <BodyMeasurements user={user} subscriptionId={subscriptionId} />
             </Tab>
           )}
-          {/* {!isNutritionist && (
-            <Tab id="body-composition">
-              <BodyComposition user={user} subscriptionId={subscriptionId} />
-            </Tab>
-          )} */}
-          {!isNutritionist && !isFlatRole && (
+
+          {/* Vitals (Requires Subscription) */}
+          {detailRole === 'user' && hasSubscription && (
             <Tab id="vitals">
               <Vitals user={user} subscriptionId={subscriptionId} />
             </Tab>
           )}
-          {!isNutritionist && !isFlatRole && (
+
+          {/* Reminder Settings (Requires Subscription) */}
+          {detailRole === 'user' && hasSubscription && (
             <Tab id="reminders">
               <ReminderSettings userId={user?.id} />
             </Tab>
           )}
-          {!isNutritionist && !isFlatRole && (
-            <Tab id="recipes">
-              <RecipesTab userId={user?.id} />
-            </Tab>
-          )}
-          {!isNutritionist && !isFlatRole && (
+
+          {/* Recipes (Requires Subscription & Nutritionist / Superadmin / Admin) */}
+          {detailRole === 'user' &&
+            hasSubscription &&
+            canAccessDietAndRecipes && (
+              <Tab id="recipes">
+                <RecipesTab userId={user?.id} />
+              </Tab>
+            )}
+
+          {/* Nutritional Assessment (All Roles) */}
+          {detailRole === 'user' && (
             <Tab id="additional-info">
               <AdditionalInfo user={user} subscriptionId={subscriptionId} />
             </Tab>
           )}
-          {!isNutritionist && !isFlatRole && (
+
+          {/* Subscription History */}
+          {detailRole === 'user' && (
             <Tab id="subscription-history">
               <SubscriptionHistory />
             </Tab>
           )}
-          {!isFlatRole && (
+
+          {/* Diet History (Nutritionist / Superadmin / Admin) */}
+          {(canAccessDietAndRecipes ||
+            (isNutritionist && detailRole !== 'user')) && (
             <Tab id="diet-history">
               <DietHistory subscriptionId={subscriptionId} />
             </Tab>
           )}
-          {!isNutritionist &&
-            !isFlatRole &&
-            (loginRole !== 'nutritionist' || isServiceClient) && (
-              <Tab id="reports">
-                <Reports user={user} subscriptionId={subscriptionId} />
+
+          {/* Reports (Requires Subscription & Superadmin / Admin / Service Roles) */}
+          {detailRole === 'user' && hasSubscription && canAccessReports && (
+            <Tab id="reports">
+              <Reports user={user} subscriptionId={subscriptionId} />
+            </Tab>
+          )}
+
+          {/* Follow-ups */}
+          {detailRole === 'user' &&
+            canAccessFollowUps &&
+            workflowAssignment && (
+              <Tab id="follow-ups">
+                <ClientWorkflowFollowUps
+                  assignment={workflowAssignment}
+                  assignmentId={workflowAssignment.id}
+                  onRefresh={() => refetchWorkflow()}
+                />
               </Tab>
             )}
+
+          {/* Packages */}
+          {detailRole === 'user' && id && (
+            <Tab id="packages" activeTab={urlTab}>
+              <ClientPackagesTab
+                clientId={String(id)}
+                canManage={
+                  isSuperAdmin || isServiceClient || loginRole === 'sales'
+                }
+                apiPrefix="/clients"
+                mode="packages"
+              />
+            </Tab>
+          )}
+
+          {/* Assignments */}
+          {detailRole === 'user' && id && (
+            <Tab id="assignments" activeTab={urlTab}>
+              <ClientPackagesTab
+                clientId={String(id)}
+                canManage={
+                  isSuperAdmin || isServiceClient || loginRole === 'sales'
+                }
+                apiPrefix="/clients"
+                mode="assignments"
+                user={user}
+                onSalesAssignSuccess={refreshUserDetails}
+              />
+            </Tab>
+          )}
+
+          {/* Staff Specific Tabs */}
           {(isNutritionist || isFlatWithClients) && (
             <Tab id="accepted-clients">
               <AcceptedClients user={user} />
@@ -524,28 +599,6 @@ export default function UserDetails() {
               <UserSalesClients user={user} />
             </Tab>
           )}
-          {/* Packages & Assignments — service staff viewing assigned client, or superadmin viewing any user */}
-          {(isServiceClient || (isSuperAdmin && detailRole === 'user')) &&
-            id && (
-              <>
-                <Tab id="packages" activeTab={urlTab}>
-                  <ClientPackagesTab
-                    clientId={String(id)}
-                    canManage={isSuperAdmin || isServiceClient}
-                    apiPrefix="/clients"
-                    mode="packages"
-                  />
-                </Tab>
-                <Tab id="assignments" activeTab={urlTab}>
-                  <ClientPackagesTab
-                    clientId={String(id)}
-                    canManage={isSuperAdmin || isServiceClient}
-                    apiPrefix="/clients"
-                    mode="assignments"
-                  />
-                </Tab>
-              </>
-            )}
         </TabContainer>
       </div>
 
@@ -556,6 +609,13 @@ export default function UserDetails() {
         edit
         rowData={{ user }}
         activeRole={detailRole}
+      />
+
+      <AssignSalesModal
+        isOpen={assignSalesOpen}
+        onClose={() => setAssignSalesOpen(false)}
+        user={user}
+        onSuccess={() => refreshUserDetails()}
       />
     </>
   )

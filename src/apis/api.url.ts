@@ -39,6 +39,7 @@ const USER_REMINDERS = '/user_reminders'
 const SUBSCRIPTION_HISTORY = '/subscriptions/user_history'
 const USER_MEAL_TIMINGS = '/user_meal_timings'
 const MEAL_TIMINGS = '/meal_timings'
+const DIASTASIS_RECTI_CONTENTS = '/diastasis_recti_contents'
 
 const ADMIN_DASHBOARD = 'admin/dashboard'
 const YOGA = '/yogas'
@@ -99,6 +100,7 @@ const apiUrl: { [key: string]: string } = {
   SUBSCRIPTION_HISTORY,
   USER_MEAL_TIMINGS,
   MEAL_TIMINGS,
+  DIASTASIS_RECTI_CONTENTS,
   ADMIN_DASHBOARD,
   YOGA,
   MEDITATION,

@@ -675,3 +675,15 @@ export const useUserSalesClients = (
     { enabled: Boolean(userId) }
   )
 }
+
+export const assignSalesToClient = (
+  userId: string | number,
+  salesRepId: string | number | null
+) => postData(`/users/${userId}/assign_sales`, { sales_rep_id: salesRepId })
+
+export const useActiveSalesTeam = () =>
+  useQuery(
+    ['active_sales_team'],
+    () => getData('/users?role=sales&status=active&per_page=100'),
+    { staleTime: 60000 }
+  )

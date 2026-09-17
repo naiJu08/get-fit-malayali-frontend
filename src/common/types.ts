@@ -372,6 +372,9 @@ export interface TabItemProps {
   inactiveClass?: string
   activeBorderClass?: string
   inactiveBorderClass?: string
+  count?: number | string
+  countBgClass?: string
+  badge?: React.ReactNode
 }
 export interface TabProps {
   data: TabItemProps[]
