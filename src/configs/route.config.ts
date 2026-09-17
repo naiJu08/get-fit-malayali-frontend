@@ -395,6 +395,7 @@ const DIET_TEMPLATE: RouterMenuProps = {
     'DIET_TEMPLATE',
     'DIET_TEMPLATE_DETAILS',
     'DIET_TEMPLATE_DIET_PLAN',
+    'DIET_TEMPLATE_DETAILS_INFO',
   ],
   isSidebarMenu: true,
 }
@@ -416,6 +417,16 @@ const DIET_TEMPLATE_DIET_PLAN: RouterMenuProps = {
   icon: 'user',
   label: 'Diet Template Diet Plan',
   key: 'diet-template-diet-plan',
+  permission_slugs: [],
+}
+const DIET_TEMPLATE_DETAILS_INFO: RouterMenuProps = {
+  id: 18,
+  path: '/diet-template/:id/details',
+  parent_id: 220,
+  isDetails: true,
+  icon: 'user',
+  label: 'Diet Template Details Info',
+  key: 'diet-template-details-info',
   permission_slugs: [],
 }
 const DIET_TEMPLATE_CATEGORIES: RouterMenuProps = {
@@ -859,6 +870,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   WORKOUT_TEMPLATE_DAY,
   DIET_TEMPLATE_DETAILS,
   DIET_TEMPLATE_DIET_PLAN,
+  DIET_TEMPLATE_DETAILS_INFO,
   DIET_TEMPLATE_CATEGORIES,
   MEALS,
   MEALS_DETAILS,

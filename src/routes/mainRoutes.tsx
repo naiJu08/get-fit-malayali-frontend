@@ -145,6 +145,7 @@ const routes: any = [
   { slug: 'DIET_TEMPLATE_CATEGORIES', component: <DietTemplateCategories /> },
   { slug: 'DIET_TEMPLATE_DETAILS', component: <DietTemplateDetails /> },
   { slug: 'DIET_TEMPLATE_DIET_PLAN', component: <DietTemplateDetails /> },
+  { slug: 'DIET_TEMPLATE_DETAILS_INFO', component: <DietTemplateDetails /> },
   { slug: 'DIET_DETAILS', component: <DietPlanDetails /> },
   { slug: 'MEDITATIONPLAN', component: <PlanDetails /> },
   { slug: 'RECIPE', component: <Recipe /> },
