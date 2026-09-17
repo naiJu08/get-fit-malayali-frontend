@@ -11,7 +11,7 @@ import CustomeSideViewer from '../../../components/common/drawer/customeSideView
 import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
 // import FormFieldView from '../../../components/common/inputs/FormFieldView'
-import { useCreateAdmin, useUpdateAdmin } from '../api'
+import { useCreateAdmin, useUpdateAdmin, useActiveSalesTeam } from '../api'
 import {
   AdminSchema,
   formSchema,
@@ -345,6 +345,11 @@ export default function CreateAdmin({
   const [deleteModal, setDeleteModal] = useState(false)
   const [showOtherMedicalCondition, setShowOtherMedicalCondition] =
     useState(false)
+  const { data: salesTeamData } = useActiveSalesTeam()
+  const salesTeamOptions = (salesTeamData?.users || []).map((u: any) => ({
+    id: u.id,
+    name: `${u.name} (${u.email})`,
+  }))
 
   const handleDeleteFile = () => {
     console.log('handle delete')
@@ -588,6 +593,23 @@ export default function CreateAdmin({
             initialLoad: true,
           },
           { ...textField('occupation', 'Occupation', 'Enter occupation') },
+          ...(!edit
+            ? [
+                {
+                  name: 'sales_rep_id',
+                  label: 'Assign Sales Representative',
+                  id: 'sales_rep_id',
+                  desc: 'name',
+                  descId: 'id',
+                  data: salesTeamOptions,
+                  getData: () => salesTeamOptions,
+                  type: 'custom_select',
+                  placeholder: 'Select sales representative (optional)',
+                  async: false,
+                  initialLoad: true,
+                },
+              ]
+            : []),
         ]
       : []),
   ]
@@ -1100,6 +1122,10 @@ export default function CreateAdmin({
             ? (details?.work_schedule?.name ?? details?.work_schedule?.id ?? '')
             : (details?.work_schedule ?? ''),
         occupation: details?.occupation ?? '',
+        sales_rep_id:
+          typeof details?.sales_rep_id === 'object'
+            ? details?.sales_rep_id?.id
+            : details?.sales_rep_id || undefined,
         ...(statusValue !== undefined ? { status: statusValue } : {}),
       },
     }

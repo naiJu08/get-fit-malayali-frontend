@@ -79,7 +79,23 @@ const TabContainer: React.FC<TabProps> = ({
                   )}`}
                   onClick={() => handleClick(tab)}
                 >
-                  <p className="w-max">{tab.label}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="w-max">{tab.label}</span>
+                    {tab.count !== undefined && tab.count !== null && (
+                      <span
+                        className={`inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full ${
+                          tab.countBgClass
+                            ? tab.countBgClass
+                            : tab.id === activeTab
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {tab.count}
+                      </span>
+                    )}
+                    {tab.badge}
+                  </div>
                 </div>
               )}
             </React.Fragment>

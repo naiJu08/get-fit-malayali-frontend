@@ -38,6 +38,15 @@ export const sidebarList: SidebarItem[] = [
     ],
   },
   {
+    id: 16,
+    icon: 'info-icon',
+    name: 'Information',
+    path: '/information',
+    dropdown: [
+      { id: 0, name: 'Diastasis Recti', path: '/information/diastasis-recti' },
+    ],
+  },
+  {
     id: 3,
     icon: 'customer-icon',
     name: 'Users',

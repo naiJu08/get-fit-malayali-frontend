@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 
+import Checkbox from '../../../../components/common/inputs/Checkbox'
 import SmartTable from '../../../../components/common/table/SmartTable'
 import Icons from '../../../../components/common/icons'
 import { TableColumns } from '../../../../common/types'
@@ -8,6 +9,7 @@ import ConfirmDeleteModal from '../../../../components/common/modal/ConfirmDelet
 import InfoBox from '../../../../components/app/alertBox/infoBox'
 import Button from '../../../../components/common/buttons/Button'
 // import DietPlanForm from './create'
+import CopyMealsDialog, { DietCopyTargetType } from '../../CopyMealsDialog'
 // import { useDietPlans, useDeleteDietPlan } from './api'
 import { useAdminUserFilterStore } from '../../../../store/filterSore/adminUserStore'
 import { getSortedColumnName } from '../../../../utilities/parsers'
@@ -101,9 +103,36 @@ function DietPlanContent({
   const navigate = useNavigate()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
+  const [selectedDayNumbers, setSelectedDayNumbers] = useState<string[]>([])
+  const [selectedMealIds, setSelectedMealIds] = useState<string[]>([])
+  const [copyType, setCopyType] = useState<DietCopyTargetType | null>(null)
 
   const columns: TableColumns[] = useMemo(
     () => [
+      {
+        title: '',
+        field: 'select',
+        colWidth: 56,
+        customCell: true,
+        renderCell: (row: any) => ({
+          cell: (
+            <Checkbox
+              id={'select-diet-day-' + row.day_number}
+              name={'select-diet-day-' + row.day_number}
+              checked={selectedDayNumbers.includes(String(row.day_number))}
+              handleChange={() =>
+                setSelectedDayNumbers((current) =>
+                  current.includes(String(row.day_number))
+                    ? current.filter(
+                        (value) => value !== String(row.day_number)
+                      )
+                    : [...current, String(row.day_number)]
+                )
+              }
+            />
+          ),
+        }),
+      },
       {
         title: 'Day Number',
         field: 'day_number',
@@ -158,7 +187,7 @@ function DietPlanContent({
         sortKey: 'effective_total_calories',
       },
     ],
-    [navigate]
+    [navigate, selectedDayNumbers]
   )
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
@@ -173,7 +202,7 @@ function DietPlanContent({
     diet_plan_template_id: Number(templateId),
   }
 
-  const { data, isFetching } = useDietPlans(searchParams)
+  const { data, isFetching, refetch } = useDietPlans(searchParams)
   const buildDayKey = useCallback((plan: any) => {
     const numberKey = plan?.day_number ? `number:${plan.day_number}` : ''
     if (numberKey) return numberKey
@@ -343,6 +372,28 @@ function DietPlanContent({
   const dayColumns: TableColumns[] = useMemo(
     () => [
       {
+        title: '',
+        field: 'select_meal',
+        colWidth: 56,
+        customCell: true,
+        renderCell: (row: any) => ({
+          cell: (
+            <Checkbox
+              id={'select-diet-meal-' + row.id}
+              name={'select-diet-meal-' + row.id}
+              checked={selectedMealIds.includes(String(row.id))}
+              handleChange={() =>
+                setSelectedMealIds((current) =>
+                  current.includes(String(row.id))
+                    ? current.filter((value) => value !== String(row.id))
+                    : [...current, String(row.id)]
+                )
+              }
+            />
+          ),
+        }),
+      },
+      {
         title: 'Meal Order',
         field: 'serial',
         resizable: false,
@@ -477,7 +528,7 @@ function DietPlanContent({
         sortKey: 'effective_total_calories',
       },
     ],
-    [navigate]
+    [navigate, selectedMealIds]
   )
 
   const viewingDayRows = useMemo(() => {
@@ -536,6 +587,12 @@ function DietPlanContent({
       ]
 
   const actionProps = viewingDay ? dayActions : aggregatedActions
+  const copySourceDayNumbers = viewingDay
+    ? selectedMealIds.length > 0 && selectedDayMeta?.day_number
+      ? [String(selectedDayMeta.day_number)]
+      : []
+    : selectedDayNumbers
+  const showCopyActions = !isNutritionist && copySourceDayNumbers.length > 0
 
   return (
     <div className="">
@@ -590,6 +647,38 @@ function DietPlanContent({
         dataRowKey="id"
         toolbar={true}
         title={tableTitle}
+        toolbarExtra={
+          showCopyActions ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-gray-500">
+                {viewingDay
+                  ? selectedMealIds.length + ' meal(s)'
+                  : selectedDayNumbers.length + ' day(s)'}{' '}
+                selected
+              </span>
+              {(
+                [
+                  'same_template',
+                  'other_template',
+                  'client',
+                ] as DietCopyTargetType[]
+              ).map((target) => (
+                <button
+                  key={target}
+                  type="button"
+                  className="px-3 py-1.5 text-xs rounded-lg border border-blue-200 bg-white text-blue-700 hover:bg-blue-50"
+                  onClick={() => setCopyType(target)}
+                >
+                  {target === 'same_template'
+                    ? 'Copy to Same Template'
+                    : target === 'other_template'
+                      ? 'Copy to Other Template'
+                      : 'Copy to Client'}
+                </button>
+              ))}
+            </div>
+          ) : undefined
+        }
         searchValue={String(pageParams?.search || '')}
         onSearchChange={(val) =>
           setPageParams({ ...pageParams, search: val, page: 1 })
@@ -609,6 +698,27 @@ function DietPlanContent({
         externalActions={true}
         actionProps={actionProps}
       />
+
+      {copyType && (
+        <CopyMealsDialog
+          open={Boolean(copyType)}
+          onClose={() => setCopyType(null)}
+          sourceTemplateId={templateId}
+          sourceDays={aggregatedPlans.map((day: any) => ({
+            ...day,
+            id: day.day_number,
+            title: day.day_name || 'Day ' + day.day_number,
+          }))}
+          sourceDayNumbers={copySourceDayNumbers}
+          sourceMealIds={viewingDay ? selectedMealIds : []}
+          targetType={copyType}
+          onSuccess={async () => {
+            await refetch()
+            setSelectedDayNumbers([])
+            setSelectedMealIds([])
+          }}
+        />
+      )}
 
       <DietPlanForm
         isOpen={formOpen}

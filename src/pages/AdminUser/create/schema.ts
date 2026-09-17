@@ -154,6 +154,7 @@ export const formSchema = z
     country: z.string().optional(),
     work_schedule: z.string().optional(),
     occupation: z.string().optional(),
+    sales_rep_id: z.any().optional(),
     status: z.union([z.number(), z.string()]).optional(),
   })
   .refine(

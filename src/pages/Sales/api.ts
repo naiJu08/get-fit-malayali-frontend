@@ -43,6 +43,14 @@ export const convertSalesLead = (id: string | number, data: any) =>
 export const useSalesClients = (params: Record<string, any>) =>
   useQuery(['sales_clients', params], () => list('/sales/clients', params))
 
+export const useUnassignedClients = (params: Record<string, any>) =>
+  useQuery(['unassigned_clients', params], () =>
+    list('/sales/unassigned_clients', params)
+  )
+
+export const acquireSalesClient = (id: string | number) =>
+  postData(`/sales/clients/${id}/acquire`, {})
+
 export const useSalesClient = (id?: string) =>
   useQuery(['sales_client', id], () => getData(`/sales/clients/${id}`), {
     enabled: Boolean(id),

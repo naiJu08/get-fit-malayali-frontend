@@ -30,6 +30,7 @@ import {
 } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
+import AssignSalesModal from './AssignSalesModal'
 import { useAuthStore } from '../../store/authStore'
 
 type StatusFilterValue = 'all' | 'active' | 'deactivated'
@@ -116,6 +117,7 @@ export default function AdminUser() {
   const [loader, setloader] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
   const [activePlanWarningOpen, setActivePlanWarningOpen] = useState(false)
+  const [assignSalesModalUser, setAssignSalesModalUser] = useState<any>(null)
   const [pendingStatusChange, setPendingStatusChange] = useState<{
     id: string
     username: string
@@ -592,6 +594,18 @@ export default function AdminUser() {
                       String(rowData?.status).toLowerCase() === 'active',
                     variant: 'success',
                   },
+                  ...(activeRole === 'user' &&
+                  ['superadmin', 'admin'].includes(loginRole || '')
+                    ? [
+                        {
+                          title: 'Assign Sales',
+                          action: (rowData: any) =>
+                            setAssignSalesModalUser(rowData),
+                          icon: <Icons name="user" />,
+                          toolTip: 'Assign Sales Representative',
+                        },
+                      ]
+                    : []),
                   {
                     title: 'Delete',
                     action: (rowData) => handleOpenDeleteUser(rowData?.id),
@@ -613,6 +627,13 @@ export default function AdminUser() {
               />
             </div>
           </div>
+
+          <AssignSalesModal
+            isOpen={Boolean(assignSalesModalUser)}
+            onClose={() => setAssignSalesModalUser(null)}
+            user={assignSalesModalUser}
+            onSuccess={() => refetch()}
+          />
 
           <ConfirmDeleteModal
             isOpen={activePlanWarningOpen}

@@ -22,7 +22,7 @@ export const MODULE_ACCESS: Record<RouteModule, string[]> = {
   yoga: ['superadmin', 'nutritionist', 'yogist'],
   meditation: ['superadmin', 'nutritionist', 'yogist'],
   diet: ['superadmin', 'nutritionist'],
-  finance: ['superadmin'],
+  finance: ['superadmin', 'sales'],
   sales: ['sales'],
   core: [
     'superadmin',
@@ -153,6 +153,26 @@ const DIET_NUTRITION: RouterMenuProps = {
   key: 'diet-nutrition',
   icon: 'meal-icon',
   permission_slugs: ['superadmin', 'nutritionist'],
+  isSidebarMenu: true,
+}
+
+const INFORMATION: RouterMenuProps = {
+  id: 500,
+  parent_id: null,
+  label: 'Information',
+  key: 'information',
+  icon: 'info-icon',
+  permission_slugs: ['superadmin'],
+  isSidebarMenu: true,
+}
+
+const DIASTASIS_RECTI: RouterMenuProps = {
+  id: 501,
+  path: '/information/diastasis-recti',
+  parent_id: 500,
+  label: 'Diastasis Recti',
+  key: 'diastasis-recti',
+  permission_slugs: ['superadmin'],
   isSidebarMenu: true,
 }
 
@@ -696,6 +716,16 @@ const PAYMENT_HISTORY: RouterMenuProps = {
   permission_slugs: ['superadmin', 'sales'],
   isSidebarMenu: true,
 }
+const REFUNDS: RouterMenuProps = {
+  id: 46,
+  path: '/refunds',
+  parent_id: 400,
+  label: 'Refunds',
+  icon: 'paymentapproval-icon',
+  key: 'refunds',
+  permission_slugs: ['superadmin', 'sales'],
+  isSidebarMenu: true,
+}
 
 const MARKETING: RouterMenuProps = {
   path: '/marketing',
@@ -783,7 +813,6 @@ const SALES_RENEWALS: RouterMenuProps = {
 }
 
 export const router_config: { [key: string]: RouterMenuProps } = {
-  SALES_RENEWALS,
   DASHBOARD,
   ADMIN_USER,
   ...Object.fromEntries(USER_ROLE_MENUS.map((item) => [item.key, item])),
@@ -792,6 +821,8 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   YOGA_MODULE,
   DIET_NUTRITION,
   FINANCE,
+  INFORMATION,
+  DIASTASIS_RECTI,
   MARKETING,
   MARKETING_FORMS,
   MARKETING_CAMPAIGNS,
@@ -840,6 +871,8 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   SUBSCRIPTIONS,
   SUBSCRIPTIONS_DETAILS,
   PAYMENT_HISTORY,
+  REFUNDS,
+  SALES_RENEWALS,
 
   // Other details / routes
   PLAN_DETAILS,

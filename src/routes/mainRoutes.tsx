@@ -47,6 +47,7 @@ const RecipeDetail = lazy(() => import('../pages/Recipe/Detail'))
 const UserDetails = lazy(() => import('../pages/AdminUser/Details'))
 const PaymentDetails = lazy(() => import('../pages/PaymentHistory/Details'))
 const RenewalRequests = lazy(() => import('../pages/Sales/RenewalRequests'))
+const RefundsPage = lazy(() => import('../pages/Refunds'))
 // const SubscriptionHistory = lazy(() => import('../pages/AdminUser/Details/SubscriptionHistory'))
 const WorkoutDetails = lazy(() => import('../pages/Workout/Details'))
 const CategoriesMain = lazy(() => import('../pages/Categories'))
@@ -57,6 +58,7 @@ const CategoriesDetails = lazy(() => import('../pages/Categories/Details'))
 
 const Dashboard = lazy(() => import('../pages/dashboard'))
 const Settings = lazy(() => import('../pages/samples/Settings'))
+const DiastasisRecti = lazy(() => import('../pages/Information/DiastasisRecti'))
 // const Users = lazy(() => import('../pages/samples/Users'))
 const Discount = lazy(() => import('../pages/samples/Discount'))
 const Payment = lazy(() => import('../pages/samples/Payment'))
@@ -161,6 +163,7 @@ const routes: any = [
   { slug: 'MEDITATION_DETAILS', component: <MeditationDetails /> },
   { slug: 'PLAN_DETAILS_DIET', component: <PlanDetails /> },
   { slug: 'PAYMENT_HISTORY', component: <PaymentHistory /> },
+  { slug: 'REFUNDS', component: <RefundsPage /> },
   { slug: 'REMINDER_SETTINGS', component: <UserDetails /> },
   { slug: 'MEAL_TIMING', component: <MealTimingMain /> },
   { slug: 'MEAL_TIMING_DETAILS', component: <MealTimingDetails /> },
@@ -507,6 +510,14 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/settings"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="DIASTASIS_RECTI">
+            <DiastasisRecti />
+          </UserRoute>
+        }
+        path="/information/diastasis-recti"
       />
       <Route
         element={
