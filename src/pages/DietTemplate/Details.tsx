@@ -53,14 +53,16 @@ export default function DietTemplateDetails() {
   const trimmedPath = (location.pathname || '').replace(/\/+$/, '')
   const segments = trimmedPath.split('/')
   const lastSegment = segments[segments.length - 1]
-  const derivedTab = lastSegment === String(id) ? 'details' : lastSegment
-  const activeTab = allowedTabIds.includes(derivedTab) ? derivedTab : 'details'
+  const derivedTab = lastSegment === String(id) ? 'diet-plan' : lastSegment
+  const activeTab = allowedTabIds.includes(derivedTab)
+    ? derivedTab
+    : 'diet-plan'
 
   useEffect(() => {
-    if (location.pathname === `/diet-template/${id}/details`) {
-      navigate(`/diet-template/${id}`, { replace: true })
+    if (location.pathname === `/diet-template/${id}/diet-plan`) {
+      navigate(`/diet-template/${id}${location.search}`, { replace: true })
     }
-  }, [id, location.pathname, navigate])
+  }, [id, location.pathname, location.search, navigate])
 
   return (
     <>
@@ -82,7 +84,7 @@ export default function DietTemplateDetails() {
           activeTab={activeTab}
           onClick={(tab) => {
             const basePath = `/diet-template/${id}`
-            if (tab.id === 'details') navigate(basePath)
+            if (tab.id === 'diet-plan') navigate(basePath)
             else navigate(`${basePath}/${tab.id}`)
           }}
         >
