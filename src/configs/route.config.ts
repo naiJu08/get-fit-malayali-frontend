@@ -20,7 +20,7 @@ export const MODULE_ACCESS: Record<RouteModule, string[]> = {
   users: ['superadmin', 'nutritionist', 'physiotherapist', 'yogist'],
   workout: ['superadmin', 'nutritionist', 'physiotherapist'],
   yoga: ['superadmin', 'nutritionist', 'yogist'],
-  meditation: ['superadmin', 'nutritionist'],
+  meditation: ['superadmin', 'nutritionist', 'yogist'],
   diet: ['superadmin', 'nutritionist'],
   finance: ['superadmin', 'sales'],
   sales: ['sales'],

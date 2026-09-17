@@ -1105,10 +1105,10 @@ export default function AdditionalInfo({
 
   const formHeading =
     modalMode === 'view'
-      ? 'Nutritional Assessment Details'
+      ? 'Assessment Details'
       : modalMode === 'edit'
-        ? 'Edit Nutritional Assessment'
-        : 'Create Nutritional Assessment'
+        ? 'Edit Assessment'
+        : 'Create Assessment'
   const disableSubmit = saving || (!isDirty && !hasSavedData)
   const viewMode = modalMode === 'view'
 
@@ -1394,7 +1394,7 @@ export default function AdditionalInfo({
           toolbar={false}
           search={false}
           height={assessmentRows.length === 0 ? 300 : 520}
-          emptyTitle="No nutritional assessment to display"
+          emptyTitle="No assessment to display"
           emptySubTitle=""
           columns={assessmentColumns}
           pagination={false}
@@ -1416,7 +1416,7 @@ export default function AdditionalInfo({
         />
       ) : (
         <div className="p-6 border rounded-lg bg-white flex flex-col gap-4">
-          <InfoBox content="No nutritional assessment available for this user." />
+          <InfoBox content="No assessment available for this user." />
         </div>
       )}
 

@@ -6,7 +6,7 @@ import TextField from '../../components/common/inputs/TextField'
 import TextArea from '../../components/common/inputs/TextArea'
 import ColorPicker from '../../components/common/inputs/ColorPicker'
 import Checkbox from '../../components/common/inputs/Checkbox'
-import ToggleSwitch from '../../components/common/inputs/ToggleSwitch'
+
 import FileUpload from '../../components/common/fileUpload/index'
 import { AutoComplete } from 'qbs-core'
 import SmartTable from '../../components/common/table/SmartTable'
@@ -128,7 +128,6 @@ export function Builder({
   const [dragging, setDragging] = useState<number | null>(null)
   const [hoveredField, setHoveredField] = useState<number | null>(null)
   const fields: FormField[] = definition.fields || []
-  const selectedField = fields[selected]
   const accent = definition.theme?.accent || '#176b5b'
   const layout = definition.layout || 'single'
 
@@ -141,20 +140,9 @@ export function Builder({
         i === index ? { ...field, ...changes } : field
       ),
     }))
-  const updateOption = (index: number, optionIndex: number, option: string) => {
-    const options = [...(fields[index].options || [])]
-    options[optionIndex] = option
-    updateField(index, { options })
-  }
   const addOption = (index: number) =>
     updateField(index, {
       options: [...(fields[index].options || []), 'New option'],
-    })
-  const removeOption = (index: number, optionIndex: number) =>
-    updateField(index, {
-      options: (fields[index].options || []).filter(
-        (_: string, i: number) => i !== optionIndex
-      ),
     })
   const addField = (type: string, atIndex = fields.length) => {
     const key = 'field_' + Date.now()
@@ -755,7 +743,7 @@ export function Builder({
             </div>
           </div>
 
-          <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[260px_1fr_300px] gap-3">
+          <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[260px_1fr] gap-3">
             <aside className="bg-white rounded-2xl border border-gray-200 p-4 overflow-auto shadow-sm flex flex-col">
               <div className="mb-4">
                 <div className="font-bold text-sm text-gray-900 mb-0.5">
@@ -922,14 +910,247 @@ export function Builder({
                               </span>
                             )}
                           </div>
-                          <span className="text-[10px] text-gray-300 font-mono">
-                            {field.key}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            {selected === index && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (index > 0) moveField(index, index - 1)
+                                  }}
+                                  disabled={index === 0}
+                                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+                                  title="Move up"
+                                >
+                                  <svg
+                                    className="w-3.5 h-3.5 text-gray-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M5 15l7-7 7 7"
+                                    />
+                                  </svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    if (index < fields.length - 1)
+                                      moveField(index, index + 1)
+                                  }}
+                                  disabled={index === fields.length - 1}
+                                  className="p-1 rounded hover:bg-gray-100 disabled:opacity-30 transition-colors"
+                                  title="Move down"
+                                >
+                                  <svg
+                                    className="w-3.5 h-3.5 text-gray-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M19 9l-7 7-7-7"
+                                    />
+                                  </svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    duplicateField(index)
+                                  }}
+                                  className="p-1 rounded hover:bg-blue-50 transition-colors"
+                                  title="Duplicate"
+                                >
+                                  <svg
+                                    className="w-3.5 h-3.5 text-blue-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    removeField(index)
+                                  }}
+                                  className="p-1 rounded hover:bg-red-50 transition-colors"
+                                  title="Remove"
+                                >
+                                  <svg
+                                    className="w-3.5 h-3.5 text-red-400"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                    />
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+                            <span className="text-[10px] text-gray-300 font-mono ml-1">
+                              {field.key}
+                            </span>
+                          </div>
                         </div>
-                        <label className="block text-[13px] font-semibold text-gray-800 mb-2">
-                          {field.label}
-                        </label>
-                        {previewField(field)}
+
+                        {selected === index ? (
+                          <div
+                            className="space-y-3"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div>
+                              <label className="text-[11px] font-semibold text-gray-500 mb-1 block">
+                                Label
+                              </label>
+                              <input
+                                type="text"
+                                value={field.label}
+                                onChange={(e) =>
+                                  updateField(index, { label: e.target.value })
+                                }
+                                maxLength={FIELD_LABEL_MAX}
+                                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition"
+                                placeholder="Field label"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[11px] font-semibold text-gray-500 mb-1 block">
+                                Placeholder
+                              </label>
+                              <input
+                                type="text"
+                                value={field.placeholder || ''}
+                                onChange={(e) =>
+                                  updateField(index, {
+                                    placeholder: e.target.value,
+                                  })
+                                }
+                                maxLength={FIELD_TEXT_MAX}
+                                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-800 outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition"
+                                placeholder="Placeholder text"
+                              />
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-semibold text-gray-500">
+                                Required
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateField(index, {
+                                    required: !field.required,
+                                  })
+                                }
+                                className={
+                                  'relative inline-flex h-5 w-9 items-center rounded-full transition-colors ' +
+                                  (field.required
+                                    ? 'bg-green-500'
+                                    : 'bg-gray-300')
+                                }
+                              >
+                                <span
+                                  className={
+                                    'inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ' +
+                                    (field.required
+                                      ? 'translate-x-4'
+                                      : 'translate-x-0.5')
+                                  }
+                                />
+                              </button>
+                            </div>
+                            {['select', 'checkbox'].includes(field.type) && (
+                              <div>
+                                <label className="text-[11px] font-semibold text-gray-500 mb-1 block">
+                                  Options
+                                </label>
+                                <div className="space-y-1">
+                                  {(field.options || []).map((opt, oi) => (
+                                    <div
+                                      key={oi}
+                                      className="flex items-center gap-1.5"
+                                    >
+                                      <input
+                                        type="text"
+                                        value={opt}
+                                        onChange={(e) => {
+                                          const next = [
+                                            ...(field.options || []),
+                                          ]
+                                          next[oi] = e.target.value
+                                          updateField(index, { options: next })
+                                        }}
+                                        className="flex-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-800 outline-none focus:border-blue-400 transition"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const next = (
+                                            field.options || []
+                                          ).filter(
+                                            (_: any, i: number) => i !== oi
+                                          )
+                                          updateField(index, { options: next })
+                                        }}
+                                        className="p-1 rounded hover:bg-red-50 transition-colors"
+                                      >
+                                        <svg
+                                          className="w-3 h-3 text-red-400"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                          strokeWidth={2}
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            d="M6 18L18 6M6 6l12 12"
+                                          />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  ))}
+                                  <button
+                                    type="button"
+                                    onClick={() => addOption(index)}
+                                    className="text-[11px] font-semibold text-blue-500 hover:text-blue-600 mt-1"
+                                  >
+                                    + Add option
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <>
+                            <label className="block text-[13px] font-semibold text-gray-800 mb-2">
+                              {field.label}
+                            </label>
+                            {previewField(field)}
+                          </>
+                        )}
                         {field.helpText && (
                           <span className="text-[11px] text-gray-400 mt-2 block">
                             {field.helpText}
@@ -955,291 +1176,6 @@ export function Builder({
                 </div>
               </div>
             </main>
-
-            <aside className="bg-white rounded-2xl border border-gray-200 p-4 overflow-auto shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <div className="font-bold text-sm text-gray-900">
-                    Field settings
-                  </div>
-                  <p className="text-[11px] text-gray-400">
-                    {selectedField
-                      ? 'Edit the selected field'
-                      : 'Select a field to edit'}
-                  </p>
-                </div>
-                {selectedField && (
-                  <span
-                    className="text-[10px] font-bold rounded-full px-2 py-0.5"
-                    style={{ backgroundColor: accent + '15', color: accent }}
-                  >
-                    {selected + 1}/{fields.length}
-                  </span>
-                )}
-              </div>
-
-              {selectedField ? (
-                <div className="space-y-4">
-                  <div className="rounded-xl border border-gray-200 p-3.5 bg-gray-50/50">
-                    <div className="flex items-center gap-2.5 mb-3">
-                      <span
-                        className="h-7 w-7 rounded-lg flex items-center justify-center text-xs font-bold"
-                        style={{
-                          backgroundColor: accent + '15',
-                          color: accent,
-                        }}
-                      >
-                        {fieldLabel(selectedField.type).charAt(0)}
-                      </span>
-                      <div>
-                        <span className="text-xs font-bold text-gray-800 block">
-                          {fieldLabel(selectedField.type)}
-                        </span>
-                        <span className="text-[10px] text-gray-400">
-                          {selectedField.key}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <TextField
-                    id="field-label"
-                    name="field_label"
-                    label="Label"
-                    maxLength={FIELD_LABEL_MAX}
-                    value={selectedField.label}
-                    onChange={(e) =>
-                      updateField(selected, { label: e.target.value })
-                    }
-                  />
-                  <TextField
-                    id="field-key"
-                    name="field_key"
-                    disabled
-                    label="Field key"
-                    value={selectedField.key}
-                    onChange={(e) =>
-                      updateField(selected, {
-                        key: e.target.value.replace(/[^a-zA-Z0-9_]/g, '_'),
-                      })
-                    }
-                  />
-                  <TextField
-                    id="field-placeholder"
-                    name="field_placeholder"
-                    label="Placeholder"
-                    maxLength={FIELD_TEXT_MAX}
-                    value={selectedField.placeholder || ''}
-                    onChange={(e) =>
-                      updateField(selected, { placeholder: e.target.value })
-                    }
-                  />
-                  <TextArea
-                    id="field-help-text"
-                    name="field_help_text"
-                    label="Help text"
-                    maxLength={FIELD_TEXT_MAX}
-                    rows={2}
-                    value={selectedField.helpText || ''}
-                    onChange={(e) =>
-                      updateField(selected, { helpText: e.target.value })
-                    }
-                  />
-
-                  {['select', 'checkbox'].includes(selectedField.type) && (
-                    <div
-                      className="rounded-xl border p-3.5"
-                      style={{
-                        borderColor: accent + '25',
-                        backgroundColor: accent + '04',
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <div className="text-xs font-bold text-gray-800">
-                            {selectedField.type === 'select'
-                              ? 'Dropdown options'
-                              : 'Checkbox options'}
-                          </div>
-                          <p className="text-[10px] text-gray-400">
-                            One option per line
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          className="text-xs font-bold px-2.5 py-1 rounded-lg transition-colors hover:bg-white"
-                          style={{ color: accent }}
-                          onClick={() => addOption(selected)}
-                        >
-                          + Add
-                        </button>
-                      </div>
-                      <div className="space-y-1.5">
-                        {(selectedField.options || []).map(
-                          (option, optionIndex) => (
-                            <div
-                              key={optionIndex}
-                              className="flex items-center gap-2"
-                            >
-                              <span className="text-[10px] text-gray-300 w-4 font-mono text-right">
-                                {optionIndex + 1}
-                              </span>
-                              <div className="flex-1">
-                                <TextField
-                                  id={'field-option-' + optionIndex}
-                                  name={'field_option_' + optionIndex}
-                                  label=""
-                                  maxLength={FIELD_TEXT_MAX}
-                                  value={option}
-                                  onChange={(e) =>
-                                    updateOption(
-                                      selected,
-                                      optionIndex,
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </div>
-                              <button
-                                type="button"
-                                title="Remove option"
-                                className="h-7 w-7 rounded-lg border border-red-100 text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center shrink-0"
-                                onClick={() =>
-                                  removeOption(selected, optionIndex)
-                                }
-                              >
-                                <svg
-                                  className="w-3 h-3"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                  strokeWidth={2.5}
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M6 18L18 6M6 6l12 12"
-                                  />
-                                </svg>
-                              </button>
-                            </div>
-                          )
-                        )}
-                      </div>
-                      {!(selectedField.options || []).length && (
-                        <p className="text-[11px] text-gray-400 italic text-center py-2">
-                          No options yet
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="rounded-xl border border-gray-200 px-3.5 py-3 flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">
-                      Required
-                    </span>
-                    <ToggleSwitch
-                      id="field-required"
-                      checked={Boolean(selectedField.required)}
-                      onChange={(checked) =>
-                        updateField(selected, { required: checked })
-                      }
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-2.5">
-                    <span className="text-xs font-medium text-gray-500">
-                      Reorder
-                    </span>
-                    <div className="flex gap-1">
-                      <button
-                        type="button"
-                        title="Move up"
-                        disabled={selected === 0}
-                        className="h-7 w-7 rounded-lg border border-gray-200 bg-white text-gray-500 disabled:opacity-25 hover:bg-gray-50 transition-colors flex items-center justify-center"
-                        onClick={() => moveField(selected, selected - 1)}
-                      >
-                        <svg
-                          className="w-3 h-3"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2.5}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M5 15l7-7 7 7"
-                          />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        title="Move down"
-                        disabled={selected === fields.length - 1}
-                        className="h-7 w-7 rounded-lg border border-gray-200 bg-white text-gray-500 disabled:opacity-25 hover:bg-gray-50 transition-colors flex items-center justify-center"
-                        onClick={() => moveField(selected, selected + 1)}
-                      >
-                        <svg
-                          className="w-3 h-3"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2.5}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      type="button"
-                      className="flex-1 text-xs font-semibold border border-gray-200 rounded-xl py-2.5 text-gray-600 hover:bg-gray-50 transition-colors"
-                      onClick={() => duplicateField(selected)}
-                    >
-                      Duplicate
-                    </button>
-                    <button
-                      type="button"
-                      className="flex-1 text-xs font-semibold border border-red-100 rounded-xl py-2.5 text-red-500 hover:bg-red-50 transition-colors"
-                      onClick={() => removeField(selected)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-8 rounded-xl border border-dashed border-gray-200 p-6 text-center">
-                  <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                    <svg
-                      className="w-6 h-6 text-gray-300"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zM12 2.25V4.5m5.834.166l-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243l-1.59-1.59"
-                      />
-                    </svg>
-                  </div>
-                  <p className="text-xs font-semibold text-gray-600 mb-1">
-                    No field selected
-                  </p>
-                  <p className="text-[11px] text-gray-400">
-                    Click on any field in the canvas to edit its properties
-                  </p>
-                </div>
-              )}
-            </aside>
           </div>
         </div>
       )}

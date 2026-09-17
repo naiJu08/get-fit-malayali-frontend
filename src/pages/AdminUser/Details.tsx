@@ -368,7 +368,9 @@ export default function UserDetails() {
               {/* Name row */}
               <div className="flex items-center">
                 <button
-                  onClick={() => navigate(pathBase)}
+                  onClick={() =>
+                    navigate((location.state as any)?.from || pathBase)
+                  }
                   className="rounded-lg hover:bg-gray-100 transition"
                   aria-label="Back"
                 >

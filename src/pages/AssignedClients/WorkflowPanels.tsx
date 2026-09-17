@@ -181,12 +181,16 @@ export function ClientWorkflowDetails({
   const planId = activeSub?.plan_id ?? proposedPkg?.plan?.id
 
   const startDateFormatted = activeSub?.start_date
-    ? moment(activeSub.start_date).format('MMM D, YYYY')
-    : proposedPkg?.start_date || '--'
+    ? moment(activeSub.start_date).format('DD-MM-YYYY')
+    : proposedPkg?.start_date
+      ? moment(proposedPkg.start_date).format('DD-MM-YYYY')
+      : '--'
 
   const endDateFormatted = activeSub?.end_date
-    ? moment(activeSub.end_date).format('MMM D, YYYY')
-    : proposedPkg?.end_date || '--'
+    ? moment(activeSub.end_date).format('DD-MM-YYYY')
+    : proposedPkg?.end_date
+      ? moment(proposedPkg.end_date).format('DD-MM-YYYY')
+      : '--'
 
   return (
     <>
@@ -355,7 +359,7 @@ export function ClientWorkflowDetails({
                         <strong>
                           {proposedPkg?.start_date
                             ? moment(proposedPkg.start_date).format(
-                                'MMM D, YYYY'
+                                'DD-MM-YYYY'
                               )
                             : '--'}
                         </strong>
@@ -365,7 +369,7 @@ export function ClientWorkflowDetails({
                         End:{' '}
                         <strong>
                           {proposedPkg?.end_date
-                            ? moment(proposedPkg.end_date).format('MMM D, YYYY')
+                            ? moment(proposedPkg.end_date).format('DD-MM-YYYY')
                             : '--'}
                         </strong>
                       </span>

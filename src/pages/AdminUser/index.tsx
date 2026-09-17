@@ -456,6 +456,7 @@ export default function AdminUser() {
                   }
                   action={
                     loginRole !== 'nutritionist' &&
+                    loginRole !== 'physiotherapist' &&
                     checkPermissions('Employee', 'create') ? (
                       <Button
                         className="bg-primaryGreen whitespace-nowrap px-3"

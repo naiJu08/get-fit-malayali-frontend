@@ -124,7 +124,7 @@ function PlanDetailsContent() {
             className="px-3 py-1.5 text-sm border rounded btn-primary"
             onClick={meditationAssignCTA?.handler}
           >
-            Assign
+            Add
           </button>
         )}
       </div>
