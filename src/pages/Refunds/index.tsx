@@ -91,9 +91,7 @@ export default function RefundsPage() {
               <button
                 type="button"
                 className="text-blue-600 hover:underline font-semibold text-sm text-left"
-                onClick={() => {
-                  if (row.client?.id) navigate(getClientUrl(row.client.id))
-                }}
+                onClick={() => setDetailsModalRefund(row)}
               >
                 {row.client?.name || 'Client #' + row.client?.id}
               </button>
@@ -176,6 +174,8 @@ export default function RefundsPage() {
     [navigate, loginRole]
   )
 
+  const isSuperAdmin = loginRole === 'superadmin' || loginRole === 'super_admin'
+
   const actionProps = useMemo(
     () => [
       {
@@ -197,7 +197,8 @@ export default function RefundsPage() {
         toolTip: 'Submit refund request to Superadmin',
         icon: <Icons name="send" />,
         variant: 'primary' as const,
-        hide: (row: any) => !row.permissions?.can_submit_to_superadmin,
+        hide: (row: any) =>
+          isSuperAdmin || !row.permissions?.can_submit_to_superadmin,
         action: (row: any) => setSubmitModalRefund(row),
       },
       {
@@ -217,7 +218,7 @@ export default function RefundsPage() {
         action: (row: any) => setCompleteModalRefund(row),
       },
     ],
-    [navigate, loginRole]
+    [navigate, loginRole, isSuperAdmin]
   )
 
   return (
@@ -305,6 +306,18 @@ export default function RefundsPage() {
         isOpen={Boolean(detailsModalRefund)}
         refund={detailsModalRefund}
         onClose={() => setDetailsModalRefund(null)}
+        onSubmitToSuperadmin={(refund) => {
+          setDetailsModalRefund(null)
+          setSubmitModalRefund(refund)
+        }}
+        onReviewDecision={(refund) => {
+          setDetailsModalRefund(null)
+          setReviewModalRefund(refund)
+        }}
+        onDispenseRefund={(refund) => {
+          setDetailsModalRefund(null)
+          setCompleteModalRefund(refund)
+        }}
       />
     </div>
   )
