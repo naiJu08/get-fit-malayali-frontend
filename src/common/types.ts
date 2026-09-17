@@ -103,6 +103,7 @@ export interface TextFieldProps {
   placeholder?: string
   required?: boolean
   maxLength?: number
+  max?: number
   isTotal?: boolean
   fieldEdit?: boolean
   tabularForm?: boolean
@@ -455,6 +456,7 @@ export interface StoreFilterParams {
 export interface FormBuilderProps {
   wordCount: any
   maxLength: number | undefined
+  max?: number
   minLength?: number
   setAttachmentName?: (value: any) => void
   needConfirmation?: boolean | undefined

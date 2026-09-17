@@ -32,6 +32,7 @@ const TextField: React.FC<TextFieldProps> = ({
   fullwidth = true,
   placeholder,
   maxLength,
+  max,
   totalCount,
   adorement,
   register,
@@ -109,6 +110,8 @@ const TextField: React.FC<TextFieldProps> = ({
   }
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e?.target.value
+    if (max !== undefined && inputValue !== '' && Number(inputValue) > max)
+      return
 
     if (digitsOnly) {
       if (!/^\d*$/.test(inputValue)) return
@@ -258,6 +261,7 @@ const TextField: React.FC<TextFieldProps> = ({
           onBlur={onBlur}
           type={type}
           maxLength={maxLength}
+          max={max}
           inputMode={digitsOnly ? 'numeric' : undefined}
           data-testid={id ?? name}
           autoComplete={autoComplete ? 'on' : 'off'}

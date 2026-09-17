@@ -87,6 +87,7 @@ export default function DietPlanTab({
       templateName={template?.name}
       templateId={template?.id}
       templateDurationDays={template?.duration_days}
+      templateDays={template?.days}
     />
   )
 }
@@ -95,10 +96,12 @@ function DietPlanContent({
   templateName,
   templateId,
   templateDurationDays,
+  templateDays,
 }: {
   templateName?: string
   templateId: string | number
   templateDurationDays?: number
+  templateDays?: any[]
 }) {
   const navigate = useNavigate()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
@@ -215,8 +218,27 @@ function DietPlanContent({
     [data?.diet_plans]
   )
   const aggregatedPlans = useMemo(() => {
-    if (!dietPlans.length) return []
     const grouped = new Map<string, any>()
+    const persistedDays =
+      Array.isArray(templateDays) && templateDays.length
+        ? templateDays
+        : Array.from(
+            { length: Number(templateDurationDays || 0) },
+            (_, index) => ({
+              day_number: index + 1,
+              day_name: 'Day ' + (index + 1),
+            })
+          )
+    persistedDays.forEach((day: any) => {
+      const key = 'number:' + day.day_number
+      grouped.set(key, {
+        id: day.id || key,
+        day_name: day.day_name || 'Day ' + day.day_number,
+        day_number: day.day_number,
+        day_key: key,
+        effective_total_calories: 0,
+      })
+    })
     dietPlans.forEach((plan: any) => {
       const key = buildDayKey(plan)
       const calories = Number(plan?.effective_total_calories) || 0
@@ -235,7 +257,7 @@ function DietPlanContent({
       }
     })
     return Array.from(grouped.values())
-  }, [dietPlans, buildDayKey])
+  }, [dietPlans, buildDayKey, templateDays, templateDurationDays])
   const rawSelectedDayKey = urlSearchParams.get('day') || ''
   const selectedDayKey = useMemo(
     () => normalizeDayKeyParam(rawSelectedDayKey),
