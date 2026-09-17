@@ -144,6 +144,13 @@ export function ClientWorkflowDetails({
       enqueueSnackbar('Choose a start date.', { variant: 'error' })
       return
     }
+    const today = new Date().toISOString().split('T')[0]
+    if (proposal.start_date < today) {
+      enqueueSnackbar('Anticipated start date cannot be in the past.', {
+        variant: 'error',
+      })
+      return
+    }
 
     try {
       setSaving(true)
@@ -531,13 +538,21 @@ export function ClientWorkflowDetails({
                         <div className="flex items-center gap-4">
                           <div
                             className={
-                              'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-colors ' +
+                              'h-12 w-12 shrink-0 rounded-xl overflow-hidden transition-colors flex items-center justify-center ' +
                               (isSelected
                                 ? 'bg-primaryGreen text-white shadow-sm'
                                 : 'bg-cardWrapperBg text-primaryGreen')
                             }
                           >
-                            <Icons name="package" className="h-6 w-6" />
+                            {pkg.thumbnail_url ? (
+                              <img
+                                src={pkg.thumbnail_url}
+                                alt={pkg.name || ''}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <Icons name="package" className="h-6 w-6" />
+                            )}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
@@ -549,7 +564,12 @@ export function ClientWorkflowDetails({
                                     : 'text-primaryText')
                                 }
                               >
-                                {pkg.name || 'Unnamed'}
+                                {(() => {
+                                  const name = pkg.name || 'Unnamed'
+                                  return (
+                                    name.charAt(0).toUpperCase() + name.slice(1)
+                                  )
+                                })()}
                               </span>
                               {(pkg.category || pkg.plan_category) && (
                                 <span
@@ -560,7 +580,15 @@ export function ClientWorkflowDetails({
                                       : 'bg-cardWrapperBg text-secondary')
                                   }
                                 >
-                                  {pkg.category || pkg.plan_category}
+                                  {typeof (
+                                    pkg.category || pkg.plan_category
+                                  ) === 'object'
+                                    ? pkg.category?.name ||
+                                      pkg.plan_category?.name ||
+                                      ''
+                                    : String(
+                                        pkg.category || pkg.plan_category || ''
+                                      )}
                                 </span>
                               )}
                             </div>
@@ -669,9 +697,21 @@ export function ClientWorkflowDetails({
                       Selected package
                     </div>
                     <div className="mt-1 text-sm font-medium text-primaryText">
-                      {selectedPlan.name}
+                      {selectedPlan.name
+                        ? selectedPlan.name.charAt(0).toUpperCase() +
+                          selectedPlan.name.slice(1)
+                        : ''}
                       {selectedPlan.category || selectedPlan.plan_category
-                        ? ` — ${selectedPlan.category || selectedPlan.plan_category}`
+                        ? ` — ${
+                            typeof (
+                              selectedPlan.category ||
+                              selectedPlan.plan_category
+                            ) === 'object'
+                              ? selectedPlan.category?.name ||
+                                selectedPlan.plan_category?.name
+                              : selectedPlan.category ||
+                                selectedPlan.plan_category
+                          }`
                         : ''}
                       {selectedPlan.duration_days
                         ? ` — ${selectedPlan.duration_days} days`
@@ -700,6 +740,7 @@ export function ClientWorkflowDetails({
                   <input
                     className="mt-1 w-full rounded-lg border border-formBorder p-2.5 text-sm outline-none focus:border-primaryGreen focus:ring-2 focus:ring-primaryGreen/20"
                     type="date"
+                    min={new Date().toISOString().split('T')[0]}
                     value={proposal.start_date}
                     onChange={(event) =>
                       setProposal({

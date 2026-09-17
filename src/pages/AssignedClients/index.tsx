@@ -137,6 +137,7 @@ export default function AssignedClients() {
               {statusLabel(row.workflow_status)}
             </span>
           ),
+          toolTip: statusLabel(row.workflow_status),
         }),
         isVisible: true,
       },
