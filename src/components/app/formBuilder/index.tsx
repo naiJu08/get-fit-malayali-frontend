@@ -203,6 +203,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                   name={field.name}
                   type={field.type}
                   maxLength={field.maxLength}
+                  max={field.max}
                   allowPositiveOnly={field.allowPositiveOnly}
                   digitsOnly={field.digitsOnly}
                   onBlur={() => {

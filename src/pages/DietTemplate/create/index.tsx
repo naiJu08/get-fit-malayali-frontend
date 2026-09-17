@@ -218,12 +218,11 @@ export default function CreateAdmin({
     { ...textField('name', 'Name', 'Enter name', true), maxLength: 100 },
     {
       ...textField('duration_days', 'Duration (Days)', 'Enter duration', true),
-      type: 'text',
-      maxLength: 3,
+      type: 'number',
       allowPositiveOnly: true,
       inputMode: 'numeric',
-      disabled: true,
-      value: '7',
+      max: 100,
+      maxLength: 3,
     },
     {
       name: 'diet_template_category',
