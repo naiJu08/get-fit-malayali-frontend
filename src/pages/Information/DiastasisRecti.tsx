@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import {
   getData,
   postFormData,
@@ -10,26 +10,7 @@ import ListingHeader from '../../components/common/ListingTiles'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { getErrorMessage } from '../../utilities/parsers'
-
-const DEFAULT_GUIDANCE_TEMPLATE = `### Understanding Diastasis Recti
-
-Diastasis Recti is the separation of the rectus abdominis muscles along the linea alba, commonly occurring during and postpartum or after significant abdominal strain.
-
-#### Self-Assessment Check
-1. Lie comfortably on your back with knees bent and feet flat on the floor.
-2. Place two or three fingers horizontally across your midline right above your belly button.
-3. Gently lift your head and shoulders slightly off the mat, engaging the core.
-4. Feel for the gap edges and determine the width (e.g. 1 finger, 2 fingers, 3+ fingers) and depth of tissue resistance.
-
-#### Core Re-Education Guidelines
-- **Diaphragmatic Breathing:** Inhale allowing the ribcage and belly to expand naturally. Exhale gently drawing the navel toward the spine without gripping.
-- **Transverse Abdominis (TVA) Activation:** Engage deep abdominal muscles from the pelvic floor upward.
-- **Neutral Spine:** Maintain a neutral pelvis during daily movements and rehabilitation exercises.
-
-#### Movements to Avoid
-- Conventional sit-ups, crunches, and aggressive oblique twists.
-- Heavy front planks or push-ups if mid-line doming or coning occurs.
-- Straining, breath holding (Valsalva), or lifting heavy weights without core stabilization.`
+import { compressVideo, resetFfmpeg } from '../Workout/create'
 
 export default function DiastasisRecti() {
   const { enqueueSnackbar } = useSnackbarManager()
@@ -43,6 +24,13 @@ export default function DiastasisRecti() {
   const [isDragging, setIsDragging] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [isCompressingVideo, setIsCompressingVideo] = useState(false)
+  const [compressionProgress, setCompressionProgress] = useState<number | null>(
+    null
+  )
+  const [compressedFile, setCompressedFile] = useState<File | null>(null)
+  const compressionCancelledRef = useRef(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   const loadContent = async () => {
     try {
@@ -72,12 +60,46 @@ export default function DiastasisRecti() {
       setVideoPreview(null)
       return
     }
-    const objectUrl = URL.createObjectURL(video)
+    const objectUrl = URL.createObjectURL(compressedFile || video)
     setVideoPreview(objectUrl)
     return () => URL.revokeObjectURL(objectUrl)
-  }, [video])
+  }, [video, compressedFile])
 
-  const handleVideoFile = (file: File) => {
+  const handleVideoCompression = useCallback(
+    async (selectedFile: File) => {
+      compressionCancelledRef.current = false
+      setIsCompressingVideo(true)
+      setCompressionProgress(0)
+      setCompressedFile(null)
+
+      try {
+        const compressed = await compressVideo(
+          selectedFile,
+          setCompressionProgress
+        )
+        if (!compressionCancelledRef.current) {
+          setCompressedFile(compressed)
+        }
+        return compressed
+      } catch {
+        if (!compressionCancelledRef.current) {
+          enqueueSnackbar(
+            'Video compression failed. Please try another video.',
+            {
+              variant: 'error',
+            }
+          )
+        }
+        return null
+      } finally {
+        setIsCompressingVideo(false)
+        compressionCancelledRef.current = false
+      }
+    },
+    [enqueueSnackbar]
+  )
+
+  const handleVideoFile = async (file: File) => {
     if (!file.type.startsWith('video/')) {
       enqueueSnackbar('Please select a valid video file (MP4, WebM, MOV)', {
         variant: 'error',
@@ -91,6 +113,7 @@ export default function DiastasisRecti() {
       return
     }
     setVideo(file)
+    await handleVideoCompression(file)
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,21 +142,17 @@ export default function DiastasisRecti() {
     }
   }
 
-  const handleInsertTemplate = () => {
-    if (
-      description.trim() &&
-      !window.confirm(
-        'Replace current description with the recommended Diastasis Recti template?'
-      )
-    ) {
-      return
-    }
-    setDescription(DEFAULT_GUIDANCE_TEMPLATE)
-  }
-
   const handleReset = () => {
+    if (isCompressingVideo) {
+      compressionCancelledRef.current = true
+      resetFfmpeg()
+    }
     setDescription(item?.description || '')
     setVideo(null)
+    setCompressedFile(null)
+    setIsCompressingVideo(false)
+    setCompressionProgress(null)
+    setIsEditing(false)
   }
 
   const handleSave = async (e: React.FormEvent) => {
@@ -145,10 +164,19 @@ export default function DiastasisRecti() {
       return
     }
 
+    if (isCompressingVideo) {
+      enqueueSnackbar('Please wait for video compression to complete', {
+        variant: 'warning',
+      })
+      return
+    }
+
     setSaving(true)
     const fd = new FormData()
     fd.append('description', description.trim())
-    if (video) {
+    if (compressedFile) {
+      fd.append('video', compressedFile)
+    } else if (video) {
       fd.append('video', video)
     }
 
@@ -168,6 +196,9 @@ export default function DiastasisRecti() {
       setItem(updated)
       setDescription(updated?.description || description)
       setVideo(null)
+      setCompressedFile(null)
+      setCompressionProgress(null)
+      setIsEditing(false)
       enqueueSnackbar(
         item?.id
           ? 'Diastasis Recti guidance updated successfully'
@@ -192,6 +223,8 @@ export default function DiastasisRecti() {
       setItem(null)
       setDescription('')
       setVideo(null)
+      setCompressedFile(null)
+      setCompressionProgress(null)
       setShowDeleteModal(false)
       enqueueSnackbar('Diastasis Recti guidance removed successfully', {
         variant: 'success',
@@ -213,6 +246,7 @@ export default function DiastasisRecti() {
   }, [description])
 
   const activeVideoSrc = videoPreview || item?.video_url
+  const canEdit = !item || isEditing
 
   const formattedDate = useMemo(() => {
     if (!item?.updated_at) return null
@@ -233,7 +267,7 @@ export default function DiastasisRecti() {
     <div className="flex flex-col min-h-full bg-mainBgColor">
       {/* Standard Page Header */}
       <ListingHeader
-        data={{ title: 'Diastasis Recti' }}
+        data={{ title: 'Diastasis Recti', icon: 'diastasis-icon' }}
         checkPermission={false}
         bulkChangeButton={
           <div className="flex items-center gap-2.5">
@@ -247,6 +281,28 @@ export default function DiastasisRecti() {
                 <span className="h-2 w-2 rounded-full bg-amber-400" />
                 Not Yet Published
               </span>
+            )}
+            {item && !isEditing && (
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 border border-emerald-200 transition-colors cursor-pointer"
+              >
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                <span>Update</span>
+              </button>
             )}
             {item && (
               <button
@@ -275,77 +331,126 @@ export default function DiastasisRecti() {
         }
       />
 
-      {/* Core Part: Center Section of Screen */}
-      <div className="flex-1 flex flex-col items-center justify-center py-8 px-4 sm:px-6 lg:px-8">
+      {/* Core Content: Two-Column Layout */}
+      <div className="flex-1 py-6 px-4 sm:px-6 lg:px-8">
         {initialLoading ? (
-          <div className="w-full max-w-3xl space-y-6">
-            <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm space-y-6 animate-pulse">
-              <div className="h-64 bg-slate-100 rounded-2xl" />
-              <div className="space-y-3">
-                <div className="h-4 w-40 bg-slate-200 rounded" />
-                <div className="h-32 bg-slate-100 rounded-xl" />
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm animate-pulse">
+              <div className="h-64 bg-slate-100 rounded-xl" />
+            </div>
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4 animate-pulse">
+              <div className="h-4 w-40 bg-slate-200 rounded" />
+              <div className="h-48 bg-slate-100 rounded-xl" />
               <div className="h-10 w-36 bg-slate-200 rounded-xl" />
             </div>
           </div>
         ) : (
-          <div className="w-full max-w-3xl space-y-6">
-            {/* Main Centered Designed Card */}
-            <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/80 overflow-hidden transition-all">
-              {/* Top Decorative Gradient Bar */}
-              <div className="h-1.5 w-full bg-gradient-to-r from-teal-500 via-emerald-500 to-indigo-500" />
-
-              <form onSubmit={handleSave} className="p-6 sm:p-8 space-y-7">
-                {/* Section 1: Demonstration Video */}
-                <div>
-                  <div className="flex items-center justify-between mb-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-emerald-100/70 text-emerald-700">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-800">
-                          Demonstration Video
-                        </label>
-                        <p className="text-xs text-slate-500">
-                          Educational video demonstrating self-assessment and
-                          core rehabilitation
-                        </p>
-                      </div>
-                    </div>
-
-                    <span className="text-[11px] font-medium text-slate-400">
-                      MP4, WebM up to 100MB
-                    </span>
+          <form onSubmit={handleSave} className="space-y-6">
+            {/* Compression Progress Banner */}
+            {isCompressingVideo && (
+              <div className="overflow-hidden rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-indigo-50 p-4 shadow-lg">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
+                    <svg
+                      className="h-5 w-5 animate-pulse text-blue-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 10l4.55-2.28A1 1 0 0121 8.62v6.76a1 1 0 01-1.45.9L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
                   </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-800 text-sm">
+                      Optimizing Video
+                    </h3>
+                    <p className="max-w-[280px] truncate text-xs text-gray-500">
+                      {video?.name}
+                    </p>
+                  </div>
+                  <div className="rounded-full bg-blue-600 px-3 py-1 text-sm font-bold text-white shadow">
+                    {compressionProgress ?? 0}%
+                  </div>
+                </div>
+                <div className="relative h-3 overflow-hidden rounded-full bg-gray-200">
+                  <div
+                    className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-500"
+                    style={{ width: `${compressionProgress ?? 0}%` }}
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <span className="font-medium text-gray-500">
+                    {(compressionProgress ?? 0) < 30 && 'Preparing video...'}
+                    {(compressionProgress ?? 0) >= 30 &&
+                      (compressionProgress ?? 0) < 70 &&
+                      'Compressing video...'}
+                    {(compressionProgress ?? 0) >= 70 &&
+                      (compressionProgress ?? 0) < 100 &&
+                      'Finalizing output...'}
+                    {(compressionProgress ?? 0) === 100 &&
+                      'Compression complete'}
+                  </span>
+                  <span className="font-semibold text-blue-600">
+                    Please wait
+                  </span>
+                </div>
+              </div>
+            )}
 
-                  {/* Video Player or Upload Zone */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Left Column: Video */}
+              <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-emerald-100/70 text-emerald-700">
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-800">
+                        Demonstration Video
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        Educational video for self-assessment
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-medium text-slate-400">
+                    MP4, WebM up to 100MB
+                  </span>
+                </div>
+
+                <div className="p-5">
                   {activeVideoSrc ? (
                     <div className="space-y-3">
-                      <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-200/80 shadow-md group">
+                      <div className="relative rounded-xl overflow-hidden bg-slate-900 border border-slate-200/80 shadow-md">
                         <video
                           controls
-                          className="w-full max-h-80 object-contain mx-auto bg-black"
+                          className="w-full max-h-72 object-contain mx-auto bg-black"
                           src={activeVideoSrc}
                         />
-                        <div className="absolute top-3 left-3">
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-900/80 text-white backdrop-blur-sm border border-white/10 shadow-sm">
+                        <div className="absolute top-2.5 left-2.5">
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-900/80 text-white backdrop-blur-sm border border-white/10 shadow-sm">
                             {video ? (
                               <>
                                 <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
-                                New Selection Preview
+                                New Selection
                               </>
                             ) : (
                               <>
@@ -357,11 +462,10 @@ export default function DiastasisRecti() {
                         </div>
                       </div>
 
-                      {/* Video Actions & Details */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200/70 text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200/70 text-xs">
                         <div className="flex items-center gap-2 text-slate-600 truncate">
                           <svg
-                            className="w-4 h-4 text-emerald-600 shrink-0"
+                            className="w-3.5 h-3.5 text-emerald-600 shrink-0"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -375,57 +479,57 @@ export default function DiastasisRecti() {
                           </svg>
                           {video ? (
                             <span className="truncate">
-                              Selected:{' '}
                               <span className="font-semibold text-slate-800">
                                 {video.name}
                               </span>{' '}
                               ({(video.size / (1024 * 1024)).toFixed(1)} MB)
                             </span>
                           ) : (
-                            <span className="text-slate-600">
-                              Current instructional video is published and
-                              attached.
-                            </span>
+                            <span>Video published and attached.</span>
                           )}
                         </div>
-
-                        <div className="flex items-center gap-2 ml-auto">
-                          <label className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold hover:bg-slate-100 transition-colors cursor-pointer text-xs shadow-sm">
-                            Replace Video
-                            <input
-                              type="file"
-                              accept="video/*"
-                              className="hidden"
-                              onChange={handleFileChange}
-                            />
-                          </label>
-                          {video && (
+                        <div className="flex items-center gap-1.5 ml-auto">
+                          {canEdit && (
+                            <label className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold hover:bg-slate-100 transition-colors cursor-pointer text-xs shadow-sm">
+                              Replace
+                              <input
+                                type="file"
+                                accept="video/*"
+                                className="hidden"
+                                onChange={handleFileChange}
+                              />
+                            </label>
+                          )}
+                          {video && !isCompressingVideo && (
                             <button
                               type="button"
-                              onClick={() => setVideo(null)}
-                              className="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-700 font-medium hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              onClick={() => {
+                                setVideo(null)
+                                setCompressedFile(null)
+                                setCompressionProgress(null)
+                              }}
+                              className="px-2 py-1.5 text-xs text-rose-600 hover:text-rose-700 font-medium hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                             >
-                              Cancel File
+                              Cancel
                             </button>
                           )}
                         </div>
                       </div>
                     </div>
                   ) : (
-                    /* Drag & Drop Upload Zone */
                     <label
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
-                      className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-200 ${
+                      className={`flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 ${
                         isDragging
                           ? 'border-emerald-500 bg-emerald-50/50 scale-[0.99]'
                           : 'border-slate-300 hover:border-emerald-500 hover:bg-emerald-50/20 bg-slate-50/50'
                       }`}
                     >
-                      <div className="w-14 h-14 rounded-2xl bg-white shadow-sm border border-slate-200/80 flex items-center justify-center text-emerald-600 mb-3 group-hover:scale-110 transition-transform">
+                      <div className="w-12 h-12 rounded-xl bg-white shadow-sm border border-slate-200/80 flex items-center justify-center text-emerald-600 mb-3">
                         <svg
-                          className="w-7 h-7"
+                          className="w-6 h-6"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -440,13 +544,13 @@ export default function DiastasisRecti() {
                       </div>
                       <div className="text-center space-y-1">
                         <p className="text-sm font-semibold text-slate-700">
-                          <span className="text-emerald-600 hover:underline">
-                            Click to upload video
+                          <span className="text-emerald-600">
+                            Click to upload
                           </span>{' '}
                           or drag and drop
                         </p>
                         <p className="text-xs text-slate-400">
-                          Supports MP4, WebM, or MOV up to 100MB
+                          MP4, WebM, or MOV up to 100MB
                         </p>
                       </div>
                       <input
@@ -458,10 +562,13 @@ export default function DiastasisRecti() {
                     </label>
                   )}
                 </div>
+              </div>
 
-                {/* Section 2: Clinical Notes & Instructional Description */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
+              {/* Right Column: Description & Details */}
+              <div className="space-y-5">
+                {/* Description Card */}
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                  <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="p-1.5 rounded-lg bg-teal-100/70 text-teal-700">
                         <svg
@@ -479,65 +586,40 @@ export default function DiastasisRecti() {
                         </svg>
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-slate-800">
-                          Instructional Description & Guidelines{' '}
+                        <h3 className="text-sm font-semibold text-slate-800">
+                          Instructional Description{' '}
                           <span className="text-rose-500">*</span>
-                        </label>
+                        </h3>
                         <p className="text-xs text-slate-500">
-                          Assessment protocol, recovery advice, and safe
-                          exercise guidelines
+                          Assessment protocol and exercise guidelines
                         </p>
                       </div>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={handleInsertTemplate}
-                      className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <svg
-                        className="w-3.5 h-3.5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                        />
-                      </svg>
-                      <span>Insert Guidelines Template</span>
-                    </button>
                   </div>
-
-                  {/* Textarea */}
-                  <div className="relative">
+                  <div className="p-5">
                     <textarea
                       required
-                      rows={8}
-                      className="w-full rounded-2xl border border-slate-200 p-4 text-sm font-normal text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all leading-relaxed shadow-sm resize-y min-h-[160px]"
+                      rows={10}
+                      disabled={!canEdit}
+                      className="w-full rounded-xl border border-slate-200 p-3.5 text-sm text-slate-800 placeholder-slate-400 bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all leading-relaxed shadow-sm resize-y min-h-[200px] disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed"
                       placeholder="Provide structured guidance on Diastasis Recti assessment, proper breathing technique, and safe exercise practices..."
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                     />
-                  </div>
-
-                  {/* Character & Word counter */}
-                  <div className="flex items-center justify-between text-xs text-slate-400 mt-1.5 px-1">
-                    <span>Markdown & structured plain text supported</span>
-                    <span>
-                      {wordCount} words • {charCount} characters
-                    </span>
+                    <div className="flex items-center justify-between text-xs text-slate-400 mt-2 px-0.5">
+                      <span>Markdown supported</span>
+                      <span>
+                        {wordCount} words &bull; {charCount} chars
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Section 3: Clinical Tips Callout */}
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50/70 to-teal-50/60 border border-emerald-100 flex items-start gap-3">
+                {/* Trainer Tip */}
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-50/70 to-teal-50/60 border border-emerald-100 flex items-start gap-2.5">
                   <div className="p-1 rounded-md bg-emerald-100 text-emerald-700 shrink-0 mt-0.5">
                     <svg
-                      className="w-4 h-4"
+                      className="w-3.5 h-3.5"
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -556,13 +638,12 @@ export default function DiastasisRecti() {
                     </span>{' '}
                     Always remind postpartum clients that gap closure is less
                     critical than functional tension and midline firmness along
-                    the linea alba. Advise stopping any movement that causes
-                    doming, coning, or pelvic floor heaviness.
+                    the linea alba.
                   </div>
                 </div>
 
-                {/* Section 4: Audit & Actions */}
-                <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                {/* Actions Bar */}
+                <div className="flex items-center justify-between">
                   <div>
                     {formattedDate && (
                       <div className="text-xs text-slate-400 flex items-center gap-1.5">
@@ -579,93 +660,91 @@ export default function DiastasisRecti() {
                             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                           />
                         </svg>
-                        <span>Last updated on {formattedDate}</span>
+                        <span>Last updated {formattedDate}</span>
                       </div>
                     )}
                   </div>
-
-                  <div className="flex items-center gap-3 self-end sm:self-center">
-                    {(description !== (item?.description || '') || video) && (
+                  <div className="flex items-center gap-3">
+                    {isEditing && (
                       <button
                         type="button"
                         onClick={handleReset}
-                        className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                        disabled={saving}
+                        className="px-4 py-2 text-xs font-semibold text-slate-600 border border-slate-300 hover:bg-slate-300 rounded-xl transition-colors cursor-pointer"
+                        disabled={saving || isCompressingVideo}
                       >
-                        Reset
+                        Cancel
                       </button>
                     )}
-
-                    <button
-                      disabled={saving || !description.trim()}
-                      type="submit"
-                      className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-xs text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-500/25 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
-                    >
-                      {saving ? (
-                        <>
-                          <svg
-                            className="animate-spin h-4 w-4 text-white"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            />
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            />
-                          </svg>
-                          <span>Saving Guidance...</span>
-                        </>
-                      ) : item ? (
-                        <>
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                          <span>Update Guidance</span>
-                        </>
-                      ) : (
-                        <>
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 4v16m8-8H4"
-                            />
-                          </svg>
-                          <span>Publish Guidance</span>
-                        </>
+                    {!item &&
+                      (description !== (item?.description || '') || video) && (
+                        <button
+                          type="button"
+                          onClick={handleReset}
+                          className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                          disabled={saving || isCompressingVideo}
+                        >
+                          Reset
+                        </button>
                       )}
-                    </button>
+                    {canEdit && (
+                      <button
+                        disabled={
+                          saving || isCompressingVideo || !description.trim()
+                        }
+                        type="submit"
+                        className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-xs text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-md shadow-emerald-500/25 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed transition-all cursor-pointer"
+                      >
+                        {saving ? (
+                          <>
+                            <svg
+                              className="animate-spin h-4 w-4 text-white"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              />
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              />
+                            </svg>
+                            <span>Saving...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            <span>
+                              {item ? 'Update Guidance' : 'Publish Guidance'}
+                            </span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
-              </form>
+              </div>
             </div>
-          </div>
+          </form>
         )}
       </div>
 
