@@ -68,7 +68,9 @@ export default function AcceptedClients({ user }: { user: any }) {
   const handleViewClient = (row: any) => {
     const userId = row?.user_id ?? row?.user?.id ?? row?.id
     if (!userId) return
-    navigate(`/users/${userId}/details`)
+    navigate(`/users/${userId}/details`, {
+      state: { from: `/users/${user?.id}/accepted-clients` },
+    })
   }
 
   const handleOpenUnassign = (row: any) => {

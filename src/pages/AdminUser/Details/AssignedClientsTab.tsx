@@ -26,16 +26,23 @@ const statusLabel = (value?: string) =>
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 
 const getStatusBadgeClass = (status?: string) => {
-  switch (String(status || '').toLowerCase()) {
+  switch (status) {
     case 'accepted':
-    case 'client_accepted':
       return 'bg-green-100 text-green-800 border-green-200'
     case 'assessment_completed':
       return 'bg-blue-100 text-blue-800 border-blue-200'
     case 'package_confirmed':
       return 'bg-purple-100 text-purple-800 border-purple-200'
-    case 'pending':
+    case 'follow_up_scheduled':
+    case 'follow_up_pending':
       return 'bg-amber-100 text-amber-800 border-amber-200'
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+    case 'completed':
+      return 'bg-green-100 text-green-800 border-green-200'
+    case 'inactive':
+    case 'dropped_out':
+      return 'bg-red-100 text-red-800 border-red-200'
     default:
       return 'bg-gray-100 text-gray-800 border-gray-200'
   }
@@ -68,7 +75,9 @@ export default function AssignedClientsTab({ user }: { user: any }) {
   const handleViewClient = (row: any) => {
     const userId = row?.user_id ?? row?.user?.id ?? row?.id
     if (!userId) return
-    navigate(`/users/${userId}/details`)
+    navigate(`/users/${userId}/details`, {
+      state: { from: `/users/${user?.id}/assigned-clients` },
+    })
   }
 
   const handleOpenUnassign = (row: any) => {
@@ -165,9 +174,7 @@ export default function AssignedClientsTab({ user }: { user: any }) {
       renderCell: (row: any) => ({
         cell: (
           <span
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(
-              row?.workflow_status
-            )}`}
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(row?.workflow_status)}`}
           >
             {statusLabel(row?.workflow_status)}
           </span>

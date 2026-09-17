@@ -380,139 +380,137 @@ export default function PublicCampaign() {
   }
 
   return (
-    <div
-      className="relative min-h-screen overflow-y-auto px-4 py-8 sm:px-6 sm:py-10"
-      style={{
-        backgroundColor: theme.page_background || '#eef2f1',
-      }}
-    >
-      <style>{`@keyframes success-pop{0%{opacity:0;transform:scale(.72)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}@keyframes success-draw{from{stroke-dashoffset:48}to{stroke-dashoffset:0}}@keyframes soft-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
-
-      <main
-        className="relative mx-auto max-w-2xl"
-        style={{ animation: 'soft-rise .45s ease-out both' }}
+    <>
+      <div
+        className="relative min-h-screen overflow-y-auto px-4 py-8 sm:px-6 sm:py-10"
+        style={{
+          backgroundColor: theme.page_background || '#eef2f1',
+        }}
       >
-        <form
-          onSubmit={submit}
-          noValidate
-          className="min-h-[600px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-md"
-          style={{ backgroundColor: theme.background || '#ffffff' }}
+        <style>{`@keyframes success-pop{0%{opacity:0;transform:scale(.72)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}@keyframes success-draw{from{stroke-dashoffset:48}to{stroke-dashoffset:0}}@keyframes soft-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}`}</style>
+
+        <main
+          className="relative mx-auto max-w-2xl"
+          style={{ animation: 'soft-rise .45s ease-out both' }}
         >
-          {definition.header?.image_url ? (
-            <div className="relative h-44 overflow-hidden sm:h-48">
-              <img
-                src={definition.header.image_url}
-                className="h-full w-full object-cover"
-                alt=""
-              />
-            </div>
-          ) : (
-            <div className="h-2" style={{ backgroundColor: accent }} />
-          )}
-
-          <div className="p-8 sm:p-12">
-            <div className="mb-7">
-              <h1
-                className="text-3xl font-bold tracking-tight"
-                style={{ color: accent || '#176b5b' }}
-              >
-                {definition.header?.title || campaign.name}
-              </h1>
-              {(definition.header?.subtitle || campaign.description) && (
-                <p className="mt-3 text-base text-slate-500">
-                  {definition.header?.subtitle || campaign.description}
-                </p>
-              )}
-            </div>
-
-            <div
-              className={
-                definition.layout === 'two'
-                  ? 'grid gap-x-6 gap-y-5 md:grid-cols-2'
-                  : 'grid gap-y-5'
-              }
-            >
-              {fields.map((field: any) => (
-                <div key={field.key}>{renderField(field)}</div>
-              ))}
-            </div>
-
-            {submitError && (
-              <div
-                role="alert"
-                className="mt-6 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"
-              >
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-bold">
-                  !
-                </span>
-                <span>{submitError}</span>
+          <form
+            onSubmit={submit}
+            noValidate
+            className="min-h-[600px] overflow-hidden rounded-2xl border border-slate-200/80 shadow-md"
+            style={{ backgroundColor: theme.background || '#ffffff' }}
+          >
+            {definition.header?.image_url ? (
+              <div className="relative h-44 overflow-hidden sm:h-48">
+                <img
+                  src={definition.header.image_url}
+                  className="h-full w-full object-cover"
+                  alt=""
+                />
               </div>
+            ) : (
+              <div className="h-2" style={{ backgroundColor: accent }} />
             )}
 
-            <div className="mt-10">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full h-12 rounded-lg text-white font-semibold text-base transition hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ backgroundColor: accent || '#176b5b' }}
-              >
-                {submitting ? 'Submitting...' : 'Submit enquiry'}
-              </button>
-              <p className="mt-6 text-center text-xs text-slate-400">
-                {definition.footer?.text ||
-                  'We respect your privacy. Your information is safe with us.'}
-              </p>
-            </div>
-          </div>
-        </form>
-        <p className="mt-3 text-center text-xs text-slate-400">
-          Powered by Get Fit Malayali
-        </p>
-
-        {sent && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-2xl">
-              <div
-                className="mx-auto flex h-20 w-20 items-center justify-center rounded-full mb-4"
-                style={{ background: `${accent}14` }}
-              >
-                <div
-                  className="flex h-14 w-14 items-center justify-center rounded-full shadow-lg"
-                  style={{ background: accent }}
+            <div className="p-8 sm:p-12">
+              <div className="mb-7">
+                <h1
+                  className="text-3xl font-bold tracking-tight"
+                  style={{ color: accent || '#176b5b' }}
                 >
-                  <svg width="28" height="28" viewBox="0 0 34 34" fill="none">
-                    <path
-                      d="M8 17.5l6 6L27 10"
-                      stroke="white"
-                      strokeWidth="3.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                </div>
+                  {definition.header?.title || campaign.name}
+                </h1>
+                {(definition.header?.subtitle || campaign.description) && (
+                  <p className="mt-3 text-base text-slate-500">
+                    {definition.header?.subtitle || campaign.description}
+                  </p>
+                )}
               </div>
-              <h2 className="text-sm font-bold capitalize mb-1">
-                SUBMISSION RECEIVED
-              </h2>
-              {/* <p className="text-2xl font-bold text-slate-900">
-                Thank You!
-              </p> */}
-              <h2 className="mt-2 text-xl sm:text-2xl font-bold text-slate-900">
-                Thank you!
-              </h2>
 
-              <p className="mt-2 text-sm text-slate-500 leading-5">
-                Your details have been submitted successfully. Our team will
-                review your enquiry and contact you soon.
-              </p>
-              <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-[10px] sm:text-xs font-medium text-slate-500 border border-slate-100">
-                <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500" />
-                You may safely close this page
+              <div
+                className={
+                  definition.layout === 'two'
+                    ? 'grid gap-x-6 gap-y-5 md:grid-cols-2'
+                    : 'grid gap-y-5'
+                }
+              >
+                {fields.map((field: any) => (
+                  <div key={field.key}>{renderField(field)}</div>
+                ))}
+              </div>
+
+              {submitError && (
+                <div
+                  role="alert"
+                  className="mt-6 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 p-4 text-sm text-red-700"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-red-100 font-bold">
+                    !
+                  </span>
+                  <span>{submitError}</span>
+                </div>
+              )}
+
+              <div className="mt-10">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full h-12 rounded-lg text-white font-semibold text-base transition hover:opacity-90 disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: accent || '#176b5b' }}
+                >
+                  {submitting ? 'Submitting...' : 'Submit enquiry'}
+                </button>
+                <p className="mt-6 text-center text-xs text-slate-400">
+                  {definition.footer?.text ||
+                    'We respect your privacy. Your information is safe with us.'}
+                </p>
               </div>
             </div>
+          </form>
+          <p className="mt-3 text-center text-xs text-slate-400">
+            Powered by Get Fit Malayali
+          </p>
+        </main>
+      </div>
+
+      {sent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-[90vw] sm:max-w-sm rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 text-center shadow-2xl">
+            <div
+              className="mx-auto flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full mb-4"
+              style={{ background: `${accent}14` }}
+            >
+              <div
+                className="flex h-11 w-11 sm:h-14 sm:w-14 items-center justify-center rounded-full shadow-lg"
+                style={{ background: accent }}
+              >
+                <svg width="28" height="28" viewBox="0 0 34 34" fill="none">
+                  <path
+                    d="M8 17.5l6 6L27 10"
+                    stroke="white"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-xs sm:text-sm font-bold capitalize mb-1">
+              SUBMISSION RECEIVED
+            </h2>
+            <h2 className="mt-2 text-lg sm:text-2xl font-bold text-slate-900">
+              Thank you!
+            </h2>
+            <p className="mt-2 text-xs sm:text-sm text-slate-500 leading-5">
+              Your details have been submitted successfully. Our team will
+              review your enquiry and contact you soon.
+            </p>
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-[10px] sm:text-xs font-medium text-slate-500 border border-slate-100">
+              <span className="h-1.5 w-1.5 sm:h-2 sm:w-2 rounded-full bg-emerald-500" />
+              You may safely close this page
+            </div>
           </div>
-        )}
-      </main>
-    </div>
+        </div>
+      )}
+    </>
   )
 }

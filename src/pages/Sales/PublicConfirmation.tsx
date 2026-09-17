@@ -125,8 +125,8 @@ export default function PublicConfirmation() {
     <div className="h-screen w-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/30 p-3 sm:p-6 overflow-hidden">
       {styles}
 
-      <div className="w-full max-w-lg sm:max-w-2xl h-full max-h-full flex flex-col pub-animate-in">
-        <div className="rounded-2xl sm:rounded-3xl border border-slate-100/80 bg-white/90 backdrop-blur-sm shadow-xl shadow-slate-200/50 flex flex-col overflow-hidden h-full">
+      <div className="w-full max-w-lg sm:max-w-2xl h-full max-h-full flex flex-col pub-animate-in justify-center">
+        <div className="rounded-2xl sm:rounded-3xl border border-slate-100/80 bg-white/90 backdrop-blur-sm shadow-xl shadow-slate-200/50 flex flex-col overflow-hidden">
           <div
             className="h-1 w-full shrink-0"
             style={{

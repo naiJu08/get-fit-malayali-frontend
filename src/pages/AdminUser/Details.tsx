@@ -246,7 +246,7 @@ export default function UserDetails() {
             { id: 'vitals', label: 'Vitals' },
             { id: 'reminders', label: 'Reminder settings' },
             { id: 'recipes', label: 'Recipes' },
-            { id: 'additional-info', label: 'Nutritional assessment' },
+            { id: 'additional-info', label: 'Assessment' },
             { id: 'subscription-history', label: 'Subscription history' },
             { id: 'diet-history', label: 'Diet history' },
             { id: 'reports', label: 'Reports' },
@@ -282,7 +282,7 @@ export default function UserDetails() {
                     { id: 'vitals', label: 'Vitals' },
                     { id: 'reminders', label: 'Reminder settings' },
                     { id: 'recipes', label: 'Recipes' },
-                    { id: 'additional-info', label: 'Nutritional assessment' },
+                    { id: 'additional-info', label: 'Assessment' },
                     {
                       id: 'subscription-history',
                       label: 'Subscription history',
@@ -348,7 +348,9 @@ export default function UserDetails() {
               {/* Name row */}
               <div className="flex items-center">
                 <button
-                  onClick={() => navigate(pathBase)}
+                  onClick={() =>
+                    navigate((location.state as any)?.from || pathBase)
+                  }
                   className="rounded-lg hover:bg-gray-100 transition"
                   aria-label="Back"
                 >
