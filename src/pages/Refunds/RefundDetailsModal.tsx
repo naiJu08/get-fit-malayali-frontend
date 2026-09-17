@@ -8,12 +8,18 @@ interface RefundDetailsModalProps {
   isOpen: boolean
   refund: any
   onClose: () => void
+  onSubmitToSuperadmin?: (refund: any) => void
+  onReviewDecision?: (refund: any) => void
+  onDispenseRefund?: (refund: any) => void
 }
 
 export default function RefundDetailsModal({
   isOpen,
   refund,
   onClose,
+  onSubmitToSuperadmin,
+  onReviewDecision,
+  onDispenseRefund,
 }: RefundDetailsModalProps) {
   const navigate = useNavigate()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
@@ -118,6 +124,19 @@ export default function RefundDetailsModal({
       refund.superadmin_decision?.rejected_at
   )
   const isCompleted = Boolean(refund.completion?.completed_at)
+
+  const isSuperAdmin = loginRole === 'superadmin' || loginRole === 'super_admin'
+
+  // Action capabilities
+  const canSubmitToSuperadmin =
+    !isSuperAdmin &&
+    (refund.permissions?.can_submit_to_superadmin ??
+      refund.status === 'initiated')
+  const canReviewDecision =
+    refund.permissions?.can_approve_or_reject ??
+    refund.status === 'submitted_to_superadmin'
+  const canDispenseRefund =
+    refund.permissions?.can_complete ?? refund.status === 'approved'
 
   return (
     <DialogModal
@@ -465,15 +484,34 @@ export default function RefundDetailsModal({
                 )}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-formBorder bg-gray-50/70 p-3.5 text-xs text-secondary flex items-center justify-between">
-                <span className="flex items-center gap-2">
+              <div className="rounded-xl border border-dashed border-blue-200 bg-blue-50/40 p-3.5 text-xs text-secondary flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+                <span className="flex items-center gap-2 font-medium text-blue-900">
                   <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
                   Stage 2: Pending Sales review and supporting document
                   submission
                 </span>
-                <span className="text-[11px] text-gray-400 italic">
-                  Awaiting Sales
-                </span>
+                {canSubmitToSuperadmin && onSubmitToSuperadmin && (
+                  <button
+                    type="button"
+                    onClick={() => onSubmitToSuperadmin(refund)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-blue-700 transition shadow-sm active:scale-[0.98]"
+                  >
+                    <svg
+                      className="h-3.5 w-3.5 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                      />
+                    </svg>
+                    <span>Submit to Superadmin</span>
+                  </button>
+                )}
               </div>
             )}
 
@@ -702,7 +740,52 @@ export default function RefundDetailsModal({
           </div>
 
           {/* Action Footer */}
-          <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-gray-100">
+            <div className="flex flex-wrap items-center gap-2">
+              {canSubmitToSuperadmin && onSubmitToSuperadmin && (
+                <button
+                  type="button"
+                  onClick={() => onSubmitToSuperadmin(refund)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 transition shadow-sm active:scale-[0.98]"
+                >
+                  <svg
+                    className="h-4 w-4 text-white"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                    />
+                  </svg>
+                  <span>Submit to Superadmin</span>
+                </button>
+              )}
+
+              {canReviewDecision && onReviewDecision && (
+                <button
+                  type="button"
+                  onClick={() => onReviewDecision(refund)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-xs font-semibold text-white hover:bg-purple-700 transition shadow-sm active:scale-[0.98]"
+                >
+                  <span>Review Decision</span>
+                </button>
+              )}
+
+              {canDispenseRefund && onDispenseRefund && (
+                <button
+                  type="button"
+                  onClick={() => onDispenseRefund(refund)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 transition shadow-sm active:scale-[0.98]"
+                >
+                  <span>Dispense Refund</span>
+                </button>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={onClose}
