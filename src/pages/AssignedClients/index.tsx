@@ -33,6 +33,22 @@ const statusLabel = (value?: string) =>
     .replace(/_/g, ' ')
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 
+const getStatusBadgeClass = (status?: string) => {
+  switch (String(status || '').toLowerCase()) {
+    case 'accepted':
+    case 'client_accepted':
+      return 'bg-green-100 text-green-800 border-green-200'
+    case 'assessment_completed':
+      return 'bg-blue-100 text-blue-800 border-blue-200'
+    case 'package_confirmed':
+      return 'bg-purple-100 text-purple-800 border-purple-200'
+    case 'pending':
+      return 'bg-amber-100 text-amber-800 border-amber-200'
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200'
+  }
+}
+
 export default function AssignedClients() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -108,10 +124,15 @@ export default function AssignedClients() {
         customCell: true,
         renderCell: (row: any) => ({
           cell: (
-            <span className="capitalize">
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadgeClass(
+                row.workflow_status
+              )}`}
+            >
               {statusLabel(row.workflow_status)}
             </span>
           ),
+          toolTip: statusLabel(row.workflow_status),
         }),
         isVisible: true,
       },
