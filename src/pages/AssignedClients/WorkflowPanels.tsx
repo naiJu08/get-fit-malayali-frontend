@@ -301,7 +301,7 @@ export function ClientWorkflowDetails({
                       <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
                         Proposed by
                       </div>
-                      <div className="mt-1 text-sm font-semibold text-gray-800">
+                      <div className="mt-1 text-sm font-semibold text-gray-800 capitalize">
                         {proposedPkg?.created_by?.name || 'Sales team'}
                       </div>
                     </div>

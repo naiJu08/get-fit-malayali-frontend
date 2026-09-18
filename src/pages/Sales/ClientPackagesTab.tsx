@@ -731,6 +731,12 @@ export default function ClientPackagesTab({
       })
       return
     }
+    if (!receiptFile && !editingProposal?.payment?.receipt_url) {
+      enqueueSnackbar('Please upload payment receipt or proof of payment.', {
+        variant: 'error',
+      })
+      return
+    }
     try {
       setProposalLoading(true)
       const formData = new FormData()
@@ -1039,7 +1045,7 @@ export default function ClientPackagesTab({
                   ) : selectedValue === 'legacy' ? (
                     <Icons name="activities" className="h-4 w-4" />
                   ) : (
-                    <Icons name="calendar" className="h-4 w-4" />
+                    <Icons name="calendar" className="items-center" />
                   )}
                 </div>
 
@@ -1346,7 +1352,7 @@ export default function ClientPackagesTab({
             <div className="flex items-center gap-2">
               <Icons
                 name="calendar"
-                className="h-4 w-4 text-primaryGreen shrink-0"
+                className=" w-4 text-primaryGreen shrink-0"
               />
               <span>
                 Selected period:{' '}
@@ -1947,10 +1953,10 @@ export default function ClientPackagesTab({
                   <div className="text-[11px] font-medium text-secondary uppercase tracking-wider">
                     Anticipated Start
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-primaryText flex items-center gap-1.5">
+                  <div className="mt-1 text-sm font-semibold text-primaryText flex items-center gap-3">
                     <Icons
                       name="calendar"
-                      className="h-3.5 w-3.5 text-secondary"
+                      className="h-6 w-3.5 text-secondary mr-0.5"
                     />
                     {formatDate(activeProposal.start_date)}
                   </div>
@@ -1960,10 +1966,10 @@ export default function ClientPackagesTab({
                   <div className="text-[11px] font-medium text-secondary uppercase tracking-wider">
                     Anticipated End
                   </div>
-                  <div className="mt-1 text-sm font-semibold text-primaryText flex items-center gap-1.5">
+                  <div className="mt-1 text-sm font-semibold text-primaryText flex items-center gap-3">
                     <Icons
                       name="calendar"
-                      className="h-3.5 w-3.5 text-secondary"
+                      className="h-6 w-3.5 text-secondary"
                     />
                     {formatDate(activeProposal.end_date)}
                   </div>
@@ -1974,7 +1980,7 @@ export default function ClientPackagesTab({
                     Proposed By
                   </div>
                   <div className="mt-1 text-sm font-semibold text-primaryText truncate">
-                    {activeProposal.created_by?.name || '--'}
+                    {capitalizeFirst(activeProposal.created_by?.name) || '--'}
                   </div>
                 </div>
               </div>
@@ -2881,7 +2887,9 @@ export default function ClientPackagesTab({
                                       {hist.assigned_by_name && (
                                         <span>
                                           <strong>By:</strong>{' '}
-                                          {hist.assigned_by_name}
+                                          {capitalizeFirst(
+                                            hist.assigned_by_name
+                                          )}
                                         </span>
                                       )}
                                     </div>
@@ -3639,7 +3647,8 @@ export default function ClientPackagesTab({
                 {/* Receipt Upload */}
                 <div>
                   <label className="block text-xs font-semibold text-primaryText mb-1.5">
-                    Payment Receipt / Proof of Payment
+                    Payment Receipt / Proof of Payment{' '}
+                    <span className="text-red-500">*</span>
                   </label>
 
                   {/* Existing receipt note if editing */}
