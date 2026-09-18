@@ -103,6 +103,11 @@ const getInitials = (name?: string) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
+const capitalizeFirst = (value?: string | null) => {
+  if (!value) return ''
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
 const formatDate = (value: any) =>
   value ? moment(value).format('DD-MM-YYYY') : '--'
 
@@ -903,7 +908,7 @@ export default function ClientPackagesTab({
                 className="inline-flex items-center gap-2 rounded-xl bg-primaryGreen px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-primaryGreen/25 hover:bg-emerald-600 transition active:scale-[0.98] disabled:opacity-50"
                 title="Confirm this package and its staff assignments"
               >
-                <Icons name="check" className="h-4 w-4" />
+                <Icons name="check-mark" className="h-4 w-4" />
                 {cycleActionLoading ? 'Confirming...' : 'Confirm package'}
               </button>
             )}
@@ -1037,7 +1042,7 @@ export default function ClientPackagesTab({
                         ? 'New / upcoming package'
                         : selectedValue === 'legacy'
                           ? 'Legacy / unlinked assignments'
-                          : selectedCycle?.plan?.name ||
+                          : capitalizeFirst(selectedCycle?.plan?.name) ||
                             (selectedCycle?.id
                               ? `Package #${selectedCycle.id}`
                               : 'No package selected')}
@@ -1189,7 +1194,8 @@ export default function ClientPackagesTab({
                               </div>
                               <div className="min-w-0">
                                 <p className="text-sm font-semibold text-primaryText truncate">
-                                  {c.plan?.name || `Package #${c.id}`}
+                                  {capitalizeFirst(c.plan?.name) ||
+                                    `Package #${c.id}`}
                                 </p>
                                 <p className="text-xs text-secondary mt-0.5">
                                   {formatDate(c.start_date)} –{' '}
@@ -1337,7 +1343,8 @@ export default function ClientPackagesTab({
               <span>
                 Selected period:{' '}
                 <strong className="text-primaryText font-semibold">
-                  {selectedCycle.plan?.name || `Package #${selectedCycle.id}`}
+                  {capitalizeFirst(selectedCycle.plan?.name) ||
+                    `Package #${selectedCycle.id}`}
                 </strong>{' '}
                 ({formatDate(selectedCycle.start_date)} to{' '}
                 {formatDate(selectedCycle.end_date)})
@@ -1732,7 +1739,8 @@ export default function ClientPackagesTab({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-base font-bold text-primaryText">
-                        {activeProposal.plan?.name || 'Unnamed Package'}
+                        {capitalizeFirst(activeProposal.plan?.name) ||
+                          'Unnamed Package'}
                       </h3>
                       {activeProposal.status && (
                         <span
@@ -2007,14 +2015,14 @@ export default function ClientPackagesTab({
                                 <div>
                                   <span className="font-medium">Plan: </span>
                                   <span className="line-through text-red-500">
-                                    {chg.old_plan.name}
+                                    {capitalizeFirst(chg.old_plan.name)}
                                   </span>
                                   {chg.new_plan && (
                                     <span>
                                       {' '}
                                       →{' '}
                                       <strong className="text-emerald-700">
-                                        {chg.new_plan.name}
+                                        {capitalizeFirst(chg.new_plan.name)}
                                       </strong>
                                     </span>
                                   )}
@@ -2182,7 +2190,7 @@ export default function ClientPackagesTab({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="text-base font-bold text-gray-900 truncate">
-                        {salesRep.name}
+                        {capitalizeFirst(salesRep.name)}
                       </h3>
                       <span className="inline-flex items-center gap-1 rounded-md bg-blue-100/70 px-2 py-0.5 text-[11px] font-semibold text-blue-800">
                         <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
