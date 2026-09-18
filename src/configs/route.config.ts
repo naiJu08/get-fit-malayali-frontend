@@ -745,7 +745,7 @@ const MARKETING: RouterMenuProps = {
   label: 'Marketing Module',
   key: 'marketing',
   icon: 'customer-icon',
-  permission_slugs: ['superadmin', 'admin', 'marketing'],
+  permission_slugs: ['admin', 'marketing'],
   isSidebarMenu: true,
 }
 const MARKETING_FORMS: RouterMenuProps = {
@@ -791,7 +791,7 @@ const SALES: RouterMenuProps = {
   label: 'Sales Module',
   key: 'sales-module',
   icon: 'sales-icon',
-  permission_slugs: ['superadmin', ...MODULE_ACCESS.sales],
+  permission_slugs: [...MODULE_ACCESS.sales],
   isSidebarMenu: true,
 }
 const SALES_LEADS: RouterMenuProps = {

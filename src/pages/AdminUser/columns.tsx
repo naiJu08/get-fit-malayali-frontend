@@ -17,6 +17,11 @@ const truncateText = (value?: string, limit = 40) => {
   return `${trimmed.slice(0, limit).trim()}...`
 }
 
+const capitalizeFirst = (value?: string | null) => {
+  if (!value) return ''
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
 export const getColumns = ({
   onNameClick,
   activeRole,
@@ -534,10 +539,10 @@ export const getColumns = ({
               cell: (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                   <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
-                  {rep.name}
+                  {capitalizeFirst(rep.name)}
                 </span>
               ),
-              toolTip: `${rep.name} (${rep.email || ''})`,
+              toolTip: `${capitalizeFirst(rep.name)} (${rep.email || ''})`,
             }
           }
           return {

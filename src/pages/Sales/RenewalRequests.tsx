@@ -7,6 +7,11 @@ import Icons from '../../components/common/icons'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useRenewalRequests } from './api'
 
+const capitalizeFirst = (value: unknown) => {
+  const text = String(value || '').trim()
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : ''
+}
+
 // ── Status badge ──────────────────────────────────────────────────────────────
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -166,7 +171,7 @@ function RenewalDetailModal({
                 Sales Owner
               </p>
               <p className="mt-0.5 text-sm font-semibold text-primaryText">
-                {row.sales_owner?.name || 'Superadmin queue'}
+                {capitalizeFirst(row.sales_owner?.name) || 'Superadmin queue'}
               </p>
             </div>
           </div>
@@ -236,7 +241,7 @@ export default function RenewalRequests() {
     page: 1,
     per_page: 20,
     search: '',
-    status: 'pending',
+    status: '',
   })
   const [detailRow, setDetailRow] = useState<any>(null)
 
@@ -262,9 +267,13 @@ export default function RenewalRequests() {
         renderCell: (row: any) => ({
           cell: (
             <div>
-              <div className="text-sm font-semibold text-primaryText">
+              <button
+                type="button"
+                className="text-sm font-semibold text-blue-600 hover:underline text-left"
+                onClick={() => setDetailRow(row)}
+              >
                 {row.client_name || '—'}
-              </div>
+              </button>
             </div>
           ),
         }),
@@ -332,7 +341,7 @@ export default function RenewalRequests() {
         renderCell: (row: any) => ({
           cell: (
             <div className="text-sm text-primaryText">
-              {row.sales_owner?.name || (
+              {capitalizeFirst(row.sales_owner?.name) || (
                 <span className="text-secondary italic">Superadmin queue</span>
               )}
             </div>
