@@ -239,6 +239,7 @@ export default function ClientPackagesTab({
   }, [periodDropdownOpen])
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isSales = loginRole === 'sales'
+  const isNutritionist = loginRole === 'nutritionist'
   const isSuperAdmin = loginRole === 'superadmin' || loginRole === 'admin'
   const canCreateUpcomingPackage = Boolean(
     isSales || isSuperAdmin || (!loginRole && apiPrefix === '/sales/clients')
@@ -269,6 +270,18 @@ export default function ClientPackagesTab({
       cycles.find((c: any) => String(c.id) === selectedCycleId) || defaultCycle
     )
   }, [cycles, selectedCycleId, defaultCycle, mode])
+
+  const isInFinalFiveDays = useMemo(() => {
+    if (!selectedCycle?.end_date || selectedCycle?.status !== 'active') {
+      return false
+    }
+
+    const daysRemaining = moment(selectedCycle.end_date)
+      .startOf('day')
+      .diff(moment().startOf('day'), 'days')
+
+    return daysRemaining >= 0 && daysRemaining <= 5
+  }, [selectedCycle?.end_date, selectedCycle?.status])
 
   const selectedValue = useMemo(() => {
     if (mode === 'assignments') {
@@ -927,20 +940,24 @@ export default function ClientPackagesTab({
               </button>
             )}
 
-            {selectedCycle?.can_request_renewal && (
-              <button
-                type="button"
-                onClick={() => {
-                  setRenewalNotes('')
-                  setRenewalDialogOpen(true)
-                }}
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900 shadow-xs hover:bg-amber-100 transition active:scale-[0.98]"
-                title="Eligible for renewal during the final 5 days of subscription"
-              >
-                <Icons name="notification" className="h-4 w-4 text-amber-600" />
-                Request renewal (final 5 days)
-              </button>
-            )}
+            {selectedCycle?.can_request_renewal &&
+              (!isNutritionist || isInFinalFiveDays) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRenewalNotes('')
+                    setRenewalDialogOpen(true)
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900 shadow-xs hover:bg-amber-100 transition active:scale-[0.98]"
+                  title="Eligible for renewal during the final 5 days of subscription"
+                >
+                  <Icons
+                    name="notification"
+                    className="h-4 w-4 text-amber-600"
+                  />
+                  Request renewal (final 5 days)
+                </button>
+              )}
 
             {selectedCycle?.renewal_request && (
               <div className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-1.5 text-xs font-semibold text-amber-900 shadow-xs">

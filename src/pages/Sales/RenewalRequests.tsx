@@ -274,6 +274,9 @@ export default function RenewalRequests() {
               >
                 {row.client_name || '—'}
               </button>
+              <div className="text-xs text-secondary">
+                {row.client?.phone || row.client?.email || '--'}
+              </div>
             </div>
           ),
         }),
