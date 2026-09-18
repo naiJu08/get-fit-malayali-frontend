@@ -2643,7 +2643,8 @@ export default function ClientPackagesTab({
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="truncate text-sm font-bold text-primaryText">
-                                {assignment.staff_name || 'Assigned Staff'}
+                                {capitalizeFirst(assignment.staff_name) ||
+                                  'Assigned Staff'}
                               </div>
                               <div className="flex items-center gap-1 text-[11px] text-secondary">
                                 <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -2851,7 +2852,8 @@ export default function ClientPackagesTab({
                                           }`}
                                         />
                                         <span className="truncate">
-                                          {hist.staff_name || 'Staff User'}
+                                          {capitalizeFirst(hist.staff_name) ||
+                                            'Staff User'}
                                         </span>
                                       </div>
                                       <span
