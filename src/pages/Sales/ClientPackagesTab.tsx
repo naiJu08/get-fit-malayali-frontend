@@ -213,6 +213,7 @@ export default function ClientPackagesTab({
   const [renewalDialogOpen, setRenewalDialogOpen] = useState(false)
   const [renewalNotes, setRenewalNotes] = useState('')
   const [refundDialogOpen, setRefundDialogOpen] = useState(false)
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [refundRemarks, setRefundRemarks] = useState('')
   const [refundActionLoading, setRefundActionLoading] = useState(false)
   const [cycleActionLoading, setCycleActionLoading] = useState(false)
@@ -307,31 +308,38 @@ export default function ClientPackagesTab({
         ].includes(String(q.queryKey[0])),
     })
   }
-  const runCycleAction = async (action: 'confirm' | 'renew') => {
+  const handleConfirmCycle = async () => {
     if (!selectedCycle) return
-    if (
-      action === 'confirm' &&
-      !window.confirm(
-        'Confirm this package and its staff assignments? The current subscription will continue until its end date.'
-      )
-    )
-      return
     try {
       setCycleActionLoading(true)
-      if (action === 'confirm')
-        await confirmClientPackageCycle(id, selectedCycle.id, apiPrefix)
-      else
-        await requestClientRenewal(
-          id,
-          selectedCycle.subscription_id,
-          renewalNotes
-        )
+      await confirmClientPackageCycle(id, selectedCycle.id, apiPrefix)
+      enqueueSnackbar('Package confirmed.', { variant: 'success' })
+      setConfirmDialogOpen(false)
+      await refetch()
+    } catch (err: any) {
       enqueueSnackbar(
-        action === 'confirm'
-          ? 'Package confirmed.'
-          : 'Renewal request sent to Sales.',
-        { variant: 'success' }
+        getApiErrorMessage(err) || 'Unable to complete this action.',
+        { variant: 'error' }
       )
+    } finally {
+      setCycleActionLoading(false)
+    }
+  }
+
+  const runCycleAction = async (action: 'confirm' | 'renew') => {
+    if (!selectedCycle) return
+    if (action === 'confirm') {
+      setConfirmDialogOpen(true)
+      return
+    }
+    try {
+      setCycleActionLoading(true)
+      await requestClientRenewal(
+        id,
+        selectedCycle.subscription_id,
+        renewalNotes
+      )
+      enqueueSnackbar('Renewal request sent to Sales.', { variant: 'success' })
       setRenewalDialogOpen(false)
       await refetch()
     } catch (err: any) {
@@ -903,7 +911,7 @@ export default function ClientPackagesTab({
             {selectedCycle?.can_confirm && (
               <button
                 type="button"
-                onClick={() => runCycleAction('confirm')}
+                onClick={() => setConfirmDialogOpen(true)}
                 disabled={cycleActionLoading}
                 className="inline-flex items-center gap-2 rounded-xl bg-primaryGreen px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-primaryGreen/25 hover:bg-emerald-600 transition active:scale-[0.98] disabled:opacity-50"
                 title="Confirm this package and its staff assignments"
@@ -1443,6 +1451,135 @@ export default function ClientPackagesTab({
                 onClick={() => runCycleAction('renew')}
                 primary
               />
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Confirm Package Popup Modal */}
+      {confirmDialogOpen && (
+        <div className="fixed inset-0 z-[1400] flex items-center justify-center overflow-x-hidden overflow-y-auto outline-none focus:outline-none p-4">
+          <div
+            className="fixed inset-0 bg-black/50 transition-opacity"
+            onClick={() => setConfirmDialogOpen(false)}
+          />
+          <div className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl transition-all z-10 overflow-hidden border border-slate-100">
+            {/* Soft Top Right Gradient Glow */}
+            <div className="absolute -top-12 -right-12 h-36 w-36 rounded-full bg-cyan-100/60 blur-2xl pointer-events-none" />
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setConfirmDialogOpen(false)}
+              className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+
+            {/* Header with Calendar Badge Icon */}
+            <div className="flex items-start gap-4 pr-6">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-cyan-50 border border-cyan-100/80 shadow-xs">
+                <div className="relative flex items-center justify-center">
+                  <svg
+                    className="h-8 w-8 text-cyan-600"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white ring-2 ring-white">
+                    <svg
+                      className="h-3 w-3"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-1">
+                <h3 className="text-xl font-bold text-slate-900 leading-snug">
+                  Confirm Package
+                </h3>
+                <p className="mt-1 text-sm text-slate-500 font-normal">
+                  Confirm package subscription and staff assignments.
+                </p>
+              </div>
+            </div>
+
+            {/* Info Message Box */}
+            <div className="mt-6 rounded-2xl bg-cyan-50/70 border border-cyan-100/80 p-4 flex items-start gap-3.5">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cyan-500 text-white font-bold text-xs mt-0.5 shadow-xs">
+                i
+              </div>
+              <p className="text-sm font-normal text-slate-700 leading-relaxed">
+                Confirm this package and its staff assignments? The current
+                subscription will continue until its end date.
+              </p>
+            </div>
+
+            {/* Modal Footer Buttons */}
+            <div className="mt-6 border-t border-slate-100 pt-4 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmDialogOpen(false)}
+                disabled={cycleActionLoading}
+                className="rounded-xl border border-blue-500 bg-white px-6 py-2.5 text-sm font-semibold text-blue-600 hover:bg-blue-50 transition active:scale-[0.98] disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCycle}
+                disabled={cycleActionLoading}
+                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-500/20 hover:from-cyan-600 hover:to-emerald-600 transition active:scale-[0.98] disabled:opacity-50"
+              >
+                {cycleActionLoading ? (
+                  <span>Confirming...</span>
+                ) : (
+                  <>
+                    <svg
+                      className="h-4 w-4 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                    <span>Confirm</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

@@ -87,6 +87,7 @@ export default function DietPlanTab({
       templateName={template?.name}
       templateId={template?.id}
       templateDurationDays={template?.duration_days}
+      templateDays={template?.days}
     />
   )
 }
@@ -95,10 +96,12 @@ function DietPlanContent({
   templateName,
   templateId,
   templateDurationDays,
+  templateDays,
 }: {
   templateName?: string
   templateId: string | number
   templateDurationDays?: number
+  templateDays?: any[]
 }) {
   const navigate = useNavigate()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
@@ -106,93 +109,22 @@ function DietPlanContent({
   const [selectedDayNumbers, setSelectedDayNumbers] = useState<string[]>([])
   const [selectedMealIds, setSelectedMealIds] = useState<string[]>([])
   const [copyType, setCopyType] = useState<DietCopyTargetType | null>(null)
+  const [urlSearchParams, setUrlSearchParams] = useSearchParams()
+  const [currentPage, setCurrentPage] = useState(1)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
 
-  const columns: TableColumns[] = useMemo(
-    () => [
-      {
-        title: '',
-        field: 'select',
-        colWidth: 56,
-        customCell: true,
-        renderCell: (row: any) => ({
-          cell: (
-            <Checkbox
-              id={'select-diet-day-' + row.day_number}
-              name={'select-diet-day-' + row.day_number}
-              checked={selectedDayNumbers.includes(String(row.day_number))}
-              handleChange={() =>
-                setSelectedDayNumbers((current) =>
-                  current.includes(String(row.day_number))
-                    ? current.filter(
-                        (value) => value !== String(row.day_number)
-                      )
-                    : [...current, String(row.day_number)]
-                )
-              }
-            />
-          ),
-        }),
-      },
-      {
-        title: 'Day Number',
-        field: 'day_number',
-        resizable: true,
-        isVisible: true,
-        customCell: true,
-        renderCell: (row: any) => ({
-          cell: (
-            <button
-              type="button"
-              className="text-blue-600 hover:underline"
-              onClick={() => {
-                const baseKey = (row?.day_key || row?.day_name || '')
-                  .toString()
-                  .trim()
-                  .toLowerCase()
-                const fallback =
-                  baseKey || (row?.day_number ? `day-${row.day_number}` : '')
-                if (fallback) {
-                  navigate(
-                    `/diet-template/${templateId}/diet-plan?day=${encodeURIComponent(
-                      fallback
-                    )}`
-                  )
-                }
-              }}
-            >
-              {row?.day_number ?? ''}
-            </button>
-          ),
-        }),
-        sortKey: 'day_number',
-      },
-      {
-        title: 'Day',
-        field: 'day_name',
-        resizable: true,
-        isVisible: true,
-        customCell: true,
-        renderCell: (row: any) => ({ cell: row?.day_name ?? '' }),
-        sortKey: 'day_name',
-      },
-      {
-        title: 'Calories',
-        field: 'effective_total_calories',
-        resizable: true,
-        isVisible: true,
-        customCell: true,
-        renderCell: (row: any) => ({
-          cell: row?.effective_total_calories ?? '',
-        }),
-        sortKey: 'effective_total_calories',
-      },
-    ],
-    [navigate, selectedDayNumbers]
+  const handleViewDay = useCallback(
+    (row: any) => {
+      const key =
+        row?.day_key || (row?.day_number ? `number:${row.day_number}` : '')
+      if (!key) return
+      setUrlSearchParams({ day: key })
+    },
+    [setUrlSearchParams]
   )
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const { search, ordering } = pageParams
-  const [urlSearchParams, setUrlSearchParams] = useSearchParams()
 
   const searchParams = {
     page: 1,
@@ -215,8 +147,27 @@ function DietPlanContent({
     [data?.diet_plans]
   )
   const aggregatedPlans = useMemo(() => {
-    if (!dietPlans.length) return []
     const grouped = new Map<string, any>()
+    const persistedDays =
+      Array.isArray(templateDays) && templateDays.length
+        ? templateDays
+        : Array.from(
+            { length: Number(templateDurationDays || 0) },
+            (_, index) => ({
+              day_number: index + 1,
+              day_name: 'Day ' + (index + 1),
+            })
+          )
+    persistedDays.forEach((day: any) => {
+      const key = 'number:' + day.day_number
+      grouped.set(key, {
+        id: day.id || key,
+        day_name: day.day_name || 'Day ' + day.day_number,
+        day_number: day.day_number,
+        day_key: key,
+        effective_total_calories: 0,
+      })
+    })
     dietPlans.forEach((plan: any) => {
       const key = buildDayKey(plan)
       const calories = Number(plan?.effective_total_calories) || 0
@@ -235,7 +186,7 @@ function DietPlanContent({
       }
     })
     return Array.from(grouped.values())
-  }, [dietPlans, buildDayKey])
+  }, [dietPlans, buildDayKey, templateDays, templateDurationDays])
   const rawSelectedDayKey = urlSearchParams.get('day') || ''
   const selectedDayKey = useMemo(
     () => normalizeDayKeyParam(rawSelectedDayKey),
@@ -278,6 +229,103 @@ function DietPlanContent({
       aggregatedPlans.find((item) => item?.day_key === selectedDayKey) || null
     )
   }, [aggregatedPlans, selectedDayKey])
+
+  const viewingDayRows = useMemo(() => {
+    if (!selectedDayRows.length) return []
+    return selectedDayRows.map((row: any, index: number) => ({
+      ...row,
+      serial: index + 1,
+    }))
+  }, [selectedDayRows])
+
+  const allDaysSelected =
+    aggregatedPlans.length > 0 &&
+    selectedDayNumbers.length === aggregatedPlans.length
+  const toggleAllDays = useCallback(
+    (checked: boolean) =>
+      setSelectedDayNumbers(
+        checked ? aggregatedPlans.map((day: any) => String(day.day_number)) : []
+      ),
+    [aggregatedPlans]
+  )
+
+  const columns: TableColumns[] = useMemo(
+    () => [
+      {
+        title: (
+          <Checkbox
+            id="select-all-diet-days"
+            name="select-all-diet-days"
+            checked={allDaysSelected}
+            intermediate={selectedDayNumbers.length > 0 && !allDaysSelected}
+            handleChange={(event) => toggleAllDays(event.target.checked)}
+          />
+        ),
+        field: 'select',
+        colWidth: 56,
+        customCell: true,
+        renderCell: (row: any) => ({
+          cell: (
+            <Checkbox
+              id={'select-diet-day-' + row.day_number}
+              name={'select-diet-day-' + row.day_number}
+              checked={selectedDayNumbers.includes(String(row.day_number))}
+              handleChange={() =>
+                setSelectedDayNumbers((current) =>
+                  current.includes(String(row.day_number))
+                    ? current.filter(
+                        (value) => value !== String(row.day_number)
+                      )
+                    : [...current, String(row.day_number)]
+                )
+              }
+            />
+          ),
+        }),
+      },
+      {
+        title: 'Day Number',
+        field: 'day_number',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({
+          cell: (
+            <button
+              type="button"
+              className="text-blue-600 hover:underline"
+              onClick={() => handleViewDay(row)}
+            >
+              {row?.day_number ?? ''}
+            </button>
+          ),
+        }),
+        sortKey: 'day_number',
+      },
+      {
+        title: 'Day',
+        field: 'day_name',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({ cell: row?.day_name ?? '' }),
+        sortKey: 'day_name',
+      },
+      {
+        title: 'Calories',
+        field: 'effective_total_calories',
+        resizable: true,
+        isVisible: true,
+        customCell: true,
+        renderCell: (row: any) => ({
+          cell: row?.effective_total_calories ?? '',
+        }),
+        sortKey: 'effective_total_calories',
+      },
+    ],
+    [allDaysSelected, handleViewDay, selectedDayNumbers, toggleAllDays]
+  )
+
   const { mutateAsync: deleteDietPlan, isLoading: deleteLoading } =
     useDeleteDietPlan()
 
@@ -295,7 +343,6 @@ function DietPlanContent({
       diet_plan_template_id: templateId,
     }
 
-    // If creating meal for a specific day, prefill and disable day fields
     if (dayInfo) {
       initialValues.day_name = dayInfo.day_name
       initialValues.day_number = dayInfo.day_number
@@ -345,6 +392,10 @@ function DietPlanContent({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedDayKey])
+
   const handleSort = (orderColumn?: any, orderDirection?: any) => {
     setPageParams({
       ...pageParams,
@@ -352,11 +403,6 @@ function DietPlanContent({
       sortType: orderDirection,
       ordering: getSortedColumnName(orderColumn, orderDirection),
     })
-  }
-
-  const handleViewDay = (row: any) => {
-    if (!row?.day_key) return
-    setUrlSearchParams({ day: row.day_key })
   }
 
   const clearDaySelection = () => {
@@ -369,10 +415,29 @@ function DietPlanContent({
 
   const viewingDay = Boolean(selectedDayKey)
 
+  const allMealsSelected =
+    viewingDayRows.length > 0 &&
+    selectedMealIds.length === viewingDayRows.length
+  const toggleAllMeals = useCallback(
+    (checked: boolean) =>
+      setSelectedMealIds(
+        checked ? viewingDayRows.map((meal: any) => String(meal.id)) : []
+      ),
+    [viewingDayRows]
+  )
+
   const dayColumns: TableColumns[] = useMemo(
     () => [
       {
-        title: '',
+        title: (
+          <Checkbox
+            id="select-all-diet-meals"
+            name="select-all-diet-meals"
+            checked={allMealsSelected}
+            intermediate={selectedMealIds.length > 0 && !allMealsSelected}
+            handleChange={(event) => toggleAllMeals(event.target.checked)}
+          />
+        ),
         field: 'select_meal',
         colWidth: 56,
         customCell: true,
@@ -528,19 +593,18 @@ function DietPlanContent({
         sortKey: 'effective_total_calories',
       },
     ],
-    [navigate, selectedMealIds]
+    [allMealsSelected, navigate, selectedMealIds, toggleAllMeals]
   )
 
-  const viewingDayRows = useMemo(() => {
-    if (!selectedDayRows.length) return []
-    return selectedDayRows.map((row: any, index: number) => ({
-      ...row,
-      serial: index + 1,
-    }))
-  }, [selectedDayRows])
-
   const tableColumns = viewingDay ? dayColumns : columns
-  const tableData = viewingDay ? viewingDayRows : aggregatedPlans
+  const currentDataset = viewingDay ? viewingDayRows : aggregatedPlans
+  const totalItems = currentDataset.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / rowsPerPage))
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage
+    return currentDataset.slice(start, start + rowsPerPage)
+  }, [currentDataset, currentPage, rowsPerPage])
+
   const tableTitle = viewingDay
     ? `${toTitleCase(selectedDayMeta?.day_name || 'Selected Day')} - Meals`
     : toTitleCase(templateName || 'Diet Plans')
@@ -643,7 +707,7 @@ function DietPlanContent({
           )}
       </div>
       <SmartTable
-        data={tableData}
+        data={paginatedData}
         dataRowKey="id"
         toolbar={true}
         title={tableTitle}
@@ -686,9 +750,23 @@ function DietPlanContent({
         onSearch={() => setPageParams({ ...pageParams, page: 1 })}
         columns={tableColumns}
         height={
-          tableData.length === 0 ? calcWindowHeight(218) : calcWindowHeight(250)
+          currentDataset.length === 0
+            ? calcWindowHeight(218)
+            : calcWindowHeight(200)
         }
-        pagination={false}
+        pagination={true}
+        paginationProps={{
+          currentPage,
+          total: totalItems,
+          rowsPerPage,
+          totalPages,
+          onPagination: (p: number) => setCurrentPage(p),
+          onRowsPerPage: (r: number | string) => {
+            setRowsPerPage(Number(r))
+            setCurrentPage(1)
+          },
+          dropOptions: [10, 20, 30, 50, 100],
+        }}
         isLoading={isFetching}
         sortType={pageParams.sortType}
         sortColumn={pageParams.sortColumn}

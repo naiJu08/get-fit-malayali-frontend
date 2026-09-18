@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useEffect } from 'react'
 
 import { TabItemProps, TabProps } from '../../../common/types'
 
@@ -32,8 +32,62 @@ const TabContainer: React.FC<TabProps> = ({
   action,
   activeTab,
 }) => {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const isMouseDown = useRef(false)
+  const startX = useRef(0)
+  const scrollLeftState = useRef(0)
+  const hasDragged = useRef(false)
+
+  // Scroll active tab into view on mount or when activeTab changes
+  useEffect(() => {
+    if (scrollRef.current) {
+      const activeEl = scrollRef.current.querySelector(
+        '[data-active="true"]'
+      ) as HTMLElement
+      if (activeEl) {
+        activeEl.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest',
+        })
+      }
+    }
+  }, [activeTab])
+
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (scrollRef.current && e.deltaY !== 0) {
+      scrollRef.current.scrollLeft += e.deltaY
+    }
+  }
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!scrollRef.current) return
+    isMouseDown.current = true
+    hasDragged.current = false
+    startX.current = e.pageX - scrollRef.current.offsetLeft
+    scrollLeftState.current = scrollRef.current.scrollLeft
+  }
+
+  const handleMouseLeave = () => {
+    isMouseDown.current = false
+  }
+
+  const handleMouseUp = () => {
+    isMouseDown.current = false
+  }
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isMouseDown.current || !scrollRef.current) return
+    const x = e.pageX - scrollRef.current.offsetLeft
+    const walk = (x - startX.current) * 1.5
+    if (Math.abs(walk) > 5) {
+      hasDragged.current = true
+    }
+    scrollRef.current.scrollLeft = scrollLeftState.current - walk
+  }
+
   const generateClassName = (tab: TabItemProps): string => {
-    let generatedClassName = 'w-max text-sm leading-6 font-medium '
+    let generatedClassName = 'w-max text-sm leading-6 font-medium shrink-0 '
     if (tab.id === activeTab) {
       generatedClassName += ' text-primary font-bold cursor-default '
       generatedClassName += tab.activeClass
@@ -61,20 +115,31 @@ const TabContainer: React.FC<TabProps> = ({
     }
     return generatedClassName.trimEnd()
   }
+
   const handleClick = (item: TabItemProps) => {
-    if (!item.disabled) {
+    if (!item.disabled && !hasDragged.current) {
       onClick(item)
     }
   }
+
   return (
     <div className="w-full">
-      <div className="flex w-full items-center gap-3 border-b border-formBorder bg-white px-5">
-        <div className="tab-scroll flex min-w-0 flex-1 gap-2">
+      <div className="relative flex w-full items-center gap-3 border-b border-formBorder bg-white px-5">
+        <div
+          ref={scrollRef}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onMouseLeave={handleMouseLeave}
+          onMouseUp={handleMouseUp}
+          onMouseMove={handleMouseMove}
+          className="tab-scroll flex min-w-0 flex-1 gap-2 overflow-x-auto overflow-y-hidden whitespace-nowrap scroll-smooth select-none cursor-grab active:cursor-grabbing"
+        >
           {data.map((tab: TabItemProps) => (
             <React.Fragment key={tab.id}>
               {!tab.hide && (
                 <div
-                  className={`relative z-10 w-max border-b-2 p-2.5 text-sm font-medium transition-all duration-100 ${generateClassName(
+                  data-active={tab.id === activeTab}
+                  className={`relative z-10 w-max shrink-0 border-b-2 p-2.5 text-sm font-medium transition-all duration-100 ${generateClassName(
                     tab
                   )}`}
                   onClick={() => handleClick(tab)}
