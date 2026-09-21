@@ -317,6 +317,14 @@ export default function SalesClientDetails() {
                 value={client.profile_completed ? 'Completed' : 'Not completed'}
               />
               <DetailItem
+                label="Registered On"
+                value={
+                  client.created_at
+                    ? moment(client.created_at).format('DD MMM YYYY, hh:mm A')
+                    : '--'
+                }
+              />
+              <DetailItem
                 label="Account Status"
                 value={statusLabel(client.status)}
               />
