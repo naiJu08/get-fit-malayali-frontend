@@ -112,12 +112,16 @@ export default function YogaTemplateIndex() {
             icon: <Icons name="duplicate-icon" />,
             action: duplicate,
           },
-          {
-            title: 'Delete',
-            toolTip: 'Delete',
-            icon: <Icons name="table-delete" />,
-            action: (row: any) => setDeleteId(row.id),
-          },
+          ...(role !== 'yogist'
+            ? [
+                {
+                  title: 'Delete',
+                  toolTip: 'Delete',
+                  icon: <Icons name="table-delete" />,
+                  action: (row: any) => setDeleteId(row.id),
+                },
+              ]
+            : []),
         ]
 
   return (

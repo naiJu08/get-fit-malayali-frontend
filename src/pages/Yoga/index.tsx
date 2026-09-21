@@ -42,6 +42,7 @@ export default function YogaMain() {
   const [loader, setLoader] = useState(false)
   const { roleData } = useAuthStore()
   const isNutritionist = roleData?.name === 'nutritionist'
+  const isYogist = roleData?.name === 'yogist'
   const params = useParams()
   const location = useLocation()
 
@@ -300,8 +301,10 @@ export default function YogaMain() {
         action: (row: any) => handleEdit(row),
         title: 'Edit',
         toolTip: 'Edit',
-      },
-      {
+      }
+    )
+    if (!isYogist) {
+      actions.push({
         icon: <Icons name="table-delete" />,
         action: (row: any) => {
           if (!row?.id) return
@@ -310,8 +313,8 @@ export default function YogaMain() {
         },
         title: 'Delete',
         toolTip: 'Delete',
-      }
-    )
+      })
+    }
   }
 
   return (

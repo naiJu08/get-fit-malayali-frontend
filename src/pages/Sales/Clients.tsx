@@ -195,7 +195,7 @@ export default function SalesClients() {
         customCell: true,
         renderCell: (row: any) => {
           const dateStr = row.created_at
-            ? moment(row.created_at).format('DD MMM YYYY, hh:mm A')
+            ? moment(row.created_at).format('DD-MM-YYYY hh:mm A')
             : '--'
           return {
             cell: <span className="text-xs text-slate-600">{dateStr}</span>,
@@ -302,7 +302,7 @@ export default function SalesClients() {
         customCell: true,
         renderCell: (row: any) => {
           const dateStr = row.created_at
-            ? moment(row.created_at).format('DD MMM YYYY, hh:mm A')
+            ? moment(row.created_at).format('DD-MM-YYYY hh:mm A')
             : '--'
           return {
             cell: <span className="text-xs text-slate-600">{dateStr}</span>,
