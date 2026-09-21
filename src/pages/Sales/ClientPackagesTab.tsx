@@ -338,9 +338,8 @@ export default function ClientPackagesTab({
   const canManageStaff =
     canManage && Boolean(selectedCycle?.can_manage_assignments)
   const canEditProposal =
-    canManage &&
-    ((selectedValue === 'new' && canCreateUpcomingPackage) ||
-      Boolean(selectedCycle?.can_edit_proposal))
+    Boolean(selectedCycle?.can_edit_proposal) ||
+    (canManage && selectedValue === 'new' && canCreateUpcomingPackage)
   const refetch = async () => {
     await Promise.all([refetchClient(), refetchCycles()])
     await queryClient.invalidateQueries({
@@ -752,7 +751,7 @@ export default function ClientPackagesTab({
   }
 
   const saveProposal = async () => {
-    if (!canManage) return
+    if (!canEditProposal) return
     const values = proposalMethods.getValues()
     if (!values.plan_id) {
       enqueueSnackbar('Select a package plan.', { variant: 'error' })
@@ -967,6 +966,18 @@ export default function ClientPackagesTab({
 
           {/* Inline Action Controls */}
           <div className="flex flex-wrap items-center gap-2.5">
+            {canEditProposal && activeProposal && (
+              <button
+                type="button"
+                onClick={() => openProposalModal(activeProposal)}
+                className="inline-flex items-center gap-2 rounded-xl border border-sky-300 bg-sky-50 px-4 py-2 text-xs font-semibold text-sky-800 shadow-xs hover:bg-sky-100 transition active:scale-[0.98]"
+                title="Update or change this proposed package"
+              >
+                <Icons name="edit" className="h-4 w-4 text-sky-600" />
+                Update package
+              </button>
+            )}
+
             {selectedCycle?.can_confirm && (
               <button
                 type="button"
@@ -1761,7 +1772,7 @@ export default function ClientPackagesTab({
             ) : activeProposal ? (
               canEditProposal && (
                 <Button
-                  label="Change package"
+                  label="Update package"
                   icon="edit"
                   outlined
                   onClick={() => openProposalModal(activeProposal)}

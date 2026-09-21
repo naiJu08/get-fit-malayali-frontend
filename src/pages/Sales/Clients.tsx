@@ -190,6 +190,21 @@ export default function SalesClients() {
         isVisible: true,
       },
       {
+        title: 'Registered On',
+        field: 'created_at',
+        customCell: true,
+        renderCell: (row: any) => {
+          const dateStr = row.created_at
+            ? moment(row.created_at).format('DD MMM YYYY, hh:mm A')
+            : '--'
+          return {
+            cell: <span className="text-xs text-slate-600">{dateStr}</span>,
+            toolTip: dateStr,
+          }
+        },
+        isVisible: true,
+      },
+      {
         title: 'Account Status',
         field: 'status',
         customCell: true,

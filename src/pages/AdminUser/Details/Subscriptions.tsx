@@ -129,6 +129,30 @@ export default function Subscriptions({
   }, [cycles, selectedCycle])
 
   const proposedPackage = useMemo(() => {
+    if (
+      selectedCycle &&
+      (selectedCycle.status === 'proposed' || !selectedCycle.subscription_id)
+    ) {
+      if (selectedCycle.proposal) {
+        return {
+          ...selectedCycle.proposal,
+          plan: selectedCycle.plan || selectedCycle.proposal?.plan,
+          start_date:
+            selectedCycle.start_date || selectedCycle.proposal?.start_date,
+          end_date: selectedCycle.end_date || selectedCycle.proposal?.end_date,
+        }
+      }
+      return {
+        id: selectedCycle.id,
+        status: 'proposed',
+        plan: selectedCycle.plan,
+        start_date: selectedCycle.start_date,
+        end_date: selectedCycle.end_date,
+      }
+    }
+    if (selectedCycle?.subscription_id || selectedCycleId === 'legacy') {
+      return null
+    }
     return (
       workflowAssignment?.anticipated_package ||
       (proposedCycle?.proposal
@@ -145,14 +169,52 @@ export default function Subscriptions({
         (proposal: any) => proposal.status === 'proposed'
       )
     )
-  }, [workflowAssignment, proposedCycle, clientDetail])
+  }, [
+    selectedCycle,
+    selectedCycleId,
+    workflowAssignment,
+    proposedCycle,
+    clientDetail,
+  ])
 
-  const canConfirmPackage = Boolean(
-    proposedCycle &&
-      (proposedCycle.can_confirm ||
-        loginRole === 'superadmin' ||
-        loginRole === 'admin')
-  )
+  const canConfirmPackage = useMemo(() => {
+    if (!proposedPackage) return false
+    if (loginRole === 'superadmin' || loginRole === 'admin') return true
+
+    const targetCycle =
+      selectedCycle &&
+      (selectedCycle.status === 'proposed' || !selectedCycle.subscription_id)
+        ? selectedCycle
+        : proposedCycle
+
+    if (targetCycle?.can_confirm !== undefined) {
+      return Boolean(targetCycle.can_confirm)
+    }
+
+    const cycleAssignments = (targetCycle?.assignments ||
+      user?.admin_assignments ||
+      (workflowAssignment ? [workflowAssignment] : [])) as any[]
+    const assignedRoles = cycleAssignments
+      .filter((a: any) => !a.ended_at)
+      .map((a: any) => String(a.role || a.admin?.role || '').toLowerCase())
+      .filter(Boolean)
+
+    if (assignedRoles.includes('nutritionist')) {
+      return loginRole === 'nutritionist'
+    }
+    return ['physiotherapist', 'physio', 'yogist', 'yoga'].includes(
+      loginRole || ''
+    )
+  }, [
+    proposedPackage,
+    loginRole,
+    selectedCycle,
+    proposedCycle,
+    user,
+    workflowAssignment,
+  ])
+
+  const canUpdatePackage = canConfirmPackage
 
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const [confirmingPackage, setConfirmingPackage] = useState(false)
@@ -261,7 +323,6 @@ export default function Subscriptions({
     (plansList?.plans || plansList?.items || []) as any[]
   ).filter((p: any) => p?.active)
   const { enqueueSnackbar } = useSnackbarManager()
-  const hasPlanOverview = !!overview?.subscription
   const { data: allWorkoutsResp, isLoading: allWorkoutsLoading } =
     useWorkoutList(
       {
@@ -1149,7 +1210,7 @@ export default function Subscriptions({
 
   const getDayCellClass = (cell: any) => {
     if (!cell?.inRange)
-      return 'text-slate-300 bg-slate-50/50 border-slate-100 opacity-50 cursor-not-allowed'
+      return 'text-slate-400 bg-slate-50/80 border-slate-200 cursor-not-allowed shadow-2xs'
     if (cell?.meta?.freeze)
       return 'bg-gradient-to-br from-red-500 to-rose-600 text-white border-red-400 shadow-sm cursor-pointer hover:brightness-105'
     return `${statusColor(cell?.meta)} cursor-pointer hover:brightness-105`
@@ -3164,18 +3225,31 @@ export default function Subscriptions({
               }
             }}
             subscription={
-              overview?.subscription ||
-              (selectedCycle?.subscription_id
-                ? { ...selectedCycle, plan_name: selectedCycle.plan?.name }
-                : subscribedPlan)
+              selectedCycle &&
+              (!selectedCycle.subscription_id ||
+                selectedCycle.status === 'proposed')
+                ? null
+                : overview?.subscription ||
+                  (selectedCycle?.subscription_id
+                    ? { ...selectedCycle, plan_name: selectedCycle.plan?.name }
+                    : selectedCycleId === 'legacy'
+                      ? subscribedPlan
+                      : null)
             }
             isServiceRole={isServiceRole}
             onConfirmPackage={() => setConfirmModalOpen(true)}
             confirmLoading={confirmingPackage}
             canConfirmPackage={canConfirmPackage}
+            canUpdatePackage={canUpdatePackage}
+            clientId={String(id)}
           />
 
-          {(overview?.subscription || subscribedPlan || hasPlanOverview) && (
+          {Boolean(
+            overview?.subscription ||
+              (selectedCycle?.subscription_id &&
+                selectedCycle.status !== 'proposed') ||
+              (selectedCycleId === 'legacy' && subscribedPlan)
+          ) && (
             <div className="flex justify-end gap-2 mt-2">
               <Button
                 className="primaryButton"
@@ -3350,7 +3424,7 @@ export default function Subscriptions({
                             return (
                               <div
                                 key={c.key}
-                                className={`relative min-h-[170px] rounded-xl border p-2 flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 select-none ${getDayCellClass(c)}`}
+                                className={`relative min-h-[170px] rounded-xl border p-2 flex flex-col justify-between transition-all duration-200 ${c?.inRange ? 'hover:-translate-y-0.5' : ''} select-none ${getDayCellClass(c)}`}
                                 title={
                                   c?.meta?.date
                                     ? `${c.meta.date}  •  Diet: ${
@@ -3401,13 +3475,25 @@ export default function Subscriptions({
                               >
                                 <div className="flex flex-col h-full w-full justify-between">
                                   <div>
-                                    <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-white/25">
+                                    <div
+                                      className={`flex items-center justify-between pb-1 mb-1.5 ${
+                                        c?.inRange
+                                          ? 'border-b border-white/25'
+                                          : 'border-b border-slate-200/70'
+                                      }`}
+                                    >
                                       {isToday ? (
                                         <span className="h-6 w-6 rounded-full bg-white text-blue-600 flex items-center justify-center font-bold text-xs shadow-2xs">
                                           {c?.label ?? ''}
                                         </span>
                                       ) : (
-                                        <span className="text-sm font-bold text-white pl-0.5 drop-shadow-2xs">
+                                        <span
+                                          className={`text-sm font-bold pl-0.5 ${
+                                            c?.inRange
+                                              ? 'text-white drop-shadow-2xs'
+                                              : 'text-slate-400'
+                                          }`}
+                                        >
                                           {c?.label ?? ''}
                                         </span>
                                       )}
@@ -3531,9 +3617,26 @@ export default function Subscriptions({
             ) : (
               !overviewLoading && (
                 <div className="flex flex-col items-center justify-center p-6 text-center flex-1">
-                  <div className="text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-md px-4 py-3 max-w-md shadow-sm">
-                    {overviewError || 'No calendar data available'}
-                  </div>
+                  {selectedCycle &&
+                  (!selectedCycle.subscription_id ||
+                    selectedCycle.status === 'proposed') ? (
+                    <div className="text-xs font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 max-w-md shadow-xs">
+                      The package plan (
+                      <strong className="font-semibold text-slate-800">
+                        {toTitleCase(
+                          proposedPackage?.plan?.name ||
+                            selectedCycle.plan?.name ||
+                            'Proposed Package'
+                        )}
+                      </strong>
+                      ) is currently proposed and pending confirmation. Once
+                      confirmed, the daily schedule calendar will be generated.
+                    </div>
+                  ) : (
+                    <div className="text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-4 py-3 max-w-md shadow-sm">
+                      {overviewError || 'No calendar data available'}
+                    </div>
+                  )}
                 </div>
               )
             )}

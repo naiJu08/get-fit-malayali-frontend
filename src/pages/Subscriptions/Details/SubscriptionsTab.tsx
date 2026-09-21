@@ -276,7 +276,7 @@ export default function SubscriptionUserSubscriptionsTab({
 
   const getDayCellClass = (cell: any) => {
     if (!cell?.inRange)
-      return 'text-gray-400 bg-white border-gray-200 opacity-70 cursor-not-allowed'
+      return 'text-slate-400 bg-slate-50/80 border-slate-200 cursor-not-allowed shadow-2xs'
     if (cell?.meta?.freeze)
       return 'bg-gradient-to-br from-red-600 to-red-600 text-white border-red-300 shadow-sm cursor-not-allowed'
     return statusColor(cell?.meta as OverviewDay)
