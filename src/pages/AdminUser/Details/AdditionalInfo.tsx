@@ -352,6 +352,7 @@ const sections: SectionDefinition[] = [
 type AdditionalInfoProps = {
   user?: Record<string, any>
   subscriptionId?: string | number | null
+  isActionablePackage?: boolean
 }
 
 const resolveSelectionValue = (value: any) =>
@@ -642,6 +643,7 @@ const buildAssessmentCategoriesForForm = (assessmentAnswers: any[]) => {
 export default function AdditionalInfo({
   user,
   subscriptionId,
+  isActionablePackage = true,
 }: AdditionalInfoProps) {
   const userId = user?.id
   const [loading, setLoading] = useState(false)
@@ -792,7 +794,7 @@ export default function AdditionalInfo({
     setData(null)
     setAdditionalDataList([])
     setModalMode(null)
-  }, [userId, reset, defaultValuesWithUserMetrics])
+  }, [userId, subscriptionId, reset, defaultValuesWithUserMetrics])
 
   useEffect(() => {
     if (!userId) return
@@ -804,9 +806,15 @@ export default function AdditionalInfo({
         if (payloads.length) {
           setData(payloads[0])
           reset(transformForForm(payloads[0]))
+        } else {
+          setData(null)
+          reset(defaultValuesWithUserMetrics)
         }
       })
       .catch((error) => {
+        setAdditionalDataList([])
+        setData(null)
+        reset(defaultValuesWithUserMetrics)
         if (error?.response?.status !== 404) {
           enqueueSnackbar('Failed to load additional information.', {
             variant: 'error',
@@ -814,7 +822,14 @@ export default function AdditionalInfo({
         }
       })
       .finally(() => setLoading(false))
-  }, [userId, subscriptionId, enqueueSnackbar, reset, transformForForm])
+  }, [
+    userId,
+    subscriptionId,
+    enqueueSnackbar,
+    reset,
+    transformForForm,
+    defaultValuesWithUserMetrics,
+  ])
 
   const hasSavedData = useMemo(() => {
     return additionalDataList.length > 0
@@ -1377,15 +1392,17 @@ export default function AdditionalInfo({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-wrap justify-end gap-3">
-        <button
-          type="button"
-          className="px-4 py-2 rounded-md bg-primaryGreen text-white text-sm"
-          onClick={() => openModal('create')}
-        >
-          Create
-        </button>
-      </div>
+      {isActionablePackage && (
+        <div className="flex flex-wrap justify-end gap-3">
+          <button
+            type="button"
+            className="px-4 py-2 rounded-md bg-primaryGreen text-white text-sm"
+            onClick={() => openModal('create')}
+          >
+            Create
+          </button>
+        </div>
+      )}
 
       {hasSavedData ? (
         <SmartTable
@@ -1406,12 +1423,16 @@ export default function AdditionalInfo({
               toolTip: 'View',
               action: (row: any) => openModal('view', row.additionalData),
             },
-            {
-              icon: <Icons name="edit" />,
-              title: 'Edit',
-              toolTip: 'Edit',
-              action: (row: any) => openModal('edit', row.additionalData),
-            },
+            ...(isActionablePackage
+              ? [
+                  {
+                    icon: <Icons name="edit" />,
+                    title: 'Edit',
+                    toolTip: 'Edit',
+                    action: (row: any) => openModal('edit', row.additionalData),
+                  },
+                ]
+              : []),
           ]}
         />
       ) : (

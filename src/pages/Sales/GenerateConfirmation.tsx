@@ -28,7 +28,30 @@ export default function GenerateConfirmation() {
   const { enqueueSnackbar } = useSnackbarManager()
   const queryClient = useQueryClient()
   const { data, isLoading, refetch } = useSalesLead(id)
-  const lead = data?.lead
+  const [generatedConfirmation, setGeneratedConfirmation] = useState<any>(null)
+  const rawLead = data?.lead
+  const lead = useMemo(() => {
+    if (!rawLead) return rawLead
+    const conf =
+      generatedConfirmation ||
+      rawLead.confirmation ||
+      data?.confirmation ||
+      (rawLead.confirmation_url ||
+      rawLead.confirmation_message ||
+      rawLead.confirmation_sent_at ||
+      rawLead.client_confirmed_at
+        ? {
+            public_url: rawLead.confirmation_url,
+            message: rawLead.confirmation_message,
+            sent_at: rawLead.confirmation_sent_at,
+            client_confirmed_at: rawLead.client_confirmed_at,
+          }
+        : null)
+    return {
+      ...rawLead,
+      confirmation: conf,
+    }
+  }, [rawLead, data?.confirmation, generatedConfirmation])
   const [confirmationLoader, setConfirmationLoader] = useState(false)
 
   const confirmationMethods = useForm({
@@ -64,12 +87,36 @@ export default function GenerateConfirmation() {
     }
     try {
       setConfirmationLoader(true)
-      await generateSalesConfirmation(
+      const res: any = await generateSalesConfirmation(
         id,
         confirmationMethods.getValues('message')
       )
+      if (res?.confirmation) {
+        setGeneratedConfirmation(res.confirmation)
+      }
       enqueueSnackbar('Confirmation link generated successfully', {
         variant: 'success',
+      })
+      queryClient.setQueryData(['sales_lead', id], (old: any) => {
+        if (!old) return old
+        const updatedConf = res?.confirmation || old.confirmation
+        return {
+          ...old,
+          confirmation: updatedConf,
+          lead: old.lead
+            ? {
+                ...old.lead,
+                status: 'confirmation_pending',
+                confirmation: updatedConf || old.lead.confirmation,
+                confirmation_url:
+                  updatedConf?.public_url || old.lead.confirmation_url,
+                confirmation_message:
+                  updatedConf?.message || old.lead.confirmation_message,
+                confirmation_sent_at:
+                  updatedConf?.sent_at || old.lead.confirmation_sent_at,
+              }
+            : old.lead,
+        }
       })
       await refetch()
       queryClient.invalidateQueries(['sales_leads'])

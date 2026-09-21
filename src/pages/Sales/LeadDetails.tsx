@@ -262,7 +262,31 @@ export default function SalesLeadDetails({
     refetch,
   } = useSalesLead(leadData ? undefined : id)
   const data = leadData ? { lead: leadData } : fetchedData
-  const lead = leadData || data?.lead
+  const [generatedConfirmation, setGeneratedConfirmation] = useState<any>(null)
+  const [isJustGenerated, setIsJustGenerated] = useState(false)
+  const rawLead = leadData || data?.lead
+  const lead = useMemo(() => {
+    if (!rawLead) return rawLead
+    const conf =
+      generatedConfirmation ||
+      rawLead.confirmation ||
+      data?.confirmation ||
+      (rawLead.confirmation_url ||
+      rawLead.confirmation_message ||
+      rawLead.confirmation_sent_at ||
+      rawLead.client_confirmed_at
+        ? {
+            public_url: rawLead.confirmation_url,
+            message: rawLead.confirmation_message,
+            sent_at: rawLead.confirmation_sent_at,
+            client_confirmed_at: rawLead.client_confirmed_at,
+          }
+        : null)
+    return {
+      ...rawLead,
+      confirmation: conf,
+    }
+  }, [rawLead, data?.confirmation, generatedConfirmation])
   const isLoading = leadData ? false : fetchedIsLoading
   const statusBlockedActivities = ['contacted', 'qualified', 'lost']
   const hasRecordedInteraction = useMemo(() => {
@@ -548,16 +572,41 @@ export default function SalesLeadDetails({
     }
     try {
       setConfirmationLoader(true)
-      await generateSalesConfirmation(
+      const res: any = await generateSalesConfirmation(
         id,
         confirmationMethods.getValues('message')
       )
+      if (res?.confirmation) {
+        setGeneratedConfirmation(res.confirmation)
+      }
       enqueueSnackbar('Confirmation link generated successfully', {
         variant: 'success',
+      })
+      queryClient.setQueryData(['sales_lead', id], (old: any) => {
+        if (!old) return old
+        const updatedConf = res?.confirmation || old.confirmation
+        return {
+          ...old,
+          confirmation: updatedConf,
+          lead: old.lead
+            ? {
+                ...old.lead,
+                status: 'confirmation_pending',
+                confirmation: updatedConf || old.lead.confirmation,
+                confirmation_url:
+                  updatedConf?.public_url || old.lead.confirmation_url,
+                confirmation_message:
+                  updatedConf?.message || old.lead.confirmation_message,
+                confirmation_sent_at:
+                  updatedConf?.sent_at || old.lead.confirmation_sent_at,
+              }
+            : old.lead,
+        }
       })
       await refetch()
       queryClient.invalidateQueries(['sales_leads'])
       setConfirmationModal(false)
+      setIsJustGenerated(true)
       setSuccessModal(true)
     } catch (error: any) {
       enqueueSnackbar(
@@ -685,11 +734,11 @@ export default function SalesLeadDetails({
                   icon="link"
                   outlined
                   onClick={() => {
-                    if (lead?.confirmation?.public_url) {
-                      copyLink(
-                        lead.confirmation.public_url,
-                        'Confirmation link'
-                      )
+                    const confUrl =
+                      lead?.confirmation?.public_url || lead?.confirmation_url
+                    if (confUrl) {
+                      copyLink(confUrl, 'Confirmation link')
+                      setIsJustGenerated(false)
                       setSuccessModal(true)
                     } else {
                       setConfirmationModal(true)
@@ -808,63 +857,74 @@ export default function SalesLeadDetails({
                   ))}
                 </div>
               </section>
-              {lead.status === 'confirmation_pending' && lead.confirmation && (
-                <section className="border border-formBorder rounded-lg bg-white p-4">
-                  <div className="flex items-center justify-between border-b border-formBorder pb-3 mb-3">
-                    <h3 className="font-semibold text-primaryText">
-                      Confirmation Details
-                    </h3>
-                    {/* <span
-                      className={
-                        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ' +
-                        statusColor(lead.status)
-                      }
-                    >
-                      {statusLabel(lead.status)}
-                    </span> */}
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <div className="text-xs text-secondary">
-                        Confirmation message
-                      </div>
-                      <div className="text-sm text-primaryText mt-1 whitespace-pre-wrap bg-cardWrapperBg rounded border border-formBorder p-3">
-                        {lead.confirmation.message || '--'}
-                      </div>
+              {[
+                'confirmation_pending',
+                'client_confirmation',
+                'client_accepted',
+                'converted',
+              ].includes(lead.status) &&
+                lead.confirmation && (
+                  <section className="border border-formBorder rounded-lg bg-white p-4">
+                    <div className="flex items-center justify-between border-b border-formBorder pb-3 mb-3">
+                      <h3 className="font-semibold text-primaryText">
+                        Confirmation Details
+                      </h3>
+                      {(lead.status === 'client_accepted' ||
+                        lead.status === 'converted') && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Client Confirmed
+                        </span>
+                      )}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <div className="text-xs text-secondary">Sent at</div>
-                        <div className="text-sm text-primaryText mt-1">
-                          {lead.confirmation.sent_at
-                            ? (() => {
-                                const d = new Date(lead.confirmation.sent_at)
-                                const dd = String(d.getDate()).padStart(2, '0')
-                                const mm = String(d.getMonth() + 1).padStart(
-                                  2,
-                                  '0'
-                                )
-                                const yyyy = d.getFullYear()
-                                const hh = String(d.getHours()).padStart(2, '0')
-                                const min = String(d.getMinutes()).padStart(
-                                  2,
-                                  '0'
-                                )
-                                return `${dd}-${mm}-${yyyy} ${hh}:${min}`
-                              })()
-                            : '--'}
-                        </div>
-                      </div>
+                    <div className="space-y-3">
                       <div>
                         <div className="text-xs text-secondary">
-                          Client confirmed
+                          Confirmation message
                         </div>
-                        <div className="text-sm text-primaryText mt-1">
-                          {lead.confirmation.client_confirmed_at
-                            ? (() => {
-                                const d = new Date(
-                                  lead.confirmation.client_confirmed_at
-                                )
+                        <div className="text-sm text-primaryText mt-1 whitespace-pre-wrap bg-cardWrapperBg rounded border border-formBorder p-3">
+                          {lead.confirmation.message || '--'}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <div className="text-xs text-secondary">Sent at</div>
+                          <div className="text-sm text-primaryText mt-1">
+                            {lead.confirmation.sent_at
+                              ? (() => {
+                                  const d = new Date(lead.confirmation.sent_at)
+                                  const dd = String(d.getDate()).padStart(
+                                    2,
+                                    '0'
+                                  )
+                                  const mm = String(d.getMonth() + 1).padStart(
+                                    2,
+                                    '0'
+                                  )
+                                  const yyyy = d.getFullYear()
+                                  const hh = String(d.getHours()).padStart(
+                                    2,
+                                    '0'
+                                  )
+                                  const min = String(d.getMinutes()).padStart(
+                                    2,
+                                    '0'
+                                  )
+                                  return `${dd}-${mm}-${yyyy} ${hh}:${min}`
+                                })()
+                              : '--'}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-secondary">
+                            Client confirmed
+                          </div>
+                          <div className="text-sm text-primaryText mt-1">
+                            {(() => {
+                              const confirmedAt =
+                                lead.confirmation.client_confirmed_at ||
+                                lead.client_confirmed_at
+                              if (confirmedAt) {
+                                const d = new Date(confirmedAt)
                                 const dd = String(d.getDate()).padStart(2, '0')
                                 const mm = String(d.getMonth() + 1).padStart(
                                   2,
@@ -877,39 +937,56 @@ export default function SalesLeadDetails({
                                   '0'
                                 )
                                 return `${dd}-${mm}-${yyyy} ${hh}:${min}`
-                              })()
-                            : 'Not yet confirmed'}
-                        </div>
-                      </div>
-                    </div>
-                    {lead.confirmation.public_url && (
-                      <div>
-                        <div className="text-xs text-secondary mb-1">
-                          Confirmation link
-                        </div>
-                        <div className="flex items-center justify-between gap-2 bg-cardWrapperBg rounded border border-formBorder p-3">
-                          <div className="flex-1 break-all text-sm text-primaryText">
-                            {lead.confirmation.public_url}
+                              }
+                              return lead.status === 'client_accepted' ||
+                                lead.status === 'converted'
+                                ? 'Confirmed'
+                                : 'Not yet confirmed'
+                            })()}
                           </div>
-                          <button
-                            type="button"
-                            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer shrink-0"
-                            onClick={() =>
-                              copyLink(
-                                lead.confirmation.public_url,
-                                'Confirmation link'
-                              )
-                            }
-                          >
-                            <Icons name="link" className="h-3.5 w-3.5" />
-                            Copy Link
-                          </button>
                         </div>
                       </div>
-                    )}
-                  </div>
-                </section>
-              )}
+                      {lead.confirmation.public_url &&
+                        (lead.status === 'confirmation_pending' ||
+                          lead.status === 'client_confirmation') && (
+                          <div>
+                            <div className="text-xs text-secondary mb-1">
+                              Confirmation link
+                            </div>
+                            <div className="flex items-center justify-between gap-2 bg-cardWrapperBg rounded border border-formBorder p-3">
+                              <div className="flex-1 break-all text-sm text-primaryText">
+                                {lead.confirmation.public_url}
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
+                                  onClick={() =>
+                                    copyLink(
+                                      lead.confirmation.public_url,
+                                      'Confirmation link'
+                                    )
+                                  }
+                                >
+                                  <Icons name="link" className="h-3.5 w-3.5" />
+                                  Copy Link
+                                </button>
+                                {!isSuperAdmin && (
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-secondary hover:text-primaryText border border-formBorder hover:border-gray-400 bg-white rounded-lg transition-all duration-200 cursor-pointer"
+                                    onClick={() => setConfirmationModal(true)}
+                                  >
+                                    Regenerate
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                    </div>
+                  </section>
+                )}
               <section className="border border-formBorder rounded-lg bg-white p-4">
                 <h3 className="font-semibold text-primaryText border-b border-formBorder pb-3 mb-3">
                   Form shared details
@@ -1132,11 +1209,10 @@ export default function SalesLeadDetails({
       <DialogModal
         isOpen={successModal}
         onClose={() => setSuccessModal(false)}
-        title=""
-        actionLabel=""
-        onSubmit={() => setSuccessModal(false)}
-        small={false}
-        className="w-full max-w-md"
+        title={
+          isJustGenerated ? 'Link Generated Successfully' : 'Confirmation Link'
+        }
+        small
         body={
           <div className="text-center py-4">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 mb-4">
@@ -1155,7 +1231,9 @@ export default function SalesLeadDetails({
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-primaryText mb-1">
-              Link Generated Successfully
+              {isJustGenerated
+                ? 'Link Generated Successfully'
+                : 'Confirmation Link'}
             </h3>
             <p className="text-sm text-secondary mb-5">
               Share this link with the client to review and confirm.
@@ -1171,16 +1249,31 @@ export default function SalesLeadDetails({
                 <div className="break-all text-sm text-primaryText font-medium bg-white rounded-lg border border-formBorder p-3 mb-3">
                   {lead.confirmation.public_url}
                 </div>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
-                  onClick={() =>
-                    copyLink(lead.confirmation.public_url, 'Confirmation link')
-                  }
-                >
-                  <Icons name="link" className="h-3.5 w-3.5" />
-                  Copy link
-                </button>
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 rounded-lg shadow-md shadow-blue-500/25 transition-all duration-200 active:scale-95 cursor-pointer"
+                    onClick={() =>
+                      copyLink(
+                        lead.confirmation.public_url,
+                        'Confirmation link'
+                      )
+                    }
+                  >
+                    <Icons name="link" className="h-3.5 w-3.5" />
+                    Copy link
+                  </button>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-secondary hover:text-primaryText border border-formBorder hover:border-gray-400 bg-white rounded-lg transition-all duration-200 cursor-pointer"
+                    onClick={() => {
+                      setSuccessModal(false)
+                      setConfirmationModal(true)
+                    }}
+                  >
+                    Regenerate link
+                  </button>
+                </div>
               </div>
             ) : (
               <p className="text-sm text-secondary mb-4">

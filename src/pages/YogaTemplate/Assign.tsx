@@ -10,12 +10,14 @@ type Props = {
   subscriptionId?: string | number | null
   currentName?: string
   onAssigned?: () => void
+  readOnly?: boolean
 }
 
 export default function YogaTemplateAssign({
   subscriptionId,
   currentName,
   onAssigned,
+  readOnly = false,
 }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [templateId, setTemplateId] = useState('')
@@ -87,13 +89,15 @@ export default function YogaTemplateAssign({
           <span className="text-sm text-gray-600">
             Current: {currentName || 'No template assigned'}
           </span>
-          <button
-            type="button"
-            onClick={() => setDrawerOpen(true)}
-            className="ml-auto px-3 py-2 rounded bg-primaryGreen text-white text-sm hover:opacity-90"
-          >
-            Assign Template
-          </button>
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              className="ml-auto px-3 py-2 rounded bg-primaryGreen text-white text-sm hover:opacity-90"
+            >
+              {currentName ? 'Update Template' : 'Assign Template'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -102,11 +106,11 @@ export default function YogaTemplateAssign({
         handleClose={closeDrawer}
         className="w-screen max-w-[1000px]"
         unmountOnClose
-        title="Assign Yoga Template"
+        title={currentName ? 'Update Yoga Template' : 'Assign Yoga Template'}
         handleSubmit={assign}
         disableSubmit={!templateId || assigning}
         actionLoader={assigning}
-        actionLabel="Assign Template"
+        actionLabel={currentName ? 'Update Template' : 'Assign Template'}
       >
         <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">

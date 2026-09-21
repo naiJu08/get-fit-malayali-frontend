@@ -455,8 +455,7 @@ export default function AdminUser() {
                         ]
                   }
                   action={
-                    loginRole !== 'nutritionist' &&
-                    loginRole !== 'physiotherapist' &&
+                    loginRole === 'superadmin' &&
                     checkPermissions('Employee', 'create') ? (
                       <Button
                         className="bg-primaryGreen whitespace-nowrap px-3"
@@ -484,7 +483,7 @@ export default function AdminUser() {
               )}
 
               {activeRole !== 'user' &&
-                loginRole !== 'nutritionist' &&
+                loginRole === 'superadmin' &&
                 checkPermissions('Employee', 'create') && (
                   <div className="mt-4 flex-shrink-0">
                     <Button

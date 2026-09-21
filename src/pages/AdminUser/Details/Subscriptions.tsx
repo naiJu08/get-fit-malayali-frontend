@@ -28,6 +28,7 @@ import { useSnackbarManager } from '../../../components/common/snackbar'
 import apiUrl from '../../../apis/api.url'
 import { getData } from '../../../apis/api.helpers'
 import { getWorkoutPlanSubcategories } from '../../Plans/Details/WorkoutPlan/api'
+import { getYogaPlanSubcategories } from '../../YogaCategories/api'
 import DayDetailTabsSection from './DayDetailTabsSection'
 import { ClientWorkflowDetails } from '../../AssignedClients/WorkflowPanels'
 import {
@@ -48,12 +49,6 @@ const toTitleCase = (str: string): string => {
     .join(' ')
 }
 
-const YOGA_CATEGORY_OPTIONS: { label: string; value: string }[] = [
-  { label: 'Basic', value: 'basic' },
-  { label: 'Intermediate', value: 'intermediate' },
-  { label: 'Advanced', value: 'advanced' },
-]
-
 export default function Subscriptions({
   id,
   user,
@@ -62,6 +57,9 @@ export default function Subscriptions({
   onRefresh,
   workflowAssignment,
   onWorkflowRefresh,
+  selectedCycleId,
+  selectedSubscriptionId,
+  selectedCycle,
 }: {
   id: string
   user: any
@@ -70,6 +68,10 @@ export default function Subscriptions({
   onRefresh: (data?: any) => void
   workflowAssignment?: any
   onWorkflowRefresh?: () => Promise<any>
+  selectedCycleId?: string | number | null
+  selectedSubscriptionId?: string | number | null
+  selectedCycle?: any
+  disableCycleChange?: boolean
 }) {
   const queryClient = useQueryClient()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
@@ -106,6 +108,17 @@ export default function Subscriptions({
   const cycles = useMemo(() => cycleData?.cycles || [], [cycleData?.cycles])
 
   const proposedCycle = useMemo(() => {
+    if (selectedCycle) {
+      if (
+        selectedCycle.status === 'proposed' ||
+        (!selectedCycle.subscription_id && selectedCycle.proposal)
+      ) {
+        return selectedCycle
+      }
+      if (selectedCycle.subscription_id) {
+        return null
+      }
+    }
     return (
       cycles.find(
         (c: any) =>
@@ -113,7 +126,7 @@ export default function Subscriptions({
           (!c.subscription_id && c.proposal?.status === 'proposed')
       ) || (cycles.length > 0 && !cycles[0].subscription_id ? cycles[0] : null)
     )
-  }, [cycles])
+  }, [cycles, selectedCycle])
 
   const proposedPackage = useMemo(() => {
     return (
@@ -167,6 +180,40 @@ export default function Subscriptions({
     start_date: '',
     end_date: '',
   })
+
+  const isActionableSubscription = useMemo(() => {
+    const cycleStatus = (selectedCycle?.status || '').toLowerCase()
+    const subStatus = (
+      overview?.subscription?.status ||
+      cycleStatus ||
+      ''
+    ).toLowerCase()
+    const inactiveStatuses = [
+      'expired',
+      'cancelled',
+      'refunded',
+      'dropped_out',
+      'declined',
+      'ended',
+    ]
+
+    if (
+      inactiveStatuses.includes(cycleStatus) ||
+      inactiveStatuses.includes(subStatus)
+    ) {
+      return false
+    }
+
+    const endDate = overview?.subscription?.end_date || selectedCycle?.end_date
+    if (endDate && moment(endDate, 'YYYY-MM-DD').isBefore(moment(), 'day')) {
+      if (cycleStatus !== 'upcoming' && subStatus !== 'upcoming') {
+        return false
+      }
+    }
+
+    return true
+  }, [overview?.subscription, selectedCycle])
+
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [selectedWorkouts, setSelectedWorkouts] = useState<any[]>([])
@@ -286,17 +333,23 @@ export default function Subscriptions({
   const [selectedCategoryId, setSelectedCategoryId] = useState<
     number | string | undefined
   >(undefined)
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<
+    Array<number | string>
+  >([])
   const [selectedCategoryName, setSelectedCategoryName] = useState<string>('')
-  const categoryAutocompleteValue = useMemo(() => {
-    if (selectedCategoryName && selectedCategoryName.length > 0) {
-      return selectedCategoryName
-    }
-    if (!selectedCategoryId) return ''
-    const match = categoryOptions.find(
-      (cat: any) => String(cat?.id) === String(selectedCategoryId)
-    )
-    return match?.name ?? ''
-  }, [selectedCategoryId, selectedCategoryName, categoryOptions])
+  const formattedCategoryOptions = useMemo(() => {
+    return (categoryOptions || []).map((c: any) => ({
+      ...c,
+      name: toTitleCase(c.name || ''),
+    }))
+  }, [categoryOptions])
+  const selectedCategoryItems = useMemo(
+    () =>
+      formattedCategoryOptions.filter((cat: any) =>
+        selectedCategoryIds.map(String).includes(String(cat?.id))
+      ),
+    [formattedCategoryOptions, selectedCategoryIds]
+  )
   const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
   const [subcategoryLookup, setSubcategoryLookup] = useState<
     Record<string, { id: any; value: string }>
@@ -375,14 +428,23 @@ export default function Subscriptions({
       per_page: wpPerPage,
       search: wpSearch,
     }
-    if (selectedCategoryId) {
+    if (selectedCategoryIds.length) {
+      params.category_ids = selectedCategoryIds.join(',')
+    } else if (selectedCategoryId) {
       params.category_id = selectedCategoryId
     }
     if (selectedSubcategoryIds.length) {
       params.subcategory_ids = selectedSubcategoryIds.join(',')
     }
     return params
-  }, [wpPage, wpPerPage, wpSearch, selectedCategoryId, selectedSubcategoryIds])
+  }, [
+    wpPage,
+    wpPerPage,
+    wpSearch,
+    selectedCategoryIds,
+    selectedCategoryId,
+    selectedSubcategoryIds,
+  ])
   const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList(
     workoutListParams as any,
     {
@@ -414,16 +476,119 @@ export default function Subscriptions({
     Array.isArray(meditations) &&
     meditations.length > 0 &&
     meditations.every((m: any) => isSelected(m?.id))
+
+  // Yoga categories and multiple category/subcategory filtering
+  const { data: yogaCategoriesResponse } = useQuery(
+    ['yoga_categories_for_assign_admin'],
+    () => getData(`${apiUrl.CATEGORIES}?category_type=yoga`),
+    {
+      staleTime: 5 * 60 * 1000,
+    }
+  )
+
+  const normalizedYogaCategories = useMemo(() => {
+    const categories =
+      (yogaCategoriesResponse as any)?.categories ??
+      (yogaCategoriesResponse as any)?.category ??
+      yogaCategoriesResponse
+    if (Array.isArray(categories)) return categories
+    return []
+  }, [yogaCategoriesResponse])
+
+  const yogaCategoryOptions = useMemo(
+    () =>
+      normalizedYogaCategories.map((cat: any) => ({
+        id: cat?.id,
+        name: cat?.name,
+        subcategories: Array.isArray(cat?.subcategories)
+          ? cat.subcategories
+          : [],
+      })),
+    [normalizedYogaCategories]
+  )
+
+  const formattedYogaCategoryOptions = useMemo(() => {
+    return (yogaCategoryOptions || []).map((c: any) => ({
+      ...c,
+      name: toTitleCase(c.name || ''),
+    }))
+  }, [yogaCategoryOptions])
+
+  const [selectedYogaCategoryIds, setSelectedYogaCategoryIds] = useState<
+    Array<number | string>
+  >([])
+  const [selectedYogaSubcategories, setSelectedYogaSubcategories] = useState<
+    any[]
+  >([])
+  const [yogaSubcategoryLookup, setYogaSubcategoryLookup] = useState<
+    Record<string, { id: any; value: string }>
+  >({})
+
+  const selectedYogaCategoryItems = useMemo(
+    () =>
+      formattedYogaCategoryOptions.filter((cat: any) =>
+        selectedYogaCategoryIds.map(String).includes(String(cat?.id))
+      ),
+    [formattedYogaCategoryOptions, selectedYogaCategoryIds]
+  )
+
+  const selectedYogaSubcategoryIds = useMemo(
+    () =>
+      (selectedYogaSubcategories || [])
+        .map((s: any) => s?.id)
+        .filter((id: any) => id != null),
+    [selectedYogaSubcategories]
+  )
+
+  const normalizedSelectedYogaSubcategories = useMemo(() => {
+    if (!selectedYogaSubcategories?.length) return []
+    return selectedYogaSubcategories
+      .map((item: any) => {
+        if (!item) return null
+        const key = item?.id ?? item?.value ?? item
+        if (key === undefined || key === null) return null
+        const cached = yogaSubcategoryLookup[String(key)]
+        if (cached) return cached
+        const label =
+          item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
+        return {
+          id: key,
+          value: label,
+        }
+      })
+      .filter(Boolean)
+  }, [selectedYogaSubcategories, yogaSubcategoryLookup])
+
+  const updateYogaSubcategoryLookup = useCallback((options: any[]) => {
+    if (!Array.isArray(options) || options.length === 0) return
+    setYogaSubcategoryLookup((prev) => {
+      const next = { ...prev }
+      options.forEach((opt: any) => {
+        const id = opt?.id ?? opt?.value ?? opt
+        if (id === undefined || id === null) return
+        const label = opt?.value ?? opt?.name ?? opt?.label ?? ''
+        next[String(id)] = { id, value: label }
+      })
+      return next
+    })
+  }, [])
+
   const yogaListParams = useMemo(() => {
     const params: any = {
       page: 1,
       per_page: 99999,
     }
+    if (selectedYogaCategoryIds.length) {
+      params.category_ids = selectedYogaCategoryIds.join(',')
+    }
+    if (selectedYogaSubcategoryIds.length) {
+      params.subcategory_ids = selectedYogaSubcategoryIds.join(',')
+    }
     if (yogaCategoryFilter) {
       params.category = yogaCategoryFilter
     }
     return params
-  }, [yogaCategoryFilter])
+  }, [selectedYogaCategoryIds, selectedYogaSubcategoryIds, yogaCategoryFilter])
   const { data: yogasResp, isFetching: yogasLoading } = useYogaList(
     yogaListParams as any,
     {
@@ -450,25 +615,47 @@ export default function Subscriptions({
   }, [meditations])
 
   const getEmbedUrl = (url?: string) => {
-    const u = String(url || '')
-    if (u.includes('youtube.com/watch')) {
-      const id = u.split('v=')[1]?.split('&')[0]
-      return id ? `https://www.youtube.com/embed/${id}` : u
+    const u = String(url || '').trim()
+    if (!u) return ''
+
+    const ytMatch = u.match(
+      /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/i
+    )
+    if (ytMatch && ytMatch[1]) {
+      return `https://www.youtube.com/embed/${ytMatch[1]}`
     }
-    if (u.includes('youtu.be/')) {
-      const id = u.split('youtu.be/')[1]?.split('?')[0]
-      return id ? `https://www.youtube.com/embed/${id}` : u
+
+    const vimeoMatch = u.match(
+      /(?:vimeo\.com\/(?:channels\/(?:\w+\/)?|groups\/(?:[^\/]*)\/videos\/|album\/(?:\d+)\/video\/|video\/|))(\d+)/i
+    )
+    if (vimeoMatch && vimeoMatch[1]) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}`
     }
-    return u
+
+    return ''
   }
 
   const fetchOverview = useCallback(async () => {
     const targetUserId = user?.id || id
     if (!targetUserId) return
+
+    // If a proposed cycle or cycle without subscription is explicitly selected
+    if (
+      selectedCycle &&
+      (!selectedCycle.subscription_id || selectedCycle.status === 'proposed')
+    ) {
+      setOverview(null)
+      setOverviewError('')
+      setOverviewLoading(false)
+      return
+    }
+
     try {
       setOverviewLoading(true)
       setOverviewError('')
-      const res = await getActivePlanOverview(targetUserId)
+      const subId =
+        selectedCycle?.subscription_id || selectedSubscriptionId || undefined
+      const res = await getActivePlanOverview(targetUserId, subId)
       setOverview(res)
 
       const todayStr = moment().format('YYYY-MM-DD')
@@ -505,11 +692,22 @@ export default function Subscriptions({
     } finally {
       setOverviewLoading(false)
     }
-  }, [user?.id, id])
+  }, [user?.id, id, selectedSubscriptionId, selectedCycle])
+
+  useEffect(() => {
+    setDayDetailOpen(false)
+    setDayDetail(null)
+    setSelectedDate('')
+  }, [selectedSubscriptionId, selectedCycleId])
 
   useEffect(() => {
     fetchOverview()
-  }, [fetchOverview, workflowAssignment?.package_confirmed_at])
+  }, [
+    fetchOverview,
+    workflowAssignment?.package_confirmed_at,
+    selectedSubscriptionId,
+    selectedCycleId,
+  ])
 
   const handleConfirmPackage = async () => {
     const targetCycle =
@@ -938,23 +1136,23 @@ export default function Subscriptions({
 
   const statusColor = (day: any) => {
     if (day?.freeze)
-      return 'bg-gradient-to-br from-red-600 to-red-600 text-white border-red-300 shadow-sm'
+      return 'bg-gradient-to-br from-red-500 to-rose-600 text-white border-red-400 shadow-sm'
     const s = String(day?.status || '').toLowerCase()
     if (s === 'today')
-      return 'bg-gradient-to-br from-primaryBlue to-primaryBlue text-white border-blue-300 ring-1 ring-blue-200/60 shadow-sm'
+      return 'bg-gradient-to-br from-blue-600 to-primaryBlue text-white border-blue-400 ring-2 ring-blue-300 shadow-md'
     if (s === 'over' || s === 'completed')
-      return 'bg-gradient-to-br from-emerald-600 to-emerald-600 text-white border-emerald-300 shadow-sm'
-    return 'bg-orange-400 text-white border-gray-200 shadow-sm'
+      return 'bg-gradient-to-br from-emerald-500 to-green-600 text-white border-emerald-400 shadow-sm'
+    return 'bg-gradient-to-br from-amber-400 to-orange-400 text-white border-orange-300 shadow-sm'
   }
 
   const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
   const getDayCellClass = (cell: any) => {
     if (!cell?.inRange)
-      return 'text-gray-400 bg-white border-gray-200 opacity-70 cursor-not-allowed'
+      return 'text-slate-300 bg-slate-50/50 border-slate-100 opacity-50 cursor-not-allowed'
     if (cell?.meta?.freeze)
-      return 'bg-gradient-to-br from-red-600 to-red-600 text-white border-red-300 shadow-sm cursor-pointer'
-    return `${statusColor(cell?.meta)} cursor-pointer`
+      return 'bg-gradient-to-br from-red-500 to-rose-600 text-white border-red-400 shadow-sm cursor-pointer hover:brightness-105'
+    return `${statusColor(cell?.meta)} cursor-pointer hover:brightness-105`
   }
 
   const decrementWorkoutCount = (workout: any) => {
@@ -1427,7 +1625,9 @@ export default function Subscriptions({
       setDayDetailOpen(true)
       setDayDetailTab(targetTab)
       setDayDetailLoading(true)
-      const res = await getOverviewDetail(String(user.id), dateStr)
+      const subId =
+        selectedSubscriptionId || selectedCycle?.subscription_id || undefined
+      const res = await getOverviewDetail(String(user.id), dateStr, subId)
       setDayDetail(res)
     } catch {
       setDayDetail(null)
@@ -1704,7 +1904,13 @@ export default function Subscriptions({
   const refreshDayDetail = async () => {
     if (user?.id && selectedDate) {
       try {
-        const refreshed = await getOverviewDetail(String(user.id), selectedDate)
+        const subId =
+          selectedSubscriptionId || selectedCycle?.subscription_id || undefined
+        const refreshed = await getOverviewDetail(
+          String(user.id),
+          selectedDate,
+          subId
+        )
         setDayDetail(refreshed)
       } catch (err) {
         console.error(err)
@@ -2899,7 +3105,9 @@ export default function Subscriptions({
       }
 
       try {
-        const res = await getActivePlanOverview(user.id)
+        const subId =
+          selectedSubscriptionId || selectedCycle?.subscription_id || undefined
+        const res = await getActivePlanOverview(user.id, subId)
         setOverview(res)
       } catch {}
       try {
@@ -2924,14 +3132,6 @@ export default function Subscriptions({
   const onDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
   }
-  const capitalizeWords = (text: string) =>
-    text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase())
-  const formattedCategoryOptions = useMemo(() => {
-    return (categoryOptions || []).map((c: any) => ({
-      ...c,
-      name: capitalizeWords(c.name),
-    }))
-  }, [categoryOptions])
 
   return (
     <>
@@ -2947,44 +3147,6 @@ export default function Subscriptions({
       )}
       {!loading && !error && (
         <div className="flex flex-col gap-4">
-          {workflowAssignment && (
-            <div className="flex flex-wrap items-center gap-2">
-              {(workflowAssignment.assignments || [workflowAssignment]).map(
-                (item: any) => {
-                  const isItemAccepted = Boolean(
-                    item.accepted_at ||
-                      (item.workflow_status &&
-                        item.workflow_status !== 'pending' &&
-                        item.workflow_status !== 'package_confirmed') ||
-                      (item.workflow_status === 'package_confirmed' &&
-                        item.accepted_at)
-                  )
-                  return (
-                    <span
-                      key={item.id}
-                      className="inline-flex items-center gap-1 rounded-full border border-primaryBlue/30 bg-blue-50 px-3 py-1 text-xs font-medium text-primaryBlue"
-                    >
-                      <span className="capitalize">
-                        {item.role || 'service'}
-                      </span>
-                      <span className="text-gray-600">
-                        · {item.staff_name || 'Assigned'}
-                      </span>
-                      <span
-                        className={
-                          !isItemAccepted
-                            ? 'rounded-full px-2 py-0.5 text-[10px] font-semibold bg-amber-100 text-amber-700'
-                            : 'rounded-full px-2 py-0.5 text-[10px] font-semibold bg-green-100 text-green-700'
-                        }
-                      >
-                        {!isItemAccepted ? 'Not accepted' : 'Accepted'}
-                      </span>
-                    </span>
-                  )
-                }
-              )}
-            </div>
-          )}
           <ClientWorkflowDetails
             assignment={workflowAssignment}
             proposedPackage={proposedPackage}
@@ -3001,7 +3163,12 @@ export default function Subscriptions({
                 ])
               }
             }}
-            subscription={overview?.subscription || subscribedPlan}
+            subscription={
+              overview?.subscription ||
+              (selectedCycle?.subscription_id
+                ? { ...selectedCycle, plan_name: selectedCycle.plan?.name }
+                : subscribedPlan)
+            }
             isServiceRole={isServiceRole}
             onConfirmPackage={() => setConfirmModalOpen(true)}
             confirmLoading={confirmingPackage}
@@ -3009,7 +3176,7 @@ export default function Subscriptions({
           />
 
           {(overview?.subscription || subscribedPlan || hasPlanOverview) && (
-            <div className="flex justify-end gap-2 mt-4 mb-2">
+            <div className="flex justify-end gap-2 mt-2">
               <Button
                 className="primaryButton"
                 label={
@@ -3023,130 +3190,187 @@ export default function Subscriptions({
                   !overview?.subscription?.diet_plan_template_id
                 }
               />
-              <Button
-                className="primaryButton"
-                label={
-                  isFrozen(overview?.subscription)
-                    ? 'Unfreeze Subscription'
-                    : 'Freeze Subscription'
-                }
-                onClick={() => {
-                  setFreezeMode(
-                    isFrozen(overview?.subscription) ? 'unfreeze' : 'freeze'
-                  )
-                  setToggleFreezeRow(overview?.subscription)
-                  setToggleFreezeOpen(true)
-                  setFreezeForm({
-                    reason: '',
-                    start_date: '',
-                    end_date: '',
-                  })
-                }}
-              />
+              {isActionableSubscription && (
+                <Button
+                  className="primaryButton"
+                  label={
+                    isFrozen(overview?.subscription)
+                      ? 'Unfreeze Subscription'
+                      : 'Freeze Subscription'
+                  }
+                  onClick={() => {
+                    setFreezeMode(
+                      isFrozen(overview?.subscription) ? 'unfreeze' : 'freeze'
+                    )
+                    setToggleFreezeRow(overview?.subscription)
+                    setToggleFreezeOpen(true)
+                    setFreezeForm({
+                      reason: '',
+                      start_date: '',
+                      end_date: '',
+                    })
+                  }}
+                />
+              )}
             </div>
           )}
-          <div className="bg-white border border-gray-300 rounded-lg p-3 flex flex-col flex-1 min-h-[420px]">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-medium">Plan Calendar</div>
-              <div className="flex gap-3 text-xs">
-                <div className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded bg-primaryBlue inline-block"></span>
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs flex flex-col flex-1 min-h-[440px] transition-all">
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 mb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primaryBlue text-white shadow-2xs">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800 tracking-tight">
+                    Plan Calendar
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Daily scheduled diet, workouts, yoga & meditation
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50/80 border border-blue-200 text-[11px] font-medium text-blue-700">
+                  <span className="w-2 h-2 rounded-full bg-primaryBlue animate-pulse inline-block" />
                   Today
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded bg-orange-400 inline-block"></span>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50/80 border border-amber-200 text-[11px] font-medium text-amber-700">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
                   Upcoming
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded bg-green-500 inline-block"></span>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50/80 border border-emerald-200 text-[11px] font-medium text-emerald-700">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                   Complete
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="w-3 h-3 rounded bg-red-400 inline-block"></span>
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50/80 border border-rose-200 text-[11px] font-medium text-rose-700">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
                   Freeze
                 </div>
               </div>
             </div>
             {overviewLoading && (
-              <div className="text-xs text-gray-500">Loading calendar...</div>
+              <div className="flex flex-col items-center justify-center py-16 flex-1 text-center">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-primaryBlue border border-blue-100 shadow-2xs mb-2.5">
+                  <svg
+                    className="h-5 w-5 animate-spin text-primaryBlue"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                </div>
+                <div className="text-xs font-semibold text-slate-700">
+                  Loading Calendar
+                </div>
+                <div className="text-[11px] text-slate-400 mt-0.5">
+                  Please wait while the schedule is loaded
+                </div>
+              </div>
             )}
             {!overviewLoading &&
             overview?.subscription?.start_date &&
             overview?.subscription?.end_date ? (
-              <div className="flex flex-col gap-2 flex-1 overflow-hidden">
-                <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-3 flex-1 overflow-hidden">
+                <div className="flex items-center justify-between bg-slate-50/80 border border-slate-200/70 rounded-xl px-3 py-2">
                   <button
                     type="button"
                     onClick={goPrev}
                     disabled={!canPrev()}
-                    className={`px-2 py-1 text-xs border rounded ${canPrev() ? 'text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                    className={`flex items-center justify-center h-7 w-7 rounded-lg text-xs font-semibold border transition-all ${
+                      canPrev()
+                        ? 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:bg-slate-100 active:scale-95'
+                        : 'bg-slate-100 text-slate-300 border-transparent cursor-not-allowed'
+                    }`}
+                    title="Previous Month"
                   >
-                    ◀
+                    ❮
                   </button>
-                  <div className="text-xs font-medium">
+                  <div className="text-xs font-bold text-slate-800 tracking-wide uppercase">
                     {buildMonthCells(currentMonth).title}
                   </div>
                   <button
                     type="button"
                     onClick={goNext}
                     disabled={!canNext()}
-                    className={`px-2 py-1 text-xs border rounded ${canNext() ? 'text-gray-700' : 'text-gray-300 cursor-not-allowed'}`}
+                    className={`flex items-center justify-center h-7 w-7 rounded-lg text-xs font-semibold border transition-all ${
+                      canNext()
+                        ? 'bg-white text-slate-700 border-slate-200 shadow-2xs hover:bg-slate-100 active:scale-95'
+                        : 'bg-slate-100 text-slate-300 border-transparent cursor-not-allowed'
+                    }`}
+                    title="Next Month"
                   >
-                    ▶
+                    ❯
                   </button>
                 </div>
                 {(() => {
                   const m = buildMonthCells(currentMonth)
                   return (
                     <>
-                      <div className="grid grid-cols-7 gap-1 text-[10px] text-gray-500 mb-1 bg-white">
+                      <div className="grid grid-cols-7 gap-1.5 text-center">
                         {WEEK_DAYS.map((w) => (
-                          <div key={w} className="py-1 text-center">
+                          <div
+                            key={w}
+                            className="py-1.5 text-center text-xs font-semibold text-slate-500 bg-slate-50 rounded-lg border border-slate-100"
+                          >
                             {w}
                           </div>
                         ))}
                       </div>
                       <div className="flex-1 overflow-auto">
-                        <div className="grid grid-cols-7 auto-rows-fr gap-px">
-                          {m.cells.map((c: any) => (
-                            <div
-                              key={c.key}
-                              className={`relative min-h-[180px] border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(c)}`}
-                              title={
-                                c?.meta?.date
-                                  ? `${c.meta.date}  •  Diet: ${
-                                      c?.meta?.diet_summary?.total_items ?? 0
-                                    }  •  Workout: ${
-                                      c?.meta?.workout_summary
-                                        ?.total_exercises ?? 0
-                                    }  •  Yoga: ${
-                                      c?.meta?.yoga_summary?.total_exercises ??
-                                      0
-                                    }  •  Meditation: ${
-                                      c?.meta?.meditation_summary
-                                        ?.total_items ?? 0
-                                    }`
-                                  : ''
-                              }
-                              role={c?.inRange ? 'button' : undefined}
-                              tabIndex={c?.inRange ? 0 : -1}
-                              onClick={() => {
-                                if (!c?.inRange) return
-                                if (c?.meta?.freeze) {
-                                  setFreezeMode('unfreeze')
-                                  setToggleFreezeRow({
-                                    ...overview?.subscription,
-                                    freeze_date: c?.meta?.date || c.key,
-                                  })
-                                  setToggleFreezeOpen(true)
-                                  return
+                        <div className="grid grid-cols-7 auto-rows-fr gap-1.5">
+                          {m.cells.map((c: any) => {
+                            const isToday =
+                              String(c?.meta?.status || '').toLowerCase() ===
+                              'today'
+                            return (
+                              <div
+                                key={c.key}
+                                className={`relative min-h-[170px] rounded-xl border p-2 flex flex-col justify-between transition-all duration-200 hover:-translate-y-0.5 select-none ${getDayCellClass(c)}`}
+                                title={
+                                  c?.meta?.date
+                                    ? `${c.meta.date}  •  Diet: ${
+                                        c?.meta?.diet_summary?.total_items ?? 0
+                                      }  •  Workout: ${
+                                        c?.meta?.workout_summary
+                                          ?.total_exercises ?? 0
+                                      }  •  Yoga: ${
+                                        c?.meta?.yoga_summary
+                                          ?.total_exercises ?? 0
+                                      }  •  Meditation: ${
+                                        c?.meta?.meditation_summary
+                                          ?.total_items ?? 0
+                                      }`
+                                    : ''
                                 }
-                                openDayDetail(c?.meta?.date || c.key)
-                              }}
-                              onKeyDown={(e) => {
-                                if (!c?.inRange) return
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault()
+                                role={c?.inRange ? 'button' : undefined}
+                                tabIndex={c?.inRange ? 0 : -1}
+                                onClick={() => {
+                                  if (!c?.inRange) return
                                   if (c?.meta?.freeze) {
                                     setFreezeMode('unfreeze')
                                     setToggleFreezeRow({
@@ -3154,109 +3378,150 @@ export default function Subscriptions({
                                       freeze_date: c?.meta?.date || c.key,
                                     })
                                     setToggleFreezeOpen(true)
-                                  } else {
-                                    openDayDetail(c?.meta?.date || c.key)
+                                    return
                                   }
-                                }
-                              }}
-                            >
-                              <div className="flex flex-col h-full w-full">
-                                <div className="flex justify-between">
-                                  <div className="text-[12px] font-medium">
-                                    {c?.label ?? ''}
-                                  </div>
-                                  {c?.meta?.day_number ? (
-                                    <div className="text-[12px] font-medium">
-                                      Day - {c?.meta?.day_number}
+                                  openDayDetail(c?.meta?.date || c.key)
+                                }}
+                                onKeyDown={(e) => {
+                                  if (!c?.inRange) return
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    if (c?.meta?.freeze) {
+                                      setFreezeMode('unfreeze')
+                                      setToggleFreezeRow({
+                                        ...overview?.subscription,
+                                        freeze_date: c?.meta?.date || c.key,
+                                      })
+                                      setToggleFreezeOpen(true)
+                                    } else {
+                                      openDayDetail(c?.meta?.date || c.key)
+                                    }
+                                  }
+                                }}
+                              >
+                                <div className="flex flex-col h-full w-full justify-between">
+                                  <div>
+                                    <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-white/25">
+                                      {isToday ? (
+                                        <span className="h-6 w-6 rounded-full bg-white text-blue-600 flex items-center justify-center font-bold text-xs shadow-2xs">
+                                          {c?.label ?? ''}
+                                        </span>
+                                      ) : (
+                                        <span className="text-sm font-bold text-white pl-0.5 drop-shadow-2xs">
+                                          {c?.label ?? ''}
+                                        </span>
+                                      )}
+                                      {c?.meta?.freeze ? (
+                                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/20 text-white border border-white/30 backdrop-blur-xs">
+                                          Frozen
+                                        </span>
+                                      ) : c?.meta?.day_number ? (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-semibold bg-white/20 text-white backdrop-blur-xs">
+                                          Day {c.meta.day_number}
+                                        </span>
+                                      ) : null}
                                     </div>
-                                  ) : null}
-                                </div>
-                                {c?.inRange && c?.meta ? (
-                                  <div className="mt-1 text-[10px] leading-4">
-                                    {canAccessDiet && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          openDayDetail(
-                                            c?.meta?.date || c.key,
-                                            'diet'
-                                          )
-                                        }}
-                                        className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 text-left bg-red-100 hover:bg-red-200"
-                                      >
-                                        <span>Diet</span>
-                                        <span className="font-medium">
-                                          {c?.meta?.diet_summary?.total_items ??
-                                            0}
-                                        </span>
-                                      </button>
-                                    )}
+                                    {c?.inRange && c?.meta ? (
+                                      <div className="flex flex-col gap-1 mt-1">
+                                        {canAccessDiet && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              openDayDetail(
+                                                c?.meta?.date || c.key,
+                                                'diet'
+                                              )
+                                            }}
+                                            className="group w-full flex items-center justify-between rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-800 bg-white/95 hover:bg-white border border-white/60 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] shadow-2xs"
+                                          >
+                                            <span className="flex items-center gap-1.5">
+                                              <span className="h-1.5 w-1.5 rounded-full bg-rose-500 group-hover:scale-125 transition-transform" />
+                                              <span>Diet</span>
+                                            </span>
+                                            <span className="rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700 border border-rose-200/60 shadow-2xs">
+                                              {c?.meta?.diet_summary
+                                                ?.total_items ?? 0}
+                                            </span>
+                                          </button>
+                                        )}
 
-                                    {canAccessWorkout && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          openDayDetail(
-                                            c?.meta?.date || c.key,
-                                            'workout'
-                                          )
-                                        }}
-                                        className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-violet-200 hover:bg-violet-300"
-                                      >
-                                        <span>Workout</span>
-                                        <span className="font-medium">
-                                          {c?.meta?.workout_summary
-                                            ?.total_exercises ?? 0}
-                                        </span>
-                                      </button>
-                                    )}
+                                        {canAccessWorkout && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              openDayDetail(
+                                                c?.meta?.date || c.key,
+                                                'workout'
+                                              )
+                                            }}
+                                            className="group w-full flex items-center justify-between rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-800 bg-white/95 hover:bg-white border border-white/60 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] shadow-2xs"
+                                          >
+                                            <span className="flex items-center gap-1.5">
+                                              <span className="h-1.5 w-1.5 rounded-full bg-violet-500 group-hover:scale-125 transition-transform" />
+                                              <span>Workout</span>
+                                            </span>
+                                            <span className="rounded-md bg-violet-50 px-1.5 py-0.5 text-[10px] font-bold text-violet-700 border border-violet-200/60 shadow-2xs">
+                                              {c?.meta?.workout_summary
+                                                ?.total_exercises ?? 0}
+                                            </span>
+                                          </button>
+                                        )}
 
-                                    {canAccessYoga && c?.meta?.yoga_summary && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          openDayDetail(
-                                            c?.meta?.date || c.key,
-                                            'yoga'
-                                          )
-                                        }}
-                                        className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-green-200 hover:bg-green-300"
-                                      >
-                                        <span>Yoga</span>
-                                        <span className="font-medium">
-                                          {c?.meta?.yoga_summary
-                                            ?.total_exercises ?? 0}
-                                        </span>
-                                      </button>
-                                    )}
+                                        {canAccessYoga &&
+                                          c?.meta?.yoga_summary && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                openDayDetail(
+                                                  c?.meta?.date || c.key,
+                                                  'yoga'
+                                                )
+                                              }}
+                                              className="group w-full flex items-center justify-between rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-800 bg-white/95 hover:bg-white border border-white/60 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] shadow-2xs"
+                                            >
+                                              <span className="flex items-center gap-1.5">
+                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 group-hover:scale-125 transition-transform" />
+                                                <span>Yoga</span>
+                                              </span>
+                                              <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/60 shadow-2xs">
+                                                {c?.meta?.yoga_summary
+                                                  ?.total_exercises ?? 0}
+                                              </span>
+                                            </button>
+                                          )}
 
-                                    {canAccessMeditation && (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation()
-                                          openDayDetail(
-                                            c?.meta?.date || c.key,
-                                            'meditation'
-                                          )
-                                        }}
-                                        className="w-full flex items-center justify-between border rounded-[5px] text-black px-2 py-1 mt-2 text-left bg-blue-200 hover:bg-blue-300"
-                                      >
-                                        <span>Meditation</span>
-                                        <span className="font-medium">
-                                          {c?.meta?.meditation_summary
-                                            ?.total_items ?? 0}
-                                        </span>
-                                      </button>
-                                    )}
+                                        {canAccessMeditation && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              openDayDetail(
+                                                c?.meta?.date || c.key,
+                                                'meditation'
+                                              )
+                                            }}
+                                            className="group w-full flex items-center justify-between rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-800 bg-white/95 hover:bg-white border border-white/60 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] shadow-2xs"
+                                          >
+                                            <span className="flex items-center gap-1.5">
+                                              <span className="h-1.5 w-1.5 rounded-full bg-sky-500 group-hover:scale-125 transition-transform" />
+                                              <span>Meditation</span>
+                                            </span>
+                                            <span className="rounded-md bg-sky-50 px-1.5 py-0.5 text-[10px] font-bold text-sky-700 border border-sky-200/60 shadow-2xs">
+                                              {c?.meta?.meditation_summary
+                                                ?.total_items ?? 0}
+                                            </span>
+                                          </button>
+                                        )}
+                                      </div>
+                                    ) : null}
                                   </div>
-                                ) : null}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
                       </div>
                     </>
@@ -3303,35 +3568,36 @@ export default function Subscriptions({
                     desc="name"
                     descId="id"
                     type="custom_search_select"
+                    isMultiple={true}
+                    selectedItems={selectedCategoryItems}
                     data={formattedCategoryOptions}
-                    value={categoryAutocompleteValue}
+                    value={''}
                     name="assign_category"
                     onChange={(option: any) => {
-                      const id = option?.id ?? option?.value ?? ''
-                      const name = option?.name ?? option?.label ?? ''
-                      const prevIdKey = String(selectedCategoryId ?? '')
-                      const nextIdKey = String(id || '')
-                      const categoryActuallyChanged = prevIdKey !== nextIdKey
-                      const matchedCategory = categoryOptions.find(
-                        (cat: any) => String(cat?.id ?? '') === nextIdKey
-                      )
-                      const normalizedPrefillSubcategories =
-                        id && matchedCategory
-                          ? (deriveSubcategorySelection(
-                              matchedCategory?.subcategories || []
-                            ) as { id: any; value: string }[])
+                      const options = Array.isArray(option)
+                        ? option
+                        : option
+                          ? [option]
                           : []
-                      setSelectedCategoryId(id || undefined)
-                      setSelectedCategoryName(name || '')
-                      if (id && normalizedPrefillSubcategories.length) {
-                        pendingPrefillCategoryRef.current = nextIdKey
-                        pendingPrefillSubcategoriesRef.current =
-                          normalizedPrefillSubcategories
-                      } else {
-                        pendingPrefillCategoryRef.current = ''
-                        pendingPrefillSubcategoriesRef.current = null
-                      }
+                      const ids = options
+                        .map((item: any) => item?.id ?? item?.value)
+                        .filter(
+                          (value: any) =>
+                            value !== undefined &&
+                            value !== null &&
+                            value !== ''
+                        )
+                      const prevIdKey = selectedCategoryIds
+                        .map(String)
+                        .sort()
+                        .join('|')
+                      const nextIdKey = ids.map(String).sort().join('|')
+                      const categoryActuallyChanged = prevIdKey !== nextIdKey
+
+                      setSelectedCategoryIds(ids)
+                      setSelectedCategoryId(ids[0] || undefined)
                       setSelectedSubcategories([])
+                      setWpPage(1)
                       if (assignOpen && categoryActuallyChanged) {
                         selectAllNextWorkoutsRef.current = true
                         setSelectedWorkouts([])
@@ -3353,12 +3619,36 @@ export default function Subscriptions({
                     paginationEnabled={false}
                     name="assign_subcategories"
                     getData={async (key?: string) => {
-                      if (!selectedCategoryId) return []
+                      if (
+                        !selectedCategoryIds ||
+                        selectedCategoryIds.length === 0
+                      )
+                        return []
 
-                      const raw =
-                        await getWorkoutPlanSubcategories(selectedCategoryId)
+                      const results = await Promise.all(
+                        selectedCategoryIds.map((categoryId) =>
+                          getWorkoutPlanSubcategories(categoryId)
+                        )
+                      )
+                      const raw = results.flat()
 
                       let options = Array.isArray(raw) ? raw : []
+
+                      options.sort((a: any, b: any) => {
+                        const nameA = String(
+                          a.subName || a.value || ''
+                        ).toLowerCase()
+                        const nameB = String(
+                          b.subName || b.value || ''
+                        ).toLowerCase()
+                        if (nameA < nameB) return -1
+                        if (nameA > nameB) return 1
+                        const catA = String(a.catName || '').toLowerCase()
+                        const catB = String(b.catName || '').toLowerCase()
+                        if (catA < catB) return -1
+                        if (catA > catB) return 1
+                        return 0
+                      })
 
                       if (key) {
                         const lower = String(key).toLowerCase()
@@ -3693,6 +3983,8 @@ export default function Subscriptions({
         handleClose={() => {
           setYogaAssignOpen(false)
           setYogaCategoryFilter('')
+          setSelectedYogaCategoryIds([])
+          setSelectedYogaSubcategories([])
           setSelectedYogas([])
           yogaSelectionPrefilledRef.current = false
         }}
@@ -3709,23 +4001,100 @@ export default function Subscriptions({
           <div className="flex flex-col gap-3">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
               <div className="text-md font-bold mb-2">Yogas</div>
-              <div className="flex flex-col sm:flex-row sm:items-end gap-4 w-full md:w-auto">
-                <div className="flex flex-col gap-1">
-                  <label className="text-xs text-gray-600">Category</label>
-                  <select
-                    className="border rounded px-2 py-1 text-sm"
-                    value={yogaCategoryFilter}
-                    onChange={(e) => {
-                      setYogaCategoryFilter(e.target.value)
+              <div className="flex flex-col md:flex-row md:items-end gap-2 w-full md:w-auto mb-1">
+                <div className="flex-1 min-w-[180px]">
+                  <AutoComplete
+                    placeholder="Select category"
+                    desc="name"
+                    descId="id"
+                    type="custom_search_select"
+                    isMultiple={true}
+                    selectedItems={selectedYogaCategoryItems}
+                    data={formattedYogaCategoryOptions}
+                    value={''}
+                    name="assign_yoga_category"
+                    onChange={(option: any) => {
+                      const options = Array.isArray(option)
+                        ? option
+                        : option
+                          ? [option]
+                          : []
+                      const ids = options
+                        .map((item: any) => item?.id ?? item?.value)
+                        .filter(
+                          (value: any) =>
+                            value !== undefined &&
+                            value !== null &&
+                            value !== ''
+                        )
+                      setSelectedYogaCategoryIds(ids)
+                      setSelectedYogaSubcategories([])
                     }}
-                  >
-                    <option value="">All</option>
-                    {YOGA_CATEGORY_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                  />
+                </div>
+                <div className="flex-1 min-w-[200px]">
+                  <AutoComplete
+                    placeholder="Select subcategories"
+                    desc="value"
+                    descId="id"
+                    type="auto_suggestion"
+                    isMultiple={true}
+                    selectedItems={normalizedSelectedYogaSubcategories}
+                    value={''}
+                    async={true}
+                    initialLoad={true}
+                    paginationEnabled={false}
+                    name="assign_yoga_subcategories"
+                    getData={async (key?: string) => {
+                      if (
+                        !selectedYogaCategoryIds ||
+                        selectedYogaCategoryIds.length === 0
+                      )
+                        return []
+
+                      const results = await Promise.all(
+                        selectedYogaCategoryIds.map((categoryId) =>
+                          getYogaPlanSubcategories(categoryId)
+                        )
+                      )
+                      const raw = results.flat()
+
+                      let options = Array.isArray(raw) ? raw : []
+
+                      options.sort((a: any, b: any) => {
+                        const nameA = String(
+                          a.subName || a.value || ''
+                        ).toLowerCase()
+                        const nameB = String(
+                          b.subName || b.value || ''
+                        ).toLowerCase()
+                        if (nameA < nameB) return -1
+                        if (nameA > nameB) return 1
+                        const catA = String(a.catName || '').toLowerCase()
+                        const catB = String(b.catName || '').toLowerCase()
+                        if (catA < catB) return -1
+                        if (catA > catB) return 1
+                        return 0
+                      })
+
+                      if (key) {
+                        const lower = String(key).toLowerCase()
+                        options = options.filter((o: any) =>
+                          String(o.value || '')
+                            .toLowerCase()
+                            .includes(lower)
+                        )
+                      }
+
+                      updateYogaSubcategoryLookup(options)
+
+                      return options
+                    }}
+                    onChange={(value?: any | any[]) => {
+                      const normalized = deriveSubcategorySelection(value)
+                      setSelectedYogaSubcategories(normalized)
+                    }}
+                  />
                 </div>
               </div>
             </div>
@@ -4457,6 +4826,7 @@ export default function Subscriptions({
           )}
           {!dayDetailLoading && dayDetail && (
             <DayDetailTabsSection
+              isActionablePackage={isActionableSubscription}
               dayDetail={dayDetail}
               dayDetailTab={dayDetailTab}
               onChangeTab={(tabId) => setDayDetailTab(tabId as DayDetailTab)}

@@ -225,6 +225,18 @@ export default function DetailsInfo({
                               Lead Converted
                             </span>
                           )}
+                          {user?.registration_source ===
+                            'superadmin_assigned' && (
+                            <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.2 rounded-full">
+                              Superadmin Assigned
+                            </span>
+                          )}
+                          {user?.registration_source ===
+                            'superadmin_created' && (
+                            <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.2 rounded-full">
+                              Admin Created
+                            </span>
+                          )}
                         </div>
                         <div className="text-sm font-medium">
                           {user?.sales_rep?.name ? (

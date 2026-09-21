@@ -34,19 +34,25 @@ export default function BodyMeasurements({
   const totalPages = bodyData?.total_pages ?? 1
 
   useEffect(() => {
-    if (!bodyData?.items) return
+    setPage(1)
+    setAllItems([])
+  }, [subscriptionId])
 
+  useEffect(() => {
+    if (!bodyData) return
+
+    const incoming = bodyData.items || []
     setAllItems((prev) => {
       // on first page, reset; on subsequent pages, append
       if (page === 1) {
-        return bodyData.items
+        return incoming
       }
 
       const existingIds = new Set(prev.map((i: any) => i.id))
-      const newItems = bodyData.items.filter((i: any) => !existingIds.has(i.id))
+      const newItems = incoming.filter((i: any) => !existingIds.has(i.id))
       return [...prev, ...newItems]
     })
-  }, [bodyData?.items, page])
+  }, [bodyData, page])
 
   const handleDownloadBodyMeasurementsPdf = () => {
     if (!items || items.length === 0) return
