@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import moment from 'moment'
 import SmartTable from '../../components/common/table/SmartTable'
@@ -69,8 +69,17 @@ export default function SalesClients() {
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
   const [activeTab, setActiveTab] = useState<'my_clients' | 'unassigned'>(
-    'my_clients'
+    () => {
+      const saved = localStorage.getItem('sales_clients_active_tab')
+      return saved === 'unassigned' || saved === 'my_clients'
+        ? saved
+        : 'my_clients'
+    }
   )
+
+  useEffect(() => {
+    localStorage.setItem('sales_clients_active_tab', activeTab)
+  }, [activeTab])
 
   // My Clients params
   const [myParams, setMyParams] = useState({
