@@ -13,6 +13,7 @@ import {
   scheduleAssignedClientFollowUp,
   proposeAssignedClientPackage,
 } from './api'
+import { updateClientPlanProposal } from '../Sales/api'
 
 import moment from 'moment'
 
@@ -58,6 +59,8 @@ type WorkflowProps = {
   onConfirmPackage?: () => void | Promise<void>
   confirmLoading?: boolean
   canConfirmPackage?: boolean
+  canUpdatePackage?: boolean
+  clientId?: string | number
 }
 
 export function ClientWorkflowDetails({
@@ -71,16 +74,15 @@ export function ClientWorkflowDetails({
   onConfirmPackage,
   confirmLoading,
   canConfirmPackage,
+  canUpdatePackage,
+  clientId,
 }: WorkflowProps) {
   const { enqueueSnackbar } = useSnackbarManager()
-  const activeSub = subscription
-  const proposedPkg = proposedPackage ?? assignment?.anticipated_package
+  const activeSub =
+    subscription && subscription.status !== 'proposed' ? subscription : null
+  const proposedPkg = proposedPackage
 
-  const isSubscribed = Boolean(
-    activeSub ||
-      proposedPkg?.status === 'accepted' ||
-      assignment?.workflow_status === 'package_confirmed'
-  )
+  const isSubscribed = Boolean(activeSub)
 
   const [proposalDialogOpen, setProposalDialogOpen] = useState(false)
   const [pkgSearch, setPkgSearch] = useState('')
@@ -165,6 +167,19 @@ export function ClientWorkflowDetails({
             variant: 'success',
           }
         )
+      } else if (clientId && proposedPkg?.id) {
+        const response = await updateClientPlanProposal(
+          clientId,
+          proposedPkg.id,
+          proposal,
+          '/clients'
+        )
+        enqueueSnackbar(
+          response?.message || 'Package proposal updated successfully',
+          {
+            variant: 'success',
+          }
+        )
       }
       setProposalDialogOpen(false)
       if (onRefresh) await onRefresh()
@@ -179,22 +194,30 @@ export function ClientWorkflowDetails({
     setProposalDialogOpen(false)
   }
 
-  const planName =
-    activeSub?.plan_name ?? activeSub?.name ?? proposedPkg?.plan?.name
-  const category =
-    activeSub?.plan_category ??
-    activeSub?.category ??
-    proposedPkg?.plan?.category
-  const planId = activeSub?.plan_id ?? proposedPkg?.plan?.id
+  const planName = isSubscribed
+    ? (activeSub?.plan_name ?? activeSub?.name ?? activeSub?.plan?.name)
+    : (proposedPkg?.plan?.name ?? proposedPkg?.name)
+  const category = isSubscribed
+    ? (activeSub?.plan_category ??
+      activeSub?.category ??
+      activeSub?.plan?.category)
+    : (proposedPkg?.plan?.category ?? proposedPkg?.plan?.plan_category)
+  const planId = isSubscribed
+    ? (activeSub?.plan_id ?? activeSub?.plan?.id)
+    : (proposedPkg?.plan?.id ?? proposedPkg?.plan_id)
 
-  const startDateFormatted = activeSub?.start_date
-    ? moment(activeSub.start_date).format('DD-MM-YYYY')
+  const startDateFormatted = isSubscribed
+    ? activeSub?.start_date
+      ? moment(activeSub.start_date).format('DD-MM-YYYY')
+      : '--'
     : proposedPkg?.start_date
       ? moment(proposedPkg.start_date).format('DD-MM-YYYY')
       : '--'
 
-  const endDateFormatted = activeSub?.end_date
-    ? moment(activeSub.end_date).format('DD-MM-YYYY')
+  const endDateFormatted = isSubscribed
+    ? activeSub?.end_date
+      ? moment(activeSub.end_date).format('DD-MM-YYYY')
+      : '--'
     : proposedPkg?.end_date
       ? moment(proposedPkg.end_date).format('DD-MM-YYYY')
       : '--'
@@ -230,9 +253,30 @@ export function ClientWorkflowDetails({
                 ({toTitleCaseStr(category)})
               </span>
             )}
-            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-              Active
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                String(activeSub?.status || '').toLowerCase() === 'active'
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                  : String(activeSub?.status || '').toLowerCase() ===
+                        'frozen' ||
+                      String(activeSub?.status || '').toLowerCase() === 'paused'
+                    ? 'bg-amber-100 text-amber-800 border-amber-200'
+                    : 'bg-slate-100 text-slate-700 border-slate-200'
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  String(activeSub?.status || '').toLowerCase() === 'active'
+                    ? 'bg-emerald-600'
+                    : String(activeSub?.status || '').toLowerCase() ===
+                          'frozen' ||
+                        String(activeSub?.status || '').toLowerCase() ===
+                          'paused'
+                      ? 'bg-amber-600'
+                      : 'bg-slate-500'
+                }`}
+              />
+              {toTitleCaseStr(activeSub?.status || 'Active')}
             </span>
             <span className="text-xs text-gray-500 font-medium">
               • {startDateFormatted} – {endDateFormatted}
@@ -253,6 +297,10 @@ export function ClientWorkflowDetails({
         </div>
       </div>
     )
+  }
+
+  if (!proposedPkg) {
+    return null
   }
 
   return (
@@ -447,7 +495,9 @@ export function ClientWorkflowDetails({
                     </div>
                   )}
                   <div className="mt-3 flex items-center justify-end gap-2">
-                    {showWorkflowActions && assignment?.can_confirm_package && (
+                    {(canUpdatePackage ??
+                      (showWorkflowActions &&
+                        assignment?.can_confirm_package)) && (
                       <Button
                         outlined
                         size="xs"
@@ -482,18 +532,19 @@ export function ClientWorkflowDetails({
                 <div className="flex flex-wrap items-center gap-3">
                   {!activeSub && proposedPkg && (
                     <>
-                      {showWorkflowActions &&
-                        assignment?.can_confirm_package && (
-                          <Button
-                            outlined
-                            size="xs"
-                            icon="edit"
-                            className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
-                            label="Update package"
-                            onClick={openProposalModal}
-                            disabled={saving || !plans.length}
-                          />
-                        )}
+                      {(canUpdatePackage ??
+                        (showWorkflowActions &&
+                          assignment?.can_confirm_package)) && (
+                        <Button
+                          outlined
+                          size="xs"
+                          icon="edit"
+                          className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
+                          label="Update package"
+                          onClick={openProposalModal}
+                          disabled={saving || !plans.length}
+                        />
+                      )}
                       {onConfirmPackage && (canConfirmPackage ?? true) && (
                         <Button
                           className="primaryButton"
