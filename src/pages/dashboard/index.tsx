@@ -4,6 +4,7 @@ import NutritionistDashboardView from './nutritionist-dashboard'
 import {
   useAdminDashboard,
   useNutritionistDashboard,
+  useYogistDashboard,
   useUserProfile,
   useDeleteAccount,
 } from './api'
@@ -38,6 +39,7 @@ export default function DashboardPage() {
   // Check if role is specifically "user"
   const isUserRole = roleName === 'user'
   const isNutritionistRole = roleName === 'nutritionist'
+  const isYogistRole = roleName === 'yogist'
   const isMarketingRole = roleName === 'marketing'
   const isSalesRole = roleName === 'sales'
 
@@ -60,6 +62,12 @@ export default function DashboardPage() {
     isError: isNutritionistError,
     refetch: refetchNutritionist,
   } = useNutritionistDashboard()
+  const {
+    data: yogistData,
+    isLoading: isYogistLoading,
+    isError: isYogistError,
+    refetch: refetchYogist,
+  } = useYogistDashboard()
 
   // Show different content based on role
   if (isUserRole) {
@@ -81,6 +89,17 @@ export default function DashboardPage() {
         loading={isNutritionistLoading}
         error={isNutritionistError}
         onRetry={() => refetchNutritionist()}
+      />
+    )
+  }
+
+  if (isYogistRole) {
+    return (
+      <NutritionistDashboardView
+        data={yogistData as any}
+        loading={isYogistLoading}
+        error={isYogistError}
+        onRetry={() => refetchYogist()}
       />
     )
   }

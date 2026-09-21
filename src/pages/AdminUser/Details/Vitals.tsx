@@ -27,19 +27,25 @@ export default function Vitals({
   const totalPages = data?.total_pages ?? 1
 
   useEffect(() => {
-    if (!data?.items) return
+    setPage(1)
+    setAllItems([])
+  }, [subscriptionId])
 
+  useEffect(() => {
+    if (!data) return
+
+    const incoming = data.items || []
     setAllItems((prev) => {
       // on first page, reset; on subsequent pages, append
       if (page === 1) {
-        return data.items
+        return incoming
       }
 
       const existingIds = new Set(prev.map((i: any) => i.id))
-      const newItems = data.items.filter((i: any) => !existingIds.has(i.id))
+      const newItems = incoming.filter((i: any) => !existingIds.has(i.id))
       return [...prev, ...newItems]
     })
-  }, [data?.items, page])
+  }, [data, page])
 
   const handleDownloadVitalsPdf = () => {
     if (!items || items.length === 0) return

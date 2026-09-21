@@ -1,7 +1,6 @@
 import moment from 'moment'
 import {
   Fragment,
-  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -40,6 +39,7 @@ interface DayDetailTabsSectionProps {
   subscriptionId?: string | number | null
   userId?: string | number | null
   refreshDayDetail?: () => Promise<void> | void
+  isActionablePackage?: boolean
 }
 
 const formatMealName = (value?: string | null) => {
@@ -71,6 +71,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   subscriptionId: parentSubscriptionId,
   userId: parentUserId,
   refreshDayDetail,
+  isActionablePackage = true,
 }) => {
   const loginRole = useAuthStore((s: any) => s.roleData?.name?.toLowerCase?.())
   const isSuperOrAdmin = loginRole === 'superadmin' || loginRole === 'admin'
@@ -101,15 +102,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   const [expandedDietItems, setExpandedDietItems] = useState<
     Record<string, boolean>
   >({})
-  const reloadPage = useCallback(() => {
-    if (
-      typeof window !== 'undefined' &&
-      typeof window.location?.reload === 'function'
-    ) {
-      window.location.reload()
-    }
-  }, [])
-
   const toggleDietItemDetails = (id: string) => {
     setExpandedDietItems((prev) => ({
       ...prev,
@@ -200,7 +192,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
               err
             )
           }
-          reloadPage()
         },
         onError: (error: any) => {
           const resp = error?.response?.data
@@ -297,7 +288,23 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     )
   }, [dayDetail])
 
-  const canEditDay = useMemo(() => {
+  const isCompleted = useMemo(() => {
+    const status = String(dayDetail?.status || '').toLowerCase()
+    return status === 'completed' || status === 'over'
+  }, [dayDetail?.status])
+
+  const isFrozen = useMemo(() => {
+    return Boolean(
+      dayDetail?.freeze ||
+        dayDetail?.is_frozen ||
+        dayDetail?.frozen ||
+        dayDetail?.subscription?.freeze ||
+        String(dayDetail?.status || '').toLowerCase() === 'freeze' ||
+        String(dayDetail?.status || '').toLowerCase() === 'frozen'
+    )
+  }, [dayDetail])
+
+  const isCurrentOrFutureDay = useMemo(() => {
     const dateSource =
       dayDetail?.date ?? dayDetail?.day_date ?? dayDetail?.dayDate ?? null
     if (!dateSource) return false
@@ -306,25 +313,22 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     return parsed.startOf('day').isSameOrAfter(moment().startOf('day'))
   }, [dayDetail?.date, dayDetail?.day_date, dayDetail?.dayDate])
 
-  const isToday = useMemo(() => {
-    const dateSource =
-      dayDetail?.date ?? dayDetail?.day_date ?? dayDetail?.dayDate ?? null
-    if (!dateSource) return false
-    const parsed = moment(dateSource)
-    if (!parsed.isValid()) return false
-    return parsed.startOf('day').isSame(moment().startOf('day'))
-  }, [dayDetail?.date, dayDetail?.day_date, dayDetail?.dayDate])
+  const canEditDay = useMemo(() => {
+    if (!isActionablePackage) return false
+    if (isCompleted || isFrozen) return false
+    return isCurrentOrFutureDay
+  }, [isActionablePackage, isCompleted, isFrozen, isCurrentOrFutureDay])
 
-  const isCompleted = useMemo(() => {
-    const status = String(dayDetail?.status || '').toLowerCase()
-    return status === 'completed' || status === 'over'
-  }, [dayDetail?.status])
+  const canAssignTemplate = useMemo(() => {
+    if (!isActionablePackage) return false
+    if (isCompleted || isFrozen) return false
+    return isCurrentOrFutureDay
+  }, [isActionablePackage, isCompleted, isFrozen, isCurrentOrFutureDay])
 
   const showAssignTemplateButton = useMemo(() => {
     if (!effectiveCanAccessDiet) return false
-    // Show button if it's today and not completed, or if no template is assigned yet
-    return (isToday && !isCompleted) || !templateId
-  }, [effectiveCanAccessDiet, isToday, isCompleted, templateId])
+    return canAssignTemplate
+  }, [effectiveCanAccessDiet, canAssignTemplate])
 
   const tabsData = useMemo(() => {
     const list: { label: string; id: string }[] = []
@@ -435,17 +439,19 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                 <div className="text-lg font-semibold text-gray-800">
                                   {d.meal_time} - {d.meal_time_time}
                                 </div>
-                                <button
-                                  type="button"
-                                  className="p-0"
-                                  onClick={() => openMealTimeEdit(d)}
-                                  aria-label="Edit meal time"
-                                >
-                                  <Icons
-                                    name="fab-edit"
-                                    className="w-4 h-4 text-[#60A5FA]"
-                                  />
-                                </button>
+                                {isActionablePackage && (
+                                  <button
+                                    type="button"
+                                    className="p-0"
+                                    onClick={() => openMealTimeEdit(d)}
+                                    aria-label="Edit meal time"
+                                  >
+                                    <Icons
+                                      name="fab-edit"
+                                      className="w-4 h-4 text-[#60A5FA]"
+                                    />
+                                  </button>
+                                )}
                               </div>
                               {d?.meal_name && (
                                 <div className="text-sm text-gray-600 font-medium">
@@ -986,6 +992,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                   dayDetail?.workout_template?.name ||
                   dayDetail?.subscription?.workout_template_name
                 }
+                readOnly={!canAssignTemplate}
                 onAssigned={refreshDayDetail as any}
               />
               <div className="max-h-[700px] overflow-y-auto">
@@ -996,6 +1003,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       canEditDay &&
                       effectiveCanAccessWorkout && (
                         <button
+                          type="button"
                           className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
                           onClick={onEditWorkoutPlan}
                         >
@@ -1171,6 +1179,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     dayDetail?.yoga_template?.name ||
                     dayDetail?.subscription?.yoga_template_name
                   }
+                  readOnly={!canAssignTemplate}
                   onAssigned={refreshDayDetail as any}
                 />
                 <div className="max-h-[700px] overflow-y-auto">
@@ -1181,6 +1190,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                         canEditDay &&
                         effectiveCanAccessYoga && (
                           <button
+                            type="button"
                             className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
                             onClick={onEditYogaPlan}
                           >
@@ -1348,6 +1358,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     <div className="text-sm font-semibold">Meditation</div>
                     {canEditDay && effectiveCanAccessMeditation && (
                       <button
+                        type="button"
                         className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
                         onClick={onEditMeditationPlan}
                       >

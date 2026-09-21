@@ -39,6 +39,7 @@ const leadStatusOptions = [
 
 const leadStatusFilterOptions = [
   ...leadStatusOptions,
+  { id: 'assigned', name: 'Assigned' },
   { id: 'confirmation_pending', name: 'Confirmation pending' },
   { id: 'accepted', name: 'Accepted' },
   { id: 'client_accepted', name: 'Client accepted' },
@@ -64,8 +65,7 @@ const emptyLead = () => ({
 
 const displayLeadStatus = (value?: string) => {
   const status = String(value || 'new_lead').toLowerCase()
-  // The API uses assigned as the canonical alias for new_lead.
-  const normalized = status === 'assigned' ? 'new_lead' : status
+  const normalized = status
   return (
     leadStatusOptions.find((option) => option.id === normalized)?.name ||
     normalized
@@ -698,9 +698,7 @@ export default function CampaignDetails() {
 
   const statusCounts: Record<string, number> = leadsData?.status_counts || {}
   const totalStatusCount = leadStatusFilterOptions.reduce(
-    (total, option) =>
-      total +
-      (statusCounts[option.id === 'new_lead' ? 'assigned' : option.id] ?? 0),
+    (total, option) => total + (statusCounts[option.id] ?? 0),
     0
   )
   const rows = leadsData?.leads || leadsData?.marketing_leads || []
@@ -1292,11 +1290,7 @@ export default function CampaignDetails() {
                       </option>
                       {leadStatusFilterOptions.map((option) => (
                         <option key={option.id} value={option.id}>
-                          {option.name} (
-                          {statusCounts[
-                            option.id === 'new_lead' ? 'assigned' : option.id
-                          ] ?? 0}
-                          )
+                          {option.name} ({statusCounts[option.id] ?? 0})
                         </option>
                       ))}
                     </select>

@@ -181,6 +181,9 @@ interface ClientPackagesTabProps {
   mode?: 'all' | 'packages' | 'assignments'
   user?: any
   onSalesAssignSuccess?: () => void
+  selectedCycleId?: string
+  onSelectCycleId?: (id: string) => void
+  disableCycleChange?: boolean
 }
 
 export default function ClientPackagesTab({
@@ -190,6 +193,9 @@ export default function ClientPackagesTab({
   mode = 'all',
   user,
   onSalesAssignSuccess,
+  selectedCycleId: propSelectedCycleId,
+  onSelectCycleId,
+  disableCycleChange = false,
 }: ClientPackagesTabProps) {
   const id = String(clientId)
   const { enqueueSnackbar } = useSnackbarManager()
@@ -208,8 +214,26 @@ export default function ClientPackagesTab({
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const [selectedCycleId, setSelectedCycleId] = useState(
-    searchParams.get('renewal_request_id') ? 'new' : ''
+    propSelectedCycleId !== undefined
+      ? propSelectedCycleId
+      : searchParams.get('renewal_request_id')
+        ? 'new'
+        : ''
   )
+
+  useEffect(() => {
+    if (
+      propSelectedCycleId !== undefined &&
+      propSelectedCycleId !== selectedCycleId
+    ) {
+      setSelectedCycleId(propSelectedCycleId)
+    }
+  }, [propSelectedCycleId])
+
+  const handleSelectCycle = (newId: string) => {
+    setSelectedCycleId(newId)
+    onSelectCycleId?.(newId)
+  }
   const [renewalDialogOpen, setRenewalDialogOpen] = useState(false)
   const [renewalNotes, setRenewalNotes] = useState('')
   const [refundDialogOpen, setRefundDialogOpen] = useState(false)
@@ -241,6 +265,14 @@ export default function ClientPackagesTab({
   const isSales = loginRole === 'sales'
   const isNutritionist = loginRole === 'nutritionist'
   const isSuperAdmin = loginRole === 'superadmin' || loginRole === 'admin'
+  const isServiceStaff = [
+    'nutritionist',
+    'physiotherapist',
+    'physio',
+    'yogist',
+    'yoga',
+  ].includes(loginRole || '')
+  const canViewPaymentDetails = isSuperAdmin || (!isServiceStaff && isSales)
   const canCreateUpcomingPackage = Boolean(
     isSales || isSuperAdmin || (!loginRole && apiPrefix === '/sales/clients')
   )
@@ -261,13 +293,14 @@ export default function ClientPackagesTab({
   const selectedCycle = useMemo(() => {
     if (mode === 'assignments') {
       return (
-        cycles.find((c: any) => String(c.id) === selectedCycleId) ||
+        cycles.find((c: any) => String(c.id) === String(selectedCycleId)) ||
         defaultCycle
       )
     }
     if (selectedCycleId === 'new' || selectedCycleId === 'legacy') return null
     return (
-      cycles.find((c: any) => String(c.id) === selectedCycleId) || defaultCycle
+      cycles.find((c: any) => String(c.id) === String(selectedCycleId)) ||
+      defaultCycle
     )
   }, [cycles, selectedCycleId, defaultCycle, mode])
 
@@ -421,6 +454,13 @@ export default function ClientPackagesTab({
             : selectedCycle?.assignment_histories || [],
       }
     : null
+
+  const currentAssignments = useMemo(() => {
+    if (selectedCycle) {
+      return selectedCycle.assignments || []
+    }
+    return client?.assignments || []
+  }, [selectedCycle, client?.assignments])
 
   const salesRep = client?.sales_rep || user?.sales_rep || null
   const registrationSource =
@@ -697,7 +737,7 @@ export default function ClientPackagesTab({
 
   const openAssignmentModal = (role: string) => {
     if (!canManageStaff) return
-    const current = client?.assignments?.find(
+    const current = currentAssignments.find(
       (assignment: any) => assignment.role === role
     )
     assignmentMethods.reset({
@@ -824,7 +864,7 @@ export default function ClientPackagesTab({
       enqueueSnackbar('Select a staff member.', { variant: 'error' })
       return
     }
-    const current = client?.assignments?.find(
+    const current = currentAssignments.find(
       (item: any) => item.role === assignmentRole
     )
     if (
@@ -837,7 +877,7 @@ export default function ClientPackagesTab({
       )
       return
     }
-    const alreadyAssignedToPackage = client?.assignments?.find(
+    const alreadyAssignedToPackage = currentAssignments.find(
       (item: any) =>
         String(item.staff_user_id) === String(values.staff_user_id) &&
         item.role !== assignmentRole
@@ -1033,11 +1073,16 @@ export default function ClientPackagesTab({
               type="button"
               id={'package-period-' + mode}
               aria-expanded={periodDropdownOpen}
-              onClick={() => setPeriodDropdownOpen((prev) => !prev)}
+              onClick={() => {
+                if (disableCycleChange) return
+                setPeriodDropdownOpen((prev) => !prev)
+              }}
               className={`w-full flex items-center justify-between gap-3 px-4 py-3 bg-white rounded-xl border transition-all text-left shadow-xs ${
-                periodDropdownOpen
-                  ? 'border-primaryGreen ring-4 ring-primaryGreen/10 shadow-md'
-                  : 'border-formBorder hover:border-primaryGreen/50 hover:bg-cardWrapperBg/30'
+                disableCycleChange
+                  ? 'border-formBorder bg-gray-50/70 cursor-default'
+                  : periodDropdownOpen
+                    ? 'border-primaryGreen ring-4 ring-primaryGreen/10 shadow-md'
+                    : 'border-formBorder hover:border-primaryGreen/50 hover:bg-cardWrapperBg/30'
               }`}
             >
               {/* Left Details */}
@@ -1150,22 +1195,41 @@ export default function ClientPackagesTab({
                   </div>
                 ) : null}
 
-                {/* Chevron */}
-                <svg
-                  className={`h-4 w-4 text-secondary transition-transform duration-200 ${
-                    periodDropdownOpen ? 'rotate-180 text-primaryGreen' : ''
-                  }`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
+                {/* Chevron or locked badge */}
+                {disableCycleChange ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-secondary bg-gray-100 px-2 py-0.5 rounded-md border border-gray-200">
+                    <svg
+                      className="w-3 h-3 text-secondary"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                      />
+                    </svg>
+                    Locked
+                  </span>
+                ) : (
+                  <svg
+                    className={`h-4 w-4 text-secondary transition-transform duration-200 ${
+                      periodDropdownOpen ? 'rotate-180 text-primaryGreen' : ''
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                )}
               </div>
             </button>
 
@@ -1202,7 +1266,7 @@ export default function ClientPackagesTab({
                             key={c.id}
                             type="button"
                             onClick={() => {
-                              setSelectedCycleId(String(c.id))
+                              handleSelectCycle(String(c.id))
                               setPeriodDropdownOpen(false)
                             }}
                             className={`w-full flex items-center justify-between gap-3 p-2.5 rounded-xl text-left transition-all ${
@@ -1302,7 +1366,7 @@ export default function ClientPackagesTab({
                       <button
                         type="button"
                         onClick={() => {
-                          setSelectedCycleId('new')
+                          handleSelectCycle('new')
                           setPeriodDropdownOpen(false)
                         }}
                         className={`w-full flex items-center justify-between gap-3 p-2.5 rounded-xl text-left transition-all ${
@@ -1392,6 +1456,12 @@ export default function ClientPackagesTab({
                 <span className="font-semibold text-emerald-700 flex items-center gap-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{' '}
                   Current active subscription
+                </span>
+              )}
+              {selectedCycle.status === 'expired' && (
+                <span className="font-semibold text-gray-500 flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />{' '}
+                  Expired Package Period (Read-only)
                 </span>
               )}
               {selectedCycle.status === 'refunded' && (
@@ -2012,7 +2082,7 @@ export default function ClientPackagesTab({
               )}
 
               {/* Recorded Payment Details Section */}
-              {activeProposal.payment && (
+              {canViewPaymentDetails && activeProposal.payment && (
                 <div className="mt-4 rounded-xl border border-emerald-200/80 bg-gradient-to-r from-emerald-50/50 via-teal-50/20 to-white p-4 shadow-xs">
                   <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/60 pb-3">
                     <div className="flex items-center gap-2">
@@ -2559,14 +2629,14 @@ export default function ClientPackagesTab({
               </p>
             </div>
             <span className="rounded-full border border-formBorder bg-cardWrapperBg px-3 py-1 text-xs font-medium text-secondary">
-              {client.assignments?.length || 0} of{' '}
+              {currentAssignments.length} of{' '}
               {Object.keys(serviceRoleConfigs).length} roles assigned
             </span>
           </div>
 
           <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
             {Object.entries(serviceRoleConfigs).map(([role, config]) => {
-              const assignment = client.assignments?.find(
+              const assignment = currentAssignments.find(
                 (item: any) => item.role === role
               )
               const isAccepted = Boolean(
@@ -3814,9 +3884,7 @@ export default function ClientPackagesTab({
       />
       {(() => {
         const currentAssignmentForModal = assignmentRole
-          ? client?.assignments?.find(
-              (item: any) => item.role === assignmentRole
-            )
+          ? currentAssignments.find((item: any) => item.role === assignmentRole)
           : null
 
         return (
@@ -3900,7 +3968,7 @@ export default function ClientPackagesTab({
                           String(currentAssignmentForModal.staff_user_id) ===
                             String(staff.id)
                       )
-                      const alreadyInOtherRole = client?.assignments?.find(
+                      const alreadyInOtherRole = currentAssignments.find(
                         (a: any) =>
                           String(a.staff_user_id) === String(staff.id) &&
                           a.role !== assignmentRole

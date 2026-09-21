@@ -489,10 +489,19 @@ const NOTIFICATIONS: RouterMenuProps = {
   id: 30,
   path: '/notifications',
   parent_id: null,
-  label: 'Broadcast',
+  label: 'Notifications',
   key: 'notifications',
   icon: 'notification',
-  permission_slugs: ['superadmin'],
+  permission_slugs: [
+    'superadmin',
+    'admin',
+    'nutritionist',
+    'physiotherapist',
+    'yogist',
+    'sales',
+    'marketing',
+    'user',
+  ],
   isSidebarMenu: true,
 }
 const MEAL_TIMING: RouterMenuProps = {

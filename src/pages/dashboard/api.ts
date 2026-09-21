@@ -17,6 +17,11 @@ const fetchNutritionistDashboard =
     return response as NutritionistDashboardResponse
   }
 
+const fetchYogistDashboard = async () => {
+  const response = await getData(apiUrl.YOGIST_DASHBOARD)
+  return response
+}
+
 // Fetch user profile data for user role
 const fetchUserProfile = async () => {
   const response = await getData(apiUrl.AUTH_ME)
@@ -41,6 +46,17 @@ export const useNutritionistDashboard = () => {
 
   return useQuery(['nutritionist-dashboard'], fetchNutritionistDashboard, {
     enabled: isNutritionistRole,
+    refetchOnWindowFocus: false,
+  })
+}
+
+export const useYogistDashboard = () => {
+  const { roleData } = useAuthStore()
+  const roleName = roleData?.name
+  const isYogistRole = roleName === 'yogist'
+
+  return useQuery(['yogist-dashboard'], fetchYogistDashboard, {
+    enabled: isYogistRole,
     refetchOnWindowFocus: false,
   })
 }

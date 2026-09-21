@@ -29,10 +29,11 @@ export const useAssignedClientDetail = (id?: string) =>
 
 export const useAssignedClientForUser = (
   userId?: string | number,
-  role?: string
+  role?: string,
+  cycleId?: string | number
 ) =>
   useQuery(
-    ['assigned_client_workflow_client', userId, role],
+    ['assigned_client_workflow_client', userId, role, cycleId],
     async () => {
       const response = await getData(
         '/assigned_clients' +
@@ -54,9 +55,15 @@ export const useAssignedClientForUser = (
         if (!assignment.cycle_id) return 1
         return 2
       }
-      const assignments = [...(response?.assigned_clients || [])].sort(
-        (a: any, b: any) => priority(a) - priority(b)
-      )
+      let assignments = [...(response?.assigned_clients || [])]
+      if (cycleId) {
+        assignments = assignments.filter(
+          (a: any) =>
+            String(a.cycle_id || a.client_package_cycle_id) === String(cycleId)
+        )
+      } else {
+        assignments.sort((a: any, b: any) => priority(a) - priority(b))
+      }
       if (!assignments.length) return null
       const details = await Promise.all(
         assignments.map(async (assignment: any) => {

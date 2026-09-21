@@ -37,7 +37,7 @@ const activityOptions = [
 ]
 
 function displayStatus(value: any) {
-  if (!value || String(value).toLowerCase() === 'assigned') return 'New Lead'
+  if (!value) return 'New Lead'
   const match = leadStatusOptions.find(
     (o) =>
       o.id === value || o.name.toLowerCase() === String(value).toLowerCase()

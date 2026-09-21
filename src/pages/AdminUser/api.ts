@@ -99,12 +99,27 @@ export const getAdminDetails = (id: string) => {
   return getData(`${apiUrl.ADMIN_USER}/${id}`)
 }
 
-export const getActivePlanOverview = (id: string | number) => {
-  return getData(`${apiUrl.SUBSCRIPTION_CALENDAR}/${id}/active_plan_overview`)
+export const getActivePlanOverview = (
+  id: string | number,
+  subscriptionId?: string | number | null
+) => {
+  const q = subscriptionId
+    ? `?subscription_id=${encodeURIComponent(String(subscriptionId))}`
+    : ''
+  return getData(
+    `${apiUrl.SUBSCRIPTION_CALENDAR}/${id}/active_plan_overview${q}`
+  )
 }
-export const getOverviewDetail = (id: string | number, date: string) => {
-  const q = date ? `?date=${encodeURIComponent(date)}` : ''
-  return getData(`${apiUrl.SUBSCRIPTION_CALENDAR}/${id}/active_plan_day${q}`)
+export const getOverviewDetail = (
+  id: string | number,
+  date: string,
+  subscriptionId?: string | number | null
+) => {
+  const params = new URLSearchParams()
+  if (date) params.append('date', date)
+  if (subscriptionId) params.append('subscription_id', String(subscriptionId))
+  const qs = params.toString() ? `?${params.toString()}` : ''
+  return getData(`${apiUrl.SUBSCRIPTION_CALENDAR}/${id}/active_plan_day${qs}`)
 }
 export const freezeSubscription = (
   id: string,
@@ -681,9 +696,17 @@ export const assignSalesToClient = (
   salesRepId: string | number | null
 ) => postData(`/users/${userId}/assign_sales`, { sales_rep_id: salesRepId })
 
-export const useActiveSalesTeam = () =>
-  useQuery(
+export const useActiveSalesTeam = () => {
+  const { roleData } = useAuthStore()
+  const roleName = String(roleData?.name || '').toLowerCase()
+  const canFetchSales = roleName === 'admin' || roleName === 'superadmin'
+
+  return useQuery(
     ['active_sales_team'],
     () => getData('/users?role=sales&status=active&per_page=100'),
-    { staleTime: 60000 }
+    {
+      staleTime: 60000,
+      enabled: canFetchSales,
+    }
   )
+}

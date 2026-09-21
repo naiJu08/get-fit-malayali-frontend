@@ -25,6 +25,7 @@ const capitalizeFirst = (value: any) => {
 
 type RecipesTabProps = {
   userId?: string | number
+  isActionablePackage?: boolean
 }
 
 type AssignParams = {
@@ -34,7 +35,10 @@ type AssignParams = {
   ordering?: string
 }
 
-export default function RecipesTab({ userId }: RecipesTabProps) {
+export default function RecipesTab({
+  userId,
+  isActionablePackage = true,
+}: RecipesTabProps) {
   const [columns, setColumns] = useState<TableColumns[]>([])
   const [assignDrawerOpen, setAssignDrawerOpen] = useState(false)
   const [selectedRecipeIds, setSelectedRecipeIds] = useState<
@@ -136,7 +140,7 @@ export default function RecipesTab({ userId }: RecipesTabProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-end">
-        {checkPermissions('Employee', 'create') && (
+        {checkPermissions('Employee', 'create') && isActionablePackage && (
           <Button icon="plus" label="Add Recipe" onClick={openAssignDrawer} />
         )}
       </div>
