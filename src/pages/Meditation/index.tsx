@@ -39,6 +39,7 @@ export default function MeditationMain() {
   const [loader, setLoader] = useState(false)
   const { roleData } = useAuthStore()
   const isNutritionist = roleData?.name === 'nutritionist'
+  const isYogist = roleData?.name === 'yogist'
   const params = useParams()
 
   const { pageParams, setPageParams } = useAdminUserFilterStore()
@@ -229,8 +230,10 @@ export default function MeditationMain() {
         action: (row: any) => handleEdit(row),
         title: 'Edit',
         toolTip: 'Edit',
-      },
-      {
+      }
+    )
+    if (!isYogist) {
+      actions.push({
         icon: <Icons name="table-delete" />,
         action: (row: any) => {
           if (!row?.id) return
@@ -239,8 +242,8 @@ export default function MeditationMain() {
         },
         title: 'Delete',
         toolTip: 'Delete',
-      }
-    )
+      })
+    }
   }
 
   return (

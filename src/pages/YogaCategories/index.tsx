@@ -26,6 +26,8 @@ export default function YogaCategoriesMain() {
   const { enqueueSnackbar } = useSnackbarManager()
   const { roleData } = useAuthStore()
   const isNutritionist = roleData?.name === 'nutritionist'
+  const isYogist = roleData?.name === 'yogist'
+  const hideDeleteAction = isNutritionist || isYogist
   const queryClient = useQueryClient()
   const [columns, setColumns] = useState<TableColumns[]>([])
   const [createOpen, setCreateOpen] = useState(false)
@@ -247,15 +249,19 @@ export default function YogaCategoriesMain() {
               title: 'Edit',
               toolTip: 'Edit',
             },
-            {
-              icon: <Icons name="delete" />,
-              action: (row) => {
-                setCategoryToDelete(row)
-                setDeleteModal(true)
-              },
-              title: 'Delete',
-              toolTip: 'Delete',
-            },
+            ...(!hideDeleteAction
+              ? [
+                  {
+                    icon: <Icons name="delete" />,
+                    action: (row: any) => {
+                      setCategoryToDelete(row)
+                      setDeleteModal(true)
+                    },
+                    title: 'Delete',
+                    toolTip: 'Delete',
+                  },
+                ]
+              : []),
           ]}
           columnToggle
           externalActions={true}
