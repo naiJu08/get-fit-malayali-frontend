@@ -239,11 +239,11 @@ export default function DiastasisRecti() {
     }
   }
 
-  const charCount = description.length
-  const wordCount = useMemo(() => {
-    const trimmed = description.trim()
-    return trimmed ? trimmed.split(/\s+/).length : 0
-  }, [description])
+  // const charCount = description.length
+  // const wordCount = useMemo(() => {
+  //   const trimmed = description.trim()
+  //   return trimmed ? trimmed.split(/\s+/).length : 0
+  // }, [description])
 
   const activeVideoSrc = videoPreview || item?.video_url
   const canEdit = !item || isEditing
@@ -606,12 +606,12 @@ export default function DiastasisRecti() {
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                     />
-                    <div className="flex items-center justify-between text-xs text-slate-400 mt-2 px-0.5">
+                    {/* <div className="flex items-center justify-between text-xs text-slate-400 mt-2 px-0.5">
                       <span>Markdown supported</span>
                       <span>
                         {wordCount} words &bull; {charCount} chars
                       </span>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
 

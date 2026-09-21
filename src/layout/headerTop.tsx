@@ -99,7 +99,7 @@ const HeaderTop = () => {
           <button
             type="button"
             onClick={() => setIsDrawerOpen(true)}
-            className="relative flex items-center justify-center w-9 h-9 rounded-full text-gray-700 hover:text-[#0066CC] hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="relative flex items-center justify-center w-9 h-9 rounded-full text-gray-700 hover:text-[#0066CC] hover:bg-blue-50 dark:text-gray-200 dark:hover:bg-gray-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 hidden"
             aria-label="Open notifications"
             title="Notifications"
           >

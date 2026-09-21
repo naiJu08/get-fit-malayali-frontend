@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AutoComplete } from 'qbs-core'
@@ -31,8 +31,14 @@ export default function PublicCampaign() {
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [sent, setSent] = useState(false)
+  const [minDelay, setMinDelay] = useState(true)
 
-  if (isLoading) {
+  useEffect(() => {
+    const timer = setTimeout(() => setMinDelay(false), 3000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (isLoading || minDelay) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white px-5">
         <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">

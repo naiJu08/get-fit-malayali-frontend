@@ -765,7 +765,7 @@ export default function UserDetails() {
       ...(hasSubscription && canAccessDietAndRecipes
         ? [{ id: 'recipes', label: 'Recipes' }]
         : []),
-      { id: 'additional-info', label: 'Nutritional assessment' },
+      { id: 'additional-info', label: 'Assessment' },
       { id: 'subscription-history', label: 'Subscription history' },
       ...(canAccessDietAndRecipes
         ? [{ id: 'diet-history', label: 'Diet history' }]
@@ -776,11 +776,12 @@ export default function UserDetails() {
       ...(canAccessFollowUps
         ? [{ id: 'follow-ups', label: 'Follow-ups' }]
         : []),
-      ...(isSuperAdmin
-        ? [
-            { id: 'packages', label: 'Packages' },
-            { id: 'assignments', label: 'Assignments' },
-          ]
+      ...(isSuperAdmin ||
+      ['nutritionist', 'physiotherapist', 'yogist'].includes(loginRole || '')
+        ? [{ id: 'packages', label: 'Packages' }]
+        : []),
+      ...(isSuperAdmin || loginRole === 'nutritionist'
+        ? [{ id: 'assignments', label: 'Assignments' }]
         : []),
     ]
   }, [
@@ -794,6 +795,7 @@ export default function UserDetails() {
     canAccessDietAndRecipes,
     canAccessReports,
     canAccessFollowUps,
+    loginRole,
   ])
 
   const handleTabClick = (item: { id: string | number; label: string }) => {
@@ -1646,43 +1648,50 @@ export default function UserDetails() {
             )}
 
           {/* Packages */}
-          {detailRole === 'user' && id && isSuperAdmin && (
-            <Tab id="packages" activeTab={urlTab}>
-              <ClientPackagesTab
-                clientId={String(id)}
-                canManage={isSuperAdmin}
-                apiPrefix="/clients"
-                mode="packages"
-                selectedCycleId={
-                  selectedCycleId ? String(selectedCycleId) : undefined
-                }
-                onSelectCycleId={(cId) => setSelectedCycleId(cId)}
-                disableCycleChange={!isSuperAdmin}
-              />
-            </Tab>
-          )}
+          {detailRole === 'user' &&
+            id &&
+            (isSuperAdmin ||
+              ['nutritionist', 'physiotherapist', 'yogist'].includes(
+                loginRole || ''
+              )) && (
+              <Tab id="packages" activeTab={urlTab}>
+                <ClientPackagesTab
+                  clientId={String(id)}
+                  canManage={isSuperAdmin}
+                  apiPrefix="/clients"
+                  mode="packages"
+                  selectedCycleId={
+                    selectedCycleId ? String(selectedCycleId) : undefined
+                  }
+                  onSelectCycleId={(cId) => setSelectedCycleId(cId)}
+                  disableCycleChange={!isSuperAdmin}
+                />
+              </Tab>
+            )}
 
           {/* Assignments */}
-          {detailRole === 'user' && id && isSuperAdmin && (
-            <Tab id="assignments" activeTab={urlTab}>
-              <ClientPackagesTab
-                clientId={String(id)}
-                canManage={isSuperAdmin}
-                apiPrefix="/clients"
-                mode="assignments"
-                user={user}
-                onSalesAssignSuccess={() => {
-                  refreshUserDetails()
-                  refetchCycles()
-                }}
-                selectedCycleId={
-                  selectedCycleId ? String(selectedCycleId) : undefined
-                }
-                onSelectCycleId={(cId) => setSelectedCycleId(cId)}
-                disableCycleChange={!isSuperAdmin}
-              />
-            </Tab>
-          )}
+          {detailRole === 'user' &&
+            id &&
+            (isSuperAdmin || loginRole === 'nutritionist') && (
+              <Tab id="assignments" activeTab={urlTab}>
+                <ClientPackagesTab
+                  clientId={String(id)}
+                  canManage={isSuperAdmin}
+                  apiPrefix="/clients"
+                  mode="assignments"
+                  user={user}
+                  onSalesAssignSuccess={() => {
+                    refreshUserDetails()
+                    refetchCycles()
+                  }}
+                  selectedCycleId={
+                    selectedCycleId ? String(selectedCycleId) : undefined
+                  }
+                  onSelectCycleId={(cId) => setSelectedCycleId(cId)}
+                  disableCycleChange={!isSuperAdmin}
+                />
+              </Tab>
+            )}
 
           {/* Staff Specific Tabs */}
           {(isNutritionist || isFlatWithClients) && (
