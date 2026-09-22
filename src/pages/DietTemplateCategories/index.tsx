@@ -134,15 +134,9 @@ export default function DietTemplateCategories() {
           title: 'Diet Plan Categories',
           icon: 'category-header-icon',
         }}
-        onActionClick={isNutritionist ? undefined : openDrawer}
-        actionProps={
-          isNutritionist
-            ? undefined
-            : { actionTitle: 'Create Diet Plan Category' }
-        }
-        checkPermission={
-          !isNutritionist && checkPermissions('Employee', 'create')
-        }
+        onActionClick={openDrawer}
+        actionProps={{ actionTitle: 'Create Diet Plan Category' }}
+        checkPermission={checkPermissions('Employee', 'create')}
       />
       <div className="p-4">
         <SmartTable
@@ -206,16 +200,15 @@ export default function DietTemplateCategories() {
             ),
             dropOptions: [10, 20, 30, 50, 100],
           }}
-          actionProps={
-            isNutritionist
-              ? []
-              : [
-                  {
-                    icon: <Icons name="edit" />,
-                    action: (row: any) => openEdit(row),
-                    title: 'Edit',
-                    toolTip: 'Edit',
-                  },
+          actionProps={[
+            {
+              icon: <Icons name="edit" />,
+              action: (row: any) => openEdit(row),
+              title: 'Edit',
+              toolTip: 'Edit',
+            },
+            ...(!isNutritionist
+              ? [
                   {
                     icon: <Icons name="delete" />,
                     action: (row: any) => {
@@ -226,7 +219,8 @@ export default function DietTemplateCategories() {
                     toolTip: 'Delete',
                   },
                 ]
-          }
+              : []),
+          ]}
           columnToggle
           externalActions
         />

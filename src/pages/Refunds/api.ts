@@ -17,6 +17,11 @@ export const initiateRefundRequest = (
   remarks: string
 ) => postData(`/subscriptions/${subscriptionId}/request_refund`, { remarks })
 
+export const initiateAndSubmitRefundToSuperadmin = (
+  subscriptionId: string | number,
+  formData: FormData
+) => postFormData(`/subscriptions/${subscriptionId}/request_refund`, formData)
+
 export const submitRefundToSuperadmin = (
   id: string | number,
   formData: FormData

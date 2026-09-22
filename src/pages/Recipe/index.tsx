@@ -13,8 +13,11 @@ import SmartTable from '../../components/common/table/SmartTable'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useMealCategories } from '../Meals/api'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
+import { useAuthStore } from '../../store/authStore'
 
 export default function Recipe() {
+  const { roleData } = useAuthStore()
+  const isNutritionist = roleData?.name === 'nutritionist'
   const [columns, setColumns] = useState<TableColumns[]>([])
   const [createOpen, setCreateOpen] = useState(false)
   const [edit, setEdit] = useState(false)
@@ -213,12 +216,16 @@ export default function Recipe() {
               title: 'Duplicate',
               toolTip: 'Duplicate',
             },
-            {
-              icon: <Icons name="delete" />,
-              action: (row: any) => handleDeleteRecipe(row),
-              title: 'Delete',
-              toolTip: 'Delete',
-            },
+            ...(!isNutritionist
+              ? [
+                  {
+                    icon: <Icons name="delete" />,
+                    action: (row: any) => handleDeleteRecipe(row),
+                    title: 'Delete',
+                    toolTip: 'Delete',
+                  },
+                ]
+              : []),
           ]}
           paginationProps={{
             onPagination: onChangePage,

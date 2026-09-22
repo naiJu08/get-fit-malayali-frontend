@@ -512,7 +512,7 @@ const MEAL_TIMING: RouterMenuProps = {
   label: 'Meal Timing',
   key: 'mealtiming',
   icon: 'notification',
-  permission_slugs: ['superadmin'],
+  permission_slugs: ['superadmin', 'nutritionist'],
   isSidebarMenu: true,
 }
 
