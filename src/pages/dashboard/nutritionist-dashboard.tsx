@@ -112,13 +112,16 @@ export default function NutritionistDashboardView({
     )
   }
 
-  const staffName =
+  const staffNameRaw =
     data?.staff?.name ||
     data?.physiotherapist?.name ||
     data?.yogist?.name ||
     data?.nutritionist?.name ||
     userData?.name ||
     ''
+  const staffName = staffNameRaw
+    ? staffNameRaw.charAt(0).toUpperCase() + staffNameRaw.slice(1)
+    : ''
 
   const rangeLabel =
     data?.date_info?.range_start && data?.date_info?.range_end

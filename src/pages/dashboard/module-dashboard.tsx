@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import Icons from '../../components/common/icons'
+import { useAuthStore } from '../../store/authStore'
 import { useMarketingDashboard } from '../Marketing/api'
 import { useSalesDashboard } from '../Sales/api'
 import {
@@ -41,6 +42,7 @@ export default function ModuleDashboard({
   onRetry,
 }: Props) {
   const navigate = useNavigate()
+  const { userData } = useAuthStore()
   const marketingQuery = useMarketingDashboard(mode === 'marketing')
   const salesQuery = useSalesDashboard(mode === 'sales')
   const query = mode === 'marketing' ? marketingQuery : salesQuery
@@ -193,6 +195,18 @@ export default function ModuleDashboard({
               </p>
             </div>
             <div className="mt-4 flex flex-wrap gap-2 lg:mt-0">
+              {!marketing && userData?.name && (
+                <div className="db-header-pill">
+                  <span className="db-header-pill-label">Sales Rep</span>
+                  <span
+                    className="db-header-pill-value text-sm sm:text-base max-w-[170px] truncate"
+                    title={userData.name}
+                  >
+                    {userData.name.charAt(0).toUpperCase() +
+                      userData.name.slice(1)}
+                  </span>
+                </div>
+              )}
               <div className="db-header-pill">
                 <span className="db-header-pill-label">
                   {marketing ? 'Leads' : 'Follow-ups'}
