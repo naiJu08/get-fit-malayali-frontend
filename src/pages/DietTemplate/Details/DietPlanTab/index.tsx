@@ -774,7 +774,7 @@ function DietPlanContent({
           sourceDays={aggregatedPlans.map((day: any) => ({
             ...day,
             id: day.day_number,
-            title: day.day_name || 'Day ' + day.day_number,
+            title: `Day ${day.day_number}`,
           }))}
           sourceDayNumbers={copySourceDayNumbers}
           sourceMealIds={viewingDay ? selectedMealIds : []}
