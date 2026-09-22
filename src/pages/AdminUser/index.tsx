@@ -282,13 +282,14 @@ export default function AdminUser() {
 
     const rowUser = fullRow || { id, email: username, status, role: activeRole }
     const roleStr = String(rowUser?.role || activeRole || '').toLowerCase()
-    const isServiceStaff = [
+    const isStaffWithAssignments = [
       'nutritionist',
       'physiotherapist',
       'yogist',
+      'sales',
     ].includes(roleStr)
 
-    if (isServiceStaff) {
+    if (isStaffWithAssignments) {
       setloader(true)
       try {
         const assignmentsRes: any = await getStaffActiveAssignments(id)
@@ -441,13 +442,14 @@ export default function AdminUser() {
         role: activeRole,
       }
     const roleStr = String(rowUser?.role || activeRole || '').toLowerCase()
-    const isServiceStaff = [
+    const isStaffWithAssignments = [
       'nutritionist',
       'physiotherapist',
       'yogist',
+      'sales',
     ].includes(roleStr)
 
-    if (isServiceStaff) {
+    if (isStaffWithAssignments) {
       setloader(true)
       try {
         const assignmentsRes: any = await getStaffActiveAssignments(id)

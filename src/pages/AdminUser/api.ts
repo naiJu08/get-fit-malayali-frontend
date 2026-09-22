@@ -108,6 +108,7 @@ export const reassignStaffAssignment = (
   payload: {
     assignment_id: string | number
     new_staff_id: string | number
+    action_type?: string
     reason?: string
     notes?: string
   }
@@ -119,6 +120,7 @@ export const bulkReassignStaffAssignments = (
   id: string | number,
   payload: {
     new_staff_id: string | number
+    action_type?: string
     reason?: string
     notes?: string
   }

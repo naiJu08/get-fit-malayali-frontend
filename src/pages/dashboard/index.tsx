@@ -5,10 +5,11 @@ import {
   useAdminDashboard,
   useNutritionistDashboard,
   useYogistDashboard,
+  usePhysiotherapistDashboard,
   useUserProfile,
   useDeleteAccount,
 } from './api'
-import type { DashboardResponse, NutritionistDashboardResponse } from './types'
+import type { DashboardResponse, StaffDashboardResponse } from './types'
 import { useAuthStore } from '../../store/authStore'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -36,14 +37,15 @@ export default function DashboardPage() {
   const { roleData } = useAuthStore()
   const roleName = roleData?.name
 
-  // Check if role is specifically "user"
+  // Check if role is specifically "user", service staff, or marketing/sales
   const isUserRole = roleName === 'user'
   const isNutritionistRole = roleName === 'nutritionist'
+  const isPhysiotherapistRole = roleName === 'physiotherapist'
   const isYogistRole = roleName === 'yogist'
   const isMarketingRole = roleName === 'marketing'
   const isSalesRole = roleName === 'sales'
 
-  // API hooks now handle conditional logic internally based on auth store role
+  // API hooks handle conditional logic internally based on auth store role
   const {
     data: userData,
     isLoading: isUserLoading,
@@ -63,6 +65,12 @@ export default function DashboardPage() {
     refetch: refetchNutritionist,
   } = useNutritionistDashboard()
   const {
+    data: physiotherapistData,
+    isLoading: isPhysiotherapistLoading,
+    isError: isPhysiotherapistError,
+    refetch: refetchPhysiotherapist,
+  } = usePhysiotherapistDashboard()
+  const {
     data: yogistData,
     isLoading: isYogistLoading,
     isError: isYogistError,
@@ -71,7 +79,6 @@ export default function DashboardPage() {
 
   // Show different content based on role
   if (isUserRole) {
-    // User role sees user profile
     return (
       <UserProfileView
         data={userData?.user}
@@ -85,10 +92,23 @@ export default function DashboardPage() {
   if (isNutritionistRole) {
     return (
       <NutritionistDashboardView
-        data={nutritionistData as NutritionistDashboardResponse | undefined}
+        data={nutritionistData as StaffDashboardResponse | undefined}
         loading={isNutritionistLoading}
         error={isNutritionistError}
         onRetry={() => refetchNutritionist()}
+        role="nutritionist"
+      />
+    )
+  }
+
+  if (isPhysiotherapistRole) {
+    return (
+      <NutritionistDashboardView
+        data={physiotherapistData as StaffDashboardResponse | undefined}
+        loading={isPhysiotherapistLoading}
+        error={isPhysiotherapistError}
+        onRetry={() => refetchPhysiotherapist()}
+        role="physiotherapist"
       />
     )
   }
@@ -96,10 +116,11 @@ export default function DashboardPage() {
   if (isYogistRole) {
     return (
       <NutritionistDashboardView
-        data={yogistData as any}
+        data={yogistData as StaffDashboardResponse | undefined}
         loading={isYogistLoading}
         error={isYogistError}
         onRetry={() => refetchYogist()}
+        role="yogist"
       />
     )
   }

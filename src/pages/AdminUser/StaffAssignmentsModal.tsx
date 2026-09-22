@@ -349,7 +349,9 @@ export default function StaffAssignmentsModal({
   } | null>(null)
 
   const [bulkStaffId, setBulkStaffId] = useState<string>('')
-  const [bulkReason] = useState<string>('Staff offboarding / deactivation')
+  const defaultReassignReason =
+    actionType === 'delete' ? 'Assignee deleted' : 'Assignee deactivated'
+  const [bulkReason] = useState<string>(defaultReassignReason)
   const [isBulkLoading, setIsBulkLoading] = useState(false)
 
   const [reassignState, setReassignState] = useState<
@@ -408,7 +410,8 @@ export default function StaffAssignmentsModal({
       const res: any = await reassignStaffAssignment(staffUser.id, {
         assignment_id: assignment.id,
         new_staff_id: targetStaffId,
-        reason: state?.reason || `Reassigned prior to ${actionType}`,
+        action_type: actionType,
+        reason: state?.reason || defaultReassignReason,
       })
       enqueueSnackbar(res?.message || 'Client successfully reassigned', {
         variant: 'success',
@@ -452,7 +455,8 @@ export default function StaffAssignmentsModal({
     try {
       const res: any = await bulkReassignStaffAssignments(staffUser.id, {
         new_staff_id: bulkStaffId,
-        reason: bulkReason || `Bulk reassigned prior to ${actionType}`,
+        action_type: actionType,
+        reason: bulkReason || defaultReassignReason,
       })
       enqueueSnackbar(res?.message || 'All clients successfully reassigned', {
         variant: 'success',

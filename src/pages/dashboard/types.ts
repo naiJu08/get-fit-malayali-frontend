@@ -349,7 +349,14 @@ export type DashboardResponse = {
   }
 }
 
-export type NutritionistDashboardResponse = {
+export type StaffInfo = {
+  id?: number | string
+  name?: string
+  email?: string
+  role?: string
+}
+
+export type StaffDashboardResponse = {
   generated_at?: string
   date_info?: {
     target_date?: string
@@ -357,15 +364,18 @@ export type NutritionistDashboardResponse = {
     range_start?: string
     range_end?: string
   }
-  nutritionist?: {
-    id?: number | string
-    name?: string
-    email?: string
-    role?: string
-  }
+  staff?: StaffInfo
+  nutritionist?: StaffInfo
+  physiotherapist?: StaffInfo
+  yogist?: StaffInfo
   clients?: {
     total?: number
-    by_status?: Record<string, number>
+    by_status?: {
+      active?: number
+      suspended?: number
+      deactivated?: number
+      [k: string]: number | undefined
+    }
     hints?: Record<string, string>
   }
   subscriptions?: {
@@ -380,16 +390,106 @@ export type NutritionistDashboardResponse = {
       workout_completions?: number
       yoga_completions?: number
       meditation_completions?: number
+      [k: string]: number | undefined
     }
     hints?: Record<string, string>
   }
   alerts?: {
-    expiring_soon?: any[]
-    inactive?: any[]
-    missing_diet_template_today?: any[]
+    expiring_soon?: Array<{
+      subscription_id?: number
+      user?: {
+        id?: number
+        name?: string
+        email?: string
+        phone?: string
+        status?: string
+      }
+      plan?: { id?: number; name?: string; category?: string }
+      start_date?: string
+      end_date?: string
+      status?: string
+      days_remaining?: number
+    }>
+    inactive?: Array<{
+      user?: {
+        id?: number
+        name?: string
+        email?: string
+        phone?: string
+        status?: string
+      }
+      last_activity_date?: string
+      days_inactive?: number
+      subscription?: {
+        id?: number
+        plan_name?: string
+        start_date?: string
+        end_date?: string
+        status?: string
+      }
+    }>
+    missing_diet_template_today?: Array<{
+      user?: {
+        id?: number
+        name?: string
+        email?: string
+        phone?: string
+        status?: string
+      }
+      subscription_id?: number
+      target_date?: string
+      message?: string
+    }>
+    missing_workout_template_today?: Array<{
+      user?: {
+        id?: number
+        name?: string
+        email?: string
+        phone?: string
+        status?: string
+      }
+      subscription_id?: number
+      target_date?: string
+      message?: string
+    }>
+    missing_yoga_template_today?: Array<{
+      user?: {
+        id?: number
+        name?: string
+        email?: string
+        phone?: string
+        status?: string
+      }
+      subscription_id?: number
+      target_date?: string
+      message?: string
+    }>
+    missing_template_today?: Array<{
+      user?: {
+        id?: number
+        name?: string
+        email?: string
+        phone?: string
+        status?: string
+      }
+      subscription_id?: number
+      target_date?: string
+      message?: string
+    }>
   }
   feedbacks?: {
     total?: number
-    recent?: any[]
+    recent?: Array<{
+      id?: number
+      user?: { id?: number; name?: string }
+      rating?: number
+      comments?: string
+      feedbackable_type?: string
+      feedbackable_id?: number
+      added_by?: string
+      created_at?: string
+    }>
   }
 }
+
+export type NutritionistDashboardResponse = StaffDashboardResponse
