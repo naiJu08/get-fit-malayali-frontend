@@ -225,6 +225,42 @@ export default function ModuleDashboard({
             <StatCard key={card.title} {...card} />
           ))}
         </div>
+        {marketing && slices.length > 0 && (
+          <div className="mt-6">
+            <h2 className="mb-3 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+              Lead Funnel Details
+            </h2>
+            <div className="db-kpi-grid">
+              {slices.map((slice) => (
+                <StatCard
+                  key={slice.label}
+                  title={slice.label}
+                  value={fmt(slice.value)}
+                  sub={`${slice.label} leads`}
+                  gradient={`linear-gradient(135deg, ${slice.color}, ${slice.color}cc)`}
+                  icon={
+                    slice.label === 'Assigned'
+                      ? '🎯'
+                      : slice.label === 'Accepted'
+                        ? '✅'
+                        : slice.label === 'Contacted'
+                          ? '📞'
+                          : slice.label === 'Qualified'
+                            ? '⭐'
+                            : slice.label === 'Confirmation Pending'
+                              ? '⏳'
+                              : slice.label === 'Converted'
+                                ? '🎉'
+                                : slice.label === 'Lost'
+                                  ? '❌'
+                                  : '📊'
+                  }
+                  onClick={() => navigate('/marketing/campaigns')}
+                />
+              ))}
+            </div>
+          </div>
+        )}
         {!marketing && slices.length > 0 && (
           <div className="mt-6">
             <h2 className="mb-3 text-sm font-semibold text-gray-500 uppercase tracking-wider">
@@ -255,13 +291,7 @@ export default function ModuleDashboard({
                                   ? '❌'
                                   : '📊'
                   }
-                  onClick={() =>
-                    navigate(
-                      marketing
-                        ? `/marketing/campaigns`
-                        : `/sales/leads?status=${slice.key}`
-                    )
-                  }
+                  onClick={() => navigate(`/sales/leads?status=${slice.key}`)}
                 />
               ))}
             </div>
