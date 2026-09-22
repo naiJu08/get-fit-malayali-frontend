@@ -51,6 +51,8 @@ const DIET_TEMPLATE = 'diet_plan_templates'
 const INACTIVE_USERS = '/admin/inactive_users'
 const MEALS_STATUS_CHANGE = '/meals/bulk_status_change'
 const AUTH_ME = '/auth/me'
+const AUTH_UPDATE_PROFILE = '/auth/update_profile'
+const AUTH_CHANGE_PASSWORD = '/auth/change_password'
 const USERS_DELETE = '/users/delete'
 const DUPLICATE_DIET_TEMPLATE = '/diet_plan_templates/duplicate'
 const TEMPLATE_CATEGORIES = '/diet_template_categories'
@@ -113,6 +115,8 @@ const apiUrl: { [key: string]: string } = {
   INACTIVE_USERS,
   MEALS_STATUS_CHANGE,
   AUTH_ME,
+  AUTH_UPDATE_PROFILE,
+  AUTH_CHANGE_PASSWORD,
   USERS_DELETE,
   DUPLICATE_DIET_TEMPLATE,
   TEMPLATE_CATEGORIES,

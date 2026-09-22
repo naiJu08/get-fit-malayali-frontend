@@ -1,6 +1,3 @@
-// import { domainTypes } from './scopes.config'
-import { domainTypes } from '../store/domainManageStore'
-
 export const handleViewPermission = (key: string) => {
   return [`view_${key}`, `view_all_${key}`, `view_team_${key}`]
 }
@@ -116,10 +113,10 @@ const USER_PROFILE: RouterMenuProps = {
   id: 8118,
   path: '/profile',
   parent_id: null,
-  icon: 'cart-icon',
-  label: 'reciept',
+  icon: 'profile_icon',
+  label: 'Profile',
   key: 'user-profile',
-  permission_slugs: [domainTypes['EMPLOYEE']],
+  permission_slugs: MODULE_ACCESS.core,
 }
 
 // Master Options for Sub-menus

@@ -57,6 +57,7 @@ const CategoriesDetails = lazy(() => import('../pages/Categories/Details'))
 // Dashboard
 
 const Dashboard = lazy(() => import('../pages/dashboard'))
+const ProfilePage = lazy(() => import('../pages/profile'))
 const Settings = lazy(() => import('../pages/samples/Settings'))
 const DiastasisRecti = lazy(() => import('../pages/Information/DiastasisRecti'))
 // const Users = lazy(() => import('../pages/samples/Users'))
@@ -126,6 +127,7 @@ const AssessmentCategoryDetails = lazy(
 
 const routes: any = [
   { slug: 'DASHBOARD', component: <Dashboard /> },
+  { slug: 'USER_PROFILE', component: <ProfilePage /> },
   { slug: 'SETTINGS_SAMPLE', component: <Settings /> },
   { slug: 'ADMIN_USER', component: <AdminUser /> },
   { slug: 'WORKOUT', component: <Workout /> },
@@ -503,7 +505,15 @@ export default function MainRoutes() {
         }
         path="/sales/clients/:id"
       />
-      {/* Explicit routes for sidebar sample pages */}
+      {/* Explicit routes for profile and sidebar sample pages */}
+      <Route
+        element={
+          <UserRoute slug_key="USER_PROFILE">
+            <ProfilePage />
+          </UserRoute>
+        }
+        path="/profile"
+      />
       <Route
         element={
           <UserRoute slug_key="SETTINGS_SAMPLE">

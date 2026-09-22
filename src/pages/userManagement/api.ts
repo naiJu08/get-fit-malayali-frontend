@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
 import { postData } from '../../apis/api.helpers'
@@ -23,6 +23,7 @@ export const useLogin = (handleOnSuccess: any) => {
   const { setIsLoading } = useAppStore()
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
   const loginMutation = useMutation(
     async (params: LoginSchema) => {
       setIsLoading(true)
@@ -53,6 +54,14 @@ export const useLogin = (handleOnSuccess: any) => {
         const refreshExpiresIn = data?.refresh_expires_in // in seconds
         const user = data?.user || {}
         const successMessage = data?.message ?? data?.data?.message
+
+        // Clear any previous query cache completely to prevent showing old user's cached queries
+        try {
+          queryClient.clear()
+          queryClient.removeQueries()
+        } catch (e) {
+          // ignore
+        }
 
         setResetToken?.(undefined as any)
         setToken(token)
@@ -91,8 +100,11 @@ export const useLogin = (handleOnSuccess: any) => {
           name: user?.name,
           email: user?.email,
           username: user?.email,
+          avatar_url: user?.avatar_url || null,
+          role: user?.role,
           is_admin: user?.role === 'superadmin' || user?.role === 'admin',
         } as any)
+        queryClient.invalidateQueries({ queryKey: ['userProfile'] })
         navigate('/dashboard', { replace: true })
       },
 
