@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react'
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import CustomDrawer from '../components/common/drawer/index'
 import NotificationItem from './notifications/NotificationItem'
@@ -20,43 +20,122 @@ interface NotificationListProps {
 
 type TabType = 'new' | 'read' | 'all'
 
+const PAGE_SIZE = 20
+
 export default function NotificationList({
   open,
   handleClose,
 }: NotificationListProps) {
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
-  const { setUnreadCount, decrementUnreadCount, refreshKey, triggerRefresh } =
-    useNotificationStore()
+  const {
+    unreadCount,
+    readCount,
+    totalCount,
+    setCounts,
+    decrementUnreadCount,
+    refreshKey,
+    triggerRefresh,
+  } = useNotificationStore()
 
   const [activeTab, setActiveTab] = useState<TabType>('new')
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
+  const [page, setPage] = useState<number>(1)
+  const [hasMore, setHasMore] = useState<boolean>(true)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
 
-  // Fetch notifications
-  const fetchItems = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      // Fetch notifications according to the tab or fetch all to count correctly
-      const data = await getNotifications({ per_page: 50 })
-      const list = data?.notifications || []
-      setNotifications(list)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
-      const unread = list.filter((n) => !n.is_read).length
-      setUnreadCount(data?.unread_count ?? unread)
-    } catch (error) {
-      console.error('Failed to load notifications:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [setUnreadCount])
+  // Fetch page of notifications for given tab
+  const loadNotifications = useCallback(
+    async (tab: TabType, targetPage: number, isInitial = false) => {
+      if (isInitial) {
+        setIsLoading(true)
+      } else {
+        setIsLoadingMore(true)
+      }
 
+      try {
+        const statusParam = tab === 'all' ? undefined : tab
+        const data = await getNotifications({
+          status: statusParam,
+          page: targetPage,
+          per_page: PAGE_SIZE,
+        })
+
+        const newItems = data?.notifications || []
+
+        setNotifications((prev) => {
+          if (targetPage === 1) {
+            return newItems
+          }
+          // Avoid duplicate items if any
+          const existingIds = new Set(prev.map((n) => String(n.id)))
+          const uniqueNew = newItems.filter(
+            (n) => !existingIds.has(String(n.id))
+          )
+          return [...prev, ...uniqueNew]
+        })
+
+        // Update counts from backend response
+        setCounts({
+          unreadCount: data?.unread_count ?? 0,
+          readCount: data?.read_count ?? 0,
+          totalCount: data?.total_count ?? 0,
+        })
+
+        setPage(targetPage)
+
+        if (data?.meta) {
+          setHasMore(data.meta.next_page !== null)
+        } else {
+          setHasMore(newItems.length >= PAGE_SIZE)
+        }
+      } catch (error) {
+        console.error('Failed to load notifications:', error)
+      } finally {
+        if (isInitial) {
+          setIsLoading(false)
+        } else {
+          setIsLoadingMore(false)
+        }
+      }
+    },
+    [setCounts]
+  )
+
+  // Initial load when drawer opens or refreshKey changes
   useEffect(() => {
     if (open) {
-      fetchItems()
+      setPage(1)
+      setHasMore(true)
+      loadNotifications(activeTab, 1, true)
     }
-  }, [open, refreshKey, fetchItems])
+  }, [open, refreshKey, activeTab, loadNotifications])
+
+  // Handle Tab Switch
+  const handleTabChange = (newTab: TabType) => {
+    if (newTab === activeTab) return
+    setActiveTab(newTab)
+    setPage(1)
+    setHasMore(true)
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0
+    }
+  }
+
+  // Handle Scroll to load more (Infinite Scroll)
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    const isNearBottom =
+      target.scrollHeight - target.scrollTop - target.clientHeight <= 140
+
+    if (isNearBottom && hasMore && !isLoading && !isLoadingMore) {
+      loadNotifications(activeTab, page + 1, false)
+    }
+  }
 
   // Handle Mark as Read for single item
   const handleMarkAsRead = async (id: number | string) => {
@@ -81,10 +160,17 @@ export default function NotificationList({
       setNotifications((prev) =>
         prev.map((item) => ({ ...item, is_read: true }))
       )
-      setUnreadCount(0)
+      setCounts({
+        unreadCount: 0,
+        readCount: totalCount,
+      })
       enqueueSnackbar('All notifications marked as read', {
         variant: 'success',
       })
+      if (activeTab === 'new') {
+        // Refresh the new tab
+        loadNotifications('new', 1, true)
+      }
     } catch {
       enqueueSnackbar('Failed to mark all as read', { variant: 'error' })
     }
@@ -93,7 +179,6 @@ export default function NotificationList({
   // Handle Go to Page
   const handleNavigate = async (url: string, id: number | string) => {
     try {
-      // Auto mark as read when user clicks Go to Page
       const targetItem = notifications.find(
         (item) => String(item.id) === String(id)
       )
@@ -123,33 +208,17 @@ export default function NotificationList({
     }
   }
 
-  // Filter items by active tab and search query
+  // Client search filter across loaded items
   const filteredNotifications = useMemo(() => {
+    if (!searchQuery.trim()) return notifications
+    const q = searchQuery.toLowerCase()
     return notifications.filter((item) => {
-      // Tab filter
-      if (activeTab === 'new' && item.is_read) return false
-      if (activeTab === 'read' && !item.is_read) return false
-
-      // Search filter
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase()
-        const titleMatch = item.title?.toLowerCase().includes(q)
-        const msgMatch = item.message?.toLowerCase().includes(q)
-        const typeMatch = item.notification_type?.toLowerCase().includes(q)
-        return titleMatch || msgMatch || typeMatch
-      }
-      return true
+      const titleMatch = item.title?.toLowerCase().includes(q)
+      const msgMatch = item.message?.toLowerCase().includes(q)
+      const typeMatch = item.notification_type?.toLowerCase().includes(q)
+      return titleMatch || msgMatch || typeMatch
     })
-  }, [notifications, activeTab, searchQuery])
-
-  const newCount = useMemo(
-    () => notifications.filter((n) => !n.is_read).length,
-    [notifications]
-  )
-  const currentReadCount = useMemo(
-    () => notifications.filter((n) => n.is_read).length,
-    [notifications]
-  )
+  }, [notifications, searchQuery])
 
   return (
     <CustomDrawer
@@ -165,19 +234,19 @@ export default function NotificationList({
             <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
               Notifications
             </span>
-            {newCount > 0 && (
+            {unreadCount > 0 && (
               <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300">
-                {newCount} New
+                {unreadCount} New
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            {newCount > 0 && (
+            {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={handleMarkAllAsRead}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60 rounded-lg transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60 rounded-lg transition-colors cursor-pointer"
                 title="Mark all notifications as read"
               >
                 <svg
@@ -199,9 +268,9 @@ export default function NotificationList({
 
             <button
               type="button"
-              onClick={fetchItems}
+              onClick={() => loadNotifications(activeTab, 1, true)}
               disabled={isLoading}
-              className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
               title="Refresh notifications"
             >
               <svg
@@ -226,8 +295,8 @@ export default function NotificationList({
           <div className="flex items-center space-x-1 border-b border-transparent">
             <button
               type="button"
-              onClick={() => setActiveTab('new')}
-              className={`flex items-center gap-2 pb-2.5 px-3 text-sm font-semibold border-b-2 transition-all ${
+              onClick={() => handleTabChange('new')}
+              className={`flex items-center gap-2 pb-2.5 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
                 activeTab === 'new'
                   ? 'border-[#0066CC] text-[#0066CC] dark:text-blue-400 dark:border-blue-400'
                   : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
@@ -235,20 +304,20 @@ export default function NotificationList({
             >
               <span>New</span>
               <span
-                className={`px-1.5 py-0.5 rounded-full text-xs ${
+                className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
                   activeTab === 'new'
                     ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {newCount}
+                {unreadCount}
               </span>
             </button>
 
             <button
               type="button"
-              onClick={() => setActiveTab('read')}
-              className={`flex items-center gap-2 pb-2.5 px-3 text-sm font-semibold border-b-2 transition-all ${
+              onClick={() => handleTabChange('read')}
+              className={`flex items-center gap-2 pb-2.5 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
                 activeTab === 'read'
                   ? 'border-[#0066CC] text-[#0066CC] dark:text-blue-400 dark:border-blue-400'
                   : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
@@ -256,20 +325,20 @@ export default function NotificationList({
             >
               <span>Read</span>
               <span
-                className={`px-1.5 py-0.5 rounded-full text-xs ${
+                className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
                   activeTab === 'read'
                     ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {currentReadCount}
+                {readCount}
               </span>
             </button>
 
             <button
               type="button"
-              onClick={() => setActiveTab('all')}
-              className={`flex items-center gap-2 pb-2.5 px-3 text-sm font-semibold border-b-2 transition-all ${
+              onClick={() => handleTabChange('all')}
+              className={`flex items-center gap-2 pb-2.5 px-3 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
                 activeTab === 'all'
                   ? 'border-[#0066CC] text-[#0066CC] dark:text-blue-400 dark:border-blue-400'
                   : 'border-transparent text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200'
@@ -277,13 +346,13 @@ export default function NotificationList({
             >
               <span>All</span>
               <span
-                className={`px-1.5 py-0.5 rounded-full text-xs ${
+                className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${
                   activeTab === 'all'
                     ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300'
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {notifications.length}
+                {totalCount}
               </span>
             </button>
           </div>
@@ -315,7 +384,7 @@ export default function NotificationList({
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
                 >
                   <svg
                     className="w-3.5 h-3.5"
@@ -336,8 +405,12 @@ export default function NotificationList({
           </div>
         </div>
 
-        {/* Notifications Scrollable List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Notifications Scrollable List with onScroll load more */}
+        <div
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-4 space-y-3"
+        >
           {isLoading ? (
             <div className="flex flex-col gap-3 py-2">
               {[...Array(4)].map((_, idx) => (
@@ -345,15 +418,31 @@ export default function NotificationList({
               ))}
             </div>
           ) : filteredNotifications.length > 0 ? (
-            filteredNotifications.map((item) => (
-              <NotificationItem
-                key={item.id}
-                item={item}
-                onMarkAsRead={handleMarkAsRead}
-                onNavigate={handleNavigate}
-                onDelete={handleDelete}
-              />
-            ))
+            <>
+              {filteredNotifications.map((item) => (
+                <NotificationItem
+                  key={item.id}
+                  item={item}
+                  onMarkAsRead={handleMarkAsRead}
+                  onNavigate={handleNavigate}
+                  onDelete={handleDelete}
+                />
+              ))}
+
+              {/* Bottom scroll loader / end of list message */}
+              {isLoadingMore && (
+                <div className="flex items-center justify-center gap-2 py-3 text-xs text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 animate-pulse">
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  <span>Loading more notifications...</span>
+                </div>
+              )}
+
+              {!hasMore && notifications.length > 5 && (
+                <div className="text-center py-3 text-[11px] font-medium text-gray-400 dark:text-gray-500">
+                  ✓ You have reached the end of notifications
+                </div>
+              )}
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center h-64 text-center p-6">
               <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-500 flex items-center justify-center mb-3">
@@ -381,7 +470,9 @@ export default function NotificationList({
               <p className="text-xs text-gray-500 dark:text-gray-400 max-w-[240px]">
                 {activeTab === 'new'
                   ? "You're all caught up! New assignments and alerts will appear here."
-                  : 'Notifications you have marked as read will be archived here.'}
+                  : activeTab === 'read'
+                    ? 'Notifications you have marked as read will be archived here.'
+                    : 'No notifications available at this time.'}
               </p>
             </div>
           )}

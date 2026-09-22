@@ -21,6 +21,7 @@ const getTypeBadge = (type?: string) => {
         borderColor: 'border-purple-200 dark:border-purple-800',
       }
     case 'proposal':
+    case 'lead_acceptance':
       return {
         label: 'Proposal',
         bgColor: 'bg-amber-100 dark:bg-amber-950/60',
@@ -48,6 +49,14 @@ const getTypeBadge = (type?: string) => {
         textColor: 'text-emerald-700 dark:text-emerald-300',
         borderColor: 'border-emerald-200 dark:border-emerald-800',
       }
+    case 'profile_completion':
+    case 'profile_update':
+      return {
+        label: 'Profile',
+        bgColor: 'bg-indigo-100 dark:bg-indigo-950/60',
+        textColor: 'text-indigo-700 dark:text-indigo-300',
+        borderColor: 'border-indigo-200 dark:border-indigo-800',
+      }
     case 'motivational':
       return {
         label: 'Motivation',
@@ -56,12 +65,19 @@ const getTypeBadge = (type?: string) => {
         borderColor: 'border-teal-200 dark:border-teal-800',
       }
     case 'lead':
-    case 'campaign':
       return {
         label: 'Lead',
         bgColor: 'bg-blue-100 dark:bg-blue-950/60',
         textColor: 'text-blue-700 dark:text-blue-300',
         borderColor: 'border-blue-200 dark:border-blue-800',
+      }
+    case 'campaign':
+    case 'campaign_expiring':
+      return {
+        label: 'Campaign',
+        bgColor: 'bg-orange-100 dark:bg-orange-950/60',
+        textColor: 'text-orange-700 dark:text-orange-300',
+        borderColor: 'border-orange-200 dark:border-orange-800',
       }
     default:
       return {
