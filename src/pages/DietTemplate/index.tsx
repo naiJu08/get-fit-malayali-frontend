@@ -320,8 +320,8 @@ export default function DietTemplateMain() {
               }
               height={
                 (data?.diet_plan_templates?.length ?? 0) === 0
-                  ? calcWindowHeight(218)
-                  : calcWindowHeight(150)
+                  ? calcWindowHeight(200)
+                  : calcWindowHeight(160)
               }
               search={true}
               searchPlaceholder="Search Title"

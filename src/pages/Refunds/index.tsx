@@ -24,7 +24,7 @@ const getStatusBadge = (status: string) => {
     case 'submitted_to_superadmin':
       return (
         <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700 border border-purple-200">
-          Under Review
+          Submitted to Superadmin
         </span>
       )
     case 'approved':

@@ -740,8 +740,8 @@ function DietPlanContent({
         columns={tableColumns}
         height={
           currentDataset.length === 0
-            ? calcWindowHeight(218)
-            : calcWindowHeight(200)
+            ? calcWindowHeight(300)
+            : calcWindowHeight(280)
         }
         pagination={true}
         paginationProps={{

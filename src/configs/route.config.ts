@@ -502,8 +502,7 @@ const NOTIFICATIONS: RouterMenuProps = {
     'marketing',
     'user',
   ],
-  // isSidebarMenu: true,
-  isSidebarMenu: false,
+  isSidebarMenu: true,
 }
 const MEAL_TIMING: RouterMenuProps = {
   id: 32,
