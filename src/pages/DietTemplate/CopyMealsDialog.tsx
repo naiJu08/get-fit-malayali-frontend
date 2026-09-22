@@ -30,7 +30,7 @@ const makeDays = (template: any) => {
       ...day,
       id: day.day_number ?? day.id,
       day_number: day.day_number ?? day.id,
-      title: day.title || day.day_name || `Day ${day.day_number ?? day.id}`,
+      title: `Day ${day.day_number ?? day.id}`,
     }))
   }
   return Array.from(
@@ -565,9 +565,7 @@ export default function CopyMealsDialog({
                         />
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-medium">
-                            {day.title ||
-                              day.day_name ||
-                              `Day ${day.day_number ?? day.id}`}
+                            Day {day.day_number ?? day.id}
                             {day.meals_count != null
                               ? ` (${day.meals_count} meals)`
                               : ''}

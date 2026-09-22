@@ -25,12 +25,14 @@ import {
   useAdminUser,
   DISABLE_NONLOGIN_APIS,
   deleteAdmin,
+  getStaffActiveAssignments,
   // freezeUser,
   // unfreezeUser,
 } from './api'
 import { getColumns } from './columns'
 import CreateAdmin from './create'
 import AssignSalesModal from './AssignSalesModal'
+import StaffAssignmentsModal from './StaffAssignmentsModal'
 import { useAuthStore } from '../../store/authStore'
 
 type StatusFilterValue = 'all' | 'active' | 'deactivated'
@@ -118,6 +120,10 @@ export default function AdminUser() {
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
   const [activePlanWarningOpen, setActivePlanWarningOpen] = useState(false)
   const [assignSalesModalUser, setAssignSalesModalUser] = useState<any>(null)
+  const [staffAssignmentsModalData, setStaffAssignmentsModalData] = useState<{
+    user: any
+    actionType: 'deactivate' | 'delete'
+  } | null>(null)
   const [pendingStatusChange, setPendingStatusChange] = useState<{
     id: string
     username: string
@@ -261,17 +267,44 @@ export default function AdminUser() {
     })
   }
 
-  const handleDeleteModel = (
+  const handleDeleteModel = async (
     id: string,
     username: string,
     status: string,
-    hasActivePlan?: boolean
+    hasActivePlan?: boolean,
+    fullRow?: any
   ) => {
     const normalizedStatus = String(status || '').toLowerCase()
     if (normalizedStatus !== 'active') {
       handleDeleteAdmin({ id, status })
       return
     }
+
+    const rowUser = fullRow || { id, email: username, status, role: activeRole }
+    const roleStr = String(rowUser?.role || activeRole || '').toLowerCase()
+    const isServiceStaff = [
+      'nutritionist',
+      'physiotherapist',
+      'yogist',
+    ].includes(roleStr)
+
+    if (isServiceStaff) {
+      setloader(true)
+      try {
+        const assignmentsRes: any = await getStaffActiveAssignments(id)
+        setloader(false)
+        if (assignmentsRes?.has_active_assignments) {
+          setStaffAssignmentsModalData({
+            user: { ...rowUser, name: rowUser.name || username },
+            actionType: 'deactivate',
+          })
+          return
+        }
+      } catch (err: any) {
+        setloader(false)
+      }
+    }
+
     if (normalizedStatus === 'active' && hasActivePlan) {
       setPendingStatusChange({ id, username, status })
       setActivePlanWarningOpen(true)
@@ -401,7 +434,36 @@ export default function AdminUser() {
     })
   }
 
-  const handleOpenDeleteUser = (id: string) => {
+  const handleOpenDeleteUser = async (id: string, fullRow?: any) => {
+    const rowUser = fullRow ||
+      data?.items?.find((item: any) => String(item.id) === String(id)) || {
+        id,
+        role: activeRole,
+      }
+    const roleStr = String(rowUser?.role || activeRole || '').toLowerCase()
+    const isServiceStaff = [
+      'nutritionist',
+      'physiotherapist',
+      'yogist',
+    ].includes(roleStr)
+
+    if (isServiceStaff) {
+      setloader(true)
+      try {
+        const assignmentsRes: any = await getStaffActiveAssignments(id)
+        setloader(false)
+        if (assignmentsRes?.has_active_assignments) {
+          setStaffAssignmentsModalData({
+            user: rowUser,
+            actionType: 'delete',
+          })
+          return
+        }
+      } catch (err: any) {
+        setloader(false)
+      }
+    }
+
     setDeleteUserId(id)
     setDeleteUserModal(true)
   }
@@ -570,7 +632,8 @@ export default function AdminUser() {
                         rowData?.id,
                         rowData?.email,
                         rowData?.status,
-                        !!rowData?.subscribed_plan
+                        !!rowData?.subscribed_plan,
+                        rowData
                       ),
                     icon: <Icons name="deactivate-icon" />,
                     toolTip: 'Deactivate',
@@ -585,7 +648,8 @@ export default function AdminUser() {
                         rowData?.id,
                         rowData?.email,
                         rowData?.status,
-                        !!rowData?.subscribed_plan
+                        !!rowData?.subscribed_plan,
+                        rowData
                       ),
                     icon: <Icons name="activate-icon" />,
                     toolTip: 'Activate',
@@ -607,7 +671,8 @@ export default function AdminUser() {
                     : []),
                   {
                     title: 'Delete',
-                    action: (rowData) => handleOpenDeleteUser(rowData?.id),
+                    action: (rowData) =>
+                      handleOpenDeleteUser(rowData?.id, rowData),
                     icon: <Icons name="delete" />,
                     toolTip: 'Delete',
                     hide: () =>
@@ -632,6 +697,24 @@ export default function AdminUser() {
             onClose={() => setAssignSalesModalUser(null)}
             user={assignSalesModalUser}
             onSuccess={() => refetch()}
+          />
+
+          <StaffAssignmentsModal
+            isOpen={Boolean(staffAssignmentsModalData)}
+            onClose={() => setStaffAssignmentsModalData(null)}
+            staffUser={staffAssignmentsModalData?.user}
+            actionType={staffAssignmentsModalData?.actionType || 'deactivate'}
+            onProceed={() => {
+              const pending = staffAssignmentsModalData
+              setStaffAssignmentsModalData(null)
+              if (!pending?.user?.id) return
+              if (pending.actionType === 'deactivate') {
+                handleDeleteAdmin({ id: pending.user.id, status: 'active' })
+              } else if (pending.actionType === 'delete') {
+                setDeleteUserId(pending.user.id)
+                setDeleteUserModal(true)
+              }
+            }}
           />
 
           <ConfirmDeleteModal

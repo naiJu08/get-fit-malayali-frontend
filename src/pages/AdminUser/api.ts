@@ -99,6 +99,36 @@ export const getAdminDetails = (id: string) => {
   return getData(`${apiUrl.ADMIN_USER}/${id}`)
 }
 
+export const getStaffActiveAssignments = (id: string | number) => {
+  return getData(`${apiUrl.ADMIN_USER}/${id}/active_assignments`)
+}
+
+export const reassignStaffAssignment = (
+  id: string | number,
+  payload: {
+    assignment_id: string | number
+    new_staff_id: string | number
+    reason?: string
+    notes?: string
+  }
+) => {
+  return postData(`${apiUrl.ADMIN_USER}/${id}/reassign_assignment`, payload)
+}
+
+export const bulkReassignStaffAssignments = (
+  id: string | number,
+  payload: {
+    new_staff_id: string | number
+    reason?: string
+    notes?: string
+  }
+) => {
+  return postData(
+    `${apiUrl.ADMIN_USER}/${id}/bulk_reassign_assignments`,
+    payload
+  )
+}
+
 export const getActivePlanOverview = (
   id: string | number,
   subscriptionId?: string | number | null
