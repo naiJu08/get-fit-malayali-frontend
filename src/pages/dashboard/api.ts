@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { getData, deleteData } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
-import type { DashboardResponse, NutritionistDashboardResponse } from './types'
+import type { DashboardResponse, StaffDashboardResponse } from './types'
 import { useAuthStore } from '../../store/authStore'
 import { useSnackbarManager } from '../../components/common/snackbar'
 
@@ -12,15 +12,21 @@ const fetchDashboard = async (): Promise<DashboardResponse> => {
 }
 
 const fetchNutritionistDashboard =
-  async (): Promise<NutritionistDashboardResponse> => {
+  async (): Promise<StaffDashboardResponse> => {
     const response = await getData(apiUrl.NUTRITIONIST_DASHBOARD)
-    return response as NutritionistDashboardResponse
+    return response as StaffDashboardResponse
   }
 
-const fetchYogistDashboard = async () => {
+const fetchYogistDashboard = async (): Promise<StaffDashboardResponse> => {
   const response = await getData(apiUrl.YOGIST_DASHBOARD)
-  return response
+  return response as StaffDashboardResponse
 }
+
+const fetchPhysiotherapistDashboard =
+  async (): Promise<StaffDashboardResponse> => {
+    const response = await getData(apiUrl.PHYSIOTHERAPIST_DASHBOARD)
+    return response as StaffDashboardResponse
+  }
 
 // Fetch user profile data for user role
 const fetchUserProfile = async () => {
@@ -59,6 +65,21 @@ export const useYogistDashboard = () => {
     enabled: isYogistRole,
     refetchOnWindowFocus: false,
   })
+}
+
+export const usePhysiotherapistDashboard = () => {
+  const { roleData } = useAuthStore()
+  const roleName = roleData?.name
+  const isPhysiotherapistRole = roleName === 'physiotherapist'
+
+  return useQuery(
+    ['physiotherapist-dashboard'],
+    fetchPhysiotherapistDashboard,
+    {
+      enabled: isPhysiotherapistRole,
+      refetchOnWindowFocus: false,
+    }
+  )
 }
 
 export const useUserProfile = () => {
