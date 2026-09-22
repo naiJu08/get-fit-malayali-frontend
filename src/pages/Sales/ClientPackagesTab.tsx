@@ -1901,15 +1901,6 @@ export default function ClientPackagesTab({
                     </p>
                   </div>
                 </div>
-
-                {canCreateUpcomingPackage && (
-                  <Button
-                    label="Assign New Package"
-                    icon="plus"
-                    onClick={() => openProposalModal(undefined, true)}
-                    disabled={!client.profile_completed}
-                  />
-                )}
               </div>
 
               {selectedCycle?.refund_request && (
