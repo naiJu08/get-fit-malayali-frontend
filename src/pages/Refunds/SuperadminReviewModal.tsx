@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { DialogModal } from '../../components/common'
 import { useSnackbarManager } from '../../components/common/snackbar'
-import Icons from '../../components/common/icons'
 import { getApiErrorMessage } from '../../utilities/commonUtilities'
 import { approveRefundRequest, rejectRefundRequest } from './api'
 
@@ -127,21 +126,46 @@ export default function SuperadminReviewModal({
 
             {/* Document Link */}
             {refund.sales_submission?.supporting_document_url && (
-              <div className="pt-2 border-t border-formBorder/60 flex items-center justify-between">
-                <span className="text-secondary font-medium">
-                  Supporting Document:
-                </span>
+              <div className="pt-2 border-t border-formBorder/60">
+                <div className="text-[11px] font-bold text-gray-800 uppercase tracking-wide mb-1.5">
+                  ATTACHED SUPPORTING DOCUMENT:
+                </div>
                 <a
                   href={refund.sales_submission.supporting_document_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-primary font-semibold hover:underline"
+                  className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50/50 px-4 py-2 text-xs font-semibold text-purple-800 hover:bg-purple-100/80 transition"
                 >
-                  <Icons name="eye" className="h-4 w-4" />
-                  <span>
+                  <svg
+                    className="h-4 w-4 text-purple-600 shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <span className="break-all">
                     {refund.sales_submission.supporting_document_filename ||
                       'View Document'}
                   </span>
+                  <svg
+                    className="h-3.5 w-3.5 text-purple-500 shrink-0 ml-0.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
                 </a>
               </div>
             )}
