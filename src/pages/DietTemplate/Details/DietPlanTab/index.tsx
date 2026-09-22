@@ -609,46 +609,39 @@ function DietPlanContent({
     ? `${toTitleCase(selectedDayMeta?.day_name || 'Selected Day')} - Meals`
     : toTitleCase(templateName || 'Diet Plans')
 
-  const aggregatedActions = isNutritionist
-    ? []
-    : [
-        {
-          icon: <Icons name="eye" />,
-          action: handleViewDay,
-          title: 'View',
-          toolTip: 'View',
-        },
-      ]
+  const aggregatedActions = [
+    {
+      icon: <Icons name="eye" />,
+      action: handleViewDay,
+      title: 'View',
+      toolTip: 'View',
+    },
+  ]
 
-  const dayActions = isNutritionist
-    ? [
-        {
-          icon: <Icons name="eye" />,
-          action: (row: any) => navigate(`/diet_details/${row?.id}`),
-          title: 'View',
-          toolTip: 'View',
-        },
-      ]
-    : [
-        {
-          icon: <Icons name="eye" />,
-          action: (row: any) => navigate(`/diet_details/${row?.id}`),
-          title: 'View',
-          toolTip: 'View',
-        },
-        {
-          icon: <Icons name="edit" />,
-          action: (row: any) => openEdit(row),
-          title: 'Edit',
-          toolTip: 'Edit',
-        },
-        {
-          icon: <Icons name="delete" />,
-          action: (row: any) => handleDeleteClick(row),
-          title: 'Delete',
-          toolTip: 'Delete',
-        },
-      ]
+  const dayActions = [
+    {
+      icon: <Icons name="eye" />,
+      action: (row: any) => navigate(`/diet_details/${row?.id}`),
+      title: 'View',
+      toolTip: 'View',
+    },
+    {
+      icon: <Icons name="edit" />,
+      action: (row: any) => openEdit(row),
+      title: 'Edit',
+      toolTip: 'Edit',
+    },
+    ...(!isNutritionist
+      ? [
+          {
+            icon: <Icons name="delete" />,
+            action: (row: any) => handleDeleteClick(row),
+            title: 'Delete',
+            toolTip: 'Delete',
+          },
+        ]
+      : []),
+  ]
 
   const actionProps = viewingDay ? dayActions : aggregatedActions
   const copySourceDayNumbers = viewingDay
@@ -656,7 +649,7 @@ function DietPlanContent({
       ? [String(selectedDayMeta.day_number)]
       : []
     : selectedDayNumbers
-  const showCopyActions = !isNutritionist && copySourceDayNumbers.length > 0
+  const showCopyActions = copySourceDayNumbers.length > 0
 
   return (
     <div className="">
@@ -680,31 +673,27 @@ function DietPlanContent({
             </>
           )}
         </div>
-        {!viewingDay &&
-          !isNutritionist &&
-          checkPermissions('Employee', 'create') && (
-            <Button
-              className="bg-primaryGreen"
-              label="Create Diet Plan"
-              icon="plus"
-              onClick={openCreate}
-            />
-          )}
-        {viewingDay &&
-          !isNutritionist &&
-          checkPermissions('Employee', 'create') && (
-            <Button
-              className="bg-primaryGreen"
-              label="Create Meal"
-              icon="plus"
-              onClick={() =>
-                openCreate({
-                  day_name: selectedDayMeta?.day_name || '',
-                  day_number: selectedDayMeta?.day_number || 0,
-                })
-              }
-            />
-          )}
+        {!viewingDay && checkPermissions('Employee', 'create') && (
+          <Button
+            className="bg-primaryGreen"
+            label="Create Diet Plan"
+            icon="plus"
+            onClick={openCreate}
+          />
+        )}
+        {viewingDay && checkPermissions('Employee', 'create') && (
+          <Button
+            className="bg-primaryGreen"
+            label="Create Meal"
+            icon="plus"
+            onClick={() =>
+              openCreate({
+                day_name: selectedDayMeta?.day_name || '',
+                day_number: selectedDayMeta?.day_number || 0,
+              })
+            }
+          />
+        )}
       </div>
       <SmartTable
         data={paginatedData}

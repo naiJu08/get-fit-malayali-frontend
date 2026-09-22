@@ -4,7 +4,10 @@ import { useSnackbarManager } from '../../components/common/snackbar'
 import Icons from '../../components/common/icons'
 import TextArea from '../../components/common/inputs/TextArea'
 import { getApiErrorMessage } from '../../utilities/commonUtilities'
-import { submitRefundToSuperadmin } from './api'
+import {
+  submitRefundToSuperadmin,
+  initiateAndSubmitRefundToSuperadmin,
+} from './api'
 
 interface SubmitToSuperadminModalProps {
   isOpen: boolean
@@ -47,7 +50,12 @@ export default function SubmitToSuperadminModal({
       formData.append('sales_remarks', remarks.trim())
       formData.append('supporting_document', file)
 
-      await submitRefundToSuperadmin(refund.id, formData)
+      if (refund.id) {
+        await submitRefundToSuperadmin(refund.id, formData)
+      } else {
+        const subId = refund.subscription?.id || refund.subscription_id
+        await initiateAndSubmitRefundToSuperadmin(subId, formData)
+      }
       enqueueSnackbar('Refund request submitted to Superadmin successfully.', {
         variant: 'success',
       })

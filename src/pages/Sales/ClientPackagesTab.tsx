@@ -7,6 +7,7 @@ import {
   requestClientRenewal,
 } from './api'
 import { initiateRefundRequest } from '../Refunds/api'
+import SubmitToSuperadminModal from '../Refunds/SubmitToSuperadminModal'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAuthStore } from '../../store/authStore'
 import { FormProvider, useForm } from 'react-hook-form'
@@ -240,10 +241,41 @@ export default function ClientPackagesTab({
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
   const [refundRemarks, setRefundRemarks] = useState('')
   const [refundActionLoading, setRefundActionLoading] = useState(false)
+  const [submitToSuperadminRefund, setSubmitToSuperadminRefund] =
+    useState<any>(null)
   const [cycleActionLoading, setCycleActionLoading] = useState(false)
   const [salesAssignModalOpen, setSalesAssignModalOpen] = useState(false)
   const [periodDropdownOpen, setPeriodDropdownOpen] = useState(false)
   const periodDropdownRef = useRef<HTMLDivElement>(null)
+
+  const handleOpenRefund = (cycle: any) => {
+    if (!cycle?.subscription_id) return
+    const targetRefund = {
+      id: cycle.refund_request?.id || null,
+      subscription_id: cycle.subscription_id,
+      subscription: {
+        id: cycle.subscription_id,
+        plan_name: cycle.plan?.name,
+        start_date: cycle.start_date,
+        end_date: cycle.end_date,
+      },
+      client: client,
+      amount:
+        cycle.refund_request?.amount ||
+        cycle.proposal?.payment?.amount ||
+        activeProposal?.payment?.amount ||
+        cycle.plan?.fees ||
+        cycle.plan?.actual_price ||
+        0,
+      initiation: cycle.refund_request
+        ? {
+            initiated_by: cycle.refund_request.initiated_by,
+            remarks: cycle.refund_request.assignee_remarks,
+          }
+        : undefined,
+    }
+    setSubmitToSuperadminRefund(targetRefund)
+  }
 
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
@@ -1031,44 +1063,83 @@ export default function ClientPackagesTab({
             )}
 
             {selectedCycle?.can_request_refund &&
-              !selectedCycle?.refund_request && (
+              !selectedCycle?.refund_request &&
+              !isSales && (
                 <button
                   type="button"
                   onClick={() => {
-                    setRefundRemarks('')
-                    setRefundDialogOpen(true)
+                    if (isSales || isSuperAdmin) {
+                      handleOpenRefund(selectedCycle)
+                    } else {
+                      setRefundRemarks('')
+                      setRefundDialogOpen(true)
+                    }
                   }}
                   className="inline-flex items-center gap-2 rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-900 shadow-xs hover:bg-rose-100 transition active:scale-[0.98]"
-                  title="Initiate refund before the subscription starts"
+                  title={
+                    isSales || isSuperAdmin
+                      ? 'Submit refund request to Superadmin'
+                      : 'Initiate refund request for this package'
+                  }
                 >
                   <Icons
                     name="notification"
                     className="h-4 w-4 text-rose-600"
                   />
-                  Initiate refund
+                  {isSales || isSuperAdmin
+                    ? 'Submit for Refund'
+                    : 'Initiate refund'}
                 </button>
               )}
 
             {selectedCycle?.refund_request && (
-              <div className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-1.5 text-xs font-semibold text-rose-900 shadow-xs">
-                <span className="h-2 w-2 rounded-full bg-rose-500" />
-                <span>
-                  Refund:{' '}
-                  <strong className="uppercase">
-                    {String(selectedCycle.refund_request.status || '').replace(
-                      /_/g,
-                      ' '
-                    )}
-                  </strong>
-                </span>
-                {selectedCycle.refund_request.assignee_remarks && (
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-1.5 text-xs font-semibold text-rose-900 shadow-xs">
                   <span
-                    className="max-w-[160px] truncate text-[11px] font-normal text-rose-800 italic"
-                    title={selectedCycle.refund_request.assignee_remarks}
-                  >
-                    &quot;{selectedCycle.refund_request.assignee_remarks}&quot;
+                    className={`h-2 w-2 rounded-full ${
+                      selectedCycle.refund_request.status === 'approved'
+                        ? 'bg-amber-500'
+                        : selectedCycle.refund_request.status === 'completed'
+                          ? 'bg-emerald-500'
+                          : selectedCycle.refund_request.status === 'rejected'
+                            ? 'bg-red-500'
+                            : 'bg-rose-500 animate-pulse'
+                    }`}
+                  />
+                  <span>
+                    Refund:{' '}
+                    <strong className="uppercase">
+                      {String(
+                        selectedCycle.refund_request.status || ''
+                      ).replace(/_/g, ' ')}
+                    </strong>
                   </span>
-                )}
+                  {selectedCycle.refund_request.assignee_remarks && (
+                    <span
+                      className="max-w-[160px] truncate text-[11px] font-normal text-rose-800 italic"
+                      title={selectedCycle.refund_request.assignee_remarks}
+                    >
+                      &quot;{selectedCycle.refund_request.assignee_remarks}
+                      &quot;
+                    </span>
+                  )}
+                </div>
+
+                {selectedCycle.refund_request.status === 'initiated' &&
+                  (isSales || isSuperAdmin) && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenRefund(selectedCycle)}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-purple-300 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-800 hover:bg-purple-100 transition active:scale-[0.98]"
+                      title="Submit to Superadmin with supporting document"
+                    >
+                      <Icons
+                        name="send"
+                        className="h-3.5 w-3.5 text-purple-600"
+                      />
+                      Submit to Superadmin
+                    </button>
+                  )}
               </div>
             )}
           </div>
@@ -1710,14 +1781,15 @@ export default function ClientPackagesTab({
                 <strong className="font-semibold block">
                   Important Policy Notice
                 </strong>
-                Refunds can only be initiated before the subscription starts on{' '}
+                Refunds can be requested for active packages until the
+                subscription period ends on{' '}
                 <strong className="font-semibold text-rose-900">
-                  {selectedCycle?.start_date
-                    ? moment(selectedCycle.start_date).format('DD-MM-YYYY')
-                    : 'start date'}
+                  {selectedCycle?.end_date
+                    ? moment(selectedCycle.end_date).format('DD-MM-YYYY')
+                    : 'end date'}
                 </strong>
                 . Once approved and completed by Sales and Superadmin, this
-                subscription will be cancelled.
+                subscription will be refunded.
               </div>
             </div>
 
@@ -1733,12 +1805,24 @@ export default function ClientPackagesTab({
                 rows={4}
                 value={refundRemarks}
                 onChange={(e) => setRefundRemarks(e.target.value)}
-                placeholder="Explain why the client or service team is requesting a refund prior to starting the package..."
+                placeholder="Explain why the client is requesting a refund..."
               />
             </div>
           </div>
         }
       />
+      {submitToSuperadminRefund && (
+        <SubmitToSuperadminModal
+          isOpen={Boolean(submitToSuperadminRefund)}
+          refund={submitToSuperadminRefund}
+          onClose={() => setSubmitToSuperadminRefund(null)}
+          onSuccess={() => {
+            refetchCycles?.()
+            refetchClient?.()
+            setSubmitToSuperadminRefund(null)
+          }}
+        />
+      )}
       <Tab
         id="packages"
         activeTab={mode === 'assignments' ? 'assignments' : 'packages'}

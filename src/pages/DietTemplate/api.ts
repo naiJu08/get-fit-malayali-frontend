@@ -42,6 +42,14 @@ export const getTemplateDetails = (id: string) => {
   return getData(`${apiUrl.DIET_TEMPLATE}/${id}`)
 }
 
+export const getSubscriptionCopyDietTargetDays = (
+  id: string | number,
+  sourceTemplateId?: string | number
+) =>
+  getData(
+    `${apiUrl.SUBSCRIPTIONS}/${id}/copy_diet_target_days${sourceTemplateId ? `?source_template_id=${sourceTemplateId}` : ''}`
+  )
+
 export const freezeUser = (
   id: string,
   payload: { reason: string; start_date: string; end_date: string }

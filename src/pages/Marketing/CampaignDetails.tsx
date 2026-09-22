@@ -552,6 +552,7 @@ export default function CampaignDetails() {
   }
 
   const [assigningLoader, setAssigningLoader] = useState(false)
+  const [reassignReason, setReassignReason] = useState('')
   const openAssignModal = (rowsToAssign: any | any[]) => {
     const selectedRows = Array.isArray(rowsToAssign)
       ? rowsToAssign
@@ -562,6 +563,7 @@ export default function CampaignDetails() {
     setSelectedSalesId(currentSalesId ? String(currentSalesId) : null)
     setSalesSearch('')
     setSalesPage(1)
+    setReassignReason('')
   }
 
   const allSalesUsers = team?.users || []
@@ -591,6 +593,15 @@ export default function CampaignDetails() {
       enqueueSnackbar('Select a sales team member', { variant: 'error' })
       return
     }
+    const isReassign = Boolean(
+      assigning.some((lead: any) => Boolean(lead.assigned_to))
+    )
+    if (isReassign && !reassignReason.trim()) {
+      enqueueSnackbar('Please enter a reason for reassignment', {
+        variant: 'error',
+      })
+      return
+    }
     try {
       setAssigningLoader(true)
       await Promise.all(
@@ -599,16 +610,20 @@ export default function CampaignDetails() {
             campaignId: id,
             id: lead.id,
             assigned_to_id: selectedSalesId,
+            reason: isReassign ? reassignReason.trim() : undefined,
           })
         )
       )
       enqueueSnackbar(
         assigning.length === 1
-          ? 'Lead assigned successfully'
+          ? isReassign
+            ? 'Lead reassigned successfully'
+            : 'Lead assigned successfully'
           : assigning.length + ' leads assigned successfully',
         { variant: 'success' }
       )
       setAssigning(null)
+      setReassignReason('')
       setSelectedLeadIds([])
       refetchLeads()
     } catch (e: any) {
@@ -1415,12 +1430,9 @@ export default function CampaignDetails() {
                   action: (row: any) => openAssignModal(row),
                   hide: (row: any) => {
                     if (!row.assigned_to) return true
+                    if (row.can_reassign !== undefined) return !row.can_reassign
                     const s = String(row.status || '').toLowerCase()
-                    return (
-                      s === 'accepted' ||
-                      s === 'client_accepted' ||
-                      s === 'converted'
-                    )
+                    return s === 'converted'
                   },
                 },
               ]}
@@ -1449,8 +1461,16 @@ export default function CampaignDetails() {
       <DialogModal
         isOpen={Boolean(assigning)}
         onClose={() => setAssigning(null)}
-        title="Assign to sales"
-        actionLabel="Assign"
+        title={
+          assigning?.some((l: any) => Boolean(l.assigned_to))
+            ? 'Reassign to sales'
+            : 'Assign to sales'
+        }
+        actionLabel={
+          assigning?.some((l: any) => Boolean(l.assigned_to))
+            ? 'Reassign'
+            : 'Assign'
+        }
         actionLoader={assigningLoader}
         onSubmit={handleAssign}
         secondaryAction={() => setAssigning(null)}
@@ -1469,10 +1489,30 @@ export default function CampaignDetails() {
                 <Icons name="external-link" className="shrink-0" />
               </span>
               <p className="text-sm" style={{ color: '#0aa8ad' }}>
-                Assign {assigning?.length || 0} selected lead
-                {assigning?.length === 1 ? '' : 's'} to a sales team member.
+                {assigning?.some((l: any) => Boolean(l.assigned_to))
+                  ? `Reassign ${assigning?.length || 0} selected lead${
+                      assigning?.length === 1 ? '' : 's'
+                    } to another sales team member.`
+                  : `Assign ${assigning?.length || 0} selected lead${
+                      assigning?.length === 1 ? '' : 's'
+                    } to a sales team member.`}
               </p>
             </div>
+            {assigning?.some((l: any) => Boolean(l.assigned_to)) && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-700">
+                  Reason for Reassignment{' '}
+                  <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={reassignReason}
+                  onChange={(e) => setReassignReason(e.target.value)}
+                  placeholder="Explain why this lead is being reassigned (e.g., No response in 2 days, rep reassignment)..."
+                  className="w-full rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-900 placeholder-gray-400 outline-none transition focus:border-[#0fc8cd] focus:ring-1 focus:ring-[#0fc8cd]"
+                />
+              </div>
+            )}
             <div className="relative">
               <Icons
                 name="search"

@@ -112,7 +112,12 @@ export const updateMarketingLead = ({ campaignId, id, data }: any) =>
     apiUrl.MARKETING_CAMPAIGNS + '/' + campaignId + '/marketing_leads/' + id,
     { marketing_lead: data }
   )
-export const assignMarketingLead = ({ campaignId, id, assigned_to_id }: any) =>
+export const assignMarketingLead = ({
+  campaignId,
+  id,
+  assigned_to_id,
+  reason,
+}: any) =>
   postData(
     apiUrl.MARKETING_CAMPAIGNS +
       '/' +
@@ -120,7 +125,7 @@ export const assignMarketingLead = ({ campaignId, id, assigned_to_id }: any) =>
       '/marketing_leads/' +
       id +
       '/assign',
-    { assigned_to_id }
+    { assigned_to_id, reason }
   )
 export const getSalesTeam = () => getData(apiUrl.MARKETING_SALES_TEAM)
 export const createLeadActivity = ({ campaignId, id, data }: any) =>

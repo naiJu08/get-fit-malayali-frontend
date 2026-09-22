@@ -342,6 +342,7 @@ export default function LeadDetails() {
 
   const [assigning, setAssigning] = useState<any>(null)
   const [assigningLoader, setAssigningLoader] = useState(false)
+  const [reassignReason, setReassignReason] = useState('')
   const [selectedSalesId, setSelectedSalesId] = useState<
     string | number | null
   >(null)
@@ -377,16 +378,30 @@ export default function LeadDetails() {
       enqueueSnackbar('Select a sales team member', { variant: 'error' })
       return
     }
+    const isReassign = Boolean(assigning?.assigned_to)
+    if (isReassign && !reassignReason.trim()) {
+      enqueueSnackbar('Please enter a reason for reassignment', {
+        variant: 'error',
+      })
+      return
+    }
     try {
       setAssigningLoader(true)
       await assignMarketingLead({
         campaignId: effectiveCampaignId,
         id: assigning.id,
         assigned_to_id: selectedSalesId,
+        reason: isReassign ? reassignReason.trim() : undefined,
       })
-      enqueueSnackbar('Lead assigned successfully', { variant: 'success' })
+      enqueueSnackbar(
+        isReassign
+          ? 'Lead reassigned successfully'
+          : 'Lead assigned successfully',
+        { variant: 'success' }
+      )
       setAssigning(null)
       setSelectedSalesId(null)
+      setReassignReason('')
       refetchLead()
     } catch (e: any) {
       enqueueSnackbar(getApiErrorMessage(e, 'Unable to assign lead'), {
@@ -488,12 +503,9 @@ export default function LeadDetails() {
           {!leadLoading &&
             lead &&
             lead.assigned_to &&
-            (() => {
-              const s = String(lead.status || '').toLowerCase()
-              return (
-                s !== 'accepted' && s !== 'client_accepted' && s !== 'converted'
-              )
-            })() && (
+            (lead.can_reassign !== undefined
+              ? lead.can_reassign
+              : String(lead.status || '').toLowerCase() !== 'converted') && (
               <div className="flex items-center gap-2">
                 <Button
                   label="Reassign"
@@ -502,6 +514,7 @@ export default function LeadDetails() {
                     setSelectedSalesId(lead.assigned_to?.id || null)
                     setSalesSearch('')
                     setSalesPage(1)
+                    setReassignReason('')
                     setAssigning(lead)
                   }}
                 />
@@ -790,8 +803,8 @@ export default function LeadDetails() {
       <DialogModal
         isOpen={Boolean(assigning)}
         onClose={() => setAssigning(null)}
-        title="Assign to sales"
-        actionLabel="Assign"
+        title={assigning?.assigned_to ? 'Reassign to sales' : 'Assign to sales'}
+        actionLabel={assigning?.assigned_to ? 'Reassign' : 'Assign'}
         actionLoader={assigningLoader}
         onSubmit={handleAssign}
         secondaryAction={() => setAssigning(null)}
@@ -802,9 +815,26 @@ export default function LeadDetails() {
             <div className="rounded-lg bg-purple-50 border border-purple-100 px-4 py-3 flex items-center gap-3">
               <Icons name="external-link" className="text-[#0fc8cd] shrink-0" />
               <p className="text-sm text-[#0fc8cd]">
-                Assign this lead to a sales team member for follow-up.
+                {assigning?.assigned_to
+                  ? 'Reassign this lead to another sales team member.'
+                  : 'Assign this lead to a sales team member for follow-up.'}
               </p>
             </div>
+            {assigning?.assigned_to && (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-gray-700">
+                  Reason for Reassignment{' '}
+                  <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={reassignReason}
+                  onChange={(e) => setReassignReason(e.target.value)}
+                  placeholder="Explain why this lead is being reassigned (e.g., No response in 2 days, rep reassignment)..."
+                  className="w-full rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-900 placeholder-gray-400 outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-100 transition"
+                />
+              </div>
+            )}
             <div className="relative">
               <Icons
                 name="search"

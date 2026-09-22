@@ -186,13 +186,11 @@ export default function Meals() {
     <div>
       <ListingHeader
         data={{ title: 'Food', icon: 'meal-icon' }}
-        onActionClick={isNutritionist ? undefined : openDrawer}
-        actionProps={isNutritionist ? undefined : headerProps}
-        checkPermission={
-          !isNutritionist && checkPermissions('Employee', 'create')
-        }
+        onActionClick={openDrawer}
+        actionProps={headerProps}
+        checkPermission={checkPermissions('Employee', 'create')}
         bulkChangeButton={
-          !isNutritionist && selectedItems.size > 0 ? (
+          selectedItems.size > 0 ? (
             <Button
               className="bg-primaryGreen"
               label={`Bulk Change (${selectedItems.size})`}
@@ -236,22 +234,21 @@ export default function Meals() {
           emptyTitle="No records to display"
           columns={columns}
           pagination
-          actionProps={
-            isNutritionist
-              ? []
-              : [
-                  {
-                    icon: <Icons name="eye" />,
-                    action: (row: any) => navigate(`/meals/${row?.id}`),
-                    title: 'View',
-                    toolTip: 'View',
-                  },
-                  {
-                    icon: <Icons name="edit" />,
-                    action: (row: any) => openEdit(row),
-                    title: 'Edit',
-                    toolTip: 'Edit',
-                  },
+          actionProps={[
+            {
+              icon: <Icons name="eye" />,
+              action: (row: any) => navigate(`/meals/${row?.id}`),
+              title: 'View',
+              toolTip: 'View',
+            },
+            {
+              icon: <Icons name="edit" />,
+              action: (row: any) => openEdit(row),
+              title: 'Edit',
+              toolTip: 'Edit',
+            },
+            ...(!isNutritionist
+              ? [
                   {
                     icon: <Icons name="delete" />,
                     action: (row: any) => handleDelete(row),
@@ -259,7 +256,8 @@ export default function Meals() {
                     toolTip: 'Delete',
                   },
                 ]
-          }
+              : []),
+          ]}
           paginationProps={{
             onPagination: onChangePage,
             total: data?.meta?.total_count ?? 0,

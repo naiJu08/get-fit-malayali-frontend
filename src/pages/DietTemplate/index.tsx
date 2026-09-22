@@ -242,39 +242,38 @@ export default function DietTemplateMain() {
   //   setPageParams({ ...pageParams, filters: newFilters, page: 1 })
   // }
 
-  const actions: any[] = []
+  const actions: any[] = [
+    {
+      icon: <Icons name="eye" />,
+      action: (row: any) => navigate(`/diet-template/${row?.id}`),
+      title: 'View',
+      toolTip: 'View',
+    },
+    {
+      icon: <Icons name="edit" />,
+      action: (row: any) => handleEdit(row),
+      title: 'Edit',
+      toolTip: 'Edit',
+    },
+    {
+      icon: <Icons name="duplicate-icon" />,
+      action: (row: any) => handleDuplicateTemplate(row),
+      title: 'Duplicate',
+      toolTip: 'Duplicate Diet Template',
+    },
+  ]
 
   if (!isNutritionist) {
-    actions.push(
-      {
-        icon: <Icons name="eye" />,
-        action: (row: any) => navigate(`/diet-template/${row?.id}`),
-        title: 'View',
-        toolTip: 'View',
+    actions.push({
+      icon: <Icons name="table-delete" />,
+      action: (row: any) => {
+        if (!row?.id) return
+        setDeleteTemplateId(String(row.id))
+        setDeleteTemplateModal(true)
       },
-      {
-        icon: <Icons name="edit" />,
-        action: (row: any) => handleEdit(row),
-        title: 'Edit',
-        toolTip: 'Edit',
-      },
-      {
-        icon: <Icons name="duplicate-icon" />,
-        action: (row: any) => handleDuplicateTemplate(row),
-        title: 'Duplicate',
-        toolTip: 'Duplicate Diet Template',
-      },
-      {
-        icon: <Icons name="table-delete" />,
-        action: (row: any) => {
-          if (!row?.id) return
-          setDeleteTemplateId(String(row.id))
-          setDeleteTemplateModal(true)
-        },
-        title: 'Delete',
-        toolTip: 'Delete',
-      }
-    )
+      title: 'Delete',
+      toolTip: 'Delete',
+    })
   }
 
   return (
@@ -287,11 +286,9 @@ export default function DietTemplateMain() {
         <>
           <ListingHeader
             data={basicData}
-            onActionClick={isNutritionist ? undefined : openDrawer}
+            onActionClick={openDrawer}
             actionProps={headerProps}
-            checkPermission={
-              !isNutritionist && checkPermissions('Employee', 'create')
-            }
+            checkPermission={checkPermissions('Employee', 'create')}
           />
           <div className=" p-4">
             <SmartTable

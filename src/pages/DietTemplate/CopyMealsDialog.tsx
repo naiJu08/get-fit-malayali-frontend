@@ -3,6 +3,7 @@ import { DialogModal } from '../../components/common'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { getData, postData } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
+import { getSubscriptionCopyDietTargetDays } from './api'
 
 export type DietCopyTargetType = 'same_template' | 'other_template' | 'client'
 
@@ -127,10 +128,11 @@ export default function CopyMealsDialog({
     setLoading(true)
     getData(`${apiUrl.SUBSCRIPTIONS}?page=1&per_page=100`)
       .then((response: any) => {
+        const todayStr = new Date().toISOString().slice(0, 10)
         const items = (response?.subscriptions || response?.items || []).filter(
           (item: any) =>
             ['active', 'paused'].includes(String(item?.status)) &&
-            item?.end_date >= new Date().toISOString().slice(0, 10)
+            item?.end_date >= todayStr
         )
         setParents(items)
         setTargets([])
@@ -151,9 +153,7 @@ export default function CopyMealsDialog({
         ? getData(
             `${apiUrl.DIET_TEMPLATE}/${selectedParentId}?page=1&per_page=100`
           )
-        : getData(
-            `${apiUrl.SUBSCRIPTIONS}/${selectedParentId}/copy_diet_target_days`
-          )
+        : getSubscriptionCopyDietTargetDays(selectedParentId, sourceTemplateId)
 
     loadTarget
       .then((response: any) => {
@@ -178,7 +178,7 @@ export default function CopyMealsDialog({
         )
       })
       .finally(() => setLoading(false))
-  }, [selectedParentId, targetType])
+  }, [selectedParentId, targetType, sourceTemplateId])
 
   useEffect(() => {
     if (targetType !== 'client' || !replaceExisting) return
@@ -396,10 +396,27 @@ export default function CopyMealsDialog({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-gray-900">
-                            {item.name || item.user_name}
-                            {item.plan_name ? ` - ${item.plan_name}` : ''}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-gray-900">
+                              {item.name || item.user_name}
+                              {item.plan_name ? ` - ${item.plan_name}` : ''}
+                            </p>
+                            {targetType === 'client' && (
+                              <span
+                                className={`rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                                  item.start_date <=
+                                  new Date().toISOString().slice(0, 10)
+                                    ? 'bg-emerald-50 text-emerald-700'
+                                    : 'bg-amber-50 text-amber-700'
+                                }`}
+                              >
+                                {item.start_date <=
+                                new Date().toISOString().slice(0, 10)
+                                  ? 'Active'
+                                  : 'Upcoming'}
+                              </span>
+                            )}
+                          </div>
                           {targetType === 'client' ? (
                             <p className="mt-1 text-xs text-gray-500">
                               Subscription dates: {item.start_date} –{' '}

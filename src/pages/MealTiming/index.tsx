@@ -241,22 +241,21 @@ export default function MealTimingMain() {
             ),
             dropOptions: [10, 20, 30, 50, 100],
           }}
-          actionProps={
-            isNutritionist
-              ? []
-              : [
-                  {
-                    icon: <Icons name="eye" />,
-                    action: (row: any) => navigate(`/mealtiming/${row?.id}`),
-                    title: 'View',
-                    toolTip: 'View',
-                  },
-                  {
-                    icon: <Icons name="edit" />,
-                    action: (row: any) => handleEdit(row),
-                    title: 'Edit',
-                    toolTip: 'Edit',
-                  },
+          actionProps={[
+            {
+              icon: <Icons name="eye" />,
+              action: (row: any) => navigate(`/mealtiming/${row?.id}`),
+              title: 'View',
+              toolTip: 'View',
+            },
+            {
+              icon: <Icons name="edit" />,
+              action: (row: any) => handleEdit(row),
+              title: 'Edit',
+              toolTip: 'Edit',
+            },
+            ...(!isNutritionist
+              ? [
                   {
                     icon: <Icons name="table-delete" />,
                     action: (row: any) => {
@@ -267,7 +266,8 @@ export default function MealTimingMain() {
                     toolTip: 'Delete',
                   },
                 ]
-          }
+              : []),
+          ]}
           columnToggle
           externalActions={true}
         />
