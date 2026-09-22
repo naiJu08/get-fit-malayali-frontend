@@ -7,11 +7,14 @@ import { Tab, TabContainer } from '../../components/common/tab'
 import DetailTab from './Details/DetailTab'
 import DietPlanTab from './Details/DietPlanTab'
 import CreateDietTemplate from './create'
+import { useAuthStore } from '../../store/authStore'
 
 export default function DietTemplateDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
@@ -93,7 +96,9 @@ export default function DietTemplateDetails() {
               template={template}
               loading={loading}
               error={error}
-              onEdit={() => setEditModalOpen(true)}
+              onEdit={
+                !isNutritionist ? () => setEditModalOpen(true) : undefined
+              }
             />
           </Tab>
           <Tab id="diet-plan">

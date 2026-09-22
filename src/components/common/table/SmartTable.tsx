@@ -192,7 +192,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
         {renderedColumns.map((col) => (
           <th
             key={col.field}
-            className={`px-6 py-3 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wide ${
+            className={`px-6 py-4 text-left text-[11px] font-semibold text-gray-600 uppercase tracking-wide ${
               col.align === 'right'
                 ? 'text-right'
                 : col.align === 'center'
@@ -238,7 +238,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
         ))}
         {!!actionProps.length && (
           <th
-            className="px-6 py-4 text-[11px] font-semibold text-gray-600 uppercase tracking-wider text-left"
+            className="px-6 py-4 text-[11px] font-semibold text-gray-600 uppercase tracking-wide text-left"
             style={{
               width: columnWidths['actions'] || '120px',
               minWidth: columnWidths['actions'] || '120px',
@@ -588,7 +588,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
                           key={col.field}
                           title={finalToolTip}
                           className={`
-                            px-6 py-3 text-sm text-gray-800 align-middle transition-colors duration-150
+                            px-6 py-4 text-sm text-gray-800 align-middle transition-colors duration-150
                             ${
                               col.align === 'right'
                                 ? 'text-right'
@@ -633,7 +633,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
                     {/* Actions Column */}
                     {!!actionProps.length && (
                       <td
-                        className="px-6 py-4"
+                        className="px-6 py-3 align-middle"
                         style={{
                           width: columnWidths['actions'] || '120px',
                           minWidth: columnWidths['actions'] || '120px',

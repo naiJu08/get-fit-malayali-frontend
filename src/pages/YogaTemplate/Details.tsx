@@ -11,10 +11,13 @@ import YogaTemplateForm from './create'
 import YogaTemplateDayForm from './DayForm'
 import CopyExercisesDialog, { CopyTargetType } from './CopyExercisesDialog'
 import { calcWindowHeight } from '../../utilities/calcHeight'
+import { useAuthStore } from '../../store/authStore'
 
 export default function YogaTemplateDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
   const [template, setTemplate] = useState<any>(null)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<'details' | 'days'>('days')
@@ -136,15 +139,17 @@ export default function YogaTemplateDetails() {
         }
       >
         <Tab id="details">
-          <div className="flex justify-end mb-4">
-            <button
-              type="button"
-              className="px-4 py-2 text-sm rounded btn-primary"
-              onClick={() => setEditTemplateOpen(true)}
-            >
-              Edit Template
-            </button>
-          </div>
+          {!isNutritionist && (
+            <div className="flex justify-end mb-4">
+              <button
+                type="button"
+                className="px-4 py-2 text-sm rounded btn-primary"
+                onClick={() => setEditTemplateOpen(true)}
+              >
+                Edit Template
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <div className="border rounded-lg p-3 bg-white">
               <div className="text-xs text-gray-500 mb-1">Template Name</div>
@@ -222,12 +227,16 @@ export default function YogaTemplateDetails() {
                 action: (row: any) =>
                   navigate(`/yoga-templates/${id}/day/${row.id}?tab=assign`),
               },
-              {
-                icon: <Icons name="edit" />,
-                title: 'Edit',
-                toolTip: 'Edit',
-                action: (row: any) => setEditDay(row),
-              },
+              ...(!isNutritionist
+                ? [
+                    {
+                      icon: <Icons name="edit" />,
+                      title: 'Edit',
+                      toolTip: 'Edit',
+                      action: (row: any) => setEditDay(row),
+                    },
+                  ]
+                : []),
             ]}
             columnToggle
             pagination

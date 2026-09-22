@@ -243,12 +243,16 @@ export default function YogaCategoriesMain() {
               title: 'View',
               toolTip: 'View',
             },
-            {
-              icon: <Icons name="edit" />,
-              action: (row) => handleEdit(row),
-              title: 'Edit',
-              toolTip: 'Edit',
-            },
+            ...(!isNutritionist
+              ? [
+                  {
+                    icon: <Icons name="edit" />,
+                    action: (row: any) => handleEdit(row),
+                    title: 'Edit',
+                    toolTip: 'Edit',
+                  },
+                ]
+              : []),
             ...(!hideDeleteAction
               ? [
                   {

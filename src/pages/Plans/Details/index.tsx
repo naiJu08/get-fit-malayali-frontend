@@ -42,6 +42,8 @@ function PlanDetailsContent() {
   const { id } = useParams()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isSales = roleName === 'sales'
+  const isNutritionist = roleName === 'nutritionist'
+  const isPlanReadOnly = isNutritionist || isSales
   const navigate = useNavigate()
   const location = useLocation()
   const { data, isLoading, isError, error, refetch } = usePlan(id as string)
@@ -144,7 +146,7 @@ function PlanDetailsContent() {
             plan={plan}
             loading={isLoading as boolean}
             error={(isError ? (error as any)?.message : '') as string}
-            onEdit={isSales ? undefined : () => setEditModalOpen(true)}
+            onEdit={isPlanReadOnly ? undefined : () => setEditModalOpen(true)}
           />
         </Tab>
         <Tab id="dietplan">
