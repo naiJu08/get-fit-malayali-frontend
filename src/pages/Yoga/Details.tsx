@@ -5,10 +5,13 @@ import Icons from '../../components/common/icons'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import { getYogaDetails } from './api'
 import CreateYoga from './create'
+import { useAuthStore } from '../../store/authStore'
 
 export default function YogaDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
@@ -44,7 +47,7 @@ export default function YogaDetails() {
             </button>
             <h1 className="text-xl font-semibold">Yoga Details</h1>
           </div>
-          {yoga?.id && (
+          {yoga?.id && !isNutritionist && (
             <button
               type="button"
               className="inline-flex items-center rounded-lg bg-primaryGreen text-white px-4 py-2 text-sm font-medium hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"

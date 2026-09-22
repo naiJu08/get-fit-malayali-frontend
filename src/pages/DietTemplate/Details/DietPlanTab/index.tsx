@@ -625,14 +625,14 @@ function DietPlanContent({
       title: 'View',
       toolTip: 'View',
     },
-    {
-      icon: <Icons name="edit" />,
-      action: (row: any) => openEdit(row),
-      title: 'Edit',
-      toolTip: 'Edit',
-    },
     ...(!isNutritionist
       ? [
+          {
+            icon: <Icons name="edit" />,
+            action: (row: any) => openEdit(row),
+            title: 'Edit',
+            toolTip: 'Edit',
+          },
           {
             icon: <Icons name="delete" />,
             action: (row: any) => handleDeleteClick(row),

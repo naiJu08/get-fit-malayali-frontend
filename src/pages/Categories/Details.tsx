@@ -11,6 +11,7 @@ import { DialogModal } from '../../components/common'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 import { TableColumns } from '../../common/types'
 import { useSnackbarManager } from '../../components/common/snackbar'
+import { useAuthStore } from '../../store/authStore'
 import {
   deleteCategories,
   getCategoriesDetails,
@@ -41,6 +42,8 @@ export default function CategoryDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isNutritionist = roleName === 'nutritionist'
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string>('')
@@ -325,7 +328,7 @@ export default function CategoryDetails() {
         )}
         {!loading && !error && (
           <>
-            {category?.id && (
+            {category?.id && !isNutritionist && (
               <div className="flex justify-end mb-4">
                 <button
                   type="button"
@@ -350,15 +353,17 @@ export default function CategoryDetails() {
                 <div>
                   <h2 className="text-lg font-semibold">Subcategories</h2>
                 </div>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-lg bg-primaryGreen text-white px-4 py-2 text-sm font-medium transition-colors"
-                  onClick={handleCreateSubcategoryClick}
-                  disabled={!id}
-                >
-                  <Icons name="plus" />
-                  <span className="ml-2">Create Subcategory</span>
-                </button>
+                {!isNutritionist && (
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-lg bg-primaryGreen text-white px-4 py-2 text-sm font-medium transition-colors"
+                    onClick={handleCreateSubcategoryClick}
+                    disabled={!id}
+                  >
+                    <Icons name="plus" />
+                    <span className="ml-2">Create Subcategory</span>
+                  </button>
+                )}
               </div>
 
               {subError && <InfoBox content={subError} />}
@@ -405,20 +410,24 @@ export default function CategoryDetails() {
                   dropOptions: [5, 10, 20, 30],
                 }}
                 externalActions
-                actionProps={[
-                  {
-                    icon: <Icons name="edit" />,
-                    title: 'Edit',
-                    toolTip: 'Edit Subcategory',
-                    action: handleEditSubcategory,
-                  },
-                  {
-                    icon: <Icons name="delete" />,
-                    title: 'Delete',
-                    toolTip: 'Delete Subcategory',
-                    action: openDeleteModal,
-                  },
-                ]}
+                actionProps={
+                  isNutritionist
+                    ? []
+                    : [
+                        {
+                          icon: <Icons name="edit" />,
+                          title: 'Edit',
+                          toolTip: 'Edit Subcategory',
+                          action: handleEditSubcategory,
+                        },
+                        {
+                          icon: <Icons name="delete" />,
+                          title: 'Delete',
+                          toolTip: 'Delete Subcategory',
+                          action: openDeleteModal,
+                        },
+                      ]
+                }
               />
             </div>
           </>

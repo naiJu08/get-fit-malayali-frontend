@@ -1063,8 +1063,7 @@ export default function ClientPackagesTab({
             )}
 
             {selectedCycle?.can_request_refund &&
-              !selectedCycle?.refund_request &&
-              !isSales && (
+              !selectedCycle?.refund_request && (
                 <button
                   type="button"
                   onClick={() => {
