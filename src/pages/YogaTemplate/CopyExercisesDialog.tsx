@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import moment from 'moment'
 import { DialogModal } from '../../components/common'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { getData } from '../../apis/api.helpers'
@@ -19,6 +20,20 @@ type Props = {
   sourceExerciseIds?: Array<string | number>
   targetType: CopyTargetType
   onSuccess?: () => void | Promise<void>
+}
+
+const formatDate = (dateStr?: string | null) => {
+  if (!dateStr || dateStr === '—') return dateStr || '—'
+  const m = moment(
+    dateStr,
+    ['YYYY-MM-DD', 'YYYY-MM-DD HH:mm:ss', moment.ISO_8601],
+    true
+  )
+  if (m.isValid()) {
+    return m.format('DD-MM-YYYY')
+  }
+  const mFlexible = moment(dateStr)
+  return mFlexible.isValid() ? mFlexible.format('DD-MM-YYYY') : dateStr
 }
 
 const targetLabels = {
@@ -178,7 +193,7 @@ export default function CopyExercisesDialog({
       ? 'Legacy plan yoga days'
       : selectedClientTarget?.target_kind === 'unassigned'
         ? 'No yoga template assigned'
-        : `Yoga assignment: ${selectedClientTarget?.assignment_start_date || '—'} – ${selectedClientTarget?.assignment_end_date || '—'}`
+        : `Yoga assignment: ${formatDate(selectedClientTarget?.assignment_start_date)} – ${formatDate(selectedClientTarget?.assignment_end_date)}`
 
   const toggleTarget = (id: any) => {
     const key = String(id)
@@ -385,8 +400,8 @@ export default function CopyExercisesDialog({
                           </div>
                           {targetType === 'client' ? (
                             <p className="mt-1 text-xs text-gray-500">
-                              Subscription dates: {item.start_date} –{' '}
-                              {item.end_date}
+                              Subscription dates: {formatDate(item.start_date)}{' '}
+                              – {formatDate(item.end_date)}
                             </p>
                           ) : (
                             <p className="mt-1 text-xs text-gray-500">
@@ -427,8 +442,9 @@ export default function CopyExercisesDialog({
                 </p>
                 {targetType === 'client' && selectedClientTarget && (
                   <p className="mt-1 text-xs text-gray-500">
-                    Subscription: {selectedClientTarget.subscription_start_date}{' '}
-                    – {selectedClientTarget.subscription_end_date} ·{' '}
+                    Subscription:{' '}
+                    {formatDate(selectedClientTarget.subscription_start_date)} –{' '}
+                    {formatDate(selectedClientTarget.subscription_end_date)} ·{' '}
                     {clientTargetSummary}
                   </p>
                 )}
@@ -535,7 +551,9 @@ export default function CopyExercisesDialog({
                           </span>
                           <span className="mt-0.5 block text-xs text-gray-500">
                             Day {day.day_number}
-                            {day.target_date ? ` · ${day.target_date}` : ''}
+                            {day.target_date
+                              ? ` · ${formatDate(day.target_date)}`
+                              : ''}
                             {isSourceDay ? ' · Source day' : ''}
                             {replaceBlocked
                               ? ' · Today has started; append only'
