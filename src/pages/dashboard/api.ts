@@ -83,11 +83,12 @@ export const usePhysiotherapistDashboard = () => {
 }
 
 export const useUserProfile = () => {
-  const { roleData } = useAuthStore()
+  const { roleData, userData } = useAuthStore()
   const isUserRole = roleData?.name === 'user'
+  const userId = userData?.id
 
-  return useQuery(['userProfile'], fetchUserProfile, {
-    enabled: isUserRole, // Only enable if role is "user"
+  return useQuery(['userProfile', userId], fetchUserProfile, {
+    enabled: isUserRole && !!userId, // Only enable if role is "user" and user exists
     refetchOnWindowFocus: false,
     retry: 1,
   })

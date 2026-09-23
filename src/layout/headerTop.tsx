@@ -15,6 +15,8 @@ import HeaderTab from './headerTab'
 import NotificationList from './notificationList'
 import { useNotificationStore } from '../store/notificationStore'
 
+import { queryClient } from '../queryClient'
+
 const HeaderTop = () => {
   const { layoutType, expand, setExpand } = useLayoutStore()
   const handleClear = useClearFilter()
@@ -28,6 +30,13 @@ const HeaderTop = () => {
   } = useAuthStore()
 
   const handleLogout = () => {
+    try {
+      queryClient.clear()
+      queryClient.removeQueries()
+    } catch (e) {
+      // ignore
+    }
+
     useAdminUserFilterStore.getState().resetStore()
     useAssessorFilterStore.getState().resetStore()
     useOrganisationFilterStore.getState().resetStore()

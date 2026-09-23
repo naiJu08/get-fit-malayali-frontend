@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { SnackbarProvider } from 'notistack'
 import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { SnackbarManagerProvider } from './components/common/snackbar'
 import reportWebVitals from './reportWebVitals'
+import { queryClient } from './queryClient'
 
 import './styles/styles.scss'
 import './polyfills/resizeObserver'
@@ -74,20 +75,6 @@ window.addEventListener(
 )
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 0,
-      refetchOnWindowFocus: false,
-    },
-    mutations: {
-      retry: false,
-      useErrorBoundary: false,
-      // Prevent throwing to React error overlay
-      throwOnError: false,
-    },
-  },
-})
 root.render(
   <BrowserRouter>
     {/* <React.StrictMode> */}

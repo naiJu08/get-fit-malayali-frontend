@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { cookieStorage } from '../utilities/cookieStorage'
+import { queryClient } from '../queryClient'
 
 export const useAuthStore = create<AuthStoreType>()(
   persist(
@@ -33,8 +34,14 @@ export const useAuthStore = create<AuthStoreType>()(
       setUserData: (data) => set(() => ({ userData: data })),
       setRoleData: (data) => set(() => ({ roleData: data })),
       setPermissionData: (data) => set(() => ({ permissionData: data })),
-      clearAuthenticated: () =>
-        set(() => ({
+      clearAuthenticated: () => {
+        try {
+          queryClient.clear()
+          queryClient.removeQueries()
+        } catch (e) {
+          // ignore error if queryClient not ready
+        }
+        return set(() => ({
           authenticated: undefined,
           userData: {},
           roleData: {},
@@ -43,7 +50,8 @@ export const useAuthStore = create<AuthStoreType>()(
           refreshToken: undefined,
           tokenExpiresAt: undefined,
           refreshTokenExpiresAt: undefined,
-        })),
+        }))
+      },
     }),
     {
       name: 'authenticated',
@@ -79,7 +87,7 @@ type AuthStoreType = {
 }
 
 export interface UserDataProps {
-  id?: string | null
+  id?: string | number | null
   name?: string | null
   is_admin?: string | null | boolean
   is_operations_head?: string | null
@@ -91,6 +99,8 @@ export interface UserDataProps {
   mobile?: string | null
   mobile_2?: string | null
   username?: string | null
+  avatar_url?: string | null
+  role?: string | null
 }
 
 export interface RoleDataProps {

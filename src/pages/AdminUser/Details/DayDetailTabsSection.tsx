@@ -176,7 +176,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
         payload,
       }: {
         subscriptionId: string | number
-        payload: { diet_plan_template_id: number }
+        payload: { diet_plan_template_id: number; start_date?: string }
       }) => assignDietPlanTemplate(subId, payload),
       {
         onSuccess: async () => {
@@ -260,6 +260,9 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     setTemplatePage(1)
   }
 
+  const selectedDayDate =
+    dayDetail?.date ?? dayDetail?.day_date ?? dayDetail?.dayDate ?? null
+
   const handleAssignTemplate = async (
     templateId: number | string | null | undefined
   ) => {
@@ -270,10 +273,16 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
       })
       return
     }
+    const formattedStartDate = selectedDayDate
+      ? moment(selectedDayDate).format('YYYY-MM-DD')
+      : undefined
     try {
       await assignTemplate({
         subscriptionId,
-        payload: { diet_plan_template_id: normalizedTemplateId },
+        payload: {
+          diet_plan_template_id: normalizedTemplateId,
+          start_date: formattedStartDate,
+        },
       })
     } catch {
       /* handled in onError */

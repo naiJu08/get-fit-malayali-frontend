@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Icons from '../../components/common/icons'
 import { useAuthStore } from '../../store/authStore'
+import { useLayoutStore } from '../../store/layoutStore'
 import { useMarketingDashboard } from '../Marketing/api'
 import { useSalesDashboard } from '../Sales/api'
 import {
@@ -41,8 +43,14 @@ export default function ModuleDashboard({
   error,
   onRetry,
 }: Props) {
+  const { setLayoutType } = useLayoutStore()
+  const { userData, roleData } = useAuthStore()
   const navigate = useNavigate()
-  const { userData } = useAuthStore()
+
+  useEffect(() => {
+    setLayoutType('sideNav')
+  }, [setLayoutType])
+
   const marketingQuery = useMarketingDashboard(mode === 'marketing')
   const salesQuery = useSalesDashboard(mode === 'sales')
   const query = mode === 'marketing' ? marketingQuery : salesQuery
@@ -55,6 +63,15 @@ export default function ModuleDashboard({
     ? 'Marketing Performance Dashboard'
     : 'Sales Performance Dashboard'
   const eyebrow = marketing ? 'Marketing Analytics' : 'Sales Analytics'
+  const roleLabel = marketing ? 'Marketing' : 'Sales'
+  const staffName =
+    data?.marketing_user?.name ||
+    data?.sales_user?.name ||
+    data?.staff?.name ||
+    (marketing && roleData?.name === 'marketing' ? userData?.name : '') ||
+    (!marketing && roleData?.name === 'sales' ? userData?.name : '') ||
+    userData?.name ||
+    ''
   const metrics = data?.metrics || {}
   const leadMetrics = metrics.leads || {}
   const salesMetrics = metrics
@@ -194,19 +211,16 @@ export default function ModuleDashboard({
                 📅 As of {fmtDate(data?.generated_at)}
               </p>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2 lg:mt-0">
-              {!marketing && userData?.name && (
-                <div className="db-header-pill">
-                  <span className="db-header-pill-label">Sales Rep</span>
-                  <span
-                    className="db-header-pill-value text-sm sm:text-base max-w-[170px] truncate"
-                    title={userData.name}
-                  >
-                    {userData.name.charAt(0).toUpperCase() +
-                      userData.name.slice(1)}
-                  </span>
-                </div>
-              )}
+            <div className="mt-4 flex flex-wrap gap-2 lg:mt-0 items-center">
+              <div className="db-header-pill">
+                <span className="db-header-pill-label">{roleLabel}</span>
+                <span
+                  className="db-header-pill-value text-sm sm:text-base max-w-[170px] truncate"
+                  title={staffName || undefined}
+                >
+                  {staffName || '--'}
+                </span>
+              </div>
               <div className="db-header-pill">
                 <span className="db-header-pill-label">
                   {marketing ? 'Leads' : 'Follow-ups'}
