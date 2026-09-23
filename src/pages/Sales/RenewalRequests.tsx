@@ -87,9 +87,9 @@ function RenewalDetailModal({
                 </h3>
                 {getStatusBadge(row.status)}
               </div>
-              <p className="mt-1 text-sm text-white/70">
+              {/* <p className="mt-1 text-sm text-white/70">
                 {row.client_name} · {row.plan_name}
-              </p>
+              </p> */}
             </div>
             <button
               type="button"
@@ -158,9 +158,9 @@ function RenewalDetailModal({
                 Requested By
               </p>
               <p className="mt-0.5 text-sm font-semibold text-primaryText">
-                {row.requested_by?.name || '—'}
+                {capitalizeFirst(row.requested_by?.name) || '—'}
               </p>
-              {row.requested_by?.role && (
+              {capitalizeFirst(row.requested_by?.role) && (
                 <p className="text-xs text-secondary capitalize">
                   {row.requested_by.role}
                 </p>

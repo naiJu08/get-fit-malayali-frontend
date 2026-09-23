@@ -4725,7 +4725,7 @@ export default function Subscriptions({
                       ? moment(
                           proposedPackage?.start_date ||
                             proposedCycle?.start_date
-                        ).format('MMM D, YYYY')
+                        ).format('DD-MM-YYYY')
                       : '--'}
                   </span>
                 </div>
@@ -4735,7 +4735,7 @@ export default function Subscriptions({
                     {proposedPackage?.end_date || proposedCycle?.end_date
                       ? moment(
                           proposedPackage?.end_date || proposedCycle?.end_date
-                        ).format('MMM D, YYYY')
+                        ).format('DD-MM-YYYY')
                       : '--'}
                   </span>
                 </div>

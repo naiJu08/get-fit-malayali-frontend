@@ -103,7 +103,12 @@ const FormBuilder: React.FC<Props> = (props) => {
   const passwordEndAdorement =
     'appearance-none placeholder: relative block w-full pl-3 pr-6 py-2 border border-formBorder textfield'
 
-  const [showPassword, setShowPassword] = useState(false)
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>(
+    {}
+  )
+
+  const togglePassword = (fieldName: string) =>
+    setShowPasswords((prev) => ({ ...prev, [fieldName]: !prev[fieldName] }))
 
   const handleTextChange = useCallback(
     (onChange: any, e: any, field: FormBuilderProps) => {
@@ -287,7 +292,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                   <div className="relative ">
                     <input
                       id={field.name}
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPasswords[field.name] ? 'text' : 'password'}
                       required={field.required}
                       className={`${passwordEndAdorement} textfield`}
                       // className={`${passwordEndAdorement} textfield ${
@@ -306,9 +311,9 @@ const FormBuilder: React.FC<Props> = (props) => {
                     <button
                       type="button"
                       className="absolute right-2 top-2 z-10"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => togglePassword(field.name)}
                     >
-                      {showPassword ? (
+                      {showPasswords[field.name] ? (
                         <Icons name="eye" />
                       ) : (
                         <Icons name="eye-close" />
