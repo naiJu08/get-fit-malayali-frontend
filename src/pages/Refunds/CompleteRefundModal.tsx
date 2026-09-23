@@ -266,7 +266,7 @@ export default function CompleteRefundModal({
                   <div className="flex flex-col items-center gap-2 py-2 text-center">
                     <Icons
                       name="file-upload"
-                      className="h-8 w-8 text-secondary"
+                      className="h-8 w-8 text-gray-400"
                     />
                     <p className="text-sm font-semibold text-primaryText">
                       Click to upload receipt or proof of transfer
