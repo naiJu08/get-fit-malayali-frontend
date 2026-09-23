@@ -1676,7 +1676,7 @@ export default function UserDetails() {
               <Tab id="assignments" activeTab={urlTab}>
                 <ClientPackagesTab
                   clientId={String(id)}
-                  canManage={isSuperAdmin}
+                  canManage={true}
                   apiPrefix="/clients"
                   mode="assignments"
                   user={user}
