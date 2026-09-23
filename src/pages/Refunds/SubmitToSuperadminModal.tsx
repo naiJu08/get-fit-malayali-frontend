@@ -181,10 +181,7 @@ export default function SubmitToSuperadminModal({
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2 py-2 text-center">
-                  <Icons
-                    name="file-upload"
-                    className="h-8 w-8 text-secondary"
-                  />
+                  <Icons name="file-upload" className="h-8 w-8 text-gray-600" />
                   <p className="text-sm font-semibold text-primaryText">
                     Click to upload supporting document
                   </p>

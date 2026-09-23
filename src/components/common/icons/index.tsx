@@ -414,6 +414,7 @@ const Icons: React.FC<IconsProps> = ({
       case 'question-circle':
         return <QuestionCircleIcon />
       case 'cloud-upload':
+      case 'file-upload':
         return <CloudUploadIcon />
       case 'paper-clip':
         return <PaperClip />
@@ -585,7 +586,7 @@ const Icons: React.FC<IconsProps> = ({
       <span
         data-testid={name}
         onClick={onClick}
-        className={`${className ?? ' text-center text-white'}`}
+        className={`inline-flex items-center justify-center ${className ?? 'text-center text-white'}`}
       >
         {getIcons()}
       </span>

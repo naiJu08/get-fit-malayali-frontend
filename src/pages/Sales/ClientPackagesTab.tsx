@@ -998,7 +998,7 @@ export default function ClientPackagesTab({
 
           {/* Inline Action Controls */}
           <div className="flex flex-wrap items-center gap-2.5">
-            {canEditProposal && activeProposal && (
+            {/* {canEditProposal && activeProposal && (
               <button
                 type="button"
                 onClick={() => openProposalModal(activeProposal)}
@@ -1008,7 +1008,7 @@ export default function ClientPackagesTab({
                 <Icons name="edit" className="h-4 w-4 text-sky-600" />
                 Update package
               </button>
-            )}
+            )} */}
 
             {selectedCycle?.can_confirm && (
               <button

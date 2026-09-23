@@ -38,7 +38,7 @@ import { useClientPackageCycles } from '../Sales/api'
 
 const formatDate = (date?: string | null) => {
   if (!date) return '--'
-  return moment(date).format('MMM D, YYYY')
+  return moment(date).format('DD-MM-YYYY')
 }
 
 const capitalizeFirst = (text?: string) => {

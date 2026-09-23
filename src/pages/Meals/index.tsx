@@ -35,6 +35,7 @@ export default function Meals() {
   const location = useLocation()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
+  const isSuperAdmin = roleName === 'superadmin'
   const { page, per_page, search, ordering } = pageParams
   const searchParams = {
     page,
@@ -247,7 +248,7 @@ export default function Meals() {
               title: 'Edit',
               toolTip: 'Edit',
             },
-            ...(!isNutritionist
+            ...(isNutritionist || isSuperAdmin
               ? [
                   {
                     icon: <Icons name="delete" />,

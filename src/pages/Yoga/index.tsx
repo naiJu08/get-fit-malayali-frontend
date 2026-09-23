@@ -288,21 +288,20 @@ export default function YogaMain() {
 
   const actions: any[] = []
 
+  actions.push({
+    icon: <Icons name="eye" />,
+    action: (row: any) => navigate(`/yoga/${row?.id}`),
+    title: 'View',
+    toolTip: 'View',
+  })
+
   if (!isNutritionist) {
-    actions.push(
-      {
-        icon: <Icons name="eye" />,
-        action: (row: any) => navigate(`/yoga/${row?.id}`),
-        title: 'View',
-        toolTip: 'View',
-      },
-      {
-        icon: <Icons name="edit" />,
-        action: (row: any) => handleEdit(row),
-        title: 'Edit',
-        toolTip: 'Edit',
-      }
-    )
+    actions.push({
+      icon: <Icons name="edit" />,
+      action: (row: any) => handleEdit(row),
+      title: 'Edit',
+      toolTip: 'Edit',
+    })
     if (!isYogist) {
       actions.push({
         icon: <Icons name="table-delete" />,

@@ -214,7 +214,7 @@ export default function RefundsPage() {
         toolTip: 'Record refund payment and cancel subscription',
         icon: <Icons name="check-circle" />,
         variant: 'success' as const,
-        hide: (row: any) => !row.permissions?.can_complete,
+        hide: (row: any) => isSuperAdmin || !row.permissions?.can_complete,
         action: (row: any) => setCompleteModalRefund(row),
       },
     ],

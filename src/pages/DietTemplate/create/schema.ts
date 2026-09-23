@@ -20,7 +20,9 @@ const baseSchema = {
     .int('Duration must be a whole number')
     .positive('Duration must be greater than 0')
     .max(100, 'Duration cannot exceed 100 days'),
-  diet_template_category: z.string().optional(),
+  diet_template_category: z
+    .string({ invalid_type_error: 'Diet template category is required' })
+    .min(1, { message: 'Diet template category is required' }),
   diet_template_category_id: z.preprocess(
     (val) => {
       if (val && typeof val === 'object' && 'id' in (val as any)) {

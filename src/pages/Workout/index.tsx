@@ -425,7 +425,14 @@ export default function WorkoutMain() {
               }}
               actionProps={
                 isNutritionist
-                  ? []
+                  ? [
+                      {
+                        icon: <Icons name="eye" />,
+                        action: (row) => navigate(`/workout/${row?.id}`),
+                        title: 'View',
+                        toolTip: 'View',
+                      },
+                    ]
                   : [
                       {
                         icon: <Icons name="eye" />,

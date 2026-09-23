@@ -92,7 +92,14 @@ export default function YogaTemplateIndex() {
 
   const actions =
     role === 'nutritionist'
-      ? []
+      ? [
+          {
+            title: 'View',
+            toolTip: 'View',
+            icon: <Icons name="eye" />,
+            action: (row: any) => navigate(`/yoga-templates/${row.id}`),
+          },
+        ]
       : [
           {
             title: 'View',

@@ -37,6 +37,7 @@ const FormBuilder: React.FC<Props> = (props) => {
   const {
     control,
     setValue,
+    clearErrors,
     formState: { errors, isSubmitted, touchedFields },
     register,
     watch,
@@ -52,23 +53,47 @@ const FormBuilder: React.FC<Props> = (props) => {
     fromPopup,
   } = props
   const [trimValue, setTrimValue] = useState(null)
-  const handleChange = useCallback((e: any, field: FormBuilderProps) => {
-    setValue(field?.id, e[field.descId as string])
-    setValue(field.name, e[field.desc as string], { shouldValidate: true })
-    field.handleCallBack?.(e)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const handleChange = useCallback(
+    (e: any, field: FormBuilderProps) => {
+      const selectedVal = e?.[field.desc as string] ?? e ?? ''
+      const selectedIdVal = e?.[field.descId as string] ?? e ?? ''
+
+      if (field?.id) {
+        setValue(field.id, selectedIdVal, { shouldValidate: true })
+      }
+      setValue(field.name, selectedVal, { shouldValidate: true })
+
+      if (selectedVal || selectedIdVal) {
+        clearErrors(field.name)
+        if (field?.id) {
+          clearErrors(field.id)
+        }
+      }
+      field.handleCallBack?.(e)
+    },
+    [clearErrors, setValue]
+  )
 
   const handleParellelInputChange = useCallback(
     (e: any, field: FormBuilderProps) => {
-      setValue(field?.subId as string, e[field.descId as string])
-      setValue(field.subName as string, e[field.desc as string], {
-        shouldValidate: true,
-      })
+      const selectedVal = e?.[field.desc as string] ?? e ?? ''
+      const selectedIdVal = e?.[field.descId as string] ?? e ?? ''
+
+      if (field?.subId) {
+        setValue(field.subId as string, selectedIdVal, {
+          shouldValidate: true,
+        })
+        if (selectedIdVal) clearErrors(field.subId as string)
+      }
+      if (field?.subName) {
+        setValue(field.subName as string, selectedVal, {
+          shouldValidate: true,
+        })
+        if (selectedVal) clearErrors(field.subName as string)
+      }
       field.handleCallBack?.(e)
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    []
+    [clearErrors, setValue]
   )
 
   const handleMultiChange = useCallback((e: any, field: FormBuilderProps) => {
@@ -78,7 +103,12 @@ const FormBuilder: React.FC<Props> = (props) => {
   const passwordEndAdorement =
     'appearance-none placeholder: relative block w-full pl-3 pr-6 py-2 border border-formBorder textfield'
 
-  const [showPassword, setShowPassword] = useState(false)
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>(
+    {}
+  )
+
+  const togglePassword = (fieldName: string) =>
+    setShowPasswords((prev) => ({ ...prev, [fieldName]: !prev[fieldName] }))
 
   const handleTextChange = useCallback(
     (onChange: any, e: any, field: FormBuilderProps) => {
@@ -262,7 +292,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                   <div className="relative ">
                     <input
                       id={field.name}
-                      type={showPassword ? 'text' : 'password'}
+                      type={showPasswords[field.name] ? 'text' : 'password'}
                       required={field.required}
                       className={`${passwordEndAdorement} textfield`}
                       // className={`${passwordEndAdorement} textfield ${
@@ -281,9 +311,9 @@ const FormBuilder: React.FC<Props> = (props) => {
                     <button
                       type="button"
                       className="absolute right-2 top-2 z-10"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => togglePassword(field.name)}
                     >
-                      {showPassword ? (
+                      {showPasswords[field.name] ? (
                         <Icons name="eye" />
                       ) : (
                         <Icons name="eye-close" />
@@ -518,11 +548,18 @@ const FormBuilder: React.FC<Props> = (props) => {
                 onChange={(e) => handleChange(e, field)}
                 value={value}
                 className={
-                  errors[field.name] && !isEditable() ? 'textfield-error' : ''
+                  (errors[field.name] || (field.id && errors[field.id])) &&
+                  !isEditable()
+                    ? 'textfield-error'
+                    : ''
                 }
                 label={field.label}
                 data={field?.data}
-                errors={!isEditable() ? errors[field.name] : ''}
+                errors={
+                  !isEditable()
+                    ? errors[field.name] || (field.id && errors[field.id])
+                    : ''
+                }
                 data-testid={field.name}
                 actionLabel={field.actionLabel}
                 handleAction={field.handleAction}
@@ -552,7 +589,10 @@ const FormBuilder: React.FC<Props> = (props) => {
                 name={field.name}
                 type="custom_select"
                 className={
-                  errors[field.name] && !isEditable() ? 'textfield-error' : ''
+                  (errors[field.name] || (field.id && errors[field.id])) &&
+                  !isEditable()
+                    ? 'textfield-error'
+                    : ''
                 }
                 desc={field.desc as string}
                 descId={field.descId as string}
@@ -561,7 +601,11 @@ const FormBuilder: React.FC<Props> = (props) => {
                 label={field.label}
                 data-testid={field.name}
                 data={field?.data}
-                errors={!isEditable() ? errors[field.name] : ''}
+                errors={
+                  !isEditable()
+                    ? errors[field.name] || (field.id && errors[field.id])
+                    : ''
+                }
                 placeholder={field.placeholder}
                 notDataMessage={field.notDataMessage}
                 required={field.required}

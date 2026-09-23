@@ -44,6 +44,7 @@ export default function DietTemplateMain() {
   const [loader, setLoader] = useState(false)
   const { roleData } = useAuthStore()
   const isNutritionist = roleData?.name === 'nutritionist'
+  const isSuperAdmin = roleData?.name === 'superadmin'
   const { enqueueSnackbar } = useSnackbarManager()
   const params = useParams()
 
@@ -263,7 +264,7 @@ export default function DietTemplateMain() {
     },
   ]
 
-  if (!isNutritionist) {
+  if (isNutritionist || isSuperAdmin) {
     actions.push({
       icon: <Icons name="table-delete" />,
       action: (row: any) => {
