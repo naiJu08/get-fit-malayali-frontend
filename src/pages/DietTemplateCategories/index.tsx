@@ -27,6 +27,7 @@ export default function DietTemplateCategories() {
   const [searchDebounce, setSearchDebounce] = useState<any>(null)
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
+  const isSuperAdmin = roleName === 'superadmin'
   const location = useLocation()
   const { pageParams, setPageParams } = useAdminUserFilterStore()
   const { page, per_page, search, ordering } = pageParams
@@ -207,7 +208,7 @@ export default function DietTemplateCategories() {
               title: 'Edit',
               toolTip: 'Edit',
             },
-            ...(!isNutritionist
+            ...(isNutritionist || isSuperAdmin
               ? [
                   {
                     icon: <Icons name="delete" />,

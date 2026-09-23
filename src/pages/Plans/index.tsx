@@ -419,7 +419,14 @@ export default function Plans() {
                       },
                     ]
                   : isNutritionist
-                    ? []
+                    ? [
+                        {
+                          icon: <Icons name="eye" />,
+                          action: (row: any) => navigate(`/plans/${row?.id}`),
+                          title: 'View',
+                          toolTip: 'View',
+                        },
+                      ]
                     : [
                         {
                           icon: <Icons name="eye" />,
