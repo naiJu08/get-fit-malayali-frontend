@@ -136,7 +136,8 @@ export default function RefundDetailsModal({
     refund.permissions?.can_approve_or_reject ??
     refund.status === 'submitted_to_superadmin'
   const canDispenseRefund =
-    refund.permissions?.can_complete ?? refund.status === 'approved'
+    !isSuperAdmin &&
+    (refund.permissions?.can_complete ?? refund.status === 'approved')
 
   return (
     <DialogModal
