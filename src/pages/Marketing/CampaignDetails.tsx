@@ -712,7 +712,25 @@ export default function CampaignDetails() {
   }
 
   const statusCounts: Record<string, number> = leadsData?.status_counts || {}
-  const totalStatusCount = leadStatusFilterOptions.reduce(
+  const isPendingView = leadsParams.assignment_status === 'pending'
+
+  const effectiveStatusFilterOptions = useMemo(() => {
+    if (isPendingView) {
+      return leadStatusFilterOptions.filter((o) => o.id === 'new_lead')
+    }
+    return leadStatusFilterOptions.filter((o) => o.id !== 'new_lead')
+  }, [isPendingView])
+
+  useEffect(() => {
+    if (
+      leadsParams.status &&
+      !effectiveStatusFilterOptions.some((o) => o.id === leadsParams.status)
+    ) {
+      setLeadsParams((current) => ({ ...current, status: '', page: 1 }))
+    }
+  }, [effectiveStatusFilterOptions])
+
+  const totalStatusCount = effectiveStatusFilterOptions.reduce(
     (total, option) => total + (statusCounts[option.id] ?? 0),
     0
   )
@@ -720,7 +738,6 @@ export default function CampaignDetails() {
   const selectedLeads = rows.filter((row: any) =>
     selectedLeadIds.includes(row.id)
   )
-  const isPendingView = leadsParams.assignment_status === 'pending'
   const columns: any[] = [
     ...(isPendingView
       ? [
@@ -1303,7 +1320,7 @@ export default function CampaignDetails() {
                       <option value="">
                         All statuses ({totalStatusCount})
                       </option>
-                      {leadStatusFilterOptions.map((option) => (
+                      {effectiveStatusFilterOptions.map((option) => (
                         <option key={option.id} value={option.id}>
                           {option.name} ({statusCounts[option.id] ?? 0})
                         </option>
