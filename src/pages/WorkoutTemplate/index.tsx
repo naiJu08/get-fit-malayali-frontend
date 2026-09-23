@@ -94,7 +94,14 @@ export default function WorkoutTemplateIndex() {
 
   const actions =
     role === 'nutritionist'
-      ? []
+      ? [
+          {
+            title: 'View',
+            toolTip: 'View',
+            icon: <Icons name="eye" />,
+            action: (row: any) => navigate(`/workout-templates/${row.id}`),
+          },
+        ]
       : [
           {
             title: 'View',

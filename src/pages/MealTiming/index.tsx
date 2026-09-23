@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom'
 export default function MealTimingMain() {
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isNutritionist = roleName === 'nutritionist'
+  const isSuperAdmin = roleName === 'superadmin'
   const [columns, setColumns] = useState<any[]>([])
   const [createOpen, setCreateOpen] = useState(false)
   const [viewMode, setViewMode] = useState(false)
@@ -254,7 +255,7 @@ export default function MealTimingMain() {
               title: 'Edit',
               toolTip: 'Edit',
             },
-            ...(!isNutritionist
+            ...(isNutritionist || isSuperAdmin
               ? [
                   {
                     icon: <Icons name="table-delete" />,

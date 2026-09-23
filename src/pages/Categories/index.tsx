@@ -276,7 +276,14 @@ export default function CategoriesMain() {
               }}
               actionProps={
                 isNutritionist
-                  ? []
+                  ? [
+                      {
+                        icon: <Icons name="eye" />,
+                        action: (row) => navigate(`/categories/${row?.id}`),
+                        title: 'View',
+                        toolTip: 'View',
+                      },
+                    ]
                   : [
                       {
                         icon: <Icons name="eye" />,
