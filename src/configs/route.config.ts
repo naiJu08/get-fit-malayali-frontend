@@ -853,6 +853,7 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   SALES_CLIENTS,
   ASSESSMENT_CATEGORY,
   ASSESSMENT_CATEGORY_DETAILS,
+  MEDITATION,
   NOTIFICATIONS,
 
   // Children under YOGA_MODULE
@@ -866,7 +867,6 @@ export const router_config: { [key: string]: RouterMenuProps } = {
   WORKOUT_DETAILS,
   YOGA,
   YOGA_DETAILS,
-  MEDITATION,
   MEDITATION_DETAILS,
 
   // Children under DIET_NUTRITION

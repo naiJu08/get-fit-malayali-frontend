@@ -1023,8 +1023,10 @@ export default function ClientPackagesTab({
               </button>
             )}
 
-            {selectedCycle?.can_request_renewal &&
-              (!isNutritionist || isInFinalFiveDays) && (
+            {selectedCycle?.status === 'active' &&
+              !selectedCycle?.renewal_request &&
+              (selectedCycle?.can_request_renewal || isSuperAdmin) &&
+              (isSuperAdmin || !isNutritionist || isInFinalFiveDays) && (
                 <button
                   type="button"
                   onClick={() => {
