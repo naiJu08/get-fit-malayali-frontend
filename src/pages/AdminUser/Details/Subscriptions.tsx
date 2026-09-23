@@ -1967,11 +1967,10 @@ export default function Subscriptions({
       try {
         const subId =
           selectedSubscriptionId || selectedCycle?.subscription_id || undefined
-        const refreshed = await getOverviewDetail(
-          String(user.id),
-          selectedDate,
-          subId
-        )
+        const [refreshed] = await Promise.all([
+          getOverviewDetail(String(user.id), selectedDate, subId),
+          fetchOverview(),
+        ])
         setDayDetail(refreshed)
       } catch (err) {
         console.error(err)

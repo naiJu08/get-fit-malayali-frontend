@@ -206,7 +206,7 @@ export const meditationOverridesBulk = (
 
 export const assignDietPlanTemplate = (
   subscriptionId: string | number,
-  payload: { diet_plan_template_id: number }
+  payload: { diet_plan_template_id: number; start_date?: string }
 ) => {
   return postData(
     `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/assign_diet_plan_template`,
