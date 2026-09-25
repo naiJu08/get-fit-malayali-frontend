@@ -21,6 +21,7 @@ interface SearchableStaffSelectProps {
   onChange: (value: string) => void
   options: StaffMember[]
   placeholder?: string
+  searchPlaceholder?: string
   roleName?: string
   disabled?: boolean
   className?: string
@@ -39,6 +40,7 @@ function SearchableStaffSelect({
   onChange,
   options,
   placeholder,
+  searchPlaceholder,
   roleName = 'Staff',
   disabled = false,
   className = '',
@@ -207,7 +209,7 @@ function SearchableStaffSelect({
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder={`Search ${roleName} name or email...`}
+                placeholder={searchPlaceholder || `Search ${roleName}...`}
                 className="w-full bg-white border border-gray-200 rounded-lg pl-8 pr-7 py-1.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
               {searchTerm && (
@@ -587,7 +589,7 @@ export default function StaffAssignmentsModal({
               </div>
               <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-center shadow-xs">
                 <div className="text-xs font-medium text-gray-500">
-                  Upcoming Commitments
+                  Follow-ups Count
                 </div>
                 <div className="text-base font-bold text-indigo-600">
                   {assignments.reduce(
@@ -670,7 +672,7 @@ export default function StaffAssignmentsModal({
                           onChange={setBulkStaffId}
                           options={availableStaff}
                           roleName={capitalizedRole}
-                          placeholder={`Select Replacement ${capitalizedRole}`}
+                          placeholder="Select Replacement"
                         />
                       </div>
                       <button
@@ -821,7 +823,13 @@ export default function StaffAssignmentsModal({
 
                           {/* Reassign Searchable Select & button */}
                           {availableStaff.length > 0 && (
-                            <div className="flex items-center gap-2">
+                            <div
+                              className={`flex items-center gap-2 ${
+                                bulkStaffId
+                                  ? 'opacity-50 pointer-events-none'
+                                  : ''
+                              }`}
+                            >
                               <div className="w-52">
                                 <SearchableStaffSelect
                                   value={rowState.staffId}
@@ -831,14 +839,24 @@ export default function StaffAssignmentsModal({
                                   options={availableStaff}
                                   roleName={capitalizedRole}
                                   placeholder={`Select ${capitalizedRole}`}
+                                  disabled={!!bulkStaffId}
                                   size="sm"
                                 />
                               </div>
 
                               <button
                                 onClick={() => handleSingleReassign(assignment)}
-                                disabled={!rowState.staffId || isRowReassigning}
-                                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center gap-1 cursor-pointer h-8"
+                                disabled={
+                                  !rowState.staffId ||
+                                  isRowReassigning ||
+                                  !!bulkStaffId
+                                }
+                                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center gap-1 cursor-pointer h-8"
+                                title={
+                                  bulkStaffId
+                                    ? 'Individual reassignments are disabled while Bulk Reassign is active'
+                                    : ''
+                                }
                               >
                                 {isRowReassigning && (
                                   <div className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
