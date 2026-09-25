@@ -295,7 +295,7 @@ export default function ClientPackagesTab({
   }, [periodDropdownOpen])
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
   const isSales = loginRole === 'sales'
-  const isNutritionist = loginRole === 'nutritionist'
+  // const isNutritionist = loginRole === 'nutritionist'
   const isSuperAdmin = loginRole === 'superadmin' || loginRole === 'admin'
   const isServiceStaff = [
     'nutritionist',
@@ -1025,8 +1025,9 @@ export default function ClientPackagesTab({
 
             {selectedCycle?.status === 'active' &&
               !selectedCycle?.renewal_request &&
-              (selectedCycle?.can_request_renewal || isSuperAdmin) &&
-              (isSuperAdmin || !isNutritionist || isInFinalFiveDays) && (
+              !selectedCycle?.refund_request &&
+              (selectedCycle?.can_request_renewal || isSuperAdmin || isSales) &&
+              isInFinalFiveDays && (
                 <button
                   type="button"
                   onClick={() => {
@@ -1125,7 +1126,8 @@ export default function ClientPackagesTab({
                 </div>
 
                 {selectedCycle.refund_request.status === 'initiated' &&
-                  (isSales || isSuperAdmin) && (
+                  (isSales || isSuperAdmin) &&
+                  apiPrefix !== '/clients' && (
                     <button
                       type="button"
                       onClick={() => handleOpenRefund(selectedCycle)}

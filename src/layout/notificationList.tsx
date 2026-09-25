@@ -22,7 +22,7 @@ interface NotificationListProps {
 
 type TabType = 'new' | 'read' | 'all'
 
-const PAGE_SIZE = 20
+// const PAGE_SIZE = 20
 
 export default function NotificationList({
   open,
@@ -31,8 +31,8 @@ export default function NotificationList({
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
   const {
-    unreadCount,
-    readCount,
+    // unreadCount,
+    // readCount,
     totalCount,
     setCounts,
     decrementUnreadCount,
@@ -47,12 +47,12 @@ export default function NotificationList({
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
-
+  const [typeFilter, setTypeFilter] = useState<string>('all')
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
-  // Fetch page of notifications for given tab
+  // Fetch page of notifications
   const loadNotifications = useCallback(
-    async (tab: TabType, targetPage: number, isInitial = false) => {
+    async (targetPage: number, isInitial = false) => {
       if (isInitial) {
         setIsLoading(true)
       } else {
@@ -60,11 +60,9 @@ export default function NotificationList({
       }
 
       try {
-        const statusParam = tab === 'all' ? undefined : tab
         const data = await getNotifications({
-          status: statusParam,
           page: targetPage,
-          per_page: PAGE_SIZE,
+          per_page: 100,
         })
 
         const newItems = data?.notifications || []
@@ -93,7 +91,7 @@ export default function NotificationList({
         if (data?.meta) {
           setHasMore(data.meta.next_page !== null)
         } else {
-          setHasMore(newItems.length >= PAGE_SIZE)
+          setHasMore(newItems.length >= 100)
         }
       } catch (error) {
         console.error('Failed to load notifications:', error)
@@ -113,16 +111,16 @@ export default function NotificationList({
     if (open) {
       setPage(1)
       setHasMore(true)
-      loadNotifications(activeTab, 1, true)
+      loadNotifications(1, true)
+    } else {
+      setTypeFilter('all')
     }
-  }, [open, refreshKey, activeTab, loadNotifications])
+  }, [open, refreshKey, loadNotifications])
 
   // Handle Tab Switch
   const handleTabChange = (newTab: TabType) => {
     if (newTab === activeTab) return
     setActiveTab(newTab)
-    setPage(1)
-    setHasMore(true)
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0
     }
@@ -135,7 +133,7 @@ export default function NotificationList({
       target.scrollHeight - target.scrollTop - target.clientHeight <= 140
 
     if (isNearBottom && hasMore && !isLoading && !isLoadingMore) {
-      loadNotifications(activeTab, page + 1, false)
+      loadNotifications(page + 1, false)
     }
   }
 
@@ -169,16 +167,67 @@ export default function NotificationList({
       enqueueSnackbar('All notifications marked as read', {
         variant: 'success',
       })
-      if (activeTab === 'new') {
-        // Refresh the new tab
-        loadNotifications('new', 1, true)
-      }
     } catch {
       enqueueSnackbar('Failed to mark all as read', { variant: 'error' })
     }
   }
 
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+
+  const roleTypeFilters = useMemo(() => {
+    const isSuperAdmin = roleName === 'superadmin' || roleName === 'admin'
+    const isSales = roleName === 'sales'
+    const isMarketing = roleName === 'marketing'
+    const isServiceStaff = [
+      'nutritionist',
+      'physiotherapist',
+      'physio',
+      'yogist',
+      'yoga',
+    ].includes(roleName || '')
+
+    if (isSuperAdmin) {
+      return [
+        { value: 'lead', label: 'Lead' },
+        { value: 'campaign', label: 'Campaign' },
+        { value: 'proposal', label: 'Proposal' },
+        { value: 'refund_request', label: 'Refund Request' },
+        { value: 'renewal_request', label: 'Renewal Request' },
+        { value: 'assignment', label: 'Assignment' },
+        { value: 'reminder', label: 'Reminder' },
+      ]
+    }
+    if (isSales) {
+      return [
+        { value: 'lead', label: 'Lead' },
+        { value: 'proposal', label: 'Proposal' },
+        { value: 'refund_request', label: 'Refund Request' },
+        { value: 'renewal_request', label: 'Renewal Request' },
+      ]
+    }
+    if (isMarketing) {
+      return [
+        { value: 'lead', label: 'Lead' },
+        { value: 'campaign', label: 'Campaign' },
+        { value: 'reassignment', label: 'reassignment' },
+      ]
+    }
+    if (isServiceStaff) {
+      return [
+        { value: 'assignment', label: 'Assignment' },
+        { value: 'reassignment', label: 'Reassignment' },
+        { value: 'proposal', label: 'Proposal' },
+        { value: 'reminder', label: 'Reminder' },
+      ]
+    }
+    return [
+      { value: 'lead', label: 'Lead' },
+      { value: 'campaign', label: 'Campaign' },
+      { value: 'proposal', label: 'Proposal' },
+      { value: 'refund_request', label: 'Refund Request' },
+      { value: 'renewal_request', label: 'Renewal Request' },
+    ]
+  }, [roleName])
 
   // Handle Go to Page
   const handleNavigate = async (url: string, id: number | string) => {
@@ -214,17 +263,56 @@ export default function NotificationList({
     }
   }
 
-  // Client search filter across loaded items
+  // Client search and status filter across loaded items
   const filteredNotifications = useMemo(() => {
-    if (!searchQuery.trim()) return notifications
-    const q = searchQuery.toLowerCase()
     return notifications.filter((item) => {
-      const titleMatch = item.title?.toLowerCase().includes(q)
-      const msgMatch = item.message?.toLowerCase().includes(q)
-      const typeMatch = item.notification_type?.toLowerCase().includes(q)
-      return titleMatch || msgMatch || typeMatch
+      if (activeTab === 'new' && item.is_read) return false
+      if (activeTab === 'read' && !item.is_read) return false
+
+      if (typeFilter !== 'all' && item.notification_type !== typeFilter) {
+        return false
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase()
+        const titleMatch = item.title?.toLowerCase().includes(q)
+        const msgMatch = item.message?.toLowerCase().includes(q)
+        const typeMatch = item.notification_type?.toLowerCase().includes(q)
+        return titleMatch || msgMatch || typeMatch
+      }
+
+      return true
     })
-  }, [notifications, searchQuery])
+  }, [notifications, searchQuery, typeFilter, activeTab])
+
+  const typeFilteredNewCount = useMemo(
+    () =>
+      notifications.filter(
+        (n) =>
+          !n.is_read &&
+          (typeFilter === 'all' || n.notification_type === typeFilter)
+      ).length,
+    [notifications, typeFilter]
+  )
+  const typeFilteredReadCount = useMemo(
+    () =>
+      notifications.filter(
+        (n) =>
+          n.is_read &&
+          (typeFilter === 'all' || n.notification_type === typeFilter)
+      ).length,
+    [notifications, typeFilter]
+  )
+  const typeFilteredTotalCount = useMemo(
+    () =>
+      notifications.filter(
+        (n) => typeFilter === 'all' || n.notification_type === typeFilter
+      ).length,
+    [notifications, typeFilter]
+  )
+
+  const liveNewCount = notifications.filter((n) => !n.is_read).length
+  const liveReadCount = notifications.filter((n) => n.is_read).length
 
   return (
     <CustomDrawer
@@ -240,15 +328,23 @@ export default function NotificationList({
             <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
               Notifications
             </span>
-            {unreadCount > 0 && (
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+              {notifications.length}
+            </span>
+            {liveNewCount > 0 && (
               <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300">
-                {unreadCount} New
+                {liveNewCount}
+              </span>
+            )}
+            {liveReadCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                {liveReadCount}
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            {unreadCount > 0 && (
+            {liveNewCount > 0 && (
               <button
                 type="button"
                 onClick={handleMarkAllAsRead}
@@ -274,7 +370,7 @@ export default function NotificationList({
 
             <button
               type="button"
-              onClick={() => loadNotifications(activeTab, 1, true)}
+              onClick={() => loadNotifications(1, true)}
               disabled={isLoading}
               className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
               title="Refresh notifications"
@@ -316,7 +412,7 @@ export default function NotificationList({
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {unreadCount}
+                {typeFilteredNewCount}
               </span>
             </button>
 
@@ -337,7 +433,7 @@ export default function NotificationList({
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {readCount}
+                {typeFilteredReadCount}
               </span>
             </button>
 
@@ -358,55 +454,69 @@ export default function NotificationList({
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {totalCount}
+                {typeFilteredTotalCount}
               </span>
             </button>
           </div>
 
-          {/* Search bar inside header */}
+          {/* Search bar & Type filter */}
           <div className="py-2.5">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search notifications..."
-                className="w-full pl-9 pr-8 py-1.5 text-xs bg-gray-100 dark:bg-gray-700/60 text-gray-900 dark:text-gray-100 placeholder-gray-400 rounded-lg border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 focus:outline-none transition-all"
-              />
-              <svg
-                className="w-4 h-4 text-gray-400 absolute left-2.5 top-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="flex items-center gap-2">
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-none rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none shrink-0"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                <option value="all">All Types</option>
+                {roleTypeFilters.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search notifications by name..."
+                  className="w-full pl-9 pr-8 py-1.5 text-xs bg-gray-100 dark:bg-gray-700/60 text-gray-900 dark:text-gray-100 placeholder-gray-400 rounded-lg border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 focus:outline-none transition-all"
                 />
-              </svg>
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                <svg
+                  className="w-4 h-4 text-gray-400 absolute left-2.5 top-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              )}
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

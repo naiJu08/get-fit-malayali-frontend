@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Icons from '../components/common/icons'
 import { useLayoutStore } from '../store/layoutStore'
 import { router_config } from '../configs/route.config'
-import './layout.css'
+// import './layout.css'
 import { useAuthStore } from '../store/authStore'
 import { RouterMenuProps } from '../configs/route.config'
 
@@ -187,7 +187,7 @@ export default function Sidenav() {
       className={`sidenav -left-full border-t-0 sm:left-0 duration-300 h-full fixed z-20 border bg-primaryBlue ${!expand ? 'w-20' : 'w-[280px]'} overflow-y-auto no-scrollbar`}
     >
       {/* MENU LISTS  */}
-      <div className="p-4 pt-0 flex flex-col min-h-full justify-between">
+      <div className="p-4 pt-0 mb-[60px] flex flex-col min-h-full justify-between">
         <ul className="mt-[40px]">
           {sidebarList.map((item) => {
             if (!checkPermission(item)) {
@@ -301,6 +301,38 @@ export default function Sidenav() {
             )
           })}
         </ul>
+        <div className={`mt-auto pt-3 pb-4 ${!expand ? 'px-2' : 'px-4'}`}>
+          <div
+            className={`rounded-xl bg-white/[0.07] backdrop-blur-sm border border-white/[0.06] ${!expand ? 'px-2 py-3' : 'px-3.5 py-3'}`}
+          >
+            {!expand ? (
+              <div className="flex flex-col items-center gap-1.5">
+                <span className="text-[13px] font-bold text-white/90 tracking-wide">
+                  ID
+                </span>
+                <span className="text-[7px] text-white/30 uppercase tracking-widest leading-none">
+                  Inovace
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2.5">
+                <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-white/90">
+                    ID
+                  </span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-medium text-white/40 leading-none mb-1">
+                    Developed and Maintained by
+                  </p>
+                  <p className="text-[11px] font-semibold text-white/80 leading-none truncate">
+                    Inovace Digital
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

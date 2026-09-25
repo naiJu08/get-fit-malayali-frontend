@@ -149,13 +149,20 @@ export default function MessageBoxView() {
     })
   }, [notifications, activeTab, typeFilter, searchQuery])
 
+  const typeFilteredNotifications = useMemo(
+    () =>
+      notifications.filter(
+        (n) => typeFilter === 'all' || n.notification_type === typeFilter
+      ),
+    [notifications, typeFilter]
+  )
   const newCount = useMemo(
-    () => notifications.filter((n) => !n.is_read).length,
-    [notifications]
+    () => typeFilteredNotifications.filter((n) => !n.is_read).length,
+    [typeFilteredNotifications]
   )
   const readCount = useMemo(
-    () => notifications.filter((n) => n.is_read).length,
-    [notifications]
+    () => typeFilteredNotifications.filter((n) => n.is_read).length,
+    [typeFilteredNotifications]
   )
 
   return (
@@ -291,7 +298,7 @@ export default function MessageBoxView() {
                   : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
               }`}
             >
-              {notifications.length}
+              {typeFilteredNotifications.length}
             </span>
           </button>
         </div>
@@ -320,7 +327,7 @@ export default function MessageBoxView() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search notifications..."
+              placeholder="Search notifications by name..."
               className="w-full pl-9 pr-8 py-2 text-xs bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 rounded-xl border-none focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
             />
             <svg
@@ -378,6 +385,7 @@ export default function MessageBoxView() {
                 onMarkAsRead={handleMarkAsRead}
                 onNavigate={handleNavigate}
                 onDelete={handleDelete}
+                hideStatusBadge={activeTab !== 'all'}
               />
             ))}
           </div>

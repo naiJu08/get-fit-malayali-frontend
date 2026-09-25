@@ -954,24 +954,9 @@ export function ClientWorkflowFollowUps({
             outlined
             label="Schedule follow-up"
             onClick={() => setDialogOpen(true)}
-            disabled={
-              saving ||
-              assignment?.workflow_status === 'pending' ||
-              assignment?.workflow_status === 'package_confirmed'
-            }
+            disabled={saving}
           />
         </div>
-        {assignment?.workflow_status === 'pending' && (
-          <p className="text-sm text-secondary mb-3">
-            Accept the client before scheduling a follow-up.
-          </p>
-        )}
-        {assignment?.workflow_status === 'package_confirmed' && (
-          <p className="text-sm text-secondary mb-3">
-            The package is confirmed; no further assignment follow-up is
-            required.
-          </p>
-        )}
         <SmartTable
           data={assignment?.follow_ups || []}
           dataRowKey="id"
