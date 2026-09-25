@@ -300,8 +300,10 @@ export default function MessageBoxView() {
             >
               <option value="all">All Types</option>
               {notificationTypes.map((t) => (
-                <option key={t} value={t} className="capitalize">
-                  {t.replace(/_/g, ' ')}
+                <option key={t} value={t}>
+                  {t
+                    .replace(/_/g, ' ')
+                    .replace(/\b\w/g, (c) => c.toUpperCase())}
                 </option>
               ))}
             </select>

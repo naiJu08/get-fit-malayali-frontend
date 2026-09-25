@@ -234,7 +234,7 @@ export default function ProfilePage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span>{initialLetter}</span>
+                  <span className="capitalize">{initialLetter}</span>
                 )}
 
                 {/* Upload Overlay */}
@@ -301,7 +301,7 @@ export default function ProfilePage() {
             {/* User Meta */}
             <div className="flex-1 text-center md:text-left space-y-2">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white capitalize">
                   {user.name || 'User'}
                 </h2>
                 <span

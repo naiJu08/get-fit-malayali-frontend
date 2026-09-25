@@ -99,7 +99,7 @@ export default function HeaderMenu({
 
         {/* User Details Stack */}
         <div className="hidden sm:flex flex-col text-left leading-tight max-w-[140px] md:max-w-[170px]">
-          <span className="text-xs font-bold text-gray-800 dark:text-gray-100 truncate group-hover:text-blue-600 transition-colors">
+          <span className="text-xs font-bold text-gray-800 dark:text-gray-100 truncate group-hover:text-blue-600 transition-colors capitalize">
             {userName}
           </span>
           <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
@@ -144,7 +144,7 @@ export default function HeaderMenu({
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
+              <p className="text-xs font-bold text-gray-900 dark:text-white truncate capitalize">
                 {userName}
               </p>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
