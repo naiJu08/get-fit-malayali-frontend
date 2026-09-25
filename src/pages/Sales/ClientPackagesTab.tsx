@@ -1069,7 +1069,7 @@ export default function ClientPackagesTab({
                 <button
                   type="button"
                   onClick={() => {
-                    if (isSales || isSuperAdmin) {
+                    if (isSales) {
                       handleOpenRefund(selectedCycle)
                     } else {
                       setRefundRemarks('')
@@ -1078,7 +1078,7 @@ export default function ClientPackagesTab({
                   }}
                   className="inline-flex items-center gap-2 rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-xs font-semibold text-rose-900 shadow-xs hover:bg-rose-100 transition active:scale-[0.98]"
                   title={
-                    isSales || isSuperAdmin
+                    isSales
                       ? 'Submit refund request to Superadmin'
                       : 'Initiate refund request for this package'
                   }
@@ -1087,9 +1087,7 @@ export default function ClientPackagesTab({
                     name="notification"
                     className="h-4 w-4 text-rose-600"
                   />
-                  {isSales || isSuperAdmin
-                    ? 'Submit for Refund'
-                    : 'Initiate refund'}
+                  {isSales ? 'Submit for Refund' : 'Initiate refund'}
                 </button>
               )}
 

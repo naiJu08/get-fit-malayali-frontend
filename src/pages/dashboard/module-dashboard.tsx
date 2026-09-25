@@ -64,7 +64,7 @@ export default function ModuleDashboard({
     : 'Sales Performance Dashboard'
   const eyebrow = marketing ? 'Marketing Analytics' : 'Sales Analytics'
   const roleLabel = marketing ? 'Marketing' : 'Sales'
-  const staffName =
+  const rawName =
     data?.marketing_user?.name ||
     data?.sales_user?.name ||
     data?.staff?.name ||
@@ -72,6 +72,9 @@ export default function ModuleDashboard({
     (!marketing && roleData?.name === 'sales' ? userData?.name : '') ||
     userData?.name ||
     ''
+  const staffName = rawName
+    ? rawName.charAt(0).toUpperCase() + rawName.slice(1)
+    : ''
   const metrics = data?.metrics || {}
   const leadMetrics = metrics.leads || {}
   const salesMetrics = metrics
