@@ -11,7 +11,9 @@ import {
   NotificationRecord,
 } from '../apis/notifications.api'
 import { useNotificationStore } from '../store/notificationStore'
+import { useAuthStore } from '../store/authStore'
 import { useSnackbarManager } from '../components/common/snackbar'
+import { resolveNotificationUrl } from '../utilities/notificationNavigation'
 
 interface NotificationListProps {
   open: boolean
@@ -176,12 +178,16 @@ export default function NotificationList({
     }
   }
 
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+
   // Handle Go to Page
   const handleNavigate = async (url: string, id: number | string) => {
+    let resolvedUrl = url
     try {
       const targetItem = notifications.find(
         (item) => String(item.id) === String(id)
       )
+      resolvedUrl = resolveNotificationUrl(url, roleName, targetItem)
       if (targetItem && !targetItem.is_read) {
         await markNotificationAsRead(id)
         decrementUnreadCount()
@@ -190,7 +196,7 @@ export default function NotificationList({
       // Non-blocking error
     } finally {
       handleClose()
-      navigate(url)
+      navigate(resolvedUrl)
     }
   }
 

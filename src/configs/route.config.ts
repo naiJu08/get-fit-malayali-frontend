@@ -740,7 +740,7 @@ const REFUNDS: RouterMenuProps = {
   label: 'Refunds',
   icon: 'paymentapproval-icon',
   key: 'refunds',
-  permission_slugs: ['superadmin', 'sales'],
+  permission_slugs: ['superadmin', 'admin', 'sales'],
   isSidebarMenu: true,
 }
 

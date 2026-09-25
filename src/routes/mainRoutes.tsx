@@ -226,6 +226,38 @@ export default function MainRoutes() {
         }
       />
       <Route
+        path="/sales/renewal-requests/:id"
+        element={
+          <UserRoute slug_key="SALES_RENEWALS">
+            <RenewalRequests />
+          </UserRoute>
+        }
+      />
+      <Route
+        path="/sales/refunds"
+        element={
+          <UserRoute slug_key="REFUNDS">
+            <RefundsPage />
+          </UserRoute>
+        }
+      />
+      <Route
+        path="/sales/refunds/:id"
+        element={
+          <UserRoute slug_key="REFUNDS">
+            <RefundsPage />
+          </UserRoute>
+        }
+      />
+      <Route
+        path="/refunds/:id"
+        element={
+          <UserRoute slug_key="REFUNDS">
+            <RefundsPage />
+          </UserRoute>
+        }
+      />
+      <Route
         path="/payment-history/:id"
         element={
           <UserRoute slug_key="PAYMENT_HISTORY">

@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import moment from 'moment'
 import SmartTable from '../../components/common/table/SmartTable'
 import ListingHeader from '../../components/common/ListingTiles'
@@ -237,6 +237,15 @@ function RenewalDetailModal({
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function RenewalRequests() {
   const navigate = useNavigate()
+  const { id: routeId } = useParams<{ id?: string }>()
+  const location = useLocation()
+
+  const targetRenewalId =
+    routeId ||
+    new URLSearchParams(location.search).get('id') ||
+    new URLSearchParams(location.search).get('renewal_id') ||
+    new URLSearchParams(location.search).get('renewal_request_id')
+
   const [params, setParams] = useState({
     page: 1,
     per_page: 20,
@@ -247,6 +256,18 @@ export default function RenewalRequests() {
 
   const { data, isFetching } = useRenewalRequests(params)
   const requests = data?.renewal_requests || []
+
+  // Auto-open target renewal detail when ID is specified
+  useEffect(() => {
+    if (targetRenewalId && requests.length > 0) {
+      const match = requests.find(
+        (r: any) => String(r.id) === String(targetRenewalId)
+      )
+      if (match) {
+        setDetailRow(match)
+      }
+    }
+  }, [targetRenewalId, requests])
 
   const goToPackages = (row: any) => {
     const query = new URLSearchParams({ tab: 'packages' })
