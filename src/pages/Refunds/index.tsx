@@ -64,6 +64,8 @@ export default function RefundsPage() {
     routeId ||
     new URLSearchParams(location.search).get('id') ||
     new URLSearchParams(location.search).get('refundId') ||
+    new URLSearchParams(location.search).get('refund_id') ||
+    new URLSearchParams(location.search).get('refund_request_id') ||
     undefined
 
   const getClientUrl = (clientId: string | number) => {
@@ -71,12 +73,26 @@ export default function RefundsPage() {
     return `/users/${clientId}/details`
   }
 
+  const querySearch =
+    new URLSearchParams(location.search).get('search') ||
+    new URLSearchParams(location.search).get('client') ||
+    new URLSearchParams(location.search).get('q') ||
+    ''
+
   const [params, setParams] = useState({
     page: 1,
     per_page: 20,
-    search: '',
+    search: querySearch,
     status: '',
   })
+  const [hasAutoOpenedSearch, setHasAutoOpenedSearch] = useState(false)
+
+  // Sync params.search if URL search query changes
+  useEffect(() => {
+    if (querySearch && params.search !== querySearch) {
+      setParams((prev) => ({ ...prev, search: querySearch, page: 1 }))
+    }
+  }, [querySearch])
 
   const { data, isFetching, refetch } = useRefundRequests(params)
   const refunds = data?.refund_requests || data?.items || []
@@ -89,26 +105,45 @@ export default function RefundsPage() {
   const [completeModalRefund, setCompleteModalRefund] = useState<any>(null)
   const [detailsModalRefund, setDetailsModalRefund] = useState<any>(null)
 
-  // Auto-open target refund detail when ID is specified in URL
+  // Auto-open target refund detail when ID is specified in URL, or match by search term
   useEffect(() => {
-    if (!targetRefundId) return
-    if (singleRefundData?.refund_request) {
-      setDetailsModalRefund(singleRefundData.refund_request)
-    } else if (
-      singleRefundData &&
-      !singleRefundData.refund_request &&
-      singleRefundData.id
-    ) {
-      setDetailsModalRefund(singleRefundData)
-    } else if (refunds.length > 0) {
-      const match = refunds.find(
-        (r: any) => String(r.id) === String(targetRefundId)
-      )
+    if (targetRefundId) {
+      if (singleRefundData?.refund_request) {
+        setDetailsModalRefund(singleRefundData.refund_request)
+      } else if (
+        singleRefundData &&
+        !singleRefundData.refund_request &&
+        singleRefundData.id
+      ) {
+        setDetailsModalRefund(singleRefundData)
+      } else if (refunds.length > 0) {
+        const match = refunds.find(
+          (r: any) => String(r.id) === String(targetRefundId)
+        )
+        if (match) {
+          setDetailsModalRefund(match)
+        }
+      }
+    } else if (querySearch && refunds.length > 0 && !hasAutoOpenedSearch) {
+      const match =
+        refunds.find(
+          (r: any) =>
+            r.client?.name?.toLowerCase().includes(querySearch.toLowerCase()) ||
+            r.user?.name?.toLowerCase().includes(querySearch.toLowerCase())
+        ) || refunds[0]
+
       if (match) {
         setDetailsModalRefund(match)
+        setHasAutoOpenedSearch(true)
       }
     }
-  }, [targetRefundId, singleRefundData, refunds])
+  }, [
+    targetRefundId,
+    singleRefundData,
+    refunds,
+    querySearch,
+    hasAutoOpenedSearch,
+  ])
 
   const columns: any[] = useMemo(
     () => [

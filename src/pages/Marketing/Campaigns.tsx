@@ -1,7 +1,7 @@
 import moment from 'moment'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import FormBuilder from '../../components/app/formBuilder'
 import { DialogModal } from '../../components/common'
 import CustomDrawer from '../../components/common/drawer'
@@ -135,13 +135,21 @@ function FormPreviewFrame({ form }: { form: any }) {
 
 export default function Campaigns() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { enqueueSnackbar } = useSnackbarManager()
+
+  const querySearch =
+    new URLSearchParams(location.search).get('search') ||
+    new URLSearchParams(location.search).get('q') ||
+    ''
+
   const [params, setParams] = useState({
     page: 1,
     per_page: 20,
-    search: '',
-    status: '',
+    search: querySearch,
+    status: querySearch ? '' : '',
   })
+  const [hasAutoRedirected, setHasAutoRedirected] = useState(false)
   const [editing, setEditing] = useState<any>(null)
   const [selectedForm, setSelectedForm] = useState<any>(null)
   const [formDrawerOpen, setFormDrawerOpen] = useState(false)
@@ -156,6 +164,35 @@ export default function Campaigns() {
   const [deleteRow, setDeleteRow] = useState<any>(null)
   const [deleting, setDeleting] = useState(false)
   const { data, isFetching, refetch } = useMarketingCampaigns(params)
+
+  // Sync params.search when query in URL changes
+  useEffect(() => {
+    if (querySearch && params.search !== querySearch) {
+      setParams((prev) => ({ ...prev, search: querySearch, page: 1 }))
+    }
+  }, [querySearch])
+
+  // Auto-redirect to details page if landing from search notification
+  useEffect(() => {
+    if (
+      querySearch &&
+      !hasAutoRedirected &&
+      data?.marketing_campaigns?.length
+    ) {
+      const campaigns = data.marketing_campaigns
+      const match =
+        campaigns.find(
+          (c: any) =>
+            c.name?.toLowerCase() === querySearch.toLowerCase() ||
+            c.name?.toLowerCase().includes(querySearch.toLowerCase())
+        ) || (campaigns.length === 1 ? campaigns[0] : null)
+
+      if (match?.id) {
+        setHasAutoRedirected(true)
+        navigate(`/marketing/campaigns/${match.id}/details`)
+      }
+    }
+  }, [querySearch, data, hasAutoRedirected, navigate])
   const { data: formsData, isFetching: formsFetching } =
     useMarketingForms(formParams)
   const { data: selectedFormData } = useMarketingForm(selectedForm?.id)
@@ -347,7 +384,7 @@ export default function Campaigns() {
           cell: (
             <button
               className="text-blue-600 hover:underline"
-              onClick={() => navigate('/marketing/campaigns/' + row.id)}
+              onClick={() => navigate(`/marketing/campaigns/${row.id}/details`)}
             >
               {row.name}
             </button>
