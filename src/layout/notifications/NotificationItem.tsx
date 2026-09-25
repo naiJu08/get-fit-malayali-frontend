@@ -10,6 +10,7 @@ interface NotificationItemProps {
   onMarkAsRead?: (id: number | string) => void
   onNavigate?: (url: string, id: number | string) => void
   onDelete?: (id: number | string) => void
+  hideStatusBadge?: boolean
 }
 
 const getTypeBadge = (type?: string) => {
@@ -103,6 +104,7 @@ export default function NotificationItem({
   onMarkAsRead,
   onNavigate,
   onDelete,
+  hideStatusBadge,
 }: NotificationItemProps) {
   const isUnread = !item.is_read
   const typeBadge = getTypeBadge(item.notification_type)
@@ -137,15 +139,16 @@ export default function NotificationItem({
           >
             {typeBadge.label}
           </span>
-          {isUnread ? (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-              New
-            </span>
-          ) : (
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-              Read
-            </span>
-          )}
+          {!hideStatusBadge &&
+            (isUnread ? (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                New
+              </span>
+            ) : (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                Read
+              </span>
+            ))}
         </div>
 
         <div className="flex items-center gap-2">

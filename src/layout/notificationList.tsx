@@ -32,7 +32,7 @@ export default function NotificationList({
   const { enqueueSnackbar } = useSnackbarManager()
   const {
     unreadCount,
-    readCount,
+    // readCount,
     totalCount,
     setCounts,
     decrementUnreadCount,
@@ -47,7 +47,7 @@ export default function NotificationList({
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
-
+  const [typeFilter, setTypeFilter] = useState<string>('all')
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
   // Fetch page of notifications for given tab
@@ -214,17 +214,50 @@ export default function NotificationList({
     }
   }
 
-  // Client search filter across loaded items
+  // Client search and status filter across loaded items
   const filteredNotifications = useMemo(() => {
-    if (!searchQuery.trim()) return notifications
-    const q = searchQuery.toLowerCase()
     return notifications.filter((item) => {
-      const titleMatch = item.title?.toLowerCase().includes(q)
-      const msgMatch = item.message?.toLowerCase().includes(q)
-      const typeMatch = item.notification_type?.toLowerCase().includes(q)
-      return titleMatch || msgMatch || typeMatch
+      if (typeFilter !== 'all' && item.notification_type !== typeFilter) {
+        return false
+      }
+
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase()
+        const titleMatch = item.title?.toLowerCase().includes(q)
+        const msgMatch = item.message?.toLowerCase().includes(q)
+        const typeMatch = item.notification_type?.toLowerCase().includes(q)
+        return titleMatch || msgMatch || typeMatch
+      }
+
+      return true
     })
-  }, [notifications, searchQuery])
+  }, [notifications, searchQuery, typeFilter])
+
+  const typeFilteredNewCount = useMemo(
+    () =>
+      notifications.filter(
+        (n) =>
+          !n.is_read &&
+          (typeFilter === 'all' || n.notification_type === typeFilter)
+      ).length,
+    [notifications, typeFilter]
+  )
+  const typeFilteredReadCount = useMemo(
+    () =>
+      notifications.filter(
+        (n) =>
+          n.is_read &&
+          (typeFilter === 'all' || n.notification_type === typeFilter)
+      ).length,
+    [notifications, typeFilter]
+  )
+  const typeFilteredTotalCount = useMemo(
+    () =>
+      notifications.filter(
+        (n) => typeFilter === 'all' || n.notification_type === typeFilter
+      ).length,
+    [notifications, typeFilter]
+  )
 
   return (
     <CustomDrawer
@@ -239,6 +272,9 @@ export default function NotificationList({
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-gray-800 dark:text-gray-100">
               Notifications
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+              {notifications.length}
             </span>
             {unreadCount > 0 && (
               <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300">
@@ -316,7 +352,7 @@ export default function NotificationList({
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {unreadCount}
+                {typeFilteredNewCount}
               </span>
             </button>
 
@@ -337,7 +373,7 @@ export default function NotificationList({
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {readCount}
+                {typeFilteredReadCount}
               </span>
             </button>
 
@@ -358,55 +394,68 @@ export default function NotificationList({
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {totalCount}
+                {typeFilteredTotalCount}
               </span>
             </button>
           </div>
 
-          {/* Search bar inside header */}
+          {/* Search bar & Type filter */}
           <div className="py-2.5">
-            <div className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search notifications..."
-                className="w-full pl-9 pr-8 py-1.5 text-xs bg-gray-100 dark:bg-gray-700/60 text-gray-900 dark:text-gray-100 placeholder-gray-400 rounded-lg border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 focus:outline-none transition-all"
-              />
-              <svg
-                className="w-4 h-4 text-gray-400 absolute left-2.5 top-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="flex items-center gap-2">
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-none rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none shrink-0"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                <option value="all">All Types</option>
+                <option value="lead">Lead</option>
+                <option value="campaign">Campaign</option>
+                <option value="refund_request">Refund Request</option>
+                <option value="renewal_request">Renewal Request</option>
+              </select>
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search notifications by name..."
+                  className="w-full pl-9 pr-8 py-1.5 text-xs bg-gray-100 dark:bg-gray-700/60 text-gray-900 dark:text-gray-100 placeholder-gray-400 rounded-lg border border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-700 focus:outline-none transition-all"
                 />
-              </svg>
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                <svg
+                  className="w-4 h-4 text-gray-400 absolute left-2.5 top-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              )}
+                    <svg
+                      className="w-3.5 h-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
