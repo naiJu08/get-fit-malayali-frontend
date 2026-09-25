@@ -63,7 +63,11 @@ export default function SalesPackages() {
           onSearchChange={(search) => setParams({ ...params, search, page: 1 })}
           columnToggle
           pagination
-          height={calcWindowHeight(packages.length ? 150 : 218)}
+          height={
+            packages.length === 0
+              ? calcWindowHeight(220)
+              : calcWindowHeight(160)
+          }
           emptyTitle="No packages found"
           isLoading={isFetching}
           paginationProps={{

@@ -370,8 +370,8 @@ export default function Plans() {
               }
               height={
                 (data?.plans?.length ?? 0) === 0
-                  ? calcWindowHeight(218)
-                  : calcWindowHeight(150)
+                  ? calcWindowHeight(220)
+                  : calcWindowHeight(160)
               }
               search={true}
               searchPlaceholder="Search"
