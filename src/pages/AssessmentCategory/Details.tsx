@@ -173,7 +173,7 @@ export default function AssessmentCategoryDetails() {
                 dataRowKey="id"
                 toolbar={false}
                 search={false}
-                height={questions.length === 0 ? 360 : 650}
+                height={questions.length === 0 ? 300 : 560}
                 emptyTitle="No questions to display"
                 emptySubTitle=""
                 columns={questionColumns}
