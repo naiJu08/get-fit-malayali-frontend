@@ -206,7 +206,7 @@ export default function AssessmentCategory() {
             </div>
           }
           height={
-            rows.length === 0 ? calcWindowHeight(218) : calcWindowHeight(150)
+            rows.length === 0 ? calcWindowHeight(220) : calcWindowHeight(160)
           }
           search
           searchPlaceholder="Search assessment category"
