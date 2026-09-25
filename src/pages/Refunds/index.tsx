@@ -1,12 +1,12 @@
-import React, { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import moment from 'moment'
 import ListingHeader from '../../components/common/ListingTiles'
 import SmartTable from '../../components/common/table/SmartTable'
 import Icons from '../../components/common/icons'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useAuthStore } from '../../store/authStore'
-import { useRefundRequests } from './api'
+import { useRefundRequests, useRefundRequest } from './api'
 import SubmitToSuperadminModal from './SubmitToSuperadminModal'
 import SuperadminReviewModal from './SuperadminReviewModal'
 import CompleteRefundModal from './CompleteRefundModal'
@@ -56,7 +56,15 @@ const getStatusBadge = (status: string) => {
 
 export default function RefundsPage() {
   const navigate = useNavigate()
+  const { id: routeId } = useParams<{ id?: string }>()
+  const location = useLocation()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+
+  const targetRefundId =
+    routeId ||
+    new URLSearchParams(location.search).get('id') ||
+    new URLSearchParams(location.search).get('refundId') ||
+    undefined
 
   const getClientUrl = (clientId: string | number) => {
     if (loginRole === 'sales') return `/sales/clients/${clientId}`
@@ -73,11 +81,34 @@ export default function RefundsPage() {
   const { data, isFetching, refetch } = useRefundRequests(params)
   const refunds = data?.refund_requests || data?.items || []
 
+  const { data: singleRefundData } = useRefundRequest(targetRefundId)
+
   // Modal states
   const [submitModalRefund, setSubmitModalRefund] = useState<any>(null)
   const [reviewModalRefund, setReviewModalRefund] = useState<any>(null)
   const [completeModalRefund, setCompleteModalRefund] = useState<any>(null)
   const [detailsModalRefund, setDetailsModalRefund] = useState<any>(null)
+
+  // Auto-open target refund detail when ID is specified in URL
+  useEffect(() => {
+    if (!targetRefundId) return
+    if (singleRefundData?.refund_request) {
+      setDetailsModalRefund(singleRefundData.refund_request)
+    } else if (
+      singleRefundData &&
+      !singleRefundData.refund_request &&
+      singleRefundData.id
+    ) {
+      setDetailsModalRefund(singleRefundData)
+    } else if (refunds.length > 0) {
+      const match = refunds.find(
+        (r: any) => String(r.id) === String(targetRefundId)
+      )
+      if (match) {
+        setDetailsModalRefund(match)
+      }
+    }
+  }, [targetRefundId, singleRefundData, refunds])
 
   const columns: any[] = useMemo(
     () => [

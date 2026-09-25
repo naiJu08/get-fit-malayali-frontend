@@ -2,6 +2,8 @@ import React from 'react'
 import moment from 'moment'
 import Icons from '../../components/common/icons/index'
 import { NotificationRecord } from '../../apis/notifications.api'
+import { useAuthStore } from '../../store/authStore'
+import { resolveNotificationUrl } from '../../utilities/notificationNavigation'
 
 interface NotificationItemProps {
   item: NotificationRecord
@@ -19,6 +21,13 @@ const getTypeBadge = (type?: string) => {
         bgColor: 'bg-purple-100 dark:bg-purple-950/60',
         textColor: 'text-purple-700 dark:text-purple-300',
         borderColor: 'border-purple-200 dark:border-purple-800',
+      }
+    case 'reassignment':
+      return {
+        label: 'Reassignment',
+        bgColor: 'bg-violet-100 dark:bg-violet-950/60',
+        textColor: 'text-violet-700 dark:text-violet-300',
+        borderColor: 'border-violet-200 dark:border-violet-800',
       }
     case 'proposal':
     case 'lead_acceptance':
@@ -98,6 +107,13 @@ export default function NotificationItem({
   const isUnread = !item.is_read
   const typeBadge = getTypeBadge(item.notification_type)
   const relativeTime = item.created_at ? moment(item.created_at).fromNow() : ''
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+
+  const effectiveUrl = resolveNotificationUrl(item.action_url, loginRole, item)
+  const canNavigate = Boolean(
+    onNavigate &&
+      (item.action_url || (effectiveUrl && effectiveUrl !== '/dashboard'))
+  )
 
   return (
     <div
@@ -193,17 +209,22 @@ export default function NotificationItem({
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              <span>Mark read</span>
+              <span>Mark as read</span>
             </button>
           )}
 
           {/* Go to page button with icon */}
-          {item.action_url && onNavigate && (
+          {canNavigate && (
             <button
               type="button"
-              onClick={() => onNavigate(item.action_url as string, item.id)}
-              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white bg-[#0066CC] hover:bg-[#0052a3] dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg shadow-sm transition-all hover:shadow active:scale-95"
-              title={`Go to ${item.action_url}`}
+              onClick={() =>
+                onNavigate!(
+                  effectiveUrl || (item.action_url as string),
+                  item.id
+                )
+              }
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white bg-[#0066CC] hover:bg-[#0052a3] dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg shadow-sm transition-all hover:shadow active:scale-95 cursor-pointer"
+              title={`Go to detail page`}
             >
               <span>Go to page</span>
               <svg
