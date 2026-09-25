@@ -22,7 +22,7 @@ interface NotificationListProps {
 
 type TabType = 'new' | 'read' | 'all'
 
-const PAGE_SIZE = 20
+// const PAGE_SIZE = 20
 
 export default function NotificationList({
   open,
@@ -31,7 +31,7 @@ export default function NotificationList({
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
   const {
-    unreadCount,
+    // unreadCount,
     // readCount,
     totalCount,
     setCounts,
@@ -50,9 +50,9 @@ export default function NotificationList({
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
-  // Fetch page of notifications for given tab
+  // Fetch page of notifications
   const loadNotifications = useCallback(
-    async (tab: TabType, targetPage: number, isInitial = false) => {
+    async (targetPage: number, isInitial = false) => {
       if (isInitial) {
         setIsLoading(true)
       } else {
@@ -60,11 +60,9 @@ export default function NotificationList({
       }
 
       try {
-        const statusParam = tab === 'all' ? undefined : tab
         const data = await getNotifications({
-          status: statusParam,
           page: targetPage,
-          per_page: PAGE_SIZE,
+          per_page: 100,
         })
 
         const newItems = data?.notifications || []
@@ -93,7 +91,7 @@ export default function NotificationList({
         if (data?.meta) {
           setHasMore(data.meta.next_page !== null)
         } else {
-          setHasMore(newItems.length >= PAGE_SIZE)
+          setHasMore(newItems.length >= 100)
         }
       } catch (error) {
         console.error('Failed to load notifications:', error)
@@ -113,16 +111,16 @@ export default function NotificationList({
     if (open) {
       setPage(1)
       setHasMore(true)
-      loadNotifications(activeTab, 1, true)
+      loadNotifications(1, true)
+    } else {
+      setTypeFilter('all')
     }
-  }, [open, refreshKey, activeTab, loadNotifications])
+  }, [open, refreshKey, loadNotifications])
 
   // Handle Tab Switch
   const handleTabChange = (newTab: TabType) => {
     if (newTab === activeTab) return
     setActiveTab(newTab)
-    setPage(1)
-    setHasMore(true)
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0
     }
@@ -135,7 +133,7 @@ export default function NotificationList({
       target.scrollHeight - target.scrollTop - target.clientHeight <= 140
 
     if (isNearBottom && hasMore && !isLoading && !isLoadingMore) {
-      loadNotifications(activeTab, page + 1, false)
+      loadNotifications(page + 1, false)
     }
   }
 
@@ -169,16 +167,67 @@ export default function NotificationList({
       enqueueSnackbar('All notifications marked as read', {
         variant: 'success',
       })
-      if (activeTab === 'new') {
-        // Refresh the new tab
-        loadNotifications('new', 1, true)
-      }
     } catch {
       enqueueSnackbar('Failed to mark all as read', { variant: 'error' })
     }
   }
 
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+
+  const roleTypeFilters = useMemo(() => {
+    const isSuperAdmin = roleName === 'superadmin' || roleName === 'admin'
+    const isSales = roleName === 'sales'
+    const isMarketing = roleName === 'marketing'
+    const isServiceStaff = [
+      'nutritionist',
+      'physiotherapist',
+      'physio',
+      'yogist',
+      'yoga',
+    ].includes(roleName || '')
+
+    if (isSuperAdmin) {
+      return [
+        { value: 'lead', label: 'Lead' },
+        { value: 'campaign', label: 'Campaign' },
+        { value: 'proposal', label: 'Proposal' },
+        { value: 'refund_request', label: 'Refund Request' },
+        { value: 'renewal_request', label: 'Renewal Request' },
+        { value: 'assignment', label: 'Assignment' },
+        { value: 'reminder', label: 'Reminder' },
+      ]
+    }
+    if (isSales) {
+      return [
+        { value: 'lead', label: 'Lead' },
+        { value: 'proposal', label: 'Proposal' },
+        { value: 'refund_request', label: 'Refund Request' },
+        { value: 'renewal_request', label: 'Renewal Request' },
+      ]
+    }
+    if (isMarketing) {
+      return [
+        { value: 'lead', label: 'Lead' },
+        { value: 'campaign', label: 'Campaign' },
+        { value: 'reassignment', label: 'reassignment' },
+      ]
+    }
+    if (isServiceStaff) {
+      return [
+        { value: 'assignment', label: 'Assignment' },
+        { value: 'reassignment', label: 'Reassignment' },
+        { value: 'proposal', label: 'Proposal' },
+        { value: 'reminder', label: 'Reminder' },
+      ]
+    }
+    return [
+      { value: 'lead', label: 'Lead' },
+      { value: 'campaign', label: 'Campaign' },
+      { value: 'proposal', label: 'Proposal' },
+      { value: 'refund_request', label: 'Refund Request' },
+      { value: 'renewal_request', label: 'Renewal Request' },
+    ]
+  }, [roleName])
 
   // Handle Go to Page
   const handleNavigate = async (url: string, id: number | string) => {
@@ -217,6 +266,9 @@ export default function NotificationList({
   // Client search and status filter across loaded items
   const filteredNotifications = useMemo(() => {
     return notifications.filter((item) => {
+      if (activeTab === 'new' && item.is_read) return false
+      if (activeTab === 'read' && !item.is_read) return false
+
       if (typeFilter !== 'all' && item.notification_type !== typeFilter) {
         return false
       }
@@ -231,7 +283,7 @@ export default function NotificationList({
 
       return true
     })
-  }, [notifications, searchQuery, typeFilter])
+  }, [notifications, searchQuery, typeFilter, activeTab])
 
   const typeFilteredNewCount = useMemo(
     () =>
@@ -259,6 +311,9 @@ export default function NotificationList({
     [notifications, typeFilter]
   )
 
+  const liveNewCount = notifications.filter((n) => !n.is_read).length
+  const liveReadCount = notifications.filter((n) => n.is_read).length
+
   return (
     <CustomDrawer
       className="formDrawer w-[520px] max-w-[95vw]"
@@ -276,15 +331,20 @@ export default function NotificationList({
             <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
               {notifications.length}
             </span>
-            {unreadCount > 0 && (
+            {liveNewCount > 0 && (
               <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300">
-                {unreadCount} New
+                {liveNewCount}
+              </span>
+            )}
+            {liveReadCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
+                {liveReadCount}
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            {unreadCount > 0 && (
+            {liveNewCount > 0 && (
               <button
                 type="button"
                 onClick={handleMarkAllAsRead}
@@ -310,7 +370,7 @@ export default function NotificationList({
 
             <button
               type="button"
-              onClick={() => loadNotifications(activeTab, 1, true)}
+              onClick={() => loadNotifications(1, true)}
               disabled={isLoading}
               className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
               title="Refresh notifications"
@@ -408,10 +468,11 @@ export default function NotificationList({
                 className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-none rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none shrink-0"
               >
                 <option value="all">All Types</option>
-                <option value="lead">Lead</option>
-                <option value="campaign">Campaign</option>
-                <option value="refund_request">Refund Request</option>
-                <option value="renewal_request">Renewal Request</option>
+                {roleTypeFilters.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
               </select>
               <div className="relative flex-1">
                 <input
