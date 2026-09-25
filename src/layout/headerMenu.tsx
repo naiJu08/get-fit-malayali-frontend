@@ -1,26 +1,47 @@
 import { useEffect, useRef, useState } from 'react'
-
-import Icons from '../components/common/icons/index'
-// import { router_config } from '../configs/route.config'
-import MyProfile from '../pages/profile'
-// import MyProfile from '../pages/profile'
+import { useNavigate } from 'react-router-dom'
+import { useAuthStore } from '../store/authStore'
+import { useProfile } from '../pages/profile/api'
 import ChangePassword from '../pages/profile/password'
 
 type Props = {
-  userData: any
+  userData?: any
   handleLogout: () => void
 }
 
-export default function HeaderMenu({ userData, handleLogout }: Props) {
+export default function HeaderMenu({
+  userData: initialUserData,
+  handleLogout,
+}: Props) {
   const [openMenu, setOpenMenu] = useState(false)
-  const [openMyprofile, setOpenMyprofile] = useState(false)
   const [changePassword, setChangePassword] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
-  const [viewMode, setViewMode] = useState(false)
+  const navigate = useNavigate()
+
+  const { userData: storeUserData, roleData } = useAuthStore()
+  const { data: profileQueryData } = useProfile()
+
+  // Match store user ID with profile query user ID so stale queries from other users are never used
+  const isProfileMatchingStore =
+    Boolean(profileQueryData?.user?.id) &&
+    Boolean(storeUserData?.id) &&
+    String(profileQueryData?.user?.id) === String(storeUserData?.id)
+
+  const liveUser =
+    (isProfileMatchingStore ? profileQueryData?.user : null) ||
+    storeUserData ||
+    initialUserData ||
+    profileQueryData?.user ||
+    {}
+
+  const userName = liveUser?.name || 'User'
+  const userEmail = liveUser?.email || ''
+  const userRole = liveUser?.role || roleData?.name || 'Member'
+  const avatarUrl = liveUser?.avatar_url || null
+  const initialLetter = userName.charAt(0).toUpperCase()
 
   const toggleMenu = () => {
-    setOpenMenu(!openMenu)
-    // setFranchiseeMenu(false)
+    setOpenMenu((prev) => !prev)
   }
 
   useEffect(() => {
@@ -31,183 +52,198 @@ export default function HeaderMenu({ userData, handleLogout }: Props) {
     }
 
     document.addEventListener('mousedown', handleClickOutside)
-
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
-  // const stringToColor = (string: string) => {
-  //   let hash = 0
-  //   let i
 
-  //   /* eslint-disable no-bitwise */
-  //   for (i = 0; i < string?.length; i += 1) {
-  //     hash = string?.charCodeAt(i) + ((hash << 5) - hash)
-  //   }
+  const navigateToProfile = () => {
+    setOpenMenu(false)
+    navigate('/profile')
+  }
 
-  //   let color = '#'
-
-  //   for (i = 0; i < 3; i += 1) {
-  //     const value = (hash >> (i * 8)) & 0xff
-  //     color += `00${value?.toString(16)}`.slice(-2)
-  //   }
-  //   /* eslint-enable no-bitwise */
-
-  //   return color
-  // }
-
-  // function stringAvatar(name: string) {
-  //   if (typeof name !== 'string') {
-  //     return { bgcolor: 'defaultColor', name: '?' }
-  //   }
-
-  //   const splitName = name.split(' ')
-
-  //   return {
-  //     bgcolor: stringToColor(name),
-  //     name: splitName
-  //       .filter((n) => n) // Filter out any empty strings
-  //       .map((n) => n[0].toUpperCase()) // Capitalize the first letter
-  //       .slice(0, 2) // Take only the first two elements
-  //       .join(''), // Join them together
-  //   }
-  // }
-
-  // const navigateToProfile = () => {
-  //   toggleMenu()
-  //   // navigate('/profile')
-  //   if (location.pathname !== router_config.USER_PROFILE.path) {
-  //     navigate(`${router_config.USER_PROFILE.path}`)
-  //   }
-  // }
-
-  const handleChangePassword = () => {
+  const handleOpenResetPassword = () => {
     setOpenMenu(false)
     setChangePassword(true)
   }
-  const handleClose = () => {
+
+  const handleClosePasswordModal = () => {
     setChangePassword(false)
-  }
-  const handleMyProfile = () => {
-    setOpenMenu(false)
-    setOpenMyprofile(true)
-    setViewMode(true)
   }
 
   return (
-    <div
-      ref={menuRef}
-      className="dropdown text-grey-medium text-common  bg-transparent"
-    >
-      <div className="dropdown-toggle bg-transparent">
-        <div
-          onClick={toggleMenu}
-          className={`w-8 h-8  flex items-center justify-center border font-medium text-sm border-grey-mediumAlt stroke-grey-strong cursor-pointer rounded-xs`}
-        >
-          {/* {stringAvatar(userData?.username as string)?.name} */}
-          <Icons className="iconSize-large" name={'profile_icon'} />
+    <div ref={menuRef} className="relative inline-block text-left">
+      {/* Header Profile Card */}
+      <button
+        type="button"
+        onClick={toggleMenu}
+        aria-expanded={openMenu}
+        className={`group flex items-center gap-2.5 p-1.5 sm:px-3 sm:py-1.5 rounded-full sm:rounded-2xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer select-none ${
+          openMenu
+            ? 'bg-blue-50/80 border-blue-200 dark:bg-gray-800 dark:border-blue-500/40 shadow-sm'
+            : 'bg-gray-50/90 hover:bg-white border-gray-200 dark:bg-gray-800/80 dark:hover:bg-gray-800 dark:border-gray-700 hover:border-gray-300 shadow-sm hover:shadow'
+        }`}
+      >
+        {/* Avatar */}
+        <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white font-bold text-xs shadow-inner">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={userName}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span>{initialLetter}</span>
+          )}
         </div>
-      </div>
 
-      {openMenu && (
-        <div
-          className={`dropdown-menu flex flex-col gap-1 origin-top ${'text-grey-medium text-common'} p-4 text-sm font-normal   tracking-[0.24px]  rounded-[8px]  absolute right-0 mt-[20px] top-8 w-auto shadow-modalShadow bg-white  focus:outline-none `}
-        >
-          {/* <div
-            className={`p-2 leading-7 hover:bg-background  flex min-w-[300px]  justify-between items-center gap-3 w-max   `}
+        {/* User Details Stack */}
+        <div className="hidden sm:flex flex-col text-left leading-tight max-w-[140px] md:max-w-[170px]">
+          <span className="text-xs font-bold text-gray-800 dark:text-gray-100 truncate group-hover:text-blue-600 transition-colors capitalize">
+            {userName}
+          </span>
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
+            {userEmail || userRole}
+          </span>
+        </div>
+
+        {/* Down Arrow Chevron */}
+        <div className="flex items-center justify-center w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:text-gray-400 transition-colors">
+          <svg
+            className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
+              openMenu ? 'rotate-180 text-blue-600 dark:text-blue-400' : ''
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            <div
-              className={`   flex items-center  w-full tracking-[0.24px]  leading-4`}
-            >
-              <span
-                className={`w-10 h-10 rounded-full flex justify-center border items-center bg-[${
-                  stringAvatar(userData.name as string)?.bgcolor
-                }]`}
-              >
-                {stringAvatar(userData.name as string)?.name}
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2.5"
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </div>
+      </button>
+
+      {/* Dropdown Menu */}
+      {openMenu && (
+        <div className="absolute right-0 mt-2 w-64 origin-top-right rounded-2xl bg-white dark:bg-gray-800 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 border border-gray-100 dark:border-gray-700 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+          {/* Top User Info Section */}
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/60 flex items-center gap-3 bg-gradient-to-r from-gray-50/50 to-transparent dark:from-gray-800">
+            <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white font-extrabold text-sm shadow-md">
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt={userName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>{initialLetter}</span>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-gray-900 dark:text-white truncate capitalize">
+                {userName}
+              </p>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
+                {userEmail}
+              </p>
+              <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wider uppercase bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
+                {userRole}
               </span>
-              <div className=" flex flex-col pl-1.5">
-                <span className=" ">{userData.name}</span>
-              </div>
             </div>
           </div>
-          <div className="h-px w-full bg-formBorder"></div>
 
-          <div
-            className={`p-2 leading-7 hover:bg-background cursor-pointer`}
-            onClick={() => {
-              navigateToProfile()
-            }}
-          >
-            <div
-              className={`${'text-grey-medium text-common '}  flex items-center w-full tracking-[0.24px]  leading-4`}
+          {/* Action List */}
+          <div className="p-1 space-y-0.5">
+            {/* My Profile */}
+            <button
+              type="button"
+              onClick={navigateToProfile}
+              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-blue-50/70 hover:text-blue-600 dark:hover:bg-gray-700/60 dark:hover:text-blue-400 rounded-xl transition-colors text-left group"
             >
-              <Icons name={'profile_icon'} />
-              <span className="pl-1.5 ">Manage Profile </span>
-            </div>
-          </div> */}
+              <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
+              </div>
+              <span>My Profile</span>
+            </button>
 
-          <a
-            href="#/"
-            className={`p-2 leading-7 hover:bg-background `}
-            // onClick={() => navigateToProfile()}
-            onClick={() => {
-              // navigate('/profile')
-              handleMyProfile()
-            }}
-          >
-            <div
-              className={`${'text-grey-medium text-common '}  font-medium  flex items-center w-full tracking-[0.24px]  leading-4`}
+            {/* Reset Password */}
+            <button
+              type="button"
+              onClick={handleOpenResetPassword}
+              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-amber-50/70 hover:text-amber-600 dark:hover:bg-gray-700/60 dark:hover:text-amber-400 rounded-xl transition-colors text-left group"
             >
-              <Icons className="iconSize-large" name={'profile_icon'} />
+              <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                  />
+                </svg>
+              </div>
+              <span>Reset Password</span>
+            </button>
+          </div>
 
-              <span className="pl-1.5 ">{'My Profile'}</span>
-            </div>
-          </a>
+          <div className="my-1 border-t border-gray-100 dark:border-gray-700/60" />
 
-          <a
-            href="#/"
-            className={`p-2 leading-7 hover:bg-background `}
-            onClick={() => {
-              handleChangePassword()
-            }}
-          >
-            <div
-              className={`${'text-grey-medium text-common '} font-medium   flex items-center w-full tracking-[0.24px]  leading-4`}
+          {/* Logout */}
+          <div className="p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setOpenMenu(false)
+                handleLogout()
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-xl transition-colors text-left group"
             >
-              <Icons className="iconSize-large" name={'refresh'} />
-
-              <span className="pl-1.5 ">{'Change Password'}</span>
-            </div>
-          </a>
-
-          <a
-            href="#/"
-            className={`p-2 leading-7`}
-            onClick={() => {
-              handleLogout()
-            }}
-          >
-            <div
-              className={`${'text-common text-grey-medium '}  font-medium  flex items-center w-full tracking-[0.24px]  leading-4`}
-            >
-              <Icons className="iconSize-large" name={'logout_icon'} />
-
-              <span className="pl-1.5 ">{'Log out'}</span>
-            </div>
-          </a>
+              <div className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              </div>
+              <span>Log out</span>
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Change Password Dialog Modal */}
       <ChangePassword
         isOpen={changePassword}
-        handleClose={handleClose}
-        empId={userData?.id}
-      />
-      <MyProfile
-        isDrawerOpen={openMyprofile}
-        setOpenMyprofile={setOpenMyprofile}
-        setViewMode={setViewMode}
-        viewMode={viewMode}
+        handleClose={handleClosePasswordModal}
       />
     </div>
   )
