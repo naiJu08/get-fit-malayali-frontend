@@ -159,6 +159,13 @@ export const useRenewalRequests = (params: Record<string, any>) =>
     list('/sales/renewal-requests', params)
   )
 
+export const useRenewalRequest = (id?: string | number | null) =>
+  useQuery(
+    ['sales_renewal_request', id],
+    () => getData(`/sales/renewal-requests/${id}`),
+    { enabled: Boolean(id) }
+  )
+
 export const useClientPackages = (
   clientId?: string | number,
   apiPrefix = '/clients',

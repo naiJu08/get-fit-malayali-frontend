@@ -5,7 +5,7 @@ import SmartTable from '../../components/common/table/SmartTable'
 import ListingHeader from '../../components/common/ListingTiles'
 import Icons from '../../components/common/icons'
 import { calcWindowHeight } from '../../utilities/calcHeight'
-import { useRenewalRequests } from './api'
+import { useRenewalRequests, useRenewalRequest } from './api'
 
 const capitalizeFirst = (value: unknown) => {
   const text = String(value || '').trim()
@@ -244,30 +244,75 @@ export default function RenewalRequests() {
     routeId ||
     new URLSearchParams(location.search).get('id') ||
     new URLSearchParams(location.search).get('renewal_id') ||
-    new URLSearchParams(location.search).get('renewal_request_id')
+    new URLSearchParams(location.search).get('renewal_request_id') ||
+    undefined
+
+  const querySearch =
+    new URLSearchParams(location.search).get('search') ||
+    new URLSearchParams(location.search).get('client') ||
+    new URLSearchParams(location.search).get('q') ||
+    ''
 
   const [params, setParams] = useState({
     page: 1,
     per_page: 20,
-    search: '',
+    search: querySearch,
     status: '',
   })
   const [detailRow, setDetailRow] = useState<any>(null)
+  const [hasAutoOpenedSearch, setHasAutoOpenedSearch] = useState(false)
+
+  // Sync params.search if URL search query changes
+  useEffect(() => {
+    if (querySearch && params.search !== querySearch) {
+      setParams((prev) => ({ ...prev, search: querySearch, page: 1 }))
+    }
+  }, [querySearch])
 
   const { data, isFetching } = useRenewalRequests(params)
   const requests = data?.renewal_requests || []
 
-  // Auto-open target renewal detail when ID is specified
+  const { data: singleRenewalData } = useRenewalRequest(targetRenewalId)
+
+  // Auto-open target renewal detail when ID is specified in URL or fetched, or match by search term
   useEffect(() => {
-    if (targetRenewalId && requests.length > 0) {
-      const match = requests.find(
-        (r: any) => String(r.id) === String(targetRenewalId)
-      )
+    if (targetRenewalId) {
+      if (singleRenewalData?.renewal_request) {
+        setDetailRow(singleRenewalData.renewal_request)
+      } else if (
+        singleRenewalData &&
+        !singleRenewalData.renewal_request &&
+        singleRenewalData.id
+      ) {
+        setDetailRow(singleRenewalData)
+      } else if (requests.length > 0) {
+        const match = requests.find(
+          (r: any) => String(r.id) === String(targetRenewalId)
+        )
+        if (match) {
+          setDetailRow(match)
+        }
+      }
+    } else if (querySearch && requests.length > 0 && !hasAutoOpenedSearch) {
+      const match =
+        requests.find(
+          (r: any) =>
+            r.client_name?.toLowerCase().includes(querySearch.toLowerCase()) ||
+            r.user?.name?.toLowerCase().includes(querySearch.toLowerCase())
+        ) || requests[0]
+
       if (match) {
         setDetailRow(match)
+        setHasAutoOpenedSearch(true)
       }
     }
-  }, [targetRenewalId, requests])
+  }, [
+    targetRenewalId,
+    singleRenewalData,
+    requests,
+    querySearch,
+    hasAutoOpenedSearch,
+  ])
 
   const goToPackages = (row: any) => {
     const query = new URLSearchParams({ tab: 'packages' })
