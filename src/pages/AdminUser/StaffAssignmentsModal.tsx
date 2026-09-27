@@ -341,21 +341,29 @@ export default function StaffAssignmentsModal({
   const { enqueueSnackbar } = useSnackbarManager()
 
   const [loading, setLoading] = useState(false)
-  const [data, setData] = useState<{
-    user: any
-    has_active_assignments: boolean
-    assignments_count: number
-    total_commitments: number
-    assignments: any[]
-    available_staff: StaffMember[]
-  } | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [assignments, setAssignments] = useState<any[]>([])
+  const [availableStaff, setAvailableStaff] = useState<StaffMember[]>([])
+  const [totalCount, setTotalCount] = useState<number>(0)
+  const [totalCommitments, setTotalCommitments] = useState<number>(0)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
 
+  // Multi-select state
+  const [selectedIds, setSelectedIds] = useState<(string | number)[]>([])
+  const [multiStaffId, setMultiStaffId] = useState<string>('')
+  const [isMultiLoading, setIsMultiLoading] = useState(false)
+
+  // Bulk all state
   const [bulkStaffId, setBulkStaffId] = useState<string>('')
   const defaultReassignReason =
     actionType === 'delete' ? 'Assignee deleted' : 'Assignee deactivated'
   const [bulkReason] = useState<string>(defaultReassignReason)
   const [isBulkLoading, setIsBulkLoading] = useState(false)
 
+  // Single row state
   const [reassignState, setReassignState] = useState<
     Record<string | number, { staffId: string; reason: string }>
   >({})
@@ -363,12 +371,44 @@ export default function StaffAssignmentsModal({
     null
   )
 
-  const fetchAssignments = async () => {
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
+
+  // Debounce search term
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  // Fetch initial or refreshed page 1
+  const fetchPage1 = async (searchQuery = '') => {
     if (!staffUser?.id) return
     setLoading(true)
     try {
-      const res: any = await getStaffActiveAssignments(staffUser.id)
-      setData(res)
+      const res: any = await getStaffActiveAssignments(staffUser.id, {
+        page: 1,
+        per_page: 20,
+        search: searchQuery.trim(),
+      })
+      const items = res?.assignments || []
+      setAssignments(items)
+      setAvailableStaff(res?.available_staff || [])
+      const count =
+        typeof res?.assignments_count === 'number'
+          ? res.assignments_count
+          : typeof res?.meta?.total_count === 'number'
+            ? res.meta.total_count
+            : items.length
+      setTotalCount(count)
+      setTotalCommitments(res?.total_commitments || 0)
+      setPage(1)
+      const totalPages = res?.meta?.total_pages || 1
+      setHasMore(totalPages > 1)
+      // Clear selections that are not in items
+      setSelectedIds((prev) =>
+        prev.filter((id) => items.some((item: any) => item.id === id))
+      )
     } catch (err: any) {
       enqueueSnackbar(
         getErrorMessage(err) || 'Failed to fetch staff assignments',
@@ -381,22 +421,108 @@ export default function StaffAssignmentsModal({
     }
   }
 
+  // Fetch next page for infinite scroll
+  const fetchNextPage = async () => {
+    if (!staffUser?.id || loading || loadingMore || !hasMore) return
+    setLoadingMore(true)
+    const nextPage = page + 1
+    try {
+      const res: any = await getStaffActiveAssignments(staffUser.id, {
+        page: nextPage,
+        per_page: 20,
+        search: debouncedSearch.trim(),
+      })
+      const newItems = res?.assignments || []
+      setAssignments((prev) => {
+        const existingIds = new Set(prev.map((i) => i.id))
+        const filteredNew = newItems.filter((i: any) => !existingIds.has(i.id))
+        return [...prev, ...filteredNew]
+      })
+      setPage(nextPage)
+      const totalPages = res?.meta?.total_pages || 1
+      setHasMore(nextPage < totalPages)
+      if (typeof res?.assignments_count === 'number') {
+        setTotalCount(res.assignments_count)
+      }
+    } catch (err: any) {
+      enqueueSnackbar(
+        getErrorMessage(err) || 'Failed to load more assignments',
+        {
+          variant: 'error',
+        }
+      )
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
+  // Effect on modal open
   useEffect(() => {
     if (isOpen && staffUser?.id) {
-      setData(null)
+      setAssignments([])
+      setAvailableStaff([])
+      setTotalCount(0)
+      setTotalCommitments(0)
+      setSelectedIds([])
+      setMultiStaffId('')
       setBulkStaffId('')
+      setSearchTerm('')
+      setDebouncedSearch('')
       setReassignState({})
-      fetchAssignments()
+      fetchPage1('')
     }
   }, [isOpen, staffUser?.id])
 
+  // Effect when debounced search query changes
+  useEffect(() => {
+    if (isOpen && staffUser?.id) {
+      fetchPage1(debouncedSearch)
+    }
+  }, [debouncedSearch])
+
+  // Intersection Observer for Infinite Scrolling
+  useEffect(() => {
+    if (!sentinelRef.current) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          fetchNextPage()
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    )
+
+    observer.observe(sentinelRef.current)
+    return () => observer.disconnect()
+  }, [hasMore, loading, loadingMore, page, debouncedSearch])
+
   if (!isOpen || !staffUser) return null
 
-  const assignments = data?.assignments || []
-  const availableStaff = data?.available_staff || []
   const roleTitle = String(staffUser?.role || 'Staff').replace(/_/g, ' ')
   const capitalizedRole = roleTitle.charAt(0).toUpperCase() + roleTitle.slice(1)
 
+  // Selection handlers
+  const allVisibleSelected =
+    assignments.length > 0 &&
+    assignments.every((a) => selectedIds.includes(a.id))
+  const someVisibleSelected =
+    assignments.some((a) => selectedIds.includes(a.id)) && !allVisibleSelected
+
+  const handleToggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(assignments.map((a) => a.id))
+    }
+  }
+
+  const handleToggleRowSelect = (id: string | number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    )
+  }
+
+  // Single Reassign
   const handleSingleReassign = async (assignment: any) => {
     const state = reassignState[assignment.id]
     const targetStaffId = state?.staffId
@@ -419,19 +545,19 @@ export default function StaffAssignmentsModal({
         variant: 'success',
       })
 
-      if (res?.assignments) {
-        setData((prev) =>
-          prev
-            ? {
-                ...prev,
-                has_active_assignments: res.has_active_assignments,
-                assignments_count: res.assignments_count,
-                assignments: res.assignments,
-              }
-            : null
-        )
-      } else {
-        await fetchAssignments()
+      const newRemainingCount =
+        typeof res?.assignments_count === 'number'
+          ? res.assignments_count
+          : Math.max(0, totalCount - 1)
+
+      setTotalCount(newRemainingCount)
+      setAssignments((prev) => prev.filter((a) => a.id !== assignment.id))
+      setSelectedIds((prev) => prev.filter((id) => id !== assignment.id))
+
+      if (newRemainingCount === 0) {
+        setAssignments([])
+      } else if (assignments.length <= 1 && hasMore) {
+        fetchPage1(debouncedSearch)
       }
     } catch (err: any) {
       enqueueSnackbar(getErrorMessage(err) || 'Failed to reassign client', {
@@ -442,7 +568,79 @@ export default function StaffAssignmentsModal({
     }
   }
 
-  const handleBulkReassign = async () => {
+  // Multi-Select Reassign
+  const handleMultiReassign = async () => {
+    if (selectedIds.length === 0) {
+      enqueueSnackbar('Please select at least one client to reassign', {
+        variant: 'warning',
+      })
+      return
+    }
+
+    if (!multiStaffId) {
+      enqueueSnackbar(
+        `Please select a replacement ${capitalizedRole} for selected clients`,
+        {
+          variant: 'warning',
+        }
+      )
+      return
+    }
+
+    setIsMultiLoading(true)
+    try {
+      const res: any = await bulkReassignStaffAssignments(staffUser.id, {
+        new_staff_id: multiStaffId,
+        assignment_ids: selectedIds,
+        client_ids: selectedIds,
+        action_type: actionType,
+        reason: defaultReassignReason,
+      })
+      enqueueSnackbar(
+        res?.message ||
+          `${selectedIds.length} client(s) successfully reassigned`,
+        {
+          variant: 'success',
+        }
+      )
+
+      const reassignedIdsSet = new Set(
+        res?.reassigned_ids || selectedIds.map(Number)
+      )
+      const newRemainingCount =
+        typeof res?.assignments_count === 'number'
+          ? res.assignments_count
+          : Math.max(0, totalCount - selectedIds.length)
+
+      setTotalCount(newRemainingCount)
+      setAssignments((prev) =>
+        prev.filter(
+          (a) =>
+            !reassignedIdsSet.has(Number(a.id)) && !selectedIds.includes(a.id)
+        )
+      )
+      setSelectedIds([])
+      setMultiStaffId('')
+
+      if (newRemainingCount === 0) {
+        setAssignments([])
+      } else if (assignments.length <= selectedIds.length && hasMore) {
+        fetchPage1(debouncedSearch)
+      }
+    } catch (err: any) {
+      enqueueSnackbar(
+        getErrorMessage(err) || 'Failed to reassign selected clients',
+        {
+          variant: 'error',
+        }
+      )
+    } finally {
+      setIsMultiLoading(false)
+    }
+  }
+
+  // Bulk All Reassign
+  const handleBulkReassignAll = async () => {
     if (!bulkStaffId) {
       enqueueSnackbar(
         `Please select a replacement ${capitalizedRole} for bulk reassignment`,
@@ -463,16 +661,10 @@ export default function StaffAssignmentsModal({
       enqueueSnackbar(res?.message || 'All clients successfully reassigned', {
         variant: 'success',
       })
-      setData((prev) =>
-        prev
-          ? {
-              ...prev,
-              has_active_assignments: false,
-              assignments_count: 0,
-              assignments: [],
-            }
-          : null
-      )
+      setTotalCount(0)
+      setAssignments([])
+      setSelectedIds([])
+      setBulkStaffId('')
     } catch (err: any) {
       enqueueSnackbar(
         getErrorMessage(err) || 'Failed to bulk reassign clients',
@@ -499,6 +691,8 @@ export default function StaffAssignmentsModal({
       },
     }))
   }
+
+  const isAllCleared = !loading && totalCount === 0 && !searchTerm
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
@@ -555,7 +749,7 @@ export default function StaffAssignmentsModal({
         </div>
 
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
           {/* Staff Summary Card */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -579,23 +773,20 @@ export default function StaffAssignmentsModal({
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-center shadow-xs">
+              <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-center shadow-xs min-w-[100px]">
                 <div className="text-xs font-medium text-gray-500">
-                  Active Clients
+                  Total Active Clients
                 </div>
                 <div className="text-base font-bold text-amber-600">
-                  {assignments.length}
+                  {totalCount}
                 </div>
               </div>
-              <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-center shadow-xs">
+              <div className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-center shadow-xs min-w-[100px]">
                 <div className="text-xs font-medium text-gray-500">
                   Follow-ups Count
                 </div>
                 <div className="text-base font-bold text-indigo-600">
-                  {assignments.reduce(
-                    (acc, a) => acc + (a.upcoming_follow_ups_count || 0),
-                    0
-                  )}
+                  {totalCommitments}
                 </div>
               </div>
             </div>
@@ -608,7 +799,7 @@ export default function StaffAssignmentsModal({
                 Loading assignments and commitments...
               </p>
             </div>
-          ) : assignments.length === 0 ? (
+          ) : isAllCleared ? (
             /* All cleared state */
             <div className="py-8 px-6 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-4">
               <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
@@ -651,42 +842,96 @@ export default function StaffAssignmentsModal({
             </div>
           ) : (
             <>
-              {/* Bulk Reassign Option */}
-              {availableStaff.length > 0 && assignments.length > 1 && (
-                <div className="bg-indigo-50/70 border border-indigo-200 rounded-xl p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <h4 className="text-sm font-bold text-indigo-900">
-                        Bulk Reassign All Clients
-                      </h4>
-                      <p className="text-xs text-indigo-700 mt-0.5">
-                        Transfer all {assignments.length} assigned clients and
-                        upcoming follow-ups at once to an available{' '}
-                        {capitalizedRole}.
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-64">
-                        <SearchableStaffSelect
-                          value={bulkStaffId}
-                          onChange={setBulkStaffId}
-                          options={availableStaff}
-                          roleName={capitalizedRole}
-                          placeholder="Select Replacement"
-                        />
+              {/* Reassignment Action Bar (Multi-Select when checked, otherwise Bulk All) */}
+              {availableStaff.length > 0 && totalCount > 0 && (
+                <div>
+                  {selectedIds.length > 0 ? (
+                    /* Multi-Select Reassign Bar - Active when checkboxes selected */
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-400/80 rounded-xl p-3.5 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">
+                            {selectedIds.length}
+                          </span>
+                          <div>
+                            <h4 className="text-xs font-bold text-blue-950">
+                              Reassign Selected Clients ({selectedIds.length})
+                            </h4>
+                            <p className="text-[11px] text-blue-700">
+                              Transfer only selected {selectedIds.length}{' '}
+                              client(s) to a chosen {capitalizedRole}.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="w-56">
+                            <SearchableStaffSelect
+                              value={multiStaffId}
+                              onChange={setMultiStaffId}
+                              options={availableStaff}
+                              roleName={capitalizedRole}
+                              placeholder="Select Replacement"
+                              size="sm"
+                            />
+                          </div>
+                          <button
+                            onClick={handleMultiReassign}
+                            disabled={!multiStaffId || isMultiLoading}
+                            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer h-8"
+                          >
+                            {isMultiLoading && (
+                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            )}
+                            Reassign Selected ({selectedIds.length})
+                          </button>
+                          <button
+                            onClick={() => setSelectedIds([])}
+                            className="px-2.5 py-1.5 text-xs text-gray-500 hover:text-gray-800 hover:bg-white/80 rounded-lg transition-colors cursor-pointer"
+                          >
+                            Clear
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        onClick={handleBulkReassign}
-                        disabled={!bulkStaffId || isBulkLoading}
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer h-9"
-                      >
-                        {isBulkLoading && (
-                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        )}
-                        Reassign All ({assignments.length})
-                      </button>
                     </div>
-                  </div>
+                  ) : totalCount > 1 ? (
+                    /* Bulk All Reassign Option - Active when no checkboxes selected */
+                    <div className="bg-indigo-50/70 border border-indigo-200 rounded-xl p-3.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <h4 className="text-xs font-bold text-indigo-950">
+                            Bulk Reassign All Remaining Clients ({totalCount})
+                          </h4>
+                          <p className="text-[11px] text-indigo-700 mt-0.5">
+                            Transfer all {totalCount} assigned clients at once
+                            to an available {capitalizedRole}.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="w-56">
+                            <SearchableStaffSelect
+                              value={bulkStaffId}
+                              onChange={setBulkStaffId}
+                              options={availableStaff}
+                              roleName={capitalizedRole}
+                              placeholder="Select Replacement"
+                              size="sm"
+                            />
+                          </div>
+                          <button
+                            onClick={handleBulkReassignAll}
+                            disabled={!bulkStaffId || isBulkLoading}
+                            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs whitespace-nowrap transition-colors flex items-center gap-1.5 cursor-pointer h-8"
+                          >
+                            {isBulkLoading && (
+                              <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            )}
+                            Reassign All ({totalCount})
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               )}
 
@@ -714,161 +959,289 @@ export default function StaffAssignmentsModal({
                 </div>
               )}
 
-              {/* Assignments Breakdown List */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider px-1">
-                  <span>Client & Package Details</span>
-                  <span>Commitments & Reassignment</span>
+              {/* Search and Filter toolbar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-1">
+                {/* Search input */}
+                <div className="relative flex-1 max-w-sm">
+                  <svg
+                    className="w-4 h-4 text-gray-400 absolute left-3 top-2.5 pointer-events-none"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search assigned client name, email, phone..."
+                    className="w-full bg-gray-50/70 border border-gray-200 rounded-xl pl-9 pr-8 py-1.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 p-0.5"
+                    >
+                      <svg
+                        className="w-3.5 h-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  )}
                 </div>
 
-                <div className="space-y-3">
-                  {assignments.map((assignment: any) => {
-                    const rowState = reassignState[assignment.id] || {
-                      staffId: '',
-                      reason: `Reassigned prior to ${actionType}`,
-                    }
-                    const isRowReassigning = reassigningId === assignment.id
-                    const followUps = assignment.upcoming_follow_ups || []
+                {/* Progress / count badge */}
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <span className="bg-gray-100 text-gray-700 font-semibold px-2.5 py-1 rounded-lg border border-gray-200">
+                    Loaded {assignments.length} of {totalCount}
+                  </span>
+                  {selectedIds.length > 0 && (
+                    <span className="bg-blue-100 text-blue-800 font-semibold px-2.5 py-1 rounded-lg border border-blue-200">
+                      {selectedIds.length} Selected
+                    </span>
+                  )}
+                </div>
+              </div>
 
-                    return (
-                      <div
-                        key={assignment.id}
-                        className="bg-white border border-gray-200 hover:border-gray-300 rounded-xl p-4 shadow-xs transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
-                      >
-                        {/* Client Info */}
-                        <div className="flex items-start gap-3 min-w-[240px] flex-1">
-                          <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                            {getInitials(assignment.client_name)}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-bold text-gray-900">
-                                {assignment.client_name}
-                              </span>
-                              <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200">
-                                {assignment.workflow_status?.replace(/_/g, ' ')}
-                              </span>
+              {/* Assignments Breakdown List */}
+              <div className="space-y-2.5">
+                {/* Header with Select All Checkbox */}
+                <div className="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 bg-gray-50/80 rounded-lg border border-gray-100">
+                  <div className="flex items-center gap-2.5">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someVisibleSelected
+                        }}
+                        onChange={handleToggleSelectAll}
+                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <span>Select All Loaded</span>
+                    </label>
+                  </div>
+                  <span>Reassignment & Commitments</span>
+                </div>
+
+                {assignments.length === 0 ? (
+                  <div className="py-10 text-center text-gray-400 text-xs bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    {searchTerm
+                      ? `No clients found matching "${searchTerm}"`
+                      : 'No active assignments found'}
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {assignments.map((assignment: any) => {
+                      const rowState = reassignState[assignment.id] || {
+                        staffId: '',
+                        reason: `Reassigned prior to ${actionType}`,
+                      }
+                      const isRowReassigning = reassigningId === assignment.id
+                      const followUps = assignment.upcoming_follow_ups || []
+                      const isSelected = selectedIds.includes(assignment.id)
+
+                      return (
+                        <div
+                          key={assignment.id}
+                          className={`border rounded-xl p-3.5 shadow-xs transition-all flex flex-col md:flex-row md:items-center justify-between gap-3.5 ${
+                            isSelected
+                              ? 'bg-blue-50/40 border-blue-300 ring-1 ring-blue-200'
+                              : 'bg-white border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {/* Left: Checkbox + Client Info */}
+                          <div className="flex items-start gap-3 min-w-[240px] flex-1">
+                            <div className="pt-2">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() =>
+                                  handleToggleRowSelect(assignment.id)
+                                }
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                              />
                             </div>
-                            <div className="text-xs text-gray-500 mt-0.5">
-                              {assignment.client_email}{' '}
-                              {assignment.client_phone
-                                ? `• ${assignment.client_phone}`
-                                : ''}
+                            <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                              {getInitials(assignment.client_name)}
                             </div>
-                            <div className="mt-2 flex items-center gap-2 flex-wrap text-xs">
-                              <span className="font-semibold text-gray-700">
-                                {assignment.plan_name}
-                              </span>
-                              {assignment.start_date && assignment.end_date && (
-                                <span className="text-gray-500 text-[11px]">
-                                  (
-                                  {moment(assignment.start_date).format(
-                                    'DD MMM YYYY'
-                                  )}{' '}
-                                  –{' '}
-                                  {moment(assignment.end_date).format(
-                                    'DD MMM YYYY'
-                                  )}
-                                  )
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-sm font-bold text-gray-900">
+                                  {assignment.client_name}
                                 </span>
-                              )}
-                              <span
-                                className={`px-2 py-0.2 rounded-full text-[10px] font-semibold ${
-                                  assignment.status === 'active'
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : 'bg-amber-100 text-amber-800'
+                                <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                                  {assignment.workflow_status?.replace(
+                                    /_/g,
+                                    ' '
+                                  )}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {assignment.client_email}{' '}
+                                {assignment.client_phone
+                                  ? `• ${assignment.client_phone}`
+                                  : ''}
+                              </div>
+                              <div className="mt-1.5 flex items-center gap-2 flex-wrap text-xs">
+                                <span className="font-semibold text-gray-700">
+                                  {assignment.plan_name}
+                                </span>
+                                {assignment.start_date &&
+                                  assignment.end_date && (
+                                    <span className="text-gray-500 text-[11px]">
+                                      (
+                                      {moment(assignment.start_date).format(
+                                        'DD MMM YYYY'
+                                      )}{' '}
+                                      –{' '}
+                                      {moment(assignment.end_date).format(
+                                        'DD MMM YYYY'
+                                      )}
+                                      )
+                                    </span>
+                                  )}
+                                <span
+                                  className={`px-2 py-0.2 rounded-full text-[10px] font-semibold ${
+                                    assignment.status === 'active'
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-amber-100 text-amber-800'
+                                  }`}
+                                >
+                                  {assignment.status}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right: Commitments & Single Reassignment */}
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3 border-t sm:border-t-0 pt-2 sm:pt-0">
+                            {/* Follow-ups badge */}
+                            {followUps.length > 0 ? (
+                              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 text-left max-w-xs">
+                                <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-900">
+                                  <svg
+                                    className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth="2"
+                                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                  </svg>
+                                  <span>
+                                    {followUps.length} Scheduled Follow-up
+                                  </span>
+                                </div>
+                                <div className="text-[11px] text-indigo-700 mt-0.5">
+                                  Next:{' '}
+                                  {moment(followUps[0].scheduled_at).format(
+                                    'DD MMM, hh:mm A'
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-400 italic">
+                                No scheduled follow-ups
+                              </div>
+                            )}
+
+                            {/* Single Reassign dropdown & button */}
+                            {availableStaff.length > 0 && (
+                              <div
+                                className={`flex items-center gap-2 ${
+                                  bulkStaffId
+                                    ? 'opacity-50 pointer-events-none'
+                                    : ''
                                 }`}
                               >
-                                {assignment.status}
-                              </span>
-                            </div>
+                                <div className="w-48">
+                                  <SearchableStaffSelect
+                                    value={rowState.staffId}
+                                    onChange={(val) =>
+                                      handleSetRowStaff(assignment.id, val)
+                                    }
+                                    options={availableStaff}
+                                    roleName={capitalizedRole}
+                                    placeholder={`Select ${capitalizedRole}`}
+                                    disabled={!!bulkStaffId}
+                                    size="sm"
+                                  />
+                                </div>
+
+                                <button
+                                  onClick={() =>
+                                    handleSingleReassign(assignment)
+                                  }
+                                  disabled={
+                                    !rowState.staffId ||
+                                    isRowReassigning ||
+                                    !!bulkStaffId
+                                  }
+                                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center gap-1 cursor-pointer h-8"
+                                  title={
+                                    bulkStaffId
+                                      ? 'Individual reassignments are disabled while Bulk Reassign is active'
+                                      : ''
+                                  }
+                                >
+                                  {isRowReassigning && (
+                                    <div className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                  )}
+                                  Reassign
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
+                      )
+                    })}
+                  </div>
+                )}
 
-                        {/* Commitments & Reassignment Controls */}
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 border-t sm:border-t-0 pt-3 sm:pt-0">
-                          {/* Follow-ups badge / commitments */}
-                          {followUps.length > 0 ? (
-                            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-2 text-left max-w-xs">
-                              <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-900">
-                                <svg
-                                  className="w-3.5 h-3.5 text-indigo-600 flex-shrink-0"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                  />
-                                </svg>
-                                <span>
-                                  {followUps.length} Scheduled Follow-up
-                                </span>
-                              </div>
-                              <div className="text-[11px] text-indigo-700 mt-1">
-                                Next:{' '}
-                                {moment(followUps[0].scheduled_at).format(
-                                  'DD MMM, hh:mm A'
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="text-xs text-gray-400 italic">
-                              No scheduled follow-ups
-                            </div>
-                          )}
-
-                          {/* Reassign Searchable Select & button */}
-                          {availableStaff.length > 0 && (
-                            <div
-                              className={`flex items-center gap-2 ${
-                                bulkStaffId
-                                  ? 'opacity-50 pointer-events-none'
-                                  : ''
-                              }`}
-                            >
-                              <div className="w-52">
-                                <SearchableStaffSelect
-                                  value={rowState.staffId}
-                                  onChange={(val) =>
-                                    handleSetRowStaff(assignment.id, val)
-                                  }
-                                  options={availableStaff}
-                                  roleName={capitalizedRole}
-                                  placeholder={`Select ${capitalizedRole}`}
-                                  disabled={!!bulkStaffId}
-                                  size="sm"
-                                />
-                              </div>
-
-                              <button
-                                onClick={() => handleSingleReassign(assignment)}
-                                disabled={
-                                  !rowState.staffId ||
-                                  isRowReassigning ||
-                                  !!bulkStaffId
-                                }
-                                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-semibold shadow-xs transition-colors flex items-center gap-1 cursor-pointer h-8"
-                                title={
-                                  bulkStaffId
-                                    ? 'Individual reassignments are disabled while Bulk Reassign is active'
-                                    : ''
-                                }
-                              >
-                                {isRowReassigning && (
-                                  <div className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                )}
-                                Reassign
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
+                {/* Infinite scroll sentinel & Loading Indicator */}
+                <div
+                  ref={sentinelRef}
+                  className="py-4 flex flex-col items-center justify-center text-xs text-gray-400"
+                >
+                  {loadingMore ? (
+                    <div className="flex items-center gap-2 text-blue-600 font-medium">
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                      <span>Loading more assignments...</span>
+                    </div>
+                  ) : hasMore ? (
+                    <button
+                      type="button"
+                      onClick={fetchNextPage}
+                      className="px-4 py-1.5 text-xs text-blue-600 hover:bg-blue-50 rounded-lg font-medium transition-colors"
+                    >
+                      Load More ({assignments.length} of {totalCount})
+                    </button>
+                  ) : assignments.length > 0 ? (
+                    <span className="text-gray-400">
+                      All {totalCount} assignments loaded
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </>
@@ -876,13 +1249,27 @@ export default function StaffAssignmentsModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-end">
-          {assignments.length > 0 && (
-            <p className="text-xs text-gray-500">
-              Reassign all {assignments.length} client(s) to enable {actionType}
-              .
-            </p>
-          )}
+        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+          <div className="text-xs text-gray-500">
+            {totalCount > 0 ? (
+              <span>
+                Reassign all{' '}
+                <strong className="text-gray-800">{totalCount}</strong>{' '}
+                client(s) to proceed with {actionType}.
+              </span>
+            ) : (
+              <span className="text-emerald-600 font-medium">
+                Ready to {actionType}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 hover:bg-gray-100 text-gray-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
