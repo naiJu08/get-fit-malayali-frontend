@@ -99,6 +99,17 @@ export const getAdminDetails = (id: string) => {
   return getData(`${apiUrl.ADMIN_USER}/${id}`)
 }
 
+export const getUsersFilterOptions = () => {
+  return getData(`${apiUrl.ADMIN_USER}/filter_options`)
+}
+
+export const useUsersFilterOptions = (enabled = true) => {
+  return useQuery(['users_filter_options'], getUsersFilterOptions, {
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 export const getStaffActiveAssignments = (
   id: string | number,
   params?: { page?: number; per_page?: number; search?: string }
