@@ -95,7 +95,9 @@ export function resolveNotificationUrl(
             targetName
           )
         }
-        return role === 'user' ? '/dashboard' : '/dashboard'
+        if (role === 'sales')
+          return appendSearchQuery('/sales/leads', targetName)
+        return '/dashboard'
       case 'campaign':
       case 'campaign_expiring':
         return appendSearchQuery('/marketing/campaigns', targetName)
@@ -159,6 +161,28 @@ export function resolveNotificationUrl(
       pathPart.match(/^\/users\/marketing\/\d+\/campaigns(?:\/\d+\/leads)?$/)
     ) {
       return appendSearchQuery(`/sales/leads${querySuffix}`, targetName)
+    }
+
+    // Assigned clients routes -> Sales clients
+    const assignedClientIdMatch = pathPart.match(
+      /^\/users\/(?:nutritionist|physiotherapist|yogist)\/assigned-clients\/(\d+)/
+    )
+    if (assignedClientIdMatch) {
+      return `/sales/clients/${assignedClientIdMatch[1]}${querySuffix}`
+    }
+    const directAssignedClientIdMatch = pathPart.match(
+      /^\/assigned-clients\/(\d+)/
+    )
+    if (directAssignedClientIdMatch) {
+      return `/sales/clients/${directAssignedClientIdMatch[1]}${querySuffix}`
+    }
+    if (
+      pathPart.match(
+        /^\/users\/(?:nutritionist|physiotherapist|yogist)\/assigned-clients$/
+      ) ||
+      pathPart === '/assigned-clients'
+    ) {
+      return appendSearchQuery(`/sales/clients${querySuffix}`, targetName)
     }
 
     // Refund routes
@@ -275,6 +299,12 @@ export function resolveNotificationUrl(
             `/users/${role}/assigned-clients${querySuffix}`,
             targetName
           )
+    }
+
+    // General user detail URL (e.g. /users/319/details, /users/319/packages)
+    const generalUserMatch = pathPart.match(/^\/users\/(\d+)(?:\/.*)?$/)
+    if (generalUserMatch) {
+      return `/users/${role}/assigned-clients/${generalUserMatch[1]}${querySuffix}`
     }
 
     if (pathPart === `/users/${role}/assigned-clients`) {

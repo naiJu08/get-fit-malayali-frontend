@@ -10,9 +10,9 @@ import {
   NotificationRecord,
 } from '../../apis/notifications.api'
 import { useNotificationStore } from '../../store/notificationStore'
-import { useAuthStore } from '../../store/authStore'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { resolveNotificationUrl } from '../../utilities/notificationNavigation'
+import { useAuthStore } from '../../store/authStore'
 
 type TabType = 'new' | 'read' | 'all'
 
@@ -80,8 +80,6 @@ export default function MessageBoxView() {
     }
   }
 
-  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
-
   // Handle Go to Page
   const handleNavigate = async (url: string, id: number | string) => {
     let resolvedUrl = url
@@ -89,10 +87,16 @@ export default function MessageBoxView() {
       const targetItem = notifications.find(
         (item) => String(item.id) === String(id)
       )
-      resolvedUrl = resolveNotificationUrl(url, roleName, targetItem)
-      if (targetItem && !targetItem.is_read) {
-        await markNotificationAsRead(id)
-        decrementUnreadCount()
+      if (targetItem) {
+        resolvedUrl = resolveNotificationUrl(
+          targetItem.action_url || url,
+          useAuthStore.getState().roleData?.name?.toLowerCase?.(),
+          targetItem
+        )
+        if (!targetItem.is_read) {
+          await markNotificationAsRead(id)
+          decrementUnreadCount()
+        }
       }
     } catch {
       // Non-blocking
