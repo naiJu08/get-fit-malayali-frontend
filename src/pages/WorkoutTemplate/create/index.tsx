@@ -128,6 +128,7 @@ export default function WorkoutTemplateForm({
       type: 'number',
       placeholder: 'Enter number of days',
       required: true,
+      maxLength: 3,
     },
     {
       name: 'notes',

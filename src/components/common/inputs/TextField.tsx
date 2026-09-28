@@ -109,18 +109,21 @@ const TextField: React.FC<TextFieldProps> = ({
     return className
   }
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e?.target.value
+    let inputValue = e?.target.value || ''
+
+    if (maxLength && inputValue.length > maxLength) {
+      inputValue = inputValue.slice(0, maxLength)
+      e.target.value = inputValue
+    }
+
     if (max !== undefined && inputValue !== '' && Number(inputValue) > max)
       return
 
     if (digitsOnly) {
       if (!/^\d*$/.test(inputValue)) return
-      if (maxLength && inputValue.length > maxLength) return
       onChange?.(e)
       return
     }
-
-    if (maxLength && inputValue.length > maxLength) return
 
     if (type === 'number' && allowPositiveOnly) {
       if (
@@ -255,6 +258,12 @@ const TextField: React.FC<TextFieldProps> = ({
           value={value ?? ''}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onInput={(e: React.FormEvent<HTMLInputElement>) => {
+            const target = e.currentTarget
+            if (maxLength && target.value.length > maxLength) {
+              target.value = target.value.slice(0, maxLength)
+            }
+          }}
           onPaste={handlePaste}
           ref={ref}
           placeholder={placeholder || label}

@@ -3554,29 +3554,28 @@ export default function Subscriptions({
                                           </button>
                                         )}
 
-                                        {canAccessYoga &&
-                                          c?.meta?.yoga_summary && (
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation()
-                                                openDayDetail(
-                                                  c?.meta?.date || c.key,
-                                                  'yoga'
-                                                )
-                                              }}
-                                              className="group w-full flex items-center justify-between rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-800 bg-white/95 hover:bg-white border border-white/60 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] shadow-2xs"
-                                            >
-                                              <span className="flex items-center gap-1.5">
-                                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 group-hover:scale-125 transition-transform" />
-                                                <span>Yoga</span>
-                                              </span>
-                                              <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/60 shadow-2xs">
-                                                {c?.meta?.yoga_summary
-                                                  ?.total_exercises ?? 0}
-                                              </span>
-                                            </button>
-                                          )}
+                                        {canAccessYoga && (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              openDayDetail(
+                                                c?.meta?.date || c.key,
+                                                'yoga'
+                                              )
+                                            }}
+                                            className="group w-full flex items-center justify-between rounded-lg px-2.5 py-1 text-[11px] font-medium text-slate-800 bg-white/95 hover:bg-white border border-white/60 transition-all duration-150 hover:scale-[1.02] active:scale-[0.98] shadow-2xs"
+                                          >
+                                            <span className="flex items-center gap-1.5">
+                                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 group-hover:scale-125 transition-transform" />
+                                              <span>Yoga</span>
+                                            </span>
+                                            <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-200/60 shadow-2xs">
+                                              {c?.meta?.yoga_summary
+                                                ?.total_exercises ?? 0}
+                                            </span>
+                                          </button>
+                                        )}
 
                                         {canAccessMeditation && (
                                           <button

@@ -89,7 +89,7 @@ export default function DietPlanForm({
     reValidateMode: 'onChange',
     defaultValues: {
       plan_id: Number(planId ?? rowData?.plan_id ?? 0),
-      day_number: edit ? Number(rowData?.day_number ?? 1) : 0,
+      day_number: Number(rowData?.day_number ?? 0),
       sequence_number: Number(rowData?.sequence_number ?? 1),
       meal_time: rowData?.meal_time ?? '',
       meal_name: rowData?.meal_name ?? '',
@@ -311,7 +311,7 @@ export default function DietPlanForm({
 
     reset({
       plan_id: Number(planId ?? source?.plan_id ?? 0),
-      day_number: edit ? Number(source?.day_number ?? 1) : 0,
+      day_number: Number(source?.day_number ?? rowData?.day_number ?? 0),
       // In create mode, start with 0 and let meal_time mapping set sequence_number
       sequence_number: edit ? Number(source?.sequence_number ?? 1) : 0,
       meal_time: source?.meal_time ?? '',
