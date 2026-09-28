@@ -209,7 +209,7 @@ export default function NotificationList({
       return [
         { value: 'lead', label: 'Lead' },
         { value: 'campaign', label: 'Campaign' },
-        { value: 'reassignment', label: 'reassignment' },
+        { value: 'reassignment', label: 'Reassignment' },
       ]
     }
     if (isServiceStaff) {
@@ -542,6 +542,7 @@ export default function NotificationList({
                   onMarkAsRead={handleMarkAsRead}
                   onNavigate={handleNavigate}
                   onDelete={handleDelete}
+                  hideStatusBadge={activeTab !== 'all'}
                 />
               ))}
 
