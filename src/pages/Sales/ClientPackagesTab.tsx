@@ -1855,7 +1855,7 @@ export default function ClientPackagesTab({
                 />
               )
             ) : activeProposal ? (
-              canEditProposal && (
+              isServiceStaff && (
                 <Button
                   label="Update package"
                   icon="edit"
@@ -2092,15 +2092,17 @@ export default function ClientPackagesTab({
                   </div>
                 </div>
 
-                {/* <div className="flex shrink-0 items-center gap-2">
-                <Button
-                  label="Change package"
-                  icon="edit"
-                  outlined
-                  onClick={() => openProposalModal(activeProposal)}
-                  disabled={!canEditProposal || !client.profile_completed}
-                />
-              </div> */}
+                {isServiceStaff && (
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button
+                      label="Update package"
+                      icon="edit"
+                      outlined
+                      onClick={() => openProposalModal(activeProposal)}
+                      disabled={!client.profile_completed}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3 border-t border-formBorder/70 pt-4 sm:grid-cols-4">

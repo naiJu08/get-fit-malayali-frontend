@@ -172,62 +172,13 @@ export default function NotificationList({
     }
   }
 
-  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
-
-  const roleTypeFilters = useMemo(() => {
-    const isSuperAdmin = roleName === 'superadmin' || roleName === 'admin'
-    const isSales = roleName === 'sales'
-    const isMarketing = roleName === 'marketing'
-    const isServiceStaff = [
-      'nutritionist',
-      'physiotherapist',
-      'physio',
-      'yogist',
-      'yoga',
-    ].includes(roleName || '')
-
-    if (isSuperAdmin) {
-      return [
-        { value: 'lead', label: 'Lead' },
-        { value: 'campaign', label: 'Campaign' },
-        { value: 'proposal', label: 'Proposal' },
-        { value: 'refund_request', label: 'Refund Request' },
-        { value: 'renewal_request', label: 'Renewal Request' },
-        { value: 'assignment', label: 'Assignment' },
-        { value: 'reminder', label: 'Reminder' },
-      ]
-    }
-    if (isSales) {
-      return [
-        { value: 'lead', label: 'Lead' },
-        { value: 'proposal', label: 'Proposal' },
-        { value: 'refund_request', label: 'Refund Request' },
-        { value: 'renewal_request', label: 'Renewal Request' },
-      ]
-    }
-    if (isMarketing) {
-      return [
-        { value: 'lead', label: 'Lead' },
-        { value: 'campaign', label: 'Campaign' },
-        { value: 'reassignment', label: 'reassignment' },
-      ]
-    }
-    if (isServiceStaff) {
-      return [
-        { value: 'assignment', label: 'Assignment' },
-        { value: 'reassignment', label: 'Reassignment' },
-        { value: 'proposal', label: 'Proposal' },
-        { value: 'reminder', label: 'Reminder' },
-      ]
-    }
-    return [
-      { value: 'lead', label: 'Lead' },
-      { value: 'campaign', label: 'Campaign' },
-      { value: 'proposal', label: 'Proposal' },
-      { value: 'refund_request', label: 'Refund Request' },
-      { value: 'renewal_request', label: 'Renewal Request' },
-    ]
-  }, [roleName])
+  const notificationTypes = useMemo(() => {
+    const types = new Set<string>()
+    notifications.forEach((n) => {
+      if (n.notification_type) types.add(n.notification_type)
+    })
+    return Array.from(types)
+  }, [notifications])
 
   // Handle Go to Page
   const handleNavigate = async (url: string, id: number | string) => {
@@ -236,10 +187,16 @@ export default function NotificationList({
       const targetItem = notifications.find(
         (item) => String(item.id) === String(id)
       )
-      resolvedUrl = resolveNotificationUrl(url, roleName, targetItem)
-      if (targetItem && !targetItem.is_read) {
-        await markNotificationAsRead(id)
-        decrementUnreadCount()
+      if (targetItem) {
+        resolvedUrl = resolveNotificationUrl(
+          targetItem.action_url || url,
+          useAuthStore.getState().roleData?.name?.toLowerCase?.(),
+          targetItem
+        )
+        if (!targetItem.is_read) {
+          await markNotificationAsRead(id)
+          decrementUnreadCount()
+        }
       }
     } catch {
       // Non-blocking error
@@ -468,9 +425,11 @@ export default function NotificationList({
                 className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-none rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none shrink-0"
               >
                 <option value="all">All Types</option>
-                {roleTypeFilters.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
+                {notificationTypes.map((t) => (
+                  <option key={t} value={t}>
+                    {t
+                      .replace(/_/g, ' ')
+                      .replace(/\b\w/g, (c) => c.toUpperCase())}
                   </option>
                 ))}
               </select>
@@ -542,6 +501,7 @@ export default function NotificationList({
                   onMarkAsRead={handleMarkAsRead}
                   onNavigate={handleNavigate}
                   onDelete={handleDelete}
+                  hideStatusBadge={activeTab !== 'all'}
                 />
               ))}
 

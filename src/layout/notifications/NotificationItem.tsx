@@ -222,7 +222,7 @@ export default function NotificationItem({
               type="button"
               onClick={() =>
                 onNavigate!(
-                  effectiveUrl || (item.action_url as string),
+                  (item.action_url as string) || effectiveUrl,
                   item.id
                 )
               }
