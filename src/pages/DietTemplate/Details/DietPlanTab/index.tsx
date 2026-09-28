@@ -686,12 +686,19 @@ function DietPlanContent({
             className="bg-primaryGreen"
             label="Create Meal"
             icon="plus"
-            onClick={() =>
+            onClick={() => {
+              const dayNum =
+                selectedDayMeta?.day_number ||
+                (selectedDayKey.startsWith('number:')
+                  ? Number(selectedDayKey.slice(7))
+                  : 0)
+              const dayName =
+                selectedDayMeta?.day_name || (dayNum ? `Day ${dayNum}` : '')
               openCreate({
-                day_name: selectedDayMeta?.day_name || '',
-                day_number: selectedDayMeta?.day_number || 0,
+                day_name: dayName,
+                day_number: dayNum,
               })
-            }
+            }}
           />
         )}
       </div>

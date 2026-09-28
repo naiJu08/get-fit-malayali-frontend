@@ -261,6 +261,7 @@ export default function CreatePlan({
         true
       ),
       type: 'number',
+      maxLength: 3,
     },
     {
       ...textField(

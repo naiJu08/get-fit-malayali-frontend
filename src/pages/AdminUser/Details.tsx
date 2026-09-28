@@ -300,8 +300,13 @@ export default function UserDetails() {
       !isSuperAdmin &&
       workflowAssignment?.id &&
       (workflowAssignment.workflow_status === 'pending' ||
+        workflowAssignment.status === 'pending' ||
         !workflowAssignment.accepted_at)
   )
+
+  useEffect(() => {
+    setDismissedAcceptModal(false)
+  }, [user?.id])
 
   useEffect(() => {
     if (isPendingAcceptance && !dismissedAcceptModal) {

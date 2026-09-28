@@ -319,22 +319,26 @@ const FileUpload: React.FC<FileUploadProps> = ({
       />
       <div className={`customFileUpload ${fullwidth ? 'w-full' : 'w-auto'}`}>
         {(label || labelAddon) && (
-          <div className="flex justify-between items-center gap-4">
+          <div className="flex justify-between items-center gap-4 mb-1.5">
             {label && (
-              <label className={`labels label-text`}>
+              <label className="text-xs font-semibold text-gray-700 flex items-center gap-1">
                 {label}
-                {required ? <span className="text-error"> *</span> : <></>}
+                {required ? <span className="text-red-500">*</span> : null}
               </label>
             )}
             {labelAddon ? (
-              <div className="text-xs text-primaryText whitespace-nowrap">
+              <div className="text-xs text-gray-500 whitespace-nowrap">
                 {labelAddon}
               </div>
             ) : null}
           </div>
         )}
         <div
-          className={`customFileUpload-field relative flex flex-col items-center  border-dashed border border-formBorder rounded-lg ${disabled ? 'bg-cardWrapperBg' : 'bg-bgGrey'}`}
+          className={`customFileUpload-field relative flex flex-col items-center justify-center border-2 border-dashed rounded-3xl transition-all duration-200 p-8 text-center ${
+            disabled
+              ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
+              : 'bg-gradient-to-b from-[#F5FAFF] via-[#EEF5FE] to-[#F5FAFF] border-[#BFDBFE] hover:border-[#93C5FD] cursor-pointer group'
+          }`}
         >
           <input
             id={id}
@@ -342,121 +346,181 @@ const FileUpload: React.FC<FileUploadProps> = ({
             disabled={disabled}
             multiple={isMultiple}
             onChange={handleFileChange}
-            // value={value}
             type={type}
             accept={accept}
           />
           <label
-            className={`flex flex-col items-center justify-center gap-2  p-4 w-full min-h-[120px] ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'} `}
+            className={`flex flex-col items-center justify-center w-full ${
+              disabled ? 'cursor-not-allowed' : 'cursor-pointer'
+            }`}
             htmlFor={id}
           >
-            {/* <Icons name="question-circle" /> */}
-            <p
-              className={` text-xxs leading-4  ${disabled ? 'text-input-disabled' : 'text-primaryText'}`}
-            >
-              {supportedFiles}
-              {sizeLimit && sizeLimit > 0 ? (
-                <span
-                  className={`text-primary text-xxs leading-4 ${disabled && 'opacity-60'}`}
-                >
-                  (Max {sizeLimit} MB)
-                </span>
-              ) : null}
-            </p>
-            {/* <p className="text-[#999696] font-bold text-sm">Drag and Drop</p>
-          <p className="text-secondary font-bold text-sm uppercase">Or</p> */}
-            <div
-              className={`relative   rounded-[4px] shadow-buttonShadow   btn text-sm p-1.5 min-w-[65px] btn-primary ${disabled && 'opacity-30'}`}
-            >
-              <div className="flex items-center justify-center gap-1  m-auto ">
-                <Icons className="iconWhite" name={`${iconName}`} />
-                <div className="  font-medium  text-bgWhite text-xxs ">
-                  {buttonLabel}
-                </div>
+            {/* Top Soft Blue Icon Circle with Spark accents */}
+            <div className="relative mb-3">
+              {/* Decorative spark accent left */}
+              <svg
+                className="w-3.5 h-3.5 text-blue-400 absolute -left-4 top-2 opacity-70 group-hover:scale-110 transition-transform"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+              </svg>
+              {/* Decorative spark accent right */}
+              <svg
+                className="w-3.5 h-3.5 text-blue-400 absolute -right-4 top-2 opacity-70 group-hover:scale-110 transition-transform"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" />
+              </svg>
+
+              <div
+                className={`w-14 h-14 rounded-full flex items-center justify-center transition-transform duration-200 shadow-xs ${
+                  disabled
+                    ? 'bg-gray-100 text-gray-400'
+                    : 'bg-[#DBEAFE] text-[#2563EB] group-hover:scale-105'
+                }`}
+              >
+                <Icons
+                  className="w-7 h-7 text-[#2563EB]"
+                  name={iconName || 'cloud-upload'}
+                />
               </div>
             </div>
+
+            {/* Title & Subtitle */}
+            <h4 className="text-base font-bold text-[#1E293B] tracking-tight mb-1">
+              Upload {label ? label.replace(/\s*\*/g, '') : 'File'}
+            </h4>
+            <p className="text-xs text-[#64748B] font-normal mb-4">
+              Drag & drop your image here, or browse to choose a file
+            </p>
+
+            {/* Vibrant Blue Action Button */}
+            <div
+              className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-500/20 transition-all mb-4 group-hover:bg-[#1D4ED8] ${
+                disabled
+                  ? 'opacity-40 cursor-not-allowed pointer-events-none'
+                  : ''
+              }`}
+            >
+              <Icons
+                className="w-4 h-4 text-white"
+                name={iconName || 'cloud-upload'}
+              />
+              <span>
+                {buttonLabel && buttonLabel !== 'Browse & Upload'
+                  ? buttonLabel
+                  : 'Choose File'}
+              </span>
+            </div>
+
+            {/* Format & Size Limit Specs Footer */}
+            {(supportedFiles || sizeLimit) && (
+              <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-[#64748B]">
+                <svg
+                  className="w-4 h-4 text-[#64748B] flex-shrink-0"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <span>{supportedFiles}</span>
+                {sizeLimit && sizeLimit > 0 ? (
+                  <span className="text-[#94A3B8]">· Max {sizeLimit} MB</span>
+                ) : null}
+              </div>
+            )}
           </label>
         </div>
+
         {(dimensionLabel ||
           aspectRatio ||
           (requiredWidth && requiredHeight)) && (
-          <p className="text-xxs text-gray-500 mt-1">
-            {dimensionLabel ||
-              `Recommended: ${aspectRatio ? `${aspectRatio.width}:${aspectRatio.height}` : ''} ${requiredWidth && requiredHeight ? `(${requiredWidth}x${requiredHeight}px)` : ''}`}
+          <p className="text-[11px] text-gray-500 mt-1.5 flex items-center gap-1">
+            <span>
+              {dimensionLabel ||
+                `Recommended size: ${
+                  aspectRatio
+                    ? `${aspectRatio.width}:${aspectRatio.height}`
+                    : ''
+                } ${
+                  requiredWidth && requiredHeight
+                    ? `(${requiredWidth}x${requiredHeight}px)`
+                    : ''
+                }`}
+            </span>
           </p>
         )}
+
         {errors && errors[name] && (
-          <div className="text-error text-error-label mt-[1px]">
+          <div className="text-xs text-red-500 font-medium mt-1">
             {getErrors(errors[name])}
           </div>
         )}
-        <div className="flex flex-col gap-2 mt-4">
+
+        {/* Selected File / File List Preview */}
+        <div className="flex flex-col gap-2 mt-3">
           {Array.isArray(file) &&
             file?.map((item, index: number) => (
               <div
-                key={item.id}
-                className={`flex items-center justify-between gap-1.5 px-2.5 py-2 bg-cardWrapperBg rounded-sm ${disabled ? 'bg-cardWrapperBg' : 'bg-cardWrapperBg'}`}
+                key={item.id || index}
+                className="flex items-center justify-between gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs"
               >
-                <Icons
-                  name="paper-clip"
-                  className={`iconWidthSm iconBlack ${disabled && 'opacity-30'}`}
-                />
-                <p className="flex-1 text-primaryText text-sm font-medium break-all">
-                  {item?.name}
-                </p>
-                <Icons
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <Icons
+                    name="paper-clip"
+                    className="w-4 h-4 text-gray-500 flex-shrink-0"
+                  />
+                  <span className="font-medium text-gray-800 truncate">
+                    {item?.name}
+                  </span>
+                </div>
+                <button
+                  type="button"
                   onClick={() => handleClearFile(index)}
-                  name="close"
-                  className={`iconBlack iconWidthSm`}
-                />
+                  className="p-1 text-gray-400 hover:text-red-500 rounded-md transition-colors"
+                  title="Remove file"
+                >
+                  <Icons name="close" className="w-3.5 h-3.5" />
+                </button>
               </div>
             ))}
+
           {singleFileLabel && !isMultiple && (
-            <div
-              className={`flex items-center justify-between gap-1.5 px-2.5 py-2  rounded-sm  ${disabled ? 'bg-cardWrapperBg' : 'bg-cardWrapperBg'}`}
-            >
-              <Icons
-                name="paper-clip"
-                className={`iconWidthSm ${disabled && 'text-disabledText stroke-disabledText '}`}
-              />
-              <a
-                href="#/"
-                onClick={handleFilePreview}
-                className={`flex-1 text-sm font-medium overflow-hidden break-all ${disabled ? 'text-disabledText  cursor-not-allowed' : 'text-primaryText'}`}
-              >
-                {singleFileLabel}
-              </a>
-              {!disabled && (
+            <div className="flex items-center justify-between gap-2 px-3 py-2 bg-blue-50/70 border border-blue-200 rounded-lg text-xs">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
                 <Icons
-                  name="close"
-                  onClick={() => handleClearFile(0, file)}
-                  className="iconBlack iconWidthSm cursor-pointer"
+                  name="paper-clip"
+                  className="w-4 h-4 text-blue-600 flex-shrink-0"
                 />
+                <a
+                  href="#/"
+                  onClick={handleFilePreview}
+                  className="font-medium text-blue-700 hover:underline truncate"
+                  title="Click to preview file"
+                >
+                  {singleFileLabel}
+                </a>
+              </div>
+              {!disabled && (
+                <button
+                  type="button"
+                  onClick={() => handleClearFile(0, file)}
+                  className="p-1 text-gray-400 hover:text-red-500 rounded-md transition-colors"
+                  title="Remove file"
+                >
+                  <Icons name="close" className="w-3.5 h-3.5" />
+                </button>
               )}
             </div>
           )}
-          {/* {typeof file === 'object' && file && !isMultiple && (
-            <div className="flex items-center justify-between gap-1.5 px-2.5 py-2 bg-cardWrapperBg rounded-sm">
-              <Icons name="paper-clip" className="iconWidthSm iconBlack" />
-              <a
-                href="#/"
-                onClick={() => (file?.link ? window.open(file.link) : '')}
-                className="flex-1 text-primaryText text-sm font-medium overflow-hidden cursor-pointer break-all"
-              >
-                {console.log('file?.name', file?.name)}
-                {file?.name ?? watch(subName)}
-              </a>
-              {!disabled ? (
-                <Icons
-                  name="close"
-                  onClick={() => handleClearFile(0, file)}
-                  className="iconBlack iconWidthSm cursor-pointer"
-                />
-              ) : (
-                ''
-              )}
-            </div>
-          )} */}
         </div>
       </div>
     </>
