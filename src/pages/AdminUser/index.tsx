@@ -1,5 +1,5 @@
 import SmartTable from '../../components/common/table/SmartTable'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 
 import { TableColumns } from '../../common/types'
@@ -26,6 +26,7 @@ import {
   DISABLE_NONLOGIN_APIS,
   deleteAdmin,
   getStaffActiveAssignments,
+  useUsersFilterOptions,
   // freezeUser,
   // unfreezeUser,
 } from './api'
@@ -33,6 +34,9 @@ import { getColumns } from './columns'
 import CreateAdmin from './create'
 import AssignSalesModal from './AssignSalesModal'
 import StaffAssignmentsModal from './StaffAssignmentsModal'
+import UserAdvancedFilterDrawer, {
+  FilterState,
+} from './UserAdvancedFilterDrawer'
 import { useAuthStore } from '../../store/authStore'
 
 type StatusFilterValue = 'all' | 'active' | 'deactivated'
@@ -118,6 +122,7 @@ export default function AdminUser() {
   const [viewIndicator, setViewIndicator] = useState(false)
   const [loader, setloader] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
+  const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false)
   const [activePlanWarningOpen, setActivePlanWarningOpen] = useState(false)
   const [assignSalesModalUser, setAssignSalesModalUser] = useState<any>(null)
   const [staffAssignmentsModalData, setStaffAssignmentsModalData] = useState<{
@@ -132,29 +137,59 @@ export default function AdminUser() {
 
   const params = useParams()
   const activeRole = getRoleFromPath(location.pathname)
+  const isClientTab = activeRole === 'user'
 
   const { pageParams, setPageParams, selectedRows, setSelectedRows } =
     useAdminUserFilterStore()
   const { page, page_size, search, ordering, filters } = pageParams
+
+  // Advanced filters apply only for clients tab; other user tabs only receive status filter
+  const effectiveFilters = isClientTab
+    ? filters
+    : filters?.status
+      ? { status: filters.status }
+      : {}
+
   const searchParams = {
     page: page,
     per_page: page_size,
     search: search,
     ordering: ordering,
-    ...filters,
+    ...effectiveFilters,
     role: activeRole,
   }
-  // Reset pagination when route/section changes so we always start from page 1
+
+  // Clear advanced filters and reset pagination whenever route/tab switches
   useEffect(() => {
+    setStatusFilter('all')
+    setIsAdvancedFilterOpen(false)
     setPageParams({
       ...pageParams,
+      filters: { role: activeRole },
       page: 1,
       search: '',
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, setPageParams])
+  }, [location.pathname, activeRole])
+
+  // Clear advanced filters on unmount so they do not leak to any other screens
+  useEffect(() => {
+    return () => {
+      const storeState = useAdminUserFilterStore.getState()
+      storeState.setPageParams({
+        ...storeState.pageParams,
+        filters: { role: 'user' },
+        search: '',
+        page: 1,
+      })
+    }
+  }, [])
 
   const { data, refetch, isFetching } = useAdminUser(searchParams)
+  const { data: filterOptionsData } = useUsersFilterOptions(
+    activeRole === 'user'
+  )
+
   useEffect(() => {
     const latestParams = useAdminUserFilterStore.getState().pageParams
     if (latestParams?.search) {
@@ -162,18 +197,14 @@ export default function AdminUser() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-  useEffect(() => {
-    if (pageParams?.search) {
-      setPageParams({ ...pageParams, search: '', page: 1 })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+
   const onChangePage = (row: number) => {
     setPageParams({
       ...pageParams,
       page: row,
     })
   }
+
   const onChangeRowsPerPage = (count: number | string) => {
     setPageParams({
       ...pageParams,
@@ -181,6 +212,7 @@ export default function AdminUser() {
       page: 1,
     })
   }
+
   const onViewAction = async (row: any) => {
     setViewIndicator(true)
     if (row?.id) {
@@ -190,6 +222,7 @@ export default function AdminUser() {
       setCreateOpen(true)
     }
   }
+
   useEffect(() => {
     setColumns(
       getColumns({
@@ -201,25 +234,6 @@ export default function AdminUser() {
         activeRole,
       })
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeRole])
-
-  // Ensure role filter follows active tab
-  useEffect(() => {
-    const nextFilters: Record<string, any> = {
-      ...(pageParams?.filters || {}),
-      role: activeRole,
-    }
-    if (nextFilters.status) {
-      delete nextFilters.status
-    }
-    setStatusFilter('all')
-    setPageParams({
-      ...pageParams,
-      filters: nextFilters,
-      search: '',
-      page: 1,
-    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeRole])
 
@@ -265,6 +279,192 @@ export default function AdminUser() {
       filters: nextFilters,
       page: 1,
     })
+  }
+
+  const activeFilterCount = useMemo(() => {
+    if (activeRole !== 'user') return 0
+    const ignoredKeys = ['role', 'page', 'page_size', 'ordering', 'search']
+    return Object.keys(pageParams?.filters || {}).filter((k) => {
+      if (ignoredKeys.includes(k)) return false
+      const val = pageParams?.filters?.[k]
+      return val !== undefined && val !== null && val !== '' && val !== 'all'
+    }).length
+  }, [pageParams?.filters, activeRole])
+
+  const handleApplyAdvancedFilters = (newFilters: FilterState) => {
+    const nextFilters = {
+      ...newFilters,
+      role: activeRole,
+    }
+    setPageParams({
+      ...pageParams,
+      filters: nextFilters,
+      page: 1,
+    })
+    if (newFilters.status) {
+      setStatusFilter(newFilters.status as StatusFilterValue)
+    } else {
+      setStatusFilter('all')
+    }
+  }
+
+  const handleResetAdvancedFilters = () => {
+    setPageParams({
+      ...pageParams,
+      filters: { role: activeRole },
+      page: 1,
+    })
+    setStatusFilter('all')
+  }
+
+  const handleRemoveSingleFilter = (key: string) => {
+    const updatedFilters = { ...(pageParams?.filters || {}) }
+    delete updatedFilters[key]
+    setPageParams({
+      ...pageParams,
+      filters: updatedFilters,
+      page: 1,
+    })
+    if (key === 'status') {
+      setStatusFilter('all')
+    }
+  }
+
+  const getFilterChipLabel = (key: string, value: any) => {
+    const rawOptions =
+      (filterOptionsData as any)?.data || filterOptionsData || {}
+    switch (key) {
+      case 'gender': {
+        const map: Record<string, string> = {
+          male: 'Male',
+          female: 'Female',
+          other: 'Other',
+        }
+        return `Gender: ${map[String(value).toLowerCase()] || value}`
+      }
+      case 'language':
+        return `Language: ${value}`
+      case 'country':
+        return `Country: ${value}`
+      case 'state':
+        return `State: ${value}`
+      case 'occupation':
+        return `Occupation: ${value}`
+      case 'work_schedule':
+        return `Schedule: ${value}`
+      case 'age_min':
+        return `Min Age: ${value}`
+      case 'age_max':
+        return `Max Age: ${value}`
+      case 'dob_from':
+        return `DOB From: ${value}`
+      case 'dob_to':
+        return `DOB To: ${value}`
+      case 'bmi_min':
+        return `Min BMI: ${value}`
+      case 'bmi_max':
+        return `Max BMI: ${value}`
+      case 'plan_id': {
+        const found = rawOptions?.plans?.find(
+          (p: any) => String(p.id) === String(value)
+        )
+        return `Plan: ${found?.name || `#${value}`}`
+      }
+      case 'has_subscription': {
+        const map: Record<string, string> = {
+          active: 'Has Active Plan',
+          none: 'No Active Plan',
+          expired: 'Expired Plan',
+        }
+        return `Subscription: ${map[String(value).toLowerCase()] || value}`
+      }
+      case 'subscription_status': {
+        const map: Record<string, string> = {
+          active: 'Active',
+          paused: 'Paused',
+          expired: 'Expired',
+          cancelled: 'Cancelled',
+          pending: 'Pending',
+        }
+        return `Plan Status: ${map[String(value).toLowerCase()] || value}`
+      }
+      case 'plan_start_from':
+        return `Plan Started From: ${value}`
+      case 'plan_start_to':
+        return `Plan Started To: ${value}`
+      case 'plan_end_from':
+        return `Plan Expires From: ${value}`
+      case 'plan_end_to':
+        return `Plan Expires To: ${value}`
+      case 'sales_rep_id': {
+        if (String(value) === 'unassigned') return 'Sales Rep: Unassigned'
+        const found = rawOptions?.sales_reps?.find(
+          (u: any) => String(u.id) === String(value)
+        )
+        return `Sales Rep: ${found?.name || `#${value}`}`
+      }
+      case 'nutritionist_id': {
+        if (String(value) === 'unassigned') return 'Nutritionist: Unassigned'
+        const found = rawOptions?.nutritionists?.find(
+          (u: any) => String(u.id) === String(value)
+        )
+        return `Nutritionist: ${found?.name || `#${value}`}`
+      }
+      case 'physiotherapist_id': {
+        if (String(value) === 'unassigned') return 'Physio: Unassigned'
+        const found = rawOptions?.physiotherapists?.find(
+          (u: any) => String(u.id) === String(value)
+        )
+        return `Physio: ${found?.name || `#${value}`}`
+      }
+      case 'yogist_id': {
+        if (String(value) === 'unassigned') return 'Yogist: Unassigned'
+        const found = rawOptions?.yogists?.find(
+          (u: any) => String(u.id) === String(value)
+        )
+        return `Yogist: ${found?.name || `#${value}`}`
+      }
+      case 'food_preferences':
+        return `Diet: ${value}`
+      case 'food_allergies':
+        return `Allergy: ${value}`
+      case 'medical_conditions':
+        return `Condition: ${value}`
+      case 'lifestyle': {
+        const map: Record<string, string> = {
+          sedentary: 'Sedentary',
+          lightly_active: 'Lightly Active',
+          moderately_active: 'Moderately Active',
+          very_active: 'Very Active',
+          extremely_active: 'Extremely Active',
+        }
+        return `Lifestyle: ${map[String(value).toLowerCase()] || value}`
+      }
+      case 'goal':
+        return `Goal: ${value}`
+      case 'registration_source': {
+        const map: Record<string, string> = {
+          self_registered: 'Self Registered',
+          superadmin_created: 'Admin Created',
+          lead_conversion: 'Lead Conversion',
+        }
+        return `Source: ${map[String(value).toLowerCase()] || value}`
+      }
+      case 'campaign_id': {
+        const found = rawOptions?.campaigns?.find(
+          (c: any) => String(c.id) === String(value)
+        )
+        return `Campaign: ${found?.name || `#${value}`}`
+      }
+      case 'registered_from':
+        return `Registered From: ${value}`
+      case 'registered_to':
+        return `Registered To: ${value}`
+      case 'status':
+        return `Status: ${String(value).charAt(0).toUpperCase() + String(value).slice(1)}`
+      default:
+        return `${key}: ${value}`
+    }
   }
 
   const handleDeleteModel = async (
@@ -563,25 +763,145 @@ export default function AdminUser() {
           {/* <PageTitle data={data?.total} isLoading={isFetching} /> */}
           <div className=" p-4">
             <div>
+              {activeFilterCount > 0 && activeRole === 'user' && (
+                <div className="mb-3.5 p-3 rounded-xl bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-emerald-50/90 border border-emerald-200/80 flex items-center justify-between gap-3 flex-wrap animate-fadeIn shadow-xs">
+                  <div className="flex items-center gap-2 flex-wrap text-xs">
+                    <span className="font-bold text-emerald-950 flex items-center gap-1.5 mr-1">
+                      <svg
+                        className="w-4 h-4 text-emerald-700"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                        />
+                      </svg>
+                      Applied Filters ({activeFilterCount}):
+                    </span>
+                    {Object.entries(pageParams?.filters || {})
+                      .filter(
+                        ([k, v]) =>
+                          ![
+                            'role',
+                            'page',
+                            'page_size',
+                            'ordering',
+                            'search',
+                          ].includes(k) &&
+                          v !== undefined &&
+                          v !== null &&
+                          v !== '' &&
+                          v !== 'all'
+                      )
+                      .map(([k, v]) => (
+                        <span
+                          key={k}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-emerald-200 text-emerald-900 font-medium text-xs shadow-2xs hover:border-emerald-300 transition-colors"
+                        >
+                          <span>{getFilterChipLabel(k, v)}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSingleFilter(k)}
+                            className="p-0.5 rounded-full hover:bg-emerald-100 text-gray-400 hover:text-emerald-800 transition-colors"
+                            title="Remove filter"
+                          >
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </span>
+                      ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleResetAdvancedFilters}
+                    className="text-xs font-bold text-emerald-800 hover:text-red-600 underline transition-colors whitespace-nowrap ml-auto"
+                  >
+                    Clear All Filters
+                  </button>
+                </div>
+              )}
+
               <SmartTable
                 data={data?.items ?? []}
                 dataRowKey="id"
                 toolbarExtra={
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-gray-600">Status</label>
-                    <select
-                      className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200 w-40"
-                      value={statusFilter}
-                      onChange={(event) =>
-                        handleStatusChange(
-                          event.target.value as StatusFilterValue
-                        )
-                      }
-                    >
-                      <option value="all">All</option>
-                      <option value="active">Active</option>
-                      <option value="deactivated">Deactivated</option>
-                    </select>
+                  <div className="flex items-end gap-3">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-xs text-gray-600">Status</label>
+                      <select
+                        className="border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white shadow-sm focus:outline-none focus:ring-0 focus:border-gray-200 w-36"
+                        value={statusFilter}
+                        onChange={(event) =>
+                          handleStatusChange(
+                            event.target.value as StatusFilterValue
+                          )
+                        }
+                      >
+                        <option value="all">All</option>
+                        <option value="active">Active</option>
+                        <option value="deactivated">Deactivated</option>
+                      </select>
+                    </div>
+
+                    {['superadmin', 'admin'].includes(loginRole || '') &&
+                      activeRole === 'user' && (
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs text-transparent select-none">
+                            Filters
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setIsAdvancedFilterOpen(true)}
+                            className={`flex items-center gap-2 px-3.5 py-2.5 text-sm font-semibold rounded-lg border transition-all shadow-sm h-[42px] cursor-pointer ${
+                              activeFilterCount > 0
+                                ? 'bg-emerald-50 border-emerald-400 text-emerald-900 hover:bg-emerald-100 hover:border-emerald-500 ring-2 ring-emerald-100'
+                                : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'
+                            }`}
+                          >
+                            <svg
+                              className={`w-4 h-4 ${
+                                activeFilterCount > 0
+                                  ? 'text-emerald-600'
+                                  : 'text-gray-500'
+                              }`}
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                              />
+                            </svg>
+                            <span className="whitespace-nowrap">
+                              Advanced Filters
+                            </span>
+                            {activeFilterCount > 0 && (
+                              <span className="px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white leading-none">
+                                {activeFilterCount}
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      )}
                   </div>
                 }
                 search={true}
@@ -699,6 +1019,14 @@ export default function AdminUser() {
             onClose={() => setAssignSalesModalUser(null)}
             user={assignSalesModalUser}
             onSuccess={() => refetch()}
+          />
+
+          <UserAdvancedFilterDrawer
+            isOpen={isAdvancedFilterOpen}
+            onClose={() => setIsAdvancedFilterOpen(false)}
+            appliedFilters={pageParams?.filters || {}}
+            onApplyFilters={handleApplyAdvancedFilters}
+            onResetFilters={handleResetAdvancedFilters}
           />
 
           <StaffAssignmentsModal

@@ -99,8 +99,29 @@ export const getAdminDetails = (id: string) => {
   return getData(`${apiUrl.ADMIN_USER}/${id}`)
 }
 
-export const getStaffActiveAssignments = (id: string | number) => {
-  return getData(`${apiUrl.ADMIN_USER}/${id}/active_assignments`)
+export const getUsersFilterOptions = () => {
+  return getData(`${apiUrl.ADMIN_USER}/filter_options`)
+}
+
+export const useUsersFilterOptions = (enabled = true) => {
+  return useQuery(['users_filter_options'], getUsersFilterOptions, {
+    enabled,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export const getStaffActiveAssignments = (
+  id: string | number,
+  params?: { page?: number; per_page?: number; search?: string }
+) => {
+  const queryParams = new URLSearchParams()
+  if (params?.page) queryParams.append('page', String(params.page))
+  if (params?.per_page) queryParams.append('per_page', String(params.per_page))
+  if (params?.search) queryParams.append('search', params.search)
+  const queryString = queryParams.toString()
+  return getData(
+    `${apiUrl.ADMIN_USER}/${id}/active_assignments${queryString ? `?${queryString}` : ''}`
+  )
 }
 
 export const reassignStaffAssignment = (
@@ -120,6 +141,8 @@ export const bulkReassignStaffAssignments = (
   id: string | number,
   payload: {
     new_staff_id: string | number
+    assignment_ids?: (string | number)[]
+    client_ids?: (string | number)[]
     action_type?: string
     reason?: string
     notes?: string
