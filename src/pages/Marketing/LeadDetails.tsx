@@ -869,6 +869,9 @@ export default function LeadDetails() {
               <div className="flex flex-col gap-2.5">
                 {paginatedSalesUsers.map((user: any) => {
                   const isSelected = String(selectedSalesId) === String(user.id)
+                  const isAlreadyAssigned =
+                    assigning?.assigned_to &&
+                    String(assigning.assigned_to.id) === String(user.id)
                   const initials = (user.name || '?')
                     .split(' ')
                     .map((w: string) => w[0])
@@ -879,12 +882,17 @@ export default function LeadDetails() {
                     <button
                       key={user.id}
                       type="button"
-                      onClick={() => setSelectedSalesId(user.id)}
+                      onClick={() =>
+                        !isAlreadyAssigned && setSelectedSalesId(user.id)
+                      }
+                      disabled={isAlreadyAssigned}
                       className={
                         'group relative text-left rounded-xl border-2 p-4 transition-all duration-200 ' +
-                        (isSelected
-                          ? 'border-purple-500 bg-purple-50 shadow-sm ring-1 ring-purple-500/20'
-                          : 'border-gray-100 bg-white hover:border-purple-200 hover:bg-purple-50/30 hover:shadow-sm')
+                        (isAlreadyAssigned
+                          ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
+                          : isSelected
+                            ? 'border-purple-500 bg-purple-50 shadow-sm ring-1 ring-purple-500/20'
+                            : 'border-gray-100 bg-white hover:border-purple-200 hover:bg-purple-50/30 hover:shadow-sm')
                       }
                     >
                       {isSelected && (
@@ -938,6 +946,11 @@ export default function LeadDetails() {
                                 )
                               })()}
                             </div>
+                            {isAlreadyAssigned && (
+                              <span className="shrink-0 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
+                                Already Assigned
+                              </span>
+                            )}
                             {user.phone && (
                               <span className="text-xs text-gray-400 shrink-0">
                                 {user.phone}

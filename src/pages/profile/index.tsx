@@ -2,6 +2,17 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useLayoutStore } from '../../store/layoutStore'
 import { useProfile, useUpdateProfile } from './api'
 import ChangePasswordModal from './password'
+import { useSnackbarManager } from '../../components/common/snackbar'
+
+const resolveAvatarUrl = (url?: string | null): string | null => {
+  if (!url) return null
+  if (url.startsWith('http') || url.startsWith('data:')) return url
+  const baseUrl = (process.env.REACT_APP_BASE_URL || '').replace(
+    /\/api\/v1\/?$/,
+    ''
+  )
+  return `${baseUrl}${url}`
+}
 
 const formatDate = (val?: string) => {
   if (!val) return 'N/A'
@@ -40,6 +51,7 @@ const getRoleBadgeColor = (role?: string) => {
 
 export default function ProfilePage() {
   const { setLayoutType } = useLayoutStore()
+  const { enqueueSnackbar } = useSnackbarManager()
   const { data, isLoading, isError, refetch } = useProfile()
 
   const [name, setName] = useState('')
@@ -89,7 +101,7 @@ export default function ProfilePage() {
       setMedicalConditions(user.medical_conditions || '')
       setFoodAllergies(user.food_allergies || '')
       setEthnicity(user.ethnicity || '')
-      setAvatarPreview(user.avatar_url || null)
+      setAvatarPreview(resolveAvatarUrl(user.avatar_url))
       setRemoveAvatar(false)
       setAvatarFile(null)
     }
@@ -123,6 +135,29 @@ export default function ProfilePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!name.trim()) {
+      enqueueSnackbar('Please enter your name.', { variant: 'error' })
+      return
+    }
+    if (name.length > 25) {
+      enqueueSnackbar('Name must be 25 characters or less.', {
+        variant: 'error',
+      })
+      return
+    }
+    if (phone && !/^\d{10}$/.test(phone)) {
+      enqueueSnackbar('Phone number must be exactly 10 digits.', {
+        variant: 'error',
+      })
+      return
+    }
+    if (state.length > 20) {
+      enqueueSnackbar('State must be 20 characters or less.', {
+        variant: 'error',
+      })
+      return
+    }
 
     const formData = new FormData()
     formData.append('name', name)
@@ -391,6 +426,7 @@ export default function ProfilePage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter full name"
+                  maxLength={25}
                   required
                   className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm"
                 />
@@ -436,8 +472,13 @@ export default function ProfilePage() {
                 <input
                   type="text"
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10)
+                    setPhone(val)
+                  }}
                   placeholder="Enter phone number"
+                  inputMode="numeric"
+                  maxLength={10}
                   className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm"
                 />
               </div>
@@ -452,6 +493,7 @@ export default function ProfilePage() {
                   value={state}
                   onChange={(e) => setState(e.target.value)}
                   placeholder="e.g. Kerala"
+                  maxLength={20}
                   className="w-full px-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm"
                 />
               </div>

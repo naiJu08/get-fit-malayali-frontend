@@ -37,7 +37,16 @@ export default function HeaderMenu({
   const userName = liveUser?.name || 'User'
   const userEmail = liveUser?.email || ''
   const userRole = liveUser?.role || roleData?.name || 'Member'
-  const avatarUrl = liveUser?.avatar_url || null
+  const avatarUrl = (() => {
+    const url = liveUser?.avatar_url || null
+    if (!url) return null
+    if (url.startsWith('http') || url.startsWith('data:')) return url
+    const baseUrl = (process.env.REACT_APP_BASE_URL || '').replace(
+      /\/api\/v1\/?$/,
+      ''
+    )
+    return `${baseUrl}${url}`
+  })()
   const initialLetter = userName.charAt(0).toUpperCase()
 
   const toggleMenu = () => {

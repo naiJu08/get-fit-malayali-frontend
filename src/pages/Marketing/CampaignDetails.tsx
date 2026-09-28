@@ -1564,6 +1564,13 @@ export default function CampaignDetails() {
               <div className="flex flex-col gap-2.5">
                 {paginatedSalesUsers.map((user: any) => {
                   const isSelected = String(selectedSalesId) === String(user.id)
+                  const allSameAssigned = assigning?.every(
+                    (l: any) =>
+                      l.assigned_to &&
+                      String(l.assigned_to.id) === String(user.id)
+                  )
+                  const isAlreadyAssigned =
+                    allSameAssigned && assigning?.length > 0
                   const initials = (user.name || '?')
                     .split(' ')
                     .map((w: string) => w[0])
@@ -1574,12 +1581,17 @@ export default function CampaignDetails() {
                     <button
                       key={user.id}
                       type="button"
-                      onClick={() => setSelectedSalesId(user.id)}
+                      onClick={() =>
+                        !isAlreadyAssigned && setSelectedSalesId(user.id)
+                      }
+                      disabled={isAlreadyAssigned}
                       className={
                         'group relative text-left rounded-xl border-2 p-4 transition-all duration-200 ' +
-                        (isSelected
-                          ? 'border-[#0fc8cd] bg-[#0fc8cd0d] shadow-sm ring-1 ring-[#0fc8cd20]'
-                          : 'border-gray-100 bg-white hover:border-[#0fc8cd40] hover:bg-[#0fc8cd08] hover:shadow-sm')
+                        (isAlreadyAssigned
+                          ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
+                          : isSelected
+                            ? 'border-[#0fc8cd] bg-[#0fc8cd0d] shadow-sm ring-1 ring-[#0fc8cd20]'
+                            : 'border-gray-100 bg-white hover:border-[#0fc8cd40] hover:bg-[#0fc8cd08] hover:shadow-sm')
                       }
                     >
                       {isSelected && (
@@ -1636,6 +1648,11 @@ export default function CampaignDetails() {
                                 )
                               })()}
                             </div>
+                            {isAlreadyAssigned && (
+                              <span className="shrink-0 rounded-full bg-gray-200 px-2 py-0.5 text-[10px] font-semibold text-gray-500">
+                                Already Assigned
+                              </span>
+                            )}
                             {user.phone && (
                               <span className="text-xs text-gray-400 shrink-0">
                                 {user.phone}

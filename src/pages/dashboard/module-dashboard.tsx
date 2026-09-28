@@ -110,7 +110,7 @@ export default function ModuleDashboard({
           sub: `${metrics.conversion_rate ?? 0}% conversion rate`,
           gradient: 'linear-gradient(135deg,#f6ad55,#ed8936)',
           icon: '✅',
-          onClick: () => navigate('/sales/leads?status=converted'),
+          onClick: () => navigate('/marketing/campaigns'),
         },
       ]
     : [
