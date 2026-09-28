@@ -2092,7 +2092,7 @@ export default function ClientPackagesTab({
                   </div>
                 </div>
 
-                {isServiceStaff && (
+                {/* {isServiceStaff && (
                   <div className="flex shrink-0 items-center gap-2">
                     <Button
                       label="Update package"
@@ -2102,7 +2102,7 @@ export default function ClientPackagesTab({
                       disabled={!client.profile_completed}
                     />
                   </div>
-                )}
+                )} */}
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3 border-t border-formBorder/70 pt-4 sm:grid-cols-4">
