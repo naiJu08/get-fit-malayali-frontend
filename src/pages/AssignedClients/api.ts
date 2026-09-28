@@ -57,10 +57,22 @@ export const useAssignedClientForUser = (
       }
       let assignments = [...(response?.assigned_clients || [])]
       if (cycleId) {
-        assignments = assignments.filter(
+        const cycleMatches = assignments.filter(
           (a: any) =>
             String(a.cycle_id || a.client_package_cycle_id) === String(cycleId)
         )
+        const pendingAssignments = assignments.filter(
+          (a: any) =>
+            a.workflow_status === 'pending' ||
+            a.status === 'pending' ||
+            !a.accepted_at
+        )
+        const combinedMap = new Map()
+        cycleMatches.forEach((a: any) => combinedMap.set(a.id, a))
+        pendingAssignments.forEach((a: any) => combinedMap.set(a.id, a))
+        if (combinedMap.size > 0) {
+          assignments = Array.from(combinedMap.values())
+        }
       } else {
         assignments.sort((a: any, b: any) => priority(a) - priority(b))
       }
@@ -74,7 +86,13 @@ export const useAssignedClientForUser = (
         })
       )
       const validDetails = details.filter(Boolean)
-      const primary = validDetails[0]
+      const pendingPrimary = validDetails.find(
+        (item: any) =>
+          item.workflow_status === 'pending' ||
+          item.status === 'pending' ||
+          !item.accepted_at
+      )
+      const primary = pendingPrimary || validDetails[0]
       if (!primary) return null
       if (role !== 'superadmin') return primary
       return {

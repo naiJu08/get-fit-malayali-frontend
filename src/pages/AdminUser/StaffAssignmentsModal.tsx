@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import moment from 'moment'
 import {
   getStaffActiveAssignments,
@@ -339,6 +340,7 @@ export default function StaffAssignmentsModal({
   onProceed,
 }: StaffAssignmentsModalProps) {
   const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
 
   const [loading, setLoading] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -544,6 +546,18 @@ export default function StaffAssignmentsModal({
       enqueueSnackbar(res?.message || 'Client successfully reassigned', {
         variant: 'success',
       })
+      queryClient.invalidateQueries({
+        queryKey: ['assigned_client_workflow'],
+        refetchType: 'all',
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['assigned_client_workflow_client'],
+        refetchType: 'all',
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['admin_user_list'],
+        refetchType: 'all',
+      })
 
       const newRemainingCount =
         typeof res?.assignments_count === 'number'
@@ -603,6 +617,18 @@ export default function StaffAssignmentsModal({
           variant: 'success',
         }
       )
+      queryClient.invalidateQueries({
+        queryKey: ['assigned_client_workflow'],
+        refetchType: 'all',
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['assigned_client_workflow_client'],
+        refetchType: 'all',
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['admin_user_list'],
+        refetchType: 'all',
+      })
 
       const reassignedIdsSet = new Set(
         res?.reassigned_ids || selectedIds.map(Number)
@@ -660,6 +686,18 @@ export default function StaffAssignmentsModal({
       })
       enqueueSnackbar(res?.message || 'All clients successfully reassigned', {
         variant: 'success',
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['assigned_client_workflow'],
+        refetchType: 'all',
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['assigned_client_workflow_client'],
+        refetchType: 'all',
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['admin_user_list'],
+        refetchType: 'all',
       })
       setTotalCount(0)
       setAssignments([])

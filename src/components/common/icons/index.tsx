@@ -415,7 +415,7 @@ const Icons: React.FC<IconsProps> = ({
         return <QuestionCircleIcon />
       case 'cloud-upload':
       case 'file-upload':
-        return <CloudUploadIcon />
+        return <CloudUploadIcon className={className} />
       case 'paper-clip':
         return <PaperClip />
       case 'cards':

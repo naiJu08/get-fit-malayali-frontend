@@ -143,7 +143,8 @@ export const planFormSchema = z
       .number({
         invalid_type_error: 'Duration must be a number',
       })
-      .positive('Duration must be greater than 0'),
+      .positive('Duration must be greater than 0')
+      .max(999, 'Duration cannot exceed 3 digits'),
     actual_price: z.preprocess(
       (val: unknown) => {
         if (val === '' || val === null || val === undefined) return undefined
