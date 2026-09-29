@@ -879,7 +879,7 @@ const DailyActivityCard = ({ dailyBreakdown }: { dailyBreakdown: any[] }) => {
               { type: 'workout', data: day.workout },
               { type: 'yoga', data: day.yoga },
               { type: 'meditation', data: day.meditation },
-            ]
+            ].filter((a) => a.data !== undefined && a.data !== null)
 
             return (
               <div key={day.date} className="border rounded-lg p-3 bg-gray-50">
@@ -1239,7 +1239,7 @@ const EnhancedActivityCard = ({
             <HintTooltip hint={hints.completion_rate} />
           )}
         </div>
-        {adherencePercentage && (
+        {adherencePercentage != null && (
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500">Adherence</span>
             <span

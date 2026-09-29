@@ -106,7 +106,7 @@ export default function PublicCampaign() {
     )
   }
 
-  if (isInactive) {
+  if (isInactive || error || !campaign || !campaign.form) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
         <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
@@ -126,7 +126,7 @@ export default function PublicCampaign() {
             </svg>
           </div>
           <h1 className="mt-5 text-xl font-bold text-slate-800">
-            This Campaign is No Longer Active
+            This Campaign is No Longer Available
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-500">
             {campaign?.name ? (
@@ -134,25 +134,8 @@ export default function PublicCampaign() {
             ) : (
               'This campaign'
             )}{' '}
-            has ended and is no longer active. Thank you for your interest!
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error || !campaign || !campaign.form) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-5">
-        <div className="w-full max-w-md rounded-3xl border border-slate-100 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 text-2xl font-bold">
-            !
-          </div>
-          <h1 className="mt-5 text-xl font-bold text-slate-800">
-            Form Not Found
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
-            The link you followed may be broken or the form does not exist.
+            has ended, been removed, or is no longer active. Thank you for your
+            interest!
           </p>
         </div>
       </div>

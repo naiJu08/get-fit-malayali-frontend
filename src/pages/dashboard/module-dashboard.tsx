@@ -23,14 +23,43 @@ type Props = {
 }
 
 const statusColors: Record<string, string> = {
+  new_lead: '#3b82f6',
   assigned: '#4299e1',
   accepted: '#48bb78',
+  client_accepted: '#10b981',
   contacted: '#38b2ac',
   qualified: '#9f7aea',
   confirmation_pending: '#f6ad55',
   converted: '#22c55e',
   lost: '#fc8181',
 }
+
+const getStatusIcon = (sliceKey: string, sliceLabel: string) => {
+  const norm = (sliceKey || sliceLabel || '').toLowerCase().replace(/\s+/g, '_')
+  switch (norm) {
+    case 'new_lead':
+      return '📥'
+    case 'assigned':
+      return '🎯'
+    case 'accepted':
+      return '✅'
+    case 'client_accepted':
+      return '🤝'
+    case 'contacted':
+      return '📞'
+    case 'qualified':
+      return '⭐'
+    case 'confirmation_pending':
+      return '⏳'
+    case 'converted':
+      return '🎉'
+    case 'lost':
+      return '❌'
+    default:
+      return '📊'
+  }
+}
+
 const label = (value: string) =>
   String(value || '--')
     .replace(/_/g, ' ')
@@ -269,23 +298,7 @@ export default function ModuleDashboard({
                   value={fmt(slice.value)}
                   sub={`${slice.label} leads`}
                   gradient={`linear-gradient(135deg, ${slice.color}, ${slice.color}cc)`}
-                  icon={
-                    slice.label === 'Assigned'
-                      ? '🎯'
-                      : slice.label === 'Accepted'
-                        ? '✅'
-                        : slice.label === 'Contacted'
-                          ? '📞'
-                          : slice.label === 'Qualified'
-                            ? '⭐'
-                            : slice.label === 'Confirmation Pending'
-                              ? '⏳'
-                              : slice.label === 'Converted'
-                                ? '🎉'
-                                : slice.label === 'Lost'
-                                  ? '❌'
-                                  : '📊'
-                  }
+                  icon={getStatusIcon(slice.key, slice.label)}
                   onClick={() => navigate('/marketing/campaigns')}
                 />
               ))}
@@ -305,23 +318,7 @@ export default function ModuleDashboard({
                   value={fmt(slice.value)}
                   sub={`${slice.label} leads`}
                   gradient={`linear-gradient(135deg, ${slice.color}, ${slice.color}cc)`}
-                  icon={
-                    slice.label === 'Assigned'
-                      ? '🎯'
-                      : slice.label === 'Accepted'
-                        ? '✅'
-                        : slice.label === 'Contacted'
-                          ? '📞'
-                          : slice.label === 'Qualified'
-                            ? '⭐'
-                            : slice.label === 'Confirmation Pending'
-                              ? '⏳'
-                              : slice.label === 'Converted'
-                                ? '🎉'
-                                : slice.label === 'Lost'
-                                  ? '❌'
-                                  : '📊'
-                  }
+                  icon={getStatusIcon(slice.key, slice.label)}
                   onClick={() => navigate(`/sales/leads?status=${slice.key}`)}
                 />
               ))}
