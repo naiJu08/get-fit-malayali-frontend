@@ -1532,115 +1532,311 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
         </TabContainer>
       </div>
 
-      {(() => {
-        return (
-          <CustomDrawer
-            open={assignTemplateOpen}
-            handleClose={handleAssignTemplateClose}
-            className="w-screen max-w-[1000px]"
-            unmountOnClose
-            title="Assign Diet Template"
-            handleSubmit={() => {
-              if (selectedTemplateId) {
-                handleAssignTemplate(selectedTemplateId)
-              }
-            }}
-            disableSubmit={!selectedTemplateId || assignTemplateLoading}
-            actionLoader={assignTemplateLoading}
-            actionLabel="Assign Template"
-          >
-            <div className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-xs text-gray-500">
-                  Showing {templateListData?.diet_plan_templates?.length ?? 0}{' '}
-                  of {templateListData?.meta?.total_count ?? 0} templates
-                </span>
-                <label className="flex items-center gap-2 text-xs text-gray-600">
-                  <select
-                    className="w-56 border rounded px-2 py-1 text-xs"
-                    value={templateCategoryFilter}
-                    onChange={(event) => {
-                      setTemplatePage(1)
-                      setTemplateCategoryFilter(event.target.value)
-                    }}
-                  >
-                    <option value="">Diet Plan Category</option>
-                    {dietTemplateCategoryOptions.map((category: any) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+      {(() => (
+        <CustomDrawer
+          open={assignTemplateOpen}
+          handleClose={handleAssignTemplateClose}
+          className="w-screen max-w-[1000px]"
+          unmountOnClose
+          title="Assign Diet Template"
+          handleSubmit={() => {
+            if (selectedTemplateId) {
+              handleAssignTemplate(selectedTemplateId)
+            }
+          }}
+          disableSubmit={!selectedTemplateId || assignTemplateLoading}
+          actionLoader={assignTemplateLoading}
+          actionLabel="Assign Template"
+        >
+          <div className="space-y-4">
+            {/* Header Subtitle Banner */}
+            <div className="bg-gradient-to-r from-emerald-50/50 via-white to-teal-50/50 border border-emerald-100/80 rounded-xl p-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">🥗</span>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                    Select Diet Template
+                  </h4>
+                  <p className="text-[11px] text-gray-500">
+                    Choose a diet template to assign to this subscription
+                  </p>
+                </div>
               </div>
-              <div className="border rounded-lg divide-y">
-                {templateListLoading ? (
-                  <div className="p-6 text-center text-sm text-gray-500">
-                    Loading templates...
-                  </div>
-                ) : !templateListData?.diet_plan_templates ||
-                  templateListData.diet_plan_templates.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-gray-500">
-                    No diet templates found.
-                  </div>
-                ) : (
-                  templateListData.diet_plan_templates.map((template: any) => (
-                    <div
-                      key={template?.id ?? template?.name}
-                      className={`flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between cursor-pointer hover:bg-gray-50 ${
-                        selectedTemplateId === template?.id
-                          ? 'bg-blue-50 border-l-4 border-blue-500'
-                          : ''
-                      }`}
-                      onClick={() => setSelectedTemplateId(template?.id)}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  {templateListData?.meta?.total_count ?? 0}{' '}
+                  {templateListData?.meta?.total_count === 1
+                    ? 'Template'
+                    : 'Templates'}
+                </span>
+              </div>
+            </div>
+
+            {/* Search & Category Filter Bar */}
+            <div className="flex flex-col sm:flex-row items-center gap-2.5">
+              <div className="relative flex-1 w-full">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  className="w-full pl-10 pr-10 py-2.5 text-xs bg-white border border-gray-200 rounded-xl shadow-xs placeholder-gray-400 focus:outline-none focus:border-primaryGreen focus:ring-2 focus:ring-primaryGreen/20 transition-all"
+                  value={templateSearch}
+                  placeholder="Search diet templates by name, category, or description..."
+                  onChange={(e) => {
+                    setTemplatePage(1)
+                    setTemplateSearch(e.target.value)
+                  }}
+                />
+                {templateSearch && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTemplatePage(1)
+                      setTemplateSearch('')
+                    }}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Clear search"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <div className="space-y-1 w-full sm:w-[55%] md:w-[60%] lg:w-[75%]">
-                        <p className="text-sm font-semibold text-gray-900">
-                          {toTitleCase(template?.name) || 'Untitled Template'}
-                        </p>
-                        {template?.description && (
-                          <p className="text-xs text-gray-600">
-                            {template.description}
-                          </p>
-                        )}
-                        <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-gray-500">
-                          {template?.duration_days ? (
-                            <span>Duration: {template.duration_days} days</span>
-                          ) : null}
-                          {template?.total_meals ? (
-                            <span>Meals: {template.total_meals}</span>
-                          ) : null}
-                          {template?.calories ? (
-                            <span>Calories: {template.calories}</span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-2 text-right">
-                        <span className="text-[11px] font-medium text-gray-500">
-                          #{template?.id ?? '—'}
-                        </span>
-                        <div className="w-4 h-4 rounded-full border-2 border-gray-300 flex items-center justify-center">
-                          {selectedTemplateId === template?.id && (
-                            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
                 )}
               </div>
-              <div className="flex flex-col gap-2 text-xs text-gray-500 sm:flex-row sm:items-center sm:justify-between">
+
+              <div className="w-full sm:w-60">
+                <select
+                  className="w-full py-2.5 px-3 text-xs bg-white border border-gray-200 rounded-xl shadow-xs focus:outline-none focus:border-primaryGreen focus:ring-2 focus:ring-primaryGreen/20 transition-all text-gray-700"
+                  value={templateCategoryFilter}
+                  onChange={(event) => {
+                    setTemplatePage(1)
+                    setTemplateCategoryFilter(event.target.value)
+                  }}
+                >
+                  <option value="">Diet Plan Category</option>
+                  {dietTemplateCategoryOptions.map((category: any) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Cards Grid Listing */}
+            {templateListLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {[1, 2, 3, 4].map((idx) => (
+                  <div
+                    key={idx}
+                    className="border border-gray-100 rounded-2xl p-4 bg-white shadow-xs animate-pulse space-y-3"
+                  >
+                    <div className="flex justify-between">
+                      <div className="h-5 bg-gray-100 rounded-full w-24" />
+                      <div className="h-6 w-6 bg-gray-100 rounded-full" />
+                    </div>
+                    <div className="h-4 bg-gray-100 rounded w-3/4" />
+                    <div className="h-3 bg-gray-100 rounded w-full" />
+                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  </div>
+                ))}
+              </div>
+            ) : !templateListData?.diet_plan_templates ||
+              templateListData.diet_plan_templates.length === 0 ? (
+              <div className="p-12 text-center border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-3 text-xl">
+                  🔍
+                </div>
+                <h5 className="text-sm font-bold text-gray-800">
+                  No diet templates found
+                </h5>
+                <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                  {templateSearch || templateCategoryFilter
+                    ? 'No diet templates match your search or filter criteria. Try clearing them.'
+                    : 'There are no active diet templates configured yet.'}
+                </p>
+                {(templateSearch || templateCategoryFilter) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTemplatePage(1)
+                      setTemplateSearch('')
+                      setTemplateCategoryFilter('')
+                    }}
+                    className="mt-3 px-3 py-1.5 rounded-lg bg-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-300 transition-colors"
+                  >
+                    Clear Search & Filters
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {templateListData.diet_plan_templates.map((template: any) => {
+                  const selected = selectedTemplateId === template?.id
+                  const categoryName =
+                    template?.category?.name ||
+                    template?.category_name ||
+                    template?.diet_template_category?.name ||
+                    ''
+
+                  return (
+                    <div
+                      key={template?.id ?? template?.name}
+                      onClick={() => setSelectedTemplateId(template?.id)}
+                      className={`group relative rounded-2xl border-2 p-4 transition-all duration-200 cursor-pointer flex flex-col justify-between space-y-3 bg-white ${
+                        selected
+                          ? 'border-primaryGreen ring-4 ring-primaryGreen/15 shadow-md bg-gradient-to-b from-teal-50/20 to-white'
+                          : 'border-gray-200/80 hover:border-primaryGreen/50 hover:shadow-md hover:-translate-y-0.5'
+                      }`}
+                    >
+                      {/* Top Row: Category Badge & Duration + Selection Circle */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            {categoryName || 'Diet Template'}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[11px] font-semibold bg-gray-100 text-gray-700">
+                            <svg
+                              className="w-3 h-3 text-gray-500"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                              />
+                            </svg>
+                            {template?.duration_days ?? 0} Days
+                          </span>
+                        </div>
+
+                        {/* Selection Circle */}
+                        <div
+                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0 ${
+                            selected
+                              ? 'bg-primaryGreen border-primaryGreen text-white shadow-xs'
+                              : 'border-gray-300 bg-white text-transparent group-hover:border-primaryGreen/70'
+                          }`}
+                        >
+                          <svg
+                            className={`w-3.5 h-3.5 ${
+                              selected ? 'opacity-100' : 'opacity-0'
+                            }`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="3"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+
+                      {/* Card Content Details */}
+                      <div className="space-y-1">
+                        <h4 className="text-xs md:text-sm font-bold text-gray-900 line-clamp-1 group-hover:text-primaryGreen transition-colors">
+                          {toTitleCase(template?.name) || 'Untitled Template'}
+                        </h4>
+
+                        {/* Description */}
+                        <p
+                          className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed"
+                          title={template?.description}
+                        >
+                          {template?.description
+                            ? template.description.trim()
+                            : 'No detailed description provided for this diet template.'}
+                        </p>
+                      </div>
+
+                      {/* Metadata Pills Footer */}
+                      <div className="pt-2 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-500">
+                        <div className="flex items-center gap-3 font-medium text-gray-700">
+                          <div className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primaryGreen" />
+                            <span>
+                              {template?.total_meals ??
+                                template?.meals_count ??
+                                0}{' '}
+                              Meals
+                            </span>
+                          </div>
+                          {template?.calories ? (
+                            <div className="flex items-center gap-1 text-gray-500">
+                              <span>🔥 {template.calories} Cal</span>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        {template?.created_at ? (
+                          <span className="text-gray-400">
+                            Added:{' '}
+                            {moment(template.created_at).format('DD-MM-YYYY')}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">
+                            ID: #{template?.id ?? '—'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Pagination Controls Footer */}
+            {(templateListData?.meta?.total_count ?? 0) > 0 && (
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500 border-t border-gray-100">
                 <span>
-                  Page {templatePage} of{' '}
-                  {Math.ceil(
-                    (templateListData?.meta?.total_count ?? 0) / templatePerPage
+                  Showing {templateListData?.diet_plan_templates?.length ?? 0}{' '}
+                  of {templateListData?.meta?.total_count ?? 0} templates (Page{' '}
+                  {templatePage} of{' '}
+                  {Math.max(
+                    1,
+                    Math.ceil(
+                      (templateListData?.meta?.total_count ?? 0) /
+                        templatePerPage
+                    )
                   )}
+                  )
                 </span>
-                <div className="flex gap-2">
-                  <label className="flex items-center gap-2 text-xs text-gray-600">
-                    <span>Rows per page</span>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <span>Rows:</span>
                     <select
-                      className="border rounded px-2 py-1 text-xs"
+                      className="border rounded-lg px-2 py-1 text-xs bg-white"
                       value={templatePerPage}
                       onChange={(event) => {
                         const value = Number(event.target.value)
@@ -1661,7 +1857,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       setTemplatePage(Math.max(1, templatePage - 1))
                     }
                     disabled={templatePage <= 1}
-                    className="rounded border border-gray-300 px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium bg-white hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Previous
                   </button>
@@ -1675,16 +1871,16 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                           templatePerPage
                       )
                     }
-                    className="rounded border border-gray-300 px-3 py-1 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium bg-white hover:bg-gray-50 transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Next
                   </button>
                 </div>
               </div>
-            </div>
-          </CustomDrawer>
-        )
-      })()}
+            )}
+          </div>
+        </CustomDrawer>
+      ))()}
       <DialogModal
         isOpen={mealTimeEditOpen}
         onClose={closeMealTimeEdit}
