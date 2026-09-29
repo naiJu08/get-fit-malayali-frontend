@@ -1938,7 +1938,10 @@ export default function CampaignDetails() {
 
       <CustomDrawer
         open={formDrawerOpen}
-        handleClose={() => setFormDrawerOpen(false)}
+        handleClose={() => {
+          setSelectedForm(null)
+          setFormDrawerOpen(false)
+        }}
         title="Attach form"
         className="w-screen max-w-[100vw]"
         handleSubmit={attachCampaignForm}

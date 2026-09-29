@@ -114,13 +114,24 @@ export default function ProfilePage() {
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setAvatarFile(file)
-      setRemoveAvatar(false)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result as string)
+      const img = new Image()
+      img.onload = () => {
+        if (img.width !== 640 || img.height !== 640) {
+          enqueueSnackbar('Photo must be 640 x 640 pixels.', {
+            variant: 'error',
+          })
+          if (fileInputRef.current) fileInputRef.current.value = ''
+          return
+        }
+        setAvatarFile(file)
+        setRemoveAvatar(false)
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setAvatarPreview(reader.result as string)
+        }
+        reader.readAsDataURL(file)
       }
-      reader.readAsDataURL(file)
+      img.src = URL.createObjectURL(file)
     }
   }
 
