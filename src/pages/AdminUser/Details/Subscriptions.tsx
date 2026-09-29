@@ -1514,6 +1514,7 @@ export default function Subscriptions({
 
   useEffect(() => {
     setSelectedCategoryId(undefined)
+    setSelectedCategoryIds([])
     setSelectedCategoryName('')
     setSelectedSubcategories([])
     setSubcategoryLookup({})
@@ -1576,6 +1577,13 @@ export default function Subscriptions({
         return categoryId
       })
 
+      setSelectedCategoryIds((prev) => {
+        const prevKey = prev.map(String).sort().join('|')
+        const nextKey = [categoryId].map(String).sort().join('|')
+        if (prevKey === nextKey) return prev
+        return [categoryId]
+      })
+
       setSelectedCategoryName((prev) => {
         if (prev === resolvedCategoryName) return prev
         return resolvedCategoryName
@@ -1594,6 +1602,7 @@ export default function Subscriptions({
     prefillAppliedRef.current = false
     lastPrefillSignatureRef.current = ''
     setSelectedCategoryId(undefined)
+    setSelectedCategoryIds([])
     setSelectedCategoryName('')
     setSelectedSubcategories([])
     pendingPrefillCategoryRef.current = ''
@@ -3724,14 +3733,17 @@ export default function Subscriptions({
                     paginationEnabled={false}
                     name="assign_subcategories"
                     getData={async (key?: string) => {
-                      if (
-                        !selectedCategoryIds ||
-                        selectedCategoryIds.length === 0
-                      )
-                        return []
+                      const catIds =
+                        selectedCategoryIds && selectedCategoryIds.length > 0
+                          ? selectedCategoryIds
+                          : selectedCategoryId
+                            ? [selectedCategoryId]
+                            : []
+
+                      if (catIds.length === 0) return []
 
                       const results = await Promise.all(
-                        selectedCategoryIds.map((categoryId) =>
+                        catIds.map((categoryId) =>
                           getWorkoutPlanSubcategories(categoryId)
                         )
                       )
@@ -3810,17 +3822,25 @@ export default function Subscriptions({
                 Duration
               </span>
             </div>
-            {workoutsLoading && (
-              <div className="text-xs text-gray-500 p-2">Loading...</div>
+            {workoutsLoading && workouts.length === 0 && (
+              <div className="flex items-center justify-center py-12 text-xs text-gray-500 min-h-[200px]">
+                Loading...
+              </div>
             )}
             {!workoutsLoading && workouts.length === 0 && (
-              <div className="text-xs text-gray-500 p-2">
+              <div className="text-xs text-gray-500 p-2 min-h-[100px]">
                 No workouts found.
               </div>
             )}
 
-            {!workoutsLoading && workouts.length > 0 && (
-              <div className="flex flex-col gap-4">
+            {workouts.length > 0 && (
+              <div
+                className={`flex flex-col gap-4 transition-opacity duration-150 ${
+                  workoutsLoading
+                    ? 'opacity-50 pointer-events-none'
+                    : 'opacity-100'
+                }`}
+              >
                 {groupedWorkouts.map((group) => {
                   const first = group.items?.[0]
                   const categoryName =
