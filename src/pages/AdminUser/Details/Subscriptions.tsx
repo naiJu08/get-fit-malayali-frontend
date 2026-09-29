@@ -2052,6 +2052,8 @@ export default function Subscriptions({
 
       await workoutOverridesBulk(subscriptionId, {
         workout_plan_id: workoutPlanId,
+        day_number: dayDetail?.day_number,
+        date: dayDetail?.date,
         exercises: exercisesPayload,
       })
       await refreshDayDetail()
@@ -2236,6 +2238,8 @@ export default function Subscriptions({
 
       await yogaOverridesBulk(subscriptionId, {
         yoga_plan_id: yogaPlanId,
+        day_number: dayDetail?.day_number,
+        date: dayDetail?.date,
         exercises: exercisesPayload,
       })
 

@@ -124,6 +124,11 @@ function RenewalDetailModal({
               <p className="mt-0.5 text-sm font-semibold text-primaryText">
                 {row.client_name || '—'}
               </p>
+              {(row.client?.phone || row.client_phone) && (
+                <p className="text-xs text-secondary mt-0.5">
+                  {row.client?.phone || row.client_phone}
+                </p>
+              )}
             </div>
             <div className="rounded-xl border border-formBorder bg-cardWrapperBg/40 p-3">
               <p className="text-[11px] font-medium text-secondary uppercase tracking-wide">
@@ -298,6 +303,8 @@ export default function RenewalRequests() {
         requests.find(
           (r: any) =>
             r.client_name?.toLowerCase().includes(querySearch.toLowerCase()) ||
+            r.client?.phone?.includes(querySearch) ||
+            r.client_phone?.includes(querySearch) ||
             r.user?.name?.toLowerCase().includes(querySearch.toLowerCase())
         ) || requests[0]
 
@@ -341,7 +348,11 @@ export default function RenewalRequests() {
                 {row.client_name || '—'}
               </button>
               <div className="text-xs text-secondary">
-                {row.client?.phone || row.client?.email || '--'}
+                {row.client?.phone ||
+                  row.client_phone ||
+                  row.client?.email ||
+                  row.client_email ||
+                  '—'}
               </div>
             </div>
           ),

@@ -859,7 +859,7 @@ export default function AdminUser() {
                       </select>
                     </div>
 
-                    {['superadmin', 'admin'].includes(loginRole || '') &&
+                    {/* {['superadmin', 'admin'].includes(loginRole || '') &&
                       activeRole === 'user' && (
                         <div className="flex flex-col gap-1">
                           <label className="text-xs text-transparent select-none">
@@ -901,7 +901,7 @@ export default function AdminUser() {
                             )}
                           </button>
                         </div>
-                      )}
+                      )} */}
                   </div>
                 }
                 search={true}

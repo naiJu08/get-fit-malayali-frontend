@@ -2,7 +2,7 @@ import moment from 'moment'
 import { useEffect, useMemo, useState } from 'react'
 import { Controller, FormProvider, useForm } from 'react-hook-form'
 import InfoBox from '../../../components/app/alertBox/infoBox'
-import { DialogModal } from '../../../components/common'
+import { DialogModal, TextField } from '../../../components/common'
 import { Tab, TabContainer } from '../../../components/common/tab'
 import CustomDrawer from '../../../components/common/drawer'
 import TimeSplitPicker from '../../../components/common/inputs/TimeSplitPicker'
@@ -114,10 +114,10 @@ export default function SubscriptionUserSubscriptionsTab({
       mounted = false
     }
   }, [userId, subscriptionId])
-  const mealTimeForm = useForm<{ time: string }>({
+  const mealTimeForm = useForm<{ time: string; meal_time: string }>({
     mode: 'onChange',
     reValidateMode: 'onChange',
-    defaultValues: { time: '' },
+    defaultValues: { time: '', meal_time: '' },
   })
 
   const templateId =
@@ -265,6 +265,7 @@ export default function SubscriptionUserSubscriptionsTab({
 
     mealTimeForm.reset({
       time: time24,
+      meal_time: meal?.meal_time || '',
     })
     setMealTimeEditOpen(true)
   }
@@ -1807,14 +1808,23 @@ export default function SubscriptionUserSubscriptionsTab({
             ? moment(values.time, ['HH:mm:ss', 'HH:mm']).format('hh:mm A')
             : ''
 
+          const newMealTime = String(
+            values.meal_time || selectedMealTiming?.meal_time || ''
+          )
+            .trim()
+            .toUpperCase()
+          const oldMealTime = String(selectedMealTiming?.meal_time ?? '')
+            .trim()
+            .toUpperCase()
+
           updateUserMealTimingMutate({
             userId,
             payload: {
               user_meal_timing: {
-                meal_time: String(selectedMealTiming?.meal_time ?? '')
-                  .trim()
-                  .toUpperCase(),
+                meal_time: newMealTime,
+                old_meal_time: oldMealTime,
                 time: time12,
+                diet_plan_id: selectedMealTiming?.id,
                 diet_plan_template_id: templateId,
                 subscription_id: subscriptionId as any,
                 sequence_number: Number(
@@ -1829,18 +1839,24 @@ export default function SubscriptionUserSubscriptionsTab({
         small={false}
         body={
           <FormProvider {...mealTimeForm}>
-            <div className="space-y-4">
-              {/* <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Meal Time
-                </label>
-                <input
-                  value={String(selectedMealTiming?.meal_time_time ?? '--')}
-                  disabled
-                  readOnly
-                  className="w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700"
-                />
-              </div> */}
+            <div className="flex flex-col gap-4">
+              <Controller
+                name="meal_time"
+                control={mealTimeForm.control}
+                rules={{ required: 'Meal timing name is required.' }}
+                render={({ field: { value, onChange } }) => (
+                  <TextField
+                    id="subscription-edit-meal-time"
+                    label="Meal Timing"
+                    name="meal_time"
+                    value={value || ''}
+                    placeholder="e.g. MORNING DRINK, BREAKFAST..."
+                    onChange={(e: any) => onChange(e?.target?.value ?? e)}
+                    disabled={isUpdatingMealTime}
+                    required
+                  />
+                )}
+              />
 
               <Controller
                 name="time"

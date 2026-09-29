@@ -596,7 +596,7 @@ export default function CreateAdmin({
           ...(!edit
             ? [
                 {
-                  name: 'sales_rep_id',
+                  name: 'sales_rep',
                   label: 'Assign Sales Representative',
                   id: 'sales_rep_id',
                   desc: 'name',
@@ -645,6 +645,8 @@ export default function CreateAdmin({
       language: '',
       work_schedule: '',
       occupation: '',
+      sales_rep: '',
+      sales_rep_id: '',
       status: '',
     } as any)
     handleClose()
@@ -675,6 +677,8 @@ export default function CreateAdmin({
       language: '',
       work_schedule: '',
       occupation: '',
+      sales_rep: '',
+      sales_rep_id: '',
       status: '',
     } as any)
 
@@ -1122,10 +1126,24 @@ export default function CreateAdmin({
             ? (details?.work_schedule?.name ?? details?.work_schedule?.id ?? '')
             : (details?.work_schedule ?? ''),
         occupation: details?.occupation ?? '',
-        sales_rep_id:
-          typeof details?.sales_rep_id === 'object'
-            ? details?.sales_rep_id?.id
-            : details?.sales_rep_id || undefined,
+        sales_rep_id: (() => {
+          const raw = details?.sales_rep_id ?? details?.sales_rep
+          if (!raw) return undefined
+          if (typeof raw === 'object') return raw?.id ?? raw?.value ?? undefined
+          if (typeof raw === 'number') return raw
+          if (typeof raw === 'string') {
+            const trimmed = raw.trim()
+            if (!trimmed) return undefined
+            if (/^\d+$/.test(trimmed)) return parseInt(trimmed, 10)
+            const found = salesTeamOptions.find(
+              (opt: any) =>
+                opt.name?.toLowerCase() === trimmed.toLowerCase() ||
+                opt.id?.toString() === trimmed
+            )
+            return found ? found.id : undefined
+          }
+          return undefined
+        })(),
         ...(statusValue !== undefined ? { status: statusValue } : {}),
       },
     }

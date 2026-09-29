@@ -72,7 +72,9 @@ export const useAdminUser = (input: QueryParams) => {
 export const yogaOverridesBulk = (
   subscriptionId: string | number,
   payload: {
-    yoga_plan_id: number | string
+    yoga_plan_id?: number | string
+    day_number?: number | string
+    date?: string
     exercises: Array<{
       yoga_id: number | string
       sequence_number: number
@@ -197,7 +199,9 @@ export const unfreezeSubscription = (
 export const workoutOverridesBulk = (
   subscriptionId: string | number,
   payload: {
-    workout_plan_id: number | string
+    workout_plan_id?: number | string
+    day_number?: number | string
+    date?: string
     exercises: Array<{
       workout_id: number | string
       sequence_number: number
@@ -223,6 +227,29 @@ export const meditationOverridesBulk = (
 ) => {
   return postData(
     `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/user_specific_meditations`,
+    payload
+  )
+}
+
+export const dietOverridesBulk = (
+  subscriptionId: string | number,
+  payload: {
+    day_number?: number | string
+    date?: string
+    diet_plans: Array<{
+      meal_time: string
+      notes?: string
+      meal_name?: string
+      items: Array<{
+        meal_id: number | string
+        quantity: number
+        requirement?: 'mandatory' | 'optional'
+      }>
+    }>
+  }
+) => {
+  return postData(
+    `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/user_specific_diet_plans`,
     payload
   )
 }
