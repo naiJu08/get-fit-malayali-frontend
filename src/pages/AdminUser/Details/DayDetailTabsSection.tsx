@@ -10,7 +10,7 @@ import {
 import { Controller, FormProvider, useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import Icons from '../../../components/common/icons'
-import { DialogModal } from '../../../components/common'
+import { DialogModal, TextField } from '../../../components/common'
 import { Tab, TabContainer } from '../../../components/common/tab'
 import CustomDrawer from '../../../components/common/drawer'
 import TimeSplitPicker from '../../../components/common/inputs/TimeSplitPicker'
@@ -23,6 +23,7 @@ import WorkoutTemplateAssign from '../../WorkoutTemplate/Assign'
 import YogaTemplateAssign from '../../YogaTemplate/Assign'
 import { useAuthStore } from '../../../store/authStore'
 import { useMutation } from '@tanstack/react-query'
+import DayDietEditorDrawer from './DayDietEditorDrawer'
 
 interface DayDetailTabsSectionProps {
   dayDetail: any
@@ -90,6 +91,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   const effectiveCanAccessMeditation =
     canAccessMeditation ?? (isSuperOrAdmin || isNutritionistRole || isYogist)
   const [assignTemplateOpen, setAssignTemplateOpen] = useState(false)
+  const [dayDietEditorOpen, setDayDietEditorOpen] = useState(false)
   const [mealTimeEditOpen, setMealTimeEditOpen] = useState(false)
   const [selectedMealTiming, setSelectedMealTiming] = useState<any>(null)
   const [templateSearch, setTemplateSearch] = useState('')
@@ -127,10 +129,10 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     selectedMealTiming?.user_id ??
     null
 
-  const mealTimeForm = useForm<{ time: string }>({
+  const mealTimeForm = useForm<{ time: string; meal_time: string }>({
     mode: 'onChange',
     reValidateMode: 'onChange',
-    defaultValues: { time: '' },
+    defaultValues: { time: '', meal_time: '' },
   })
 
   const { mutate: updateUserMealTimingMutate, isLoading: isUpdatingMealTime } =
@@ -160,6 +162,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
     mealTimeForm.reset({
       time: time24,
+      meal_time: meal?.meal_time || '',
     })
     setMealTimeEditOpen(true)
   }
@@ -316,9 +319,9 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   const isCurrentOrFutureDay = useMemo(() => {
     const dateSource =
       dayDetail?.date ?? dayDetail?.day_date ?? dayDetail?.dayDate ?? null
-    if (!dateSource) return false
+    if (!dateSource) return true
     const parsed = moment(dateSource)
-    if (!parsed.isValid()) return false
+    if (!parsed.isValid()) return true
     return parsed.startOf('day').isSameOrAfter(moment().startOf('day'))
   }, [dayDetail?.date, dayDetail?.day_date, dayDetail?.dayDate])
 
@@ -408,16 +411,28 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                         </span>
                       </div>
                     </div>
-                    {showAssignTemplateButton && (
-                      <button
-                        type="button"
-                        onClick={() => setAssignTemplateOpen(true)}
-                        className="inline-flex items-center px-3 py-1.5 bg-primaryGreen text-white text-xs font-medium rounded-lg hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"
-                      >
-                        <Icons name="plus" className="w-3 h-3 mr-1 mb-1" />
-                        {templateId ? 'Update Template' : 'Assign Template'}
-                      </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {canEditDay && effectiveCanAccessDiet && (
+                        <button
+                          type="button"
+                          onClick={() => setDayDietEditorOpen(true)}
+                          className="px-3 py-1.5 text-xs border rounded btn-primary flex items-center gap-1 font-medium shadow-xs"
+                        >
+                          <Icons name="edit" className="w-3.5 h-3.5" />
+                          <span>Update Day</span>
+                        </button>
+                      )}
+                      {showAssignTemplateButton && (
+                        <button
+                          type="button"
+                          onClick={() => setAssignTemplateOpen(true)}
+                          className="inline-flex items-center px-3 py-1.5 bg-primaryGreen text-white text-xs font-medium rounded-lg hover:bg-primaryGreen/90 focus:outline-none focus:ring-2 focus:ring-primaryGreen/50"
+                        >
+                          <Icons name="plus" className="w-3 h-3 mr-1 mb-1" />
+                          {templateId ? 'Update Template' : 'Assign Template'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -1017,7 +1032,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                           onClick={onEditWorkoutPlan}
                         >
                           <Icons name="edit" />
-                          <span>Update</span>
+                          <span>Update Day</span>
                         </button>
                       )}
                   </div>
@@ -1204,7 +1219,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                             onClick={onEditYogaPlan}
                           >
                             <Icons name="edit" />
-                            <span>Update</span>
+                            <span>Update Day</span>
                           </button>
                         )}
                     </div>
@@ -1372,7 +1387,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                         onClick={onEditMeditationPlan}
                       >
                         <Icons name="edit" />
-                        <span>Update</span>
+                        <span>Update Day</span>
                       </button>
                     )}
                   </div>
@@ -1698,14 +1713,23 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
             ? moment(values.time, ['HH:mm:ss', 'HH:mm']).format('hh:mm A')
             : ''
 
+          const newMealTime = String(
+            values.meal_time || selectedMealTiming?.meal_time || ''
+          )
+            .trim()
+            .toUpperCase()
+          const oldMealTime = String(selectedMealTiming?.meal_time ?? '')
+            .trim()
+            .toUpperCase()
+
           updateUserMealTimingMutate({
             userId,
             payload: {
               user_meal_timing: {
-                meal_time: String(selectedMealTiming?.meal_time ?? '')
-                  .trim()
-                  .toUpperCase(),
+                meal_time: newMealTime,
+                old_meal_time: oldMealTime,
                 time: time12,
+                diet_plan_id: selectedMealTiming?.id,
                 diet_plan_template_id: templateId,
                 subscription_id: subscriptionId as any,
                 sequence_number: Number(
@@ -1720,25 +1744,61 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
         small={false}
         body={
           <FormProvider {...mealTimeForm}>
-            <Controller
-              name="time"
-              control={mealTimeForm.control}
-              rules={{ required: 'Required.' }}
-              render={({ field: { value, onChange } }) => (
-                <TimeSplitPicker
-                  label="Time"
-                  name="time"
-                  value={value}
-                  required
-                  hidePeriodIcon
-                  disabled={isUpdatingMealTime}
-                  errors={mealTimeForm.formState.errors as any}
-                  onChange={(data) => onChange(data.value)}
-                />
-              )}
-            />
+            <div className="flex flex-col gap-4">
+              <Controller
+                name="meal_time"
+                control={mealTimeForm.control}
+                rules={{ required: 'Meal timing name is required.' }}
+                render={({ field: { value, onChange } }) => (
+                  <TextField
+                    id="edit-meal-time"
+                    label="Meal Timing"
+                    name="meal_time"
+                    value={value || ''}
+                    placeholder="e.g. MORNING DRINK, BREAKFAST..."
+                    onChange={(e: any) => onChange(e?.target?.value ?? e)}
+                    disabled={isUpdatingMealTime}
+                    required
+                  />
+                )}
+              />
+              <Controller
+                name="time"
+                control={mealTimeForm.control}
+                rules={{ required: 'Required.' }}
+                render={({ field: { value, onChange } }) => (
+                  <TimeSplitPicker
+                    label="Time"
+                    name="time"
+                    value={value}
+                    required
+                    hidePeriodIcon
+                    disabled={isUpdatingMealTime}
+                    errors={mealTimeForm.formState.errors as any}
+                    onChange={(data) => onChange(data.value)}
+                  />
+                )}
+              />
+            </div>
           </FormProvider>
         }
+      />
+
+      <DayDietEditorDrawer
+        open={dayDietEditorOpen}
+        handleClose={() => setDayDietEditorOpen(false)}
+        dayDetail={dayDetail}
+        subscriptionId={subscriptionId}
+        onSuccess={async () => {
+          try {
+            await refreshDayDetail?.()
+          } catch (err) {
+            console.error(
+              'Failed to refresh day detail after day diet update',
+              err
+            )
+          }
+        }}
       />
     </>
   )

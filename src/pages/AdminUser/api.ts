@@ -231,6 +231,29 @@ export const meditationOverridesBulk = (
   )
 }
 
+export const dietOverridesBulk = (
+  subscriptionId: string | number,
+  payload: {
+    day_number?: number | string
+    date?: string
+    diet_plans: Array<{
+      meal_time: string
+      notes?: string
+      meal_name?: string
+      items: Array<{
+        meal_id: number | string
+        quantity: number
+        requirement?: 'mandatory' | 'optional'
+      }>
+    }>
+  }
+) => {
+  return postData(
+    `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/user_specific_diet_plans`,
+    payload
+  )
+}
+
 export const assignDietPlanTemplate = (
   subscriptionId: string | number,
   payload: { diet_plan_template_id: number; start_date?: string }
