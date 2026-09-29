@@ -1016,6 +1016,10 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                   dayDetail?.workout_template?.name ||
                   dayDetail?.subscription?.workout_template_name
                 }
+                currentTemplateId={
+                  dayDetail?.workout_template?.id ||
+                  dayDetail?.subscription?.workout_template_id
+                }
                 readOnly={!canAssignTemplate}
                 onAssigned={refreshDayDetail as any}
               />
@@ -1202,6 +1206,10 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                   currentName={
                     dayDetail?.yoga_template?.name ||
                     dayDetail?.subscription?.yoga_template_name
+                  }
+                  currentTemplateId={
+                    dayDetail?.yoga_template?.id ||
+                    dayDetail?.subscription?.yoga_template_id
                   }
                   readOnly={!canAssignTemplate}
                   onAssigned={refreshDayDetail as any}
