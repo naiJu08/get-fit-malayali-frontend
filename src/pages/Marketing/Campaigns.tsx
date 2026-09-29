@@ -594,6 +594,8 @@ export default function Campaigns() {
               icon: <Icons name="delete" />,
               variant: 'danger',
               action: (row: any) => setDeleteRow(row),
+              hide: (row: any) =>
+                String(row.status || '').toLowerCase() !== 'upcoming',
             },
           ]}
         />
@@ -711,7 +713,10 @@ export default function Campaigns() {
       />
       <CustomDrawer
         open={formDrawerOpen}
-        handleClose={() => setFormDrawerOpen(false)}
+        handleClose={() => {
+          setSelectedForm(null)
+          setFormDrawerOpen(false)
+        }}
         title="Attach form"
         className="w-screen max-w-[100vw]"
         handleSubmit={attachForm}

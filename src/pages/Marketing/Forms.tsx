@@ -1010,7 +1010,9 @@ export function Builder({
                                 </button>
                               </>
                             )}
-                            <span className="text-[10px] text-gray-300 font-mono ml-1">
+                            <span
+                              className={`text-[10px] text-gray-300 font-mono ml-1 break-words ${layout === 'two' ? 'w-[100px]' : 'w-[300px]'}`}
+                            >
                               {field.key}
                             </span>
                           </div>
