@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useSnackbarManager } from '../../components/common/snackbar'
+import { getApiErrorMessage } from '../../utilities/commonUtilities'
 import {
   createMarketingForm,
   updateMarketingForm,
@@ -90,7 +91,7 @@ export default function FormEditor() {
       }
       navigate('/marketing/forms')
     } catch (error: any) {
-      enqueueSnackbar(error?.message || 'Unable to save form', {
+      enqueueSnackbar(getApiErrorMessage(error, 'Unable to save form'), {
         variant: 'error',
       })
     } finally {
