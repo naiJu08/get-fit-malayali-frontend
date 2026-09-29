@@ -72,7 +72,9 @@ export const useAdminUser = (input: QueryParams) => {
 export const yogaOverridesBulk = (
   subscriptionId: string | number,
   payload: {
-    yoga_plan_id: number | string
+    yoga_plan_id?: number | string
+    day_number?: number | string
+    date?: string
     exercises: Array<{
       yoga_id: number | string
       sequence_number: number
@@ -197,7 +199,9 @@ export const unfreezeSubscription = (
 export const workoutOverridesBulk = (
   subscriptionId: string | number,
   payload: {
-    workout_plan_id: number | string
+    workout_plan_id?: number | string
+    day_number?: number | string
+    date?: string
     exercises: Array<{
       workout_id: number | string
       sequence_number: number
