@@ -24,6 +24,7 @@ import UserSalesClients from './Details/UserSalesClients'
 import CreateAdmin from './create'
 import AssignSalesModal from './AssignSalesModal'
 import AcceptClientModal from './Details/AcceptClientModal'
+import RoleMismatchModal from './Details/RoleMismatchModal'
 import MarketingFormsTab from './Details/MarketingFormsTab'
 import ClientPackagesTab from '../Sales/ClientPackagesTab'
 import { useSnackbarManager } from '../../components/common/snackbar'
@@ -233,6 +234,33 @@ const DETAIL_ROLE_LABELS: Record<DetailRole, string> = {
   marketing: 'Marketing',
 }
 
+export function normalizeUserRole(
+  role: any
+): DetailRole | 'admin' | 'superadmin' | 'unknown' {
+  if (role === null || role === undefined) return 'unknown'
+  if (role === 0 || role === '0') return 'superadmin'
+  if (role === 1 || role === '1') return 'admin'
+  if (role === 2 || role === '2') return 'nutritionist'
+  if (role === 3 || role === '3') return 'user'
+  if (role === 4 || role === '4') return 'physiotherapist'
+  if (role === 5 || role === '5') return 'yogist'
+  if (role === 6 || role === '6') return 'sales'
+  if (role === 7 || role === '7') return 'marketing'
+
+  const s = String(role).trim().toLowerCase()
+  if (s === 'superadmin' || s === 'super_admin' || s === 'super admin')
+    return 'superadmin'
+  if (s === 'admin') return 'admin'
+  if (s === 'nutritionist') return 'nutritionist'
+  if (s === 'client' || s === 'user') return 'user'
+  if (s === 'physiotherapist' || s === 'physio') return 'physiotherapist'
+  if (s === 'yogist' || s === 'yoga') return 'yogist'
+  if (s === 'sales') return 'sales'
+  if (s === 'marketing') return 'marketing'
+
+  return 'unknown'
+}
+
 export default function UserDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -278,11 +306,25 @@ export default function UserDetails() {
     if (path.startsWith('/users/marketing')) return 'marketing'
     return 'user'
   }, [location.pathname])
+
+  const userActualRole = useMemo<
+    DetailRole | 'admin' | 'superadmin' | 'unknown'
+  >(() => {
+    return normalizeUserRole(user?.role)
+  }, [user?.role])
+
+  const isRoleMismatch = useMemo(() => {
+    if (loading || !user?.id) return false
+    if (userActualRole === 'unknown') return false
+    return userActualRole !== detailRole
+  }, [loading, user?.id, userActualRole, detailRole])
+
   const isSuperAdmin = loginRole === 'superadmin'
   const isServiceClient =
+    !isRoleMismatch &&
     ['nutritionist', 'physiotherapist', 'yogist'].includes(loginRole || '') &&
     detailRole === 'user'
-  const isWorkflowViewer = isServiceClient || isSuperAdmin
+  const isWorkflowViewer = !isRoleMismatch && (isServiceClient || isSuperAdmin)
   const { data: workflowAssignment, refetch: refetchWorkflow } =
     useAssignedClientForUser(
       isWorkflowViewer ? user?.id : undefined,
@@ -358,7 +400,10 @@ export default function UserDetails() {
     data: cycleData,
     isLoading: cyclesLoading,
     refetch: refetchCycles,
-  } = useClientPackageCycles(detailRole === 'user' ? id : undefined, '/clients')
+  } = useClientPackageCycles(
+    !isRoleMismatch && detailRole === 'user' ? id : undefined,
+    '/clients'
+  )
   const allCycles = useMemo(() => cycleData?.cycles || [], [cycleData?.cycles])
 
   const availableCycles = useMemo(() => {
@@ -589,44 +634,25 @@ export default function UserDetails() {
   }, [headerAssignees])
 
   useEffect(() => {
-    if (detailRole !== 'user') return
+    if (isRoleMismatch || detailRole !== 'user') return
     if (selectedCycle) {
       setSubscriptionId(selectedCycle.subscription_id ?? null)
     } else if (availableCycles.length === 0 && !cyclesLoading) {
       setSubscriptionId(null)
     }
-  }, [selectedCycle, availableCycles.length, cyclesLoading, detailRole])
+  }, [
+    selectedCycle,
+    availableCycles.length,
+    cyclesLoading,
+    detailRole,
+    isRoleMismatch,
+  ])
 
-  const isNutritionist = (() => {
-    const r = user?.role
-    if (r === 2 || r === '2') return true
-    const s = String(r || '').toLowerCase()
-    return s === 'nutritionist' || detailRole === 'nutritionist'
-  })()
-  const isPhysiotherapist = (() => {
-    const r = user?.role
-    if (r === 4 || r === '4') return true
-    const s = String(r || '').toLowerCase()
-    return s === 'physiotherapist' || detailRole === 'physiotherapist'
-  })()
-  const isYogist = (() => {
-    const r = user?.role
-    if (r === 5 || r === '5') return true
-    const s = String(r || '').toLowerCase()
-    return s === 'yogist' || detailRole === 'yogist'
-  })()
-  const isSales = (() => {
-    const r = user?.role
-    if (r === 6 || r === '6') return true
-    const s = String(r || '').toLowerCase()
-    return s === 'sales' || detailRole === 'sales'
-  })()
-  const isMarketing = (() => {
-    const r = user?.role
-    if (r === 7 || r === '7') return true
-    const s = String(r || '').toLowerCase()
-    return s === 'marketing' || detailRole === 'marketing'
-  })()
+  const isNutritionist = userActualRole === 'nutritionist'
+  const isPhysiotherapist = userActualRole === 'physiotherapist'
+  const isYogist = userActualRole === 'yogist'
+  const isSales = userActualRole === 'sales'
+  const isMarketing = userActualRole === 'marketing'
   const isSalesOrMarketing = isSales || isMarketing
   const isFlatWithClients = isPhysiotherapist || isYogist
   const isFlatRole = isFlatWithClients || isSalesOrMarketing
@@ -635,6 +661,7 @@ export default function UserDetails() {
     let mounted = true
 
     const run = async () => {
+      if (isRoleMismatch) return
       if (detailRole === 'user') return
       if (!user?.id || isNutritionist || isFlatRole) return
       if (!user?.subscribed_plan) return
@@ -656,7 +683,7 @@ export default function UserDetails() {
     return () => {
       mounted = false
     }
-  }, [user?.id, isNutritionist, isFlatRole, detailRole])
+  }, [user?.id, isNutritionist, isFlatRole, detailRole, isRoleMismatch])
 
   const pathBase = useMemo(() => {
     return DETAIL_ROLE_PATHS[detailRole]
@@ -692,12 +719,13 @@ export default function UserDetails() {
     | 'sales_clients'
 
   useEffect(() => {
+    if (isRoleMismatch) return
     if (location.pathname === `${pathBase}/${id}`) {
       navigate(`${pathBase}/${id}/details`, { replace: true })
     } else if (location.pathname === `${pathBase}/${id}/clients`) {
       navigate(`${pathBase}/${id}/accepted-clients`, { replace: true })
     }
-  }, [location.pathname, id, navigate, pathBase])
+  }, [location.pathname, id, navigate, pathBase, isRoleMismatch])
 
   const hasSubscription = Boolean(
     user?.has_subscription ||
@@ -868,16 +896,27 @@ export default function UserDetails() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-blue-50 text-blue-700 capitalize">
+                <div
+                  className={`flex items-center gap-1 px-3 py-1 rounded-lg capitalize ${
+                    isRoleMismatch
+                      ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                      : 'bg-blue-50 text-blue-700'
+                  }`}
+                >
                   <span className="font-medium">Role:</span>
-                  <span>{DETAIL_ROLE_LABELS[detailRole]}</span>
+                  <span>
+                    {DETAIL_ROLE_LABELS[userActualRole as DetailRole] ||
+                      capitalizeFirst(String(user?.role || '')) ||
+                      DETAIL_ROLE_LABELS[detailRole]}
+                  </span>
                 </div>
               </div>
             </div>
 
             {/* Right side: Package Selector & Actions */}
             <div className="flex flex-wrap items-center gap-3">
-              {detailRole === 'user' &&
+              {!isRoleMismatch &&
+                detailRole === 'user' &&
                 (cyclesLoading ? (
                   <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-gradient-to-r from-gray-50 via-slate-50 to-white border border-gray-200 text-xs text-secondary animate-pulse min-w-[340px] sm:min-w-[420px]">
                     <div className="h-11 w-11 rounded-xl bg-gray-200/80 animate-pulse" />
@@ -1321,7 +1360,7 @@ export default function UserDetails() {
           </div>
 
           {/* Header Bottom Section: Ultra-compact colored strip split into 3 */}
-          {detailRole === 'user' && (
+          {!isRoleMismatch && detailRole === 'user' && (
             <div className="mt-3 pt-2.5 border-t border-gray-100">
               <div className="w-full rounded-xl bg-gradient-to-r from-slate-50/90 via-blue-50/40 to-indigo-50/30 border border-blue-100/70 p-1.5 shadow-2xs">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-1.5">
@@ -1512,224 +1551,310 @@ export default function UserDetails() {
           )}
         </div>
 
-        <TabContainer
-          data={tabs as any}
-          activeTab={urlTab}
-          onClick={(item: any) => handleTabClick(item)}
-        >
-          <Tab id="details">
-            <DetailsInfo
-              user={user}
-              loading={loading}
-              error={error}
-              isNutritionist={isNutritionist}
-              isPhysiotherapist={isPhysiotherapist}
-              isYogist={isYogist}
-              isSales={isSales}
-              isMarketing={isMarketing}
-              detailRole={detailRole}
-              onEdit={() => setEditModalOpen(true)}
-              onAssignSales={
-                isSuperAdmin && detailRole === 'user'
-                  ? () => setAssignSalesOpen(true)
-                  : undefined
-              }
-            />
-          </Tab>
+        {isRoleMismatch ? (
+          <div className="bg-white border border-amber-200/90 rounded-3xl shadow-sm p-6 sm:p-10 text-center max-w-xl mx-auto my-8">
+            <div className="relative mx-auto mb-4 w-32 h-32 rounded-2xl overflow-hidden bg-gradient-to-b from-amber-50 to-orange-50/40 p-2 border border-amber-100/80 shadow-inner flex items-center justify-center">
+              <img
+                src="/images/oops-role.jpg"
+                alt="Role Mismatch Oops"
+                className="w-full h-full object-contain rounded-xl drop-shadow-sm"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none'
+                }}
+              />
+            </div>
 
-          {/* Subscriptions */}
-          {detailRole === 'user' && (
-            <Tab id="subscriptions">
-              <Subscriptions
-                id={String(id)}
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200 mb-2">
+              <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" />
+              Role Mismatch
+            </div>
+
+            <h2 className="text-xl font-extrabold text-gray-900 mb-1.5">
+              Incorrect Role Section
+            </h2>
+
+            <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+              <span className="font-semibold text-gray-900">
+                {user?.name || 'This user'}
+              </span>{' '}
+              is registered with the role{' '}
+              <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 border border-blue-200 text-blue-800 capitalize">
+                {DETAIL_ROLE_LABELS[userActualRole as DetailRole] ||
+                  capitalizeFirst(String(user?.role || ''))}
+              </span>
+              , but you are attempting to view them under the{' '}
+              <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 border border-amber-200 text-amber-800 capitalize">
+                {DETAIL_ROLE_LABELS[detailRole]}
+              </span>{' '}
+              section.
+            </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {userActualRole &&
+              userActualRole !== 'unknown' &&
+              userActualRole !== 'admin' &&
+              userActualRole !== 'superadmin' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetBase =
+                      DETAIL_ROLE_PATHS[userActualRole as DetailRole] ||
+                      '/users'
+                    navigate(`${targetBase}/${id}/details`)
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-primaryGreen text-white text-sm font-bold shadow-md shadow-emerald-600/20 hover:from-emerald-700 hover:to-emerald-600 active:scale-[0.99] transition cursor-pointer"
+                >
+                  <span>
+                    Go to{' '}
+                    {DETAIL_ROLE_LABELS[userActualRole as DetailRole] ||
+                      'Correct Role'}{' '}
+                    Details
+                  </span>
+                  <svg
+                    className="w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M5 12h14" />
+                    <path d="M12 5l7 7-7 7" />
+                  </svg>
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() =>
+                  navigate((location.state as any)?.from || pathBase)
+                }
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-xs font-bold shadow-2xs hover:bg-gray-50 active:scale-[0.99] transition cursor-pointer"
+              >
+                Back to {DETAIL_ROLE_LABELS[detailRole]} List
+              </button>
+            </div>
+          </div>
+        ) : (
+          <TabContainer
+            data={tabs as any}
+            activeTab={urlTab}
+            onClick={(item: any) => handleTabClick(item)}
+          >
+            <Tab id="details">
+              <DetailsInfo
                 user={user}
                 loading={loading}
                 error={error}
-                onRefresh={(fresh: any) => {
-                  if (fresh) setData(fresh)
-                  else refreshUserDetails()
-                  refetchCycles()
-                }}
-                workflowAssignment={
-                  isWorkflowViewer ? workflowAssignment : undefined
-                }
-                onWorkflowRefresh={
-                  isWorkflowViewer
-                    ? async () => {
-                        await refetchWorkflow()
-                        await refreshUserDetails()
-                        await refetchCycles()
-                      }
+                isNutritionist={isNutritionist}
+                isPhysiotherapist={isPhysiotherapist}
+                isYogist={isYogist}
+                isSales={isSales}
+                isMarketing={isMarketing}
+                detailRole={detailRole}
+                onEdit={() => setEditModalOpen(true)}
+                onAssignSales={
+                  isSuperAdmin && detailRole === 'user'
+                    ? () => setAssignSalesOpen(true)
                     : undefined
                 }
-                selectedCycleId={selectedCycleId}
-                selectedSubscriptionId={activeSubscriptionId}
-                selectedCycle={selectedCycle}
-                disableCycleChange={!isSuperAdmin}
               />
             </Tab>
-          )}
 
-          {/* Body Measurements (Requires Subscription) */}
-          {detailRole === 'user' && hasSubscription && (
-            <Tab id="body">
-              <BodyMeasurements
-                user={user}
-                subscriptionId={activeSubscriptionId}
-              />
-            </Tab>
-          )}
+            {/* Subscriptions */}
+            {detailRole === 'user' && (
+              <Tab id="subscriptions">
+                <Subscriptions
+                  id={String(id)}
+                  user={user}
+                  loading={loading}
+                  error={error}
+                  onRefresh={(fresh: any) => {
+                    if (fresh) setData(fresh)
+                    else refreshUserDetails()
+                    refetchCycles()
+                  }}
+                  workflowAssignment={
+                    isWorkflowViewer ? workflowAssignment : undefined
+                  }
+                  onWorkflowRefresh={
+                    isWorkflowViewer
+                      ? async () => {
+                          await refetchWorkflow()
+                          await refreshUserDetails()
+                          await refetchCycles()
+                        }
+                      : undefined
+                  }
+                  selectedCycleId={selectedCycleId}
+                  selectedSubscriptionId={activeSubscriptionId}
+                  selectedCycle={selectedCycle}
+                  disableCycleChange={!isSuperAdmin}
+                />
+              </Tab>
+            )}
 
-          {/* Vitals (Requires Subscription) */}
-          {detailRole === 'user' && hasSubscription && (
-            <Tab id="vitals">
-              <Vitals user={user} subscriptionId={activeSubscriptionId} />
-            </Tab>
-          )}
+            {/* Body Measurements (Requires Subscription) */}
+            {detailRole === 'user' && hasSubscription && (
+              <Tab id="body">
+                <BodyMeasurements
+                  user={user}
+                  subscriptionId={activeSubscriptionId}
+                />
+              </Tab>
+            )}
 
-          {/* Reminder Settings (Requires Subscription) */}
-          {detailRole === 'user' && hasSubscription && (
-            <Tab id="reminders">
-              <ReminderSettings userId={user?.id} />
-            </Tab>
-          )}
+            {/* Vitals (Requires Subscription) */}
+            {detailRole === 'user' && hasSubscription && (
+              <Tab id="vitals">
+                <Vitals user={user} subscriptionId={activeSubscriptionId} />
+              </Tab>
+            )}
 
-          {/* Recipes (Requires Subscription & Nutritionist / Superadmin / Admin) */}
-          {detailRole === 'user' &&
-            hasSubscription &&
-            canAccessDietAndRecipes && (
-              <Tab id="recipes">
-                <RecipesTab
-                  userId={user?.id}
+            {/* Reminder Settings (Requires Subscription) */}
+            {detailRole === 'user' && hasSubscription && (
+              <Tab id="reminders">
+                <ReminderSettings userId={user?.id} />
+              </Tab>
+            )}
+
+            {/* Recipes (Requires Subscription & Nutritionist / Superadmin / Admin) */}
+            {detailRole === 'user' &&
+              hasSubscription &&
+              canAccessDietAndRecipes && (
+                <Tab id="recipes">
+                  <RecipesTab
+                    userId={user?.id}
+                    isActionablePackage={isActionableSubscription}
+                  />
+                </Tab>
+              )}
+
+            {/* Nutritional Assessment (All Roles) */}
+            {detailRole === 'user' && (
+              <Tab id="additional-info">
+                <AdditionalInfo
+                  user={user}
+                  subscriptionId={activeSubscriptionId}
                   isActionablePackage={isActionableSubscription}
                 />
               </Tab>
             )}
 
-          {/* Nutritional Assessment (All Roles) */}
-          {detailRole === 'user' && (
-            <Tab id="additional-info">
-              <AdditionalInfo
-                user={user}
-                subscriptionId={activeSubscriptionId}
-                isActionablePackage={isActionableSubscription}
-              />
-            </Tab>
-          )}
-
-          {/* Subscription History */}
-          {detailRole === 'user' && (
-            <Tab id="subscription-history">
-              <SubscriptionHistory />
-            </Tab>
-          )}
-
-          {/* Diet History (Nutritionist / Superadmin / Admin) */}
-          {(canAccessDietAndRecipes ||
-            (isNutritionist && detailRole !== 'user')) && (
-            <Tab id="diet-history">
-              <DietHistory subscriptionId={activeSubscriptionId} />
-            </Tab>
-          )}
-
-          {/* Reports (Requires Subscription & Superadmin / Admin / Service Roles) */}
-          {detailRole === 'user' && hasSubscription && canAccessReports && (
-            <Tab id="reports">
-              <Reports user={user} subscriptionId={activeSubscriptionId} />
-            </Tab>
-          )}
-
-          {/* Follow-ups */}
-          {detailRole === 'user' &&
-            canAccessFollowUps &&
-            workflowAssignment && (
-              <Tab id="follow-ups">
-                <ClientWorkflowFollowUps
-                  assignment={workflowAssignment}
-                  assignmentId={workflowAssignment.id}
-                  onRefresh={() => refetchWorkflow()}
-                />
+            {/* Subscription History */}
+            {detailRole === 'user' && (
+              <Tab id="subscription-history">
+                <SubscriptionHistory />
               </Tab>
             )}
 
-          {/* Packages */}
-          {detailRole === 'user' &&
-            id &&
-            (isSuperAdmin ||
-              ['nutritionist', 'physiotherapist', 'yogist'].includes(
-                loginRole || ''
-              )) && (
-              <Tab id="packages" activeTab={urlTab}>
-                <ClientPackagesTab
-                  clientId={String(id)}
-                  canManage={true}
-                  apiPrefix="/clients"
-                  mode="packages"
-                  selectedCycleId={
-                    selectedCycleId ? String(selectedCycleId) : undefined
-                  }
-                  onSelectCycleId={(cId) => setSelectedCycleId(cId)}
-                  disableCycleChange={!isSuperAdmin}
-                />
+            {/* Diet History (Nutritionist / Superadmin / Admin) */}
+            {(canAccessDietAndRecipes ||
+              (isNutritionist && detailRole !== 'user')) && (
+              <Tab id="diet-history">
+                <DietHistory subscriptionId={activeSubscriptionId} />
               </Tab>
             )}
 
-          {/* Assignments */}
-          {detailRole === 'user' &&
-            id &&
-            (isSuperAdmin || loginRole === 'nutritionist') && (
-              <Tab id="assignments" activeTab={urlTab}>
-                <ClientPackagesTab
-                  clientId={String(id)}
-                  canManage={true}
-                  apiPrefix="/clients"
-                  mode="assignments"
-                  user={user}
-                  onSalesAssignSuccess={() => {
-                    refreshUserDetails()
-                    refetchCycles()
-                  }}
-                  selectedCycleId={
-                    selectedCycleId ? String(selectedCycleId) : undefined
-                  }
-                  onSelectCycleId={(cId) => setSelectedCycleId(cId)}
-                  disableCycleChange={!isSuperAdmin}
-                />
+            {/* Reports (Requires Subscription & Superadmin / Admin / Service Roles) */}
+            {detailRole === 'user' && hasSubscription && canAccessReports && (
+              <Tab id="reports">
+                <Reports user={user} subscriptionId={activeSubscriptionId} />
               </Tab>
             )}
 
-          {/* Staff Specific Tabs */}
-          {(isNutritionist || isFlatWithClients) && (
-            <Tab id="accepted-clients">
-              <AcceptedClients user={user} />
-            </Tab>
-          )}
-          {(isNutritionist || isFlatWithClients) && (
-            <Tab id="assigned-clients">
-              <AssignedClientsTab user={user} />
-            </Tab>
-          )}
-          {isMarketing && (
-            <Tab id="forms">
-              <MarketingFormsTab userId={String(id)} />
-            </Tab>
-          )}
-          {isMarketing && (
-            <Tab id="campaigns">
-              <UserCampaigns user={user} />
-            </Tab>
-          )}
-          {isSales && (
-            <Tab id="leads">
-              <UserSalesLeads user={user} />
-            </Tab>
-          )}
-          {isSales && (
-            <Tab id="sales_clients">
-              <UserSalesClients user={user} />
-            </Tab>
-          )}
-        </TabContainer>
+            {/* Follow-ups */}
+            {detailRole === 'user' &&
+              canAccessFollowUps &&
+              workflowAssignment && (
+                <Tab id="follow-ups">
+                  <ClientWorkflowFollowUps
+                    assignment={workflowAssignment}
+                    assignmentId={workflowAssignment.id}
+                    onRefresh={() => refetchWorkflow()}
+                  />
+                </Tab>
+              )}
+
+            {/* Packages */}
+            {detailRole === 'user' &&
+              id &&
+              (isSuperAdmin ||
+                ['nutritionist', 'physiotherapist', 'yogist'].includes(
+                  loginRole || ''
+                )) && (
+                <Tab id="packages" activeTab={urlTab}>
+                  <ClientPackagesTab
+                    clientId={String(id)}
+                    canManage={true}
+                    apiPrefix="/clients"
+                    mode="packages"
+                    selectedCycleId={
+                      selectedCycleId ? String(selectedCycleId) : undefined
+                    }
+                    onSelectCycleId={(cId) => setSelectedCycleId(cId)}
+                    disableCycleChange={!isSuperAdmin}
+                  />
+                </Tab>
+              )}
+
+            {/* Assignments */}
+            {detailRole === 'user' &&
+              id &&
+              (isSuperAdmin || loginRole === 'nutritionist') && (
+                <Tab id="assignments" activeTab={urlTab}>
+                  <ClientPackagesTab
+                    clientId={String(id)}
+                    canManage={true}
+                    apiPrefix="/clients"
+                    mode="assignments"
+                    user={user}
+                    onSalesAssignSuccess={() => {
+                      refreshUserDetails()
+                      refetchCycles()
+                    }}
+                    selectedCycleId={
+                      selectedCycleId ? String(selectedCycleId) : undefined
+                    }
+                    onSelectCycleId={(cId) => setSelectedCycleId(cId)}
+                    disableCycleChange={!isSuperAdmin}
+                  />
+                </Tab>
+              )}
+
+            {/* Staff Specific Tabs */}
+            {(isNutritionist || isFlatWithClients) && (
+              <Tab id="accepted-clients">
+                <AcceptedClients user={user} />
+              </Tab>
+            )}
+            {(isNutritionist || isFlatWithClients) && (
+              <Tab id="assigned-clients">
+                <AssignedClientsTab user={user} />
+              </Tab>
+            )}
+            {isMarketing && (
+              <Tab id="forms">
+                <MarketingFormsTab userId={String(id)} />
+              </Tab>
+            )}
+            {isMarketing && (
+              <Tab id="campaigns">
+                <UserCampaigns user={user} />
+              </Tab>
+            )}
+            {isSales && (
+              <Tab id="leads">
+                <UserSalesLeads user={user} />
+              </Tab>
+            )}
+            {isSales && (
+              <Tab id="sales_clients">
+                <UserSalesClients user={user} />
+              </Tab>
+            )}
+          </TabContainer>
+        )}
       </div>
 
       <CreateAdmin
@@ -1738,7 +1863,13 @@ export default function UserDetails() {
         handleRefresh={() => refreshUserDetails()}
         edit
         rowData={{ user }}
-        activeRole={detailRole}
+        activeRole={
+          userActualRole !== 'unknown' &&
+          userActualRole !== 'admin' &&
+          userActualRole !== 'superadmin'
+            ? userActualRole
+            : detailRole
+        }
       />
 
       <AssignSalesModal
@@ -1776,6 +1907,27 @@ export default function UserDetails() {
             loginRole ? `/users/${loginRole}/assigned-clients` : '/clients'
           )
         }}
+      />
+
+      <RoleMismatchModal
+        isOpen={isRoleMismatch}
+        user={user}
+        userId={id}
+        actualRole={userActualRole}
+        actualRoleLabel={
+          DETAIL_ROLE_LABELS[userActualRole as DetailRole] ||
+          capitalizeFirst(String(user?.role || ''))
+        }
+        actualRolePath={
+          userActualRole !== 'unknown' &&
+          userActualRole !== 'admin' &&
+          userActualRole !== 'superadmin'
+            ? DETAIL_ROLE_PATHS[userActualRole as DetailRole]
+            : undefined
+        }
+        expectedRole={detailRole}
+        expectedRoleLabel={DETAIL_ROLE_LABELS[detailRole]}
+        fallbackPath={(location.state as any)?.from || pathBase}
       />
     </>
   )
