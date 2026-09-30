@@ -275,6 +275,10 @@ const TimeSplitPicker = (props: Props) => {
   }
 
   const errorMessage = getErrors(errors?.[name])
+  const isRequiredError =
+    errorMessage === 'Required.' ||
+    errorMessage === 'Required' ||
+    errorMessage === 'Time is required.'
   const lastInteractedValue =
     lastInteractedRef.current === 'hour'
       ? hour
@@ -282,12 +286,11 @@ const TimeSplitPicker = (props: Props) => {
         ? minute
         : ''
   const shouldSuppressRequiredWhileTyping =
-    errorMessage === 'Required.' && String(lastInteractedValue).trim() !== ''
+    isRequiredError && String(lastInteractedValue).trim() !== ''
   const hasError = Boolean(
     errors && errors[name] && !shouldSuppressRequiredWhileTyping
   )
-  const requiredErrorPart =
-    errorMessage === 'Required.' ? clearedPartRef.current : null
+  const requiredErrorPart = isRequiredError ? clearedPartRef.current : null
   const errorTarget = (() => {
     if (!hasError) return null
 
@@ -303,16 +306,15 @@ const TimeSplitPicker = (props: Props) => {
   })()
   const showRequiredHourError =
     hasError &&
-    errorMessage === 'Required.' &&
+    isRequiredError &&
     !isValidHour(hour) &&
     (requiredErrorPart ? requiredErrorPart === 'hour' : true)
   const showRequiredMinuteError =
     hasError &&
-    errorMessage === 'Required.' &&
+    isRequiredError &&
     !isValidMinute(minute) &&
     (requiredErrorPart ? requiredErrorPart === 'minute' : true)
-  const showSingleError =
-    hasError && errorMessage !== 'Required.' && Boolean(errorTarget)
+  const showSingleError = hasError && !isRequiredError && Boolean(errorTarget)
   const showHourError =
     showRequiredHourError || (showSingleError && errorTarget === 'hour')
   const showMinuteError =
@@ -495,12 +497,12 @@ const TimeSplitPicker = (props: Props) => {
         <div className="grid grid-cols-[1fr_1fr_1fr] gap-3">
           {showHourError ? (
             <div className="text-error text-error-label mt-[1px] col-start-1">
-              {errorMessage}
+              {isRequiredError ? 'Required.' : errorMessage}
             </div>
           ) : null}
           {showMinuteError ? (
             <div className="text-error text-error-label mt-[1px] col-start-2">
-              {errorMessage}
+              {isRequiredError ? 'Required.' : errorMessage}
             </div>
           ) : null}
           {showPeriodError ? (

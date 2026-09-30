@@ -118,6 +118,11 @@ const SmartTable: React.FC<SmartTableProps> = ({
     setSelectedRowKey(null)
   }
 
+  // Reset selected row and collapse external action bar when data or search changes
+  useEffect(() => {
+    collapseExternalActionBar()
+  }, [data, searchValue])
+
   const handleActionClick = (action: Action, row: any) => {
     if (action.disabled?.(row)) return
     // Trigger animation

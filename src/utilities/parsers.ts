@@ -58,6 +58,13 @@ export const getErrorMessage = (error: any): string => {
       }
       return String(first.msg)
     }
+    if (first?.message) {
+      return error
+        .map((e: any) =>
+          typeof e?.message === 'string' ? e.message : String(e)
+        )
+        .join(', ')
+    }
     // Fall back to stringifying the array elements
     return error
       .map((e: any) => (typeof e === 'string' ? e : String(e)))
@@ -66,7 +73,13 @@ export const getErrorMessage = (error: any): string => {
 
   if (error && typeof error === 'object') {
     if (error.errors) {
-      if (typeof error.errors === 'object' && !Array.isArray(error.errors)) {
+      if (typeof error.errors === 'string') {
+        return error.errors
+      }
+      if (Array.isArray(error.errors)) {
+        return getErrorMessage(error.errors)
+      }
+      if (typeof error.errors === 'object') {
         const values = Object.values(error.errors)
           .flatMap((v: any) => (Array.isArray(v) ? v : [v]))
           .map((v: any) => (typeof v === 'string' ? v : getErrorMessage(v)))
@@ -75,11 +88,17 @@ export const getErrorMessage = (error: any): string => {
       }
       return getErrorMessage(error.errors)
     }
+    if (error.detail) {
+      if (typeof error.detail === 'string') return error.detail
+      return getErrorMessage(error.detail)
+    }
     if (error.message) {
       if (Array.isArray(error.message)) {
         return error.message.join(', ')
       }
-      return String(error.message)
+      if (typeof error.message === 'string') {
+        return error.message
+      }
     }
     if (error.error) {
       if (typeof error.error === 'string') {

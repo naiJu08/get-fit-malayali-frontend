@@ -8,7 +8,11 @@ import {
   updateData,
   deleteData,
 } from '../../../../apis/api.helpers'
-import { parseQueryParams } from '../../../../utilities/parsers'
+import {
+  getErrorMessage,
+  parseQueryParams,
+} from '../../../../utilities/parsers'
+import { useSnackbarManager } from '../../../../components/common/snackbar'
 
 const buildUrlWithParams = (baseUrl: string, params: QueryParams) => {
   return `${baseUrl}${parseQueryParams(params)}`
@@ -74,9 +78,18 @@ export const deleteDietPlan = (id: string | number) => {
 
 export const useDeleteDietPlan = () => {
   const qc = useQueryClient()
+  const { enqueueSnackbar } = useSnackbarManager()
   return useMutation((id: string | number) => deleteDietPlan(id), {
-    onSuccess: () => {
+    onSuccess: (res: any) => {
       qc.invalidateQueries(['diet_plans_list'])
+      const message =
+        res?.data?.message || res?.message || 'Meal deleted successfully'
+      enqueueSnackbar(message, { variant: 'success' })
+    },
+    onError: (error: any) => {
+      enqueueSnackbar(getErrorMessage(error) || 'Failed to delete meal', {
+        variant: 'error',
+      })
     },
   })
 }

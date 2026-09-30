@@ -74,14 +74,9 @@ export const useCreateTemplate = (handleSubmission: (data: any) => void) => {
     },
 
     onError: (error: any) => {
-      enqueueSnackbar(
-        getErrorMessage(
-          error.response.data.error || error?.response?.data?.detail
-        ),
-        {
-          variant: 'error',
-        }
-      )
+      enqueueSnackbar(getErrorMessage(error), {
+        variant: 'error',
+      })
     },
   })
 }
@@ -106,14 +101,9 @@ export const useDeleteTemplate = (handleSubmission?: (data: any) => void) => {
     },
 
     onError: (error: any) => {
-      enqueueSnackbar(
-        error?.response?.data?.detail
-          ? getErrorMessage(error?.response?.data?.detail)
-          : error?.response?.message,
-        {
-          variant: 'error',
-        }
-      )
+      enqueueSnackbar(getErrorMessage(error), {
+        variant: 'error',
+      })
     },
   })
 }
@@ -129,17 +119,9 @@ export const useUpdateTemplate = (handleSubmission: (data: any) => void) => {
     },
 
     onError: (error: any) => {
-      // enqueueSnackbar(getErrorMessage(error.response.data.error), {
-      //   variant: 'error',
-      // })
-      enqueueSnackbar(
-        error?.response?.data?.detail
-          ? getErrorMessage(error?.response?.data?.detail)
-          : error?.response?.data?.message,
-        {
-          variant: 'error',
-        }
-      )
+      enqueueSnackbar(getErrorMessage(error), {
+        variant: 'error',
+      })
     },
   })
 }

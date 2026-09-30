@@ -1808,9 +1808,7 @@ export default function SubscriptionUserSubscriptionsTab({
             ? moment(values.time, ['HH:mm:ss', 'HH:mm']).format('hh:mm A')
             : ''
 
-          const newMealTime = String(
-            values.meal_time || selectedMealTiming?.meal_time || ''
-          )
+          const newMealTime = String(values.meal_time || '')
             .trim()
             .toUpperCase()
           const oldMealTime = String(selectedMealTiming?.meal_time ?? '')
@@ -1843,7 +1841,12 @@ export default function SubscriptionUserSubscriptionsTab({
               <Controller
                 name="meal_time"
                 control={mealTimeForm.control}
-                rules={{ required: 'Meal timing name is required.' }}
+                rules={{
+                  required: 'Meal timing name is required.',
+                  validate: (val) =>
+                    Boolean(val && String(val).trim()) ||
+                    'Meal timing name is required.',
+                }}
                 render={({ field: { value, onChange } }) => (
                   <TextField
                     id="subscription-edit-meal-time"
@@ -1854,6 +1857,7 @@ export default function SubscriptionUserSubscriptionsTab({
                     onChange={(e: any) => onChange(e?.target?.value ?? e)}
                     disabled={isUpdatingMealTime}
                     required
+                    errors={mealTimeForm.formState.errors as any}
                   />
                 )}
               />
@@ -1861,7 +1865,11 @@ export default function SubscriptionUserSubscriptionsTab({
               <Controller
                 name="time"
                 control={mealTimeForm.control}
-                rules={{ required: 'Required.' }}
+                rules={{
+                  required: 'Required.',
+                  validate: (val) =>
+                    Boolean(val && String(val).trim()) || 'Required.',
+                }}
                 render={({ field: { value, onChange } }) => (
                   <TimeSplitPicker
                     label="Time"
