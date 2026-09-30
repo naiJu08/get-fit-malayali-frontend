@@ -8,9 +8,11 @@ import Icons from '../../../components/common/icons'
 import FileUpload from '../../common/fileUpload/index'
 import Checkbox from '../../common/inputs/Checkbox'
 import CustomDatePicker from '../../common/inputs/CustomDatePicker'
+import TimeSplitPicker from '../../common/inputs/TimeSplitPicker'
 import Radio from '../../common/inputs/Radio'
 import Textarea from '../../common/inputs/TextArea'
 import TextField from '../../common/inputs/TextField'
+import TextEditor from '../../common/TextEditer'
 import CustomeChildTable from '../CustomeChildTable'
 import DuplicateListItem from './utils'
 
@@ -35,7 +37,8 @@ const FormBuilder: React.FC<Props> = (props) => {
   const {
     control,
     setValue,
-    formState: { errors },
+    clearErrors,
+    formState: { errors, isSubmitted, touchedFields },
     register,
     watch,
   } = useFormContext()
@@ -50,23 +53,47 @@ const FormBuilder: React.FC<Props> = (props) => {
     fromPopup,
   } = props
   const [trimValue, setTrimValue] = useState(null)
-  const handleChange = useCallback((e: any, field: FormBuilderProps) => {
-    setValue(field?.id, e[field.descId as string])
-    setValue(field.name, e[field.desc as string], { shouldValidate: true })
-    field.handleCallBack?.(e)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const handleChange = useCallback(
+    (e: any, field: FormBuilderProps) => {
+      const selectedVal = e?.[field.desc as string] ?? e ?? ''
+      const selectedIdVal = e?.[field.descId as string] ?? e ?? ''
+
+      if (field?.id) {
+        setValue(field.id, selectedIdVal, { shouldValidate: true })
+      }
+      setValue(field.name, selectedVal, { shouldValidate: true })
+
+      if (selectedVal || selectedIdVal) {
+        clearErrors(field.name)
+        if (field?.id) {
+          clearErrors(field.id)
+        }
+      }
+      field.handleCallBack?.(e)
+    },
+    [clearErrors, setValue]
+  )
 
   const handleParellelInputChange = useCallback(
     (e: any, field: FormBuilderProps) => {
-      setValue(field?.subId as string, e[field.descId as string])
-      setValue(field.subName as string, e[field.desc as string], {
-        shouldValidate: true,
-      })
+      const selectedVal = e?.[field.desc as string] ?? e ?? ''
+      const selectedIdVal = e?.[field.descId as string] ?? e ?? ''
+
+      if (field?.subId) {
+        setValue(field.subId as string, selectedIdVal, {
+          shouldValidate: true,
+        })
+        if (selectedIdVal) clearErrors(field.subId as string)
+      }
+      if (field?.subName) {
+        setValue(field.subName as string, selectedVal, {
+          shouldValidate: true,
+        })
+        if (selectedVal) clearErrors(field.subName as string)
+      }
       field.handleCallBack?.(e)
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     },
-    []
+    [clearErrors, setValue]
   )
 
   const handleMultiChange = useCallback((e: any, field: FormBuilderProps) => {
@@ -76,7 +103,12 @@ const FormBuilder: React.FC<Props> = (props) => {
   const passwordEndAdorement =
     'appearance-none placeholder: relative block w-full pl-3 pr-6 py-2 border border-formBorder textfield'
 
-  const [showPassword, setShowPassword] = useState(false)
+  const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>(
+    {}
+  )
+
+  const togglePassword = (fieldName: string) =>
+    setShowPasswords((prev) => ({ ...prev, [fieldName]: !prev[fieldName] }))
 
   const handleTextChange = useCallback(
     (onChange: any, e: any, field: FormBuilderProps) => {
@@ -140,13 +172,18 @@ const FormBuilder: React.FC<Props> = (props) => {
       : style
   }
 
-  const handleFileUpload = (value: any, field: FormBuilderProps) => {
+  const handleFileUpload = async (value: any, field: FormBuilderProps) => {
     if (field.isMultiple) {
       setValue(field.name, value, {
         shouldValidate: true,
       })
     } else {
-      setValue(field.name, value?.target?.files[0] ?? '', {
+      const selectedFile = value?.target?.files[0] ?? ''
+      const nextValue = field.handleCallBack
+        ? await field.handleCallBack(selectedFile)
+        : selectedFile
+
+      setValue(field.name, nextValue ?? '', {
         shouldValidate: true,
       })
     }
@@ -170,6 +207,21 @@ const FormBuilder: React.FC<Props> = (props) => {
               name={`${field.name}`}
               control={control}
               key={`${updatekey}${field.name}`}
+              rules={
+                field.required || field.minLength
+                  ? {
+                      ...(field.required && {
+                        required: `${field.label || 'This field'} is required`,
+                      }),
+                      ...(field.minLength && {
+                        minLength: {
+                          value: field.minLength,
+                          message: `${field.label || 'This field'} must be at least ${field.minLength} digits`,
+                        },
+                      }),
+                    }
+                  : undefined
+              }
               render={({ field: { onChange, value } }) => (
                 <TextField
                   label={field.label}
@@ -177,15 +229,13 @@ const FormBuilder: React.FC<Props> = (props) => {
                   key={`${updatekey}${field.name}`}
                   id={field.name}
                   onChange={(e) => handleTextChange(onChange, e, field)}
-                  value={
-                    value !== undefined || value !== '' || value !== null
-                      ? value
-                      : field.type === 'number'
-                        ? null
-                        : ''
-                  }
+                  value={value ?? (field.type === 'number' ? null : '')}
                   name={field.name}
                   type={field.type}
+                  maxLength={field.maxLength}
+                  max={field.max}
+                  allowPositiveOnly={field.allowPositiveOnly}
+                  digitsOnly={field.digitsOnly}
                   onBlur={() => {
                     handleBlurChange(field)
                   }}
@@ -241,14 +291,15 @@ const FormBuilder: React.FC<Props> = (props) => {
                   </label>
                   <div className="relative ">
                     <input
-                      id={'password'}
-                      type={showPassword ? 'text' : 'password'}
+                      id={field.name}
+                      type={showPasswords[field.name] ? 'text' : 'password'}
                       required={field.required}
                       className={`${passwordEndAdorement} textfield`}
                       // className={`${passwordEndAdorement} textfield ${
                       //   errors[field.name] ? 'textfield-error' : ''
                       // }`}
                       placeholder={field.placeholder}
+                      autoComplete="new-password"
                       value={value ?? field.value}
                       onChange={(e) => handleTextChange(onChange, e, field)}
                     />
@@ -260,9 +311,9 @@ const FormBuilder: React.FC<Props> = (props) => {
                     <button
                       type="button"
                       className="absolute right-2 top-2 z-10"
-                      onClick={() => setShowPassword(!showPassword)}
+                      onClick={() => togglePassword(field.name)}
                     >
-                      {showPassword ? (
+                      {showPasswords[field.name] ? (
                         <Icons name="eye" />
                       ) : (
                         <Icons name="eye-close" />
@@ -281,6 +332,11 @@ const FormBuilder: React.FC<Props> = (props) => {
               name={`${field.name}`}
               control={control}
               key={`${updatekey}${field.name}`}
+              rules={
+                field.required
+                  ? { required: `${field.label || 'This field'} is required` }
+                  : undefined
+              }
               render={({ field: { onChange, value } }) => (
                 <Textarea
                   label={field.label}
@@ -294,7 +350,26 @@ const FormBuilder: React.FC<Props> = (props) => {
                   errors={!isEditable() ? errors : undefined}
                   disabled={field?.disabled ?? isEditable()}
                   maxLength={field?.maxLength}
+                  rows={(field as any)?.rows}
                   wordCount={field?.wordCount}
+                />
+              )}
+            />
+          </div>
+        )
+      case 'text_editor':
+        return (
+          <div className="relative">
+            <Controller
+              name={`${field.name}`}
+              control={control}
+              key={`${updatekey}${field.name}`}
+              render={({ field: { onChange, value } }) => (
+                <TextEditor
+                  label={field.label}
+                  placeholder={field.placeholder}
+                  value={value as string}
+                  onChange={(val: string) => onChange(val)}
                 />
               )}
             />
@@ -418,39 +493,43 @@ const FormBuilder: React.FC<Props> = (props) => {
         )
       case 'multi_select':
         return (
-          <Controller
-            name={`${field.name}`}
-            control={control}
-            key={`${updatekey}${field.name}`}
-            render={({}) => (
-              <AutoComplete
-                key={`${updatekey}${field.name}`}
-                name={field.name}
-                type="auto_suggestion"
-                desc={field.desc as string}
-                descId={field.descId as string}
-                onChange={(e) => handleMultiChange(e, field)}
-                // value={value}
-                className={errors[field.name] ? 'textfield-error' : ''}
-                selectedItems={field.selectedItems ?? watch()[field.name] ?? []}
-                label={field.label}
-                errors={errors[field.name]}
-                async={field.async}
-                paginationEnabled={field.paginationEnabled}
-                nextBlock={field.nextBlock ?? undefined}
-                notDataMessage={field.notDataMessage}
-                getData={field.getData}
-                data-testid={field.name}
-                initialLoad={field?.initialLoad}
-                placeholder={field.placeholder}
-                disabled={isEditable()}
-                required={field.required}
-                actionLabel={field.actionLabel}
-                handleAction={field.handleAction}
-                isMultiple={field.isMultiple}
-              />
-            )}
-          />
+          <div data-testid={field.id || field.name}>
+            <Controller
+              name={`${field.name}`}
+              control={control}
+              key={`${updatekey}${field.name}`}
+              render={({}) => (
+                <AutoComplete
+                  key={`${updatekey}${field.name}`}
+                  name={field.name}
+                  type="auto_suggestion"
+                  desc={field.desc as string}
+                  descId={field.descId as string}
+                  onChange={(e) => handleMultiChange(e, field)}
+                  // value={value}
+                  className={errors[field.name] ? 'textfield-error' : ''}
+                  selectedItems={
+                    field.selectedItems ?? watch()[field.name] ?? []
+                  }
+                  label={field.label}
+                  errors={errors[field.name]}
+                  async={field.async}
+                  paginationEnabled={field.paginationEnabled}
+                  nextBlock={field.nextBlock ?? undefined}
+                  notDataMessage={field.notDataMessage}
+                  getData={field.getData}
+                  data-testid={field.name}
+                  initialLoad={field?.initialLoad}
+                  placeholder={field.placeholder}
+                  disabled={isEditable()}
+                  required={field.required}
+                  actionLabel={field.actionLabel}
+                  handleAction={field.handleAction}
+                  isMultiple={field.isMultiple}
+                />
+              )}
+            />
+          </div>
         )
       case 'custom_search_select':
         return (
@@ -469,16 +548,24 @@ const FormBuilder: React.FC<Props> = (props) => {
                 onChange={(e) => handleChange(e, field)}
                 value={value}
                 className={
-                  errors[field.name] && !isEditable() ? 'textfield-error' : ''
+                  (errors[field.name] || (field.id && errors[field.id])) &&
+                  !isEditable()
+                    ? 'textfield-error'
+                    : ''
                 }
                 label={field.label}
                 data={field?.data}
-                errors={!isEditable() ? errors[field.name] : ''}
+                errors={
+                  !isEditable()
+                    ? errors[field.name] || (field.id && errors[field.id])
+                    : ''
+                }
                 data-testid={field.name}
                 actionLabel={field.actionLabel}
                 handleAction={field.handleAction}
                 placeholder={field.placeholder}
-                disabled={isEditable()}
+                // disabled={isEditable()}
+                disabled={field.disabled ? true : isEditable()}
                 required={field.required}
                 initialLoad={field.initialLoad}
               />
@@ -491,13 +578,21 @@ const FormBuilder: React.FC<Props> = (props) => {
             name={`${field.name}`}
             control={control}
             key={`${updatekey}${field.name}`}
+            rules={
+              field.required
+                ? { required: `${field.label || 'This field'} is required` }
+                : undefined
+            }
             render={({ field: { value } }) => (
               <AutoComplete
                 key={`${updatekey}${field.name}`}
                 name={field.name}
                 type="custom_select"
                 className={
-                  errors[field.name] && !isEditable() ? 'textfield-error' : ''
+                  (errors[field.name] || (field.id && errors[field.id])) &&
+                  !isEditable()
+                    ? 'textfield-error'
+                    : ''
                 }
                 desc={field.desc as string}
                 descId={field.descId as string}
@@ -506,7 +601,11 @@ const FormBuilder: React.FC<Props> = (props) => {
                 label={field.label}
                 data-testid={field.name}
                 data={field?.data}
-                errors={!isEditable() ? errors[field.name] : ''}
+                errors={
+                  !isEditable()
+                    ? errors[field.name] || (field.id && errors[field.id])
+                    : ''
+                }
                 placeholder={field.placeholder}
                 notDataMessage={field.notDataMessage}
                 required={field.required}
@@ -522,6 +621,11 @@ const FormBuilder: React.FC<Props> = (props) => {
             name={`${field.name}`}
             key={`${updatekey}${field.name}`}
             control={control}
+            rules={
+              field.required
+                ? { required: `${field.label || 'This field'} is required` }
+                : undefined
+            }
             render={({ field: { value } }) => {
               return (
                 <>
@@ -571,6 +675,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                   errors={errors}
                   showTimeSelect
                   showTimeSelectOnly
+                  fromPopup={fromPopup}
                   maxDate={field.maxDate}
                   minDate={field.minDate}
                   disabled={field?.disabled ?? isEditable()}
@@ -580,12 +685,45 @@ const FormBuilder: React.FC<Props> = (props) => {
             }}
           />
         )
+      case 'time_split':
+        return (
+          <Controller
+            name={`${field.name}`}
+            control={control}
+            key={`${updatekey}${field.name}`}
+            render={({ field: { value } }) => (
+              <TimeSplitPicker
+                label={field.label}
+                name={field.name}
+                value={value}
+                required={field.required}
+                disabled={field?.disabled ?? isEditable()}
+                hidePeriodIcon={field.hidePeriodIcon}
+                errors={
+                  !isEditable() && (isSubmitted || touchedFields[field.name])
+                    ? errors
+                    : undefined
+                }
+                onChange={(data) =>
+                  setValue(field.name, data.value, {
+                    shouldTouch: true,
+                    shouldValidate: true,
+                  })
+                }
+              />
+            )}
+          />
+        )
       case 'file_upload':
         return (
           <Controller
             name={`${field.name}`}
             control={control}
-            render={({ field: {} }) => {
+            render={({ field: { value } }) => {
+              const fileValue =
+                value !== undefined && value !== null && value !== ''
+                  ? value
+                  : field.selectedFiles
               return (
                 <>
                   <FileUpload
@@ -595,7 +733,8 @@ const FormBuilder: React.FC<Props> = (props) => {
                     key={`${updatekey}${field.name}`}
                     onChange={(value) => handleFileUpload(value, field)}
                     label={field.label ?? ''}
-                    value={field.selectedFiles}
+                    labelAddon={field.labelAddon}
+                    value={fileValue}
                     isMultiple={field.isMultiple}
                     errors={!isEditable() ? errors : undefined}
                     handleDeleteFile={field.handleDeleteFile}
@@ -611,6 +750,10 @@ const FormBuilder: React.FC<Props> = (props) => {
                     accept={field.accept}
                     required={field?.required}
                     disabled={field?.disabled ?? isEditable()}
+                    aspectRatio={field.aspectRatio}
+                    requiredWidth={field.requiredWidth}
+                    requiredHeight={field.requiredHeight}
+                    dimensionLabel={field.dimensionLabel}
                   />
                 </>
               )
@@ -695,7 +838,7 @@ const FormBuilder: React.FC<Props> = (props) => {
               {field.group_data
                 ? field?.group_data?.map((group: any) => (
                     <div
-                      key={data?.id}
+                      key={group.id}
                       className="flex item-center gap-1 my-2 cursor-pointer"
                     >
                       <input
@@ -821,29 +964,30 @@ const FormBuilder: React.FC<Props> = (props) => {
   return (
     <>
       {props.spacing ? (
-        <>
-          {data.map((field: FormBuilderProps) => (
-            <>
-              {!field.hidden && (
-                <div
-                  className={`col-span-12 md:col-span-${
-                    field?.spacing ?? 1
-                  } md:col-span-${field?.formSpacing ?? 0}`}
-                  key={field.name}
-                >
-                  {renderForm(field)}
-                </div>
-              )}
-            </>
-          ))}
-        </>
+        <div className="grid grid-cols-1  gap-4">
+          {data.map((field: FormBuilderProps) =>
+            !field.hidden ? (
+              <div
+                key={field.name}
+                className={(field as any).fullWidth ? 'md:col-span-2' : ''}
+              >
+                {renderForm(field)}
+              </div>
+            ) : null
+          )}
+        </div>
       ) : (
         <>
-          {data.map((field: FormBuilderProps) => (
-            <>
-              {!field.hidden && <div key={field.name}>{renderForm(field)}</div>}
-            </>
-          ))}
+          {data.map((field: FormBuilderProps) =>
+            !field.hidden ? (
+              <div
+                key={field.name}
+                className={(field as any).fullWidth ? 'md:col-span-2' : ''}
+              >
+                {renderForm(field)}
+              </div>
+            ) : null
+          )}
         </>
       )}
     </>

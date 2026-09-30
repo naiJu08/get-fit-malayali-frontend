@@ -83,12 +83,10 @@ const CustomDatePicker = (props: Props) => {
   return (
     <div className="flex flex-col">
       {label && (
-        <div className=" ">
-          <label className={`labels label-text`}>
-            {label}
-            {required ? <span className="text-error"> *</span> : <></>}
-          </label>
-        </div>
+        <label className={`labels label-text`}>
+          {label}
+          {required ? <span className="text-error"> *</span> : <></>}
+        </label>
       )}
       <div className="relative">
         {disabled ? (
@@ -113,11 +111,11 @@ const CustomDatePicker = (props: Props) => {
             onChange={(date) => handleDatePickerChange(date)}
             placeholderText={placeholder}
             className={` w-full textfield ${errorFlag && 'textfield-error'}`}
-            dateFormat={showTimeSelectOnly ? 'HH:mm' : 'dd-MM-yyyy'}
+            dateFormat={showTimeSelectOnly ? 'hh:mm aa' : 'dd-MM-yyyy'}
             showTimeSelect={showTimeSelect}
             showTimeSelectOnly={showTimeSelectOnly}
             timeIntervals={15}
-            timeFormat="HH:mm"
+            timeFormat="hh:mm aa"
             timeCaption="Time"
             selectsRange={selectRange}
             customInput={<input value={value} />}
@@ -132,7 +130,7 @@ const CustomDatePicker = (props: Props) => {
               <Icons name="close" className="w-4 h-4 fill-[#757575]" />
             </button>
           )}
-          <span className="   text-[#757575] block">
+          <span className="text-[#757575] block mb-1">
             <svg
               className="w-4 h-4 fill-[#757575]"
               focusable="false"

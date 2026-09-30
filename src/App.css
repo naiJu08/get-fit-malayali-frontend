@@ -1,3 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Averia+Serif+Libre:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Liter&family=Roboto:ital,wght@0,100..900;1,100..900&family=Story+Script&family=Work+Sans:ital,wght@0,100..900;1,100..900&display=swap');
+
+.font-averia {
+  font-family: 'Averia Serif Libre', serif;
+}
+
 .App-logo {
   height: 40vmin;
   pointer-events: none;
@@ -49,6 +55,9 @@
 .imageContainer img {
   max-width: 100%;
 }
+.my-quill-editor .ql-editor {
+  min-height: 79px;
+}
 
 @media (max-width: 1099px) {
   .titleLarge {
@@ -67,4 +76,12 @@
     font-size: 36px;
     line-height: 40px;
   }
+}
+
+/* Local override to hide white background for tab container in Plans Details page */
+.no-tab-bg .tab-scroll {
+  background-color: transparent !important;
+}
+.no-tab-bg .tab-scroll .bg-white {
+  background-color: transparent !important;
 }

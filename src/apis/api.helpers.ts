@@ -37,3 +37,7 @@ export const patchData = (url: string, params: any) =>
 
 export const deleteData = (url: string) =>
   serverApi.delete(url).then((res) => res.data)
+
+// DELETE with body payload (e.g. sending workout_ids array)
+export const deleteWithBody = (url: string, data: any) =>
+  serverApi.delete(url, { data }).then((res) => res.data)

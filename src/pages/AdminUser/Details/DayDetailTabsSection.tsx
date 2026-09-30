@@ -1,0 +1,1552 @@
+import moment from 'moment'
+import {
+  Fragment,
+  useEffect,
+  useMemo,
+  useState,
+  // type ChangeEvent,
+  type FC,
+} from 'react'
+import { Controller, FormProvider, useForm } from 'react-hook-form'
+import Icons from '../../../components/common/icons'
+import { DialogModal, TextField } from '../../../components/common'
+import { Tab, TabContainer } from '../../../components/common/tab'
+import TimeSplitPicker from '../../../components/common/inputs/TimeSplitPicker'
+import { useSnackbarManager } from '../../../components/common/snackbar'
+import { useUpdateUserMealTiming } from '../api'
+import DietTemplateAssign from '../../DietTemplate/Assign'
+import WorkoutTemplateAssign from '../../WorkoutTemplate/Assign'
+import YogaTemplateAssign from '../../YogaTemplate/Assign'
+import { useAuthStore } from '../../../store/authStore'
+import DayDietEditorDrawer from './DayDietEditorDrawer'
+
+interface DayDetailTabsSectionProps {
+  dayDetail: any
+  dayDetailTab: string
+  onChangeTab: (tabId: string) => void
+  isNutritionist: boolean
+  canAccessDiet?: boolean
+  canAccessWorkout?: boolean
+  canAccessYoga?: boolean
+  canAccessMeditation?: boolean
+  onEditWorkoutPlan: () => void
+  onEditYogaPlan: () => void
+  onEditMeditationPlan: () => void
+  subscriptionId?: string | number | null
+  userId?: string | number | null
+  refreshDayDetail?: () => Promise<void> | void
+  isActionablePackage?: boolean
+}
+
+const formatMealName = (value?: string | null) => {
+  if (!value) return '--'
+  const trimmed = value.trim()
+  if (!trimmed) return '--'
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
+}
+
+const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
+  dayDetail,
+  dayDetailTab,
+  onChangeTab,
+  isNutritionist,
+  canAccessDiet,
+  canAccessWorkout,
+  canAccessYoga,
+  canAccessMeditation,
+  onEditWorkoutPlan,
+  onEditYogaPlan,
+  onEditMeditationPlan,
+  subscriptionId: parentSubscriptionId,
+  userId: parentUserId,
+  refreshDayDetail,
+  isActionablePackage = true,
+}) => {
+  const loginRole = useAuthStore((s: any) => s.roleData?.name?.toLowerCase?.())
+  const isSuperOrAdmin = loginRole === 'superadmin' || loginRole === 'admin'
+  const isNutritionistRole = loginRole === 'nutritionist' || isNutritionist
+  const isPhysio = loginRole === 'physiotherapist' || loginRole === 'physio'
+  const isYogist =
+    loginRole === 'yogist' ||
+    loginRole === 'yoga_trainer' ||
+    loginRole === 'yoga'
+
+  const effectiveCanAccessDiet =
+    canAccessDiet ?? (isSuperOrAdmin || isNutritionistRole)
+  const effectiveCanAccessWorkout =
+    canAccessWorkout ?? (isSuperOrAdmin || isPhysio)
+  const effectiveCanAccessYoga = canAccessYoga ?? (isSuperOrAdmin || isYogist)
+  const effectiveCanAccessMeditation =
+    canAccessMeditation ?? (isSuperOrAdmin || isNutritionistRole || isYogist)
+  const [dayDietEditorOpen, setDayDietEditorOpen] = useState(false)
+  const [mealTimeEditOpen, setMealTimeEditOpen] = useState(false)
+  const [selectedMealTiming, setSelectedMealTiming] = useState<any>(null)
+  const [expandedDietItems, setExpandedDietItems] = useState<
+    Record<string, boolean>
+  >({})
+  const toggleDietItemDetails = (id: string) => {
+    setExpandedDietItems((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }))
+  }
+
+  const { enqueueSnackbar } = useSnackbarManager()
+
+  const subscriptionId =
+    parentSubscriptionId ??
+    dayDetail?.subscription_id ??
+    dayDetail?.subscription?.id ??
+    dayDetail?.subscriptionId ??
+    null
+
+  const userId =
+    parentUserId ??
+    dayDetail?.user_id ??
+    dayDetail?.user?.id ??
+    dayDetail?.subscription?.user_id ??
+    selectedMealTiming?.user_id ??
+    null
+
+  const mealTimeForm = useForm<{ time: string; meal_time: string }>({
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+    defaultValues: { time: '', meal_time: '' },
+  })
+
+  const { mutate: updateUserMealTimingMutate, isLoading: isUpdatingMealTime } =
+    useUpdateUserMealTiming(async () => {
+      setMealTimeEditOpen(false)
+      setSelectedMealTiming(null)
+      try {
+        await refreshDayDetail?.()
+      } catch (err) {
+        console.error(
+          'Failed to refresh day detail after meal time update',
+          err
+        )
+      }
+    })
+
+  const openMealTimeEdit = (meal: any) => {
+    setSelectedMealTiming(meal)
+    const time24 = meal?.meal_time_time
+      ? moment(meal.meal_time_time, [
+          'hh:mm A',
+          'h:mm A',
+          'HH:mm:ss',
+          'HH:mm',
+        ]).format('HH:mm:ss')
+      : ''
+
+    mealTimeForm.reset({
+      time: time24,
+      meal_time: meal?.meal_time || '',
+    })
+    setMealTimeEditOpen(true)
+  }
+
+  const closeMealTimeEdit = () => {
+    setMealTimeEditOpen(false)
+    setSelectedMealTiming(null)
+  }
+
+  const templateName = dayDetail?.subscription?.diet_plan_template_name?.trim()
+  const templateId =
+    dayDetail?.subscription?.diet_plan_template_id ??
+    dayDetail?.diet_plan_template_id ??
+    dayDetail?.subscription?.diet_plan_template?.id ??
+    null
+
+  const selectedDayDate =
+    dayDetail?.date ?? dayDetail?.day_date ?? dayDetail?.dayDate ?? null
+
+  const hasYogaData = useMemo(() => {
+    return !!(
+      dayDetail?.yoga_plan ||
+      dayDetail?.yoga_template ||
+      dayDetail?.subscription?.yoga_template_name
+    )
+  }, [dayDetail])
+
+  const isCompleted = useMemo(() => {
+    const status = String(dayDetail?.status || '').toLowerCase()
+    return status === 'completed' || status === 'over'
+  }, [dayDetail?.status])
+
+  const isFrozen = useMemo(() => {
+    return Boolean(
+      dayDetail?.freeze ||
+        dayDetail?.is_frozen ||
+        dayDetail?.frozen ||
+        dayDetail?.subscription?.freeze ||
+        String(dayDetail?.status || '').toLowerCase() === 'freeze' ||
+        String(dayDetail?.status || '').toLowerCase() === 'frozen'
+    )
+  }, [dayDetail])
+
+  const isCurrentOrFutureDay = useMemo(() => {
+    const dateSource =
+      dayDetail?.date ?? dayDetail?.day_date ?? dayDetail?.dayDate ?? null
+    if (!dateSource) return true
+    const parsed = moment(dateSource)
+    if (!parsed.isValid()) return true
+    return parsed.startOf('day').isSameOrAfter(moment().startOf('day'))
+  }, [dayDetail?.date, dayDetail?.day_date, dayDetail?.dayDate])
+
+  const canEditDay = useMemo(() => {
+    if (!isActionablePackage) return false
+    if (isCompleted || isFrozen) return false
+    return isCurrentOrFutureDay
+  }, [isActionablePackage, isCompleted, isFrozen, isCurrentOrFutureDay])
+
+  const canAssignTemplate = useMemo(() => {
+    if (!isActionablePackage) return false
+    if (isCompleted || isFrozen) return false
+    return isCurrentOrFutureDay
+  }, [isActionablePackage, isCompleted, isFrozen, isCurrentOrFutureDay])
+
+  const tabsData = useMemo(() => {
+    const list: { label: string; id: string }[] = []
+    if (effectiveCanAccessDiet) {
+      list.push({ label: 'Diet', id: 'diet' })
+    }
+    if (effectiveCanAccessWorkout) {
+      list.push({ label: 'Workout', id: 'workout' })
+    }
+    if (effectiveCanAccessYoga && (hasYogaData || isSuperOrAdmin || isYogist)) {
+      list.push({ label: 'Yoga', id: 'yoga' })
+    }
+    if (effectiveCanAccessMeditation) {
+      list.push({ label: 'Meditation', id: 'meditation' })
+    }
+    return list
+  }, [
+    effectiveCanAccessDiet,
+    effectiveCanAccessWorkout,
+    effectiveCanAccessYoga,
+    effectiveCanAccessMeditation,
+    hasYogaData,
+    isSuperOrAdmin,
+    isYogist,
+  ])
+
+  useEffect(() => {
+    const validTabIds = tabsData.map((t) => t.id)
+    if (validTabIds.length > 0 && !validTabIds.includes(dayDetailTab)) {
+      onChangeTab(validTabIds[0])
+    }
+  }, [tabsData, dayDetailTab, onChangeTab])
+
+  return (
+    <>
+      <div className="allow-tab-overflow">
+        <TabContainer
+          data={tabsData}
+          activeTab={dayDetailTab}
+          onClick={(item) => onChangeTab(String(item.id))}
+        >
+          {effectiveCanAccessDiet && (
+            <Tab id="diet">
+              <DietTemplateAssign
+                subscriptionId={subscriptionId}
+                currentName={
+                  dayDetail?.diet_template?.name ||
+                  dayDetail?.subscription?.diet_plan_template_name ||
+                  dayDetail?.subscription?.diet_template_name ||
+                  templateName
+                }
+                currentTemplateId={
+                  dayDetail?.diet_template?.id ||
+                  dayDetail?.subscription?.diet_plan_template_id ||
+                  dayDetail?.diet_plan_template_id ||
+                  templateId
+                }
+                selectedDayDate={selectedDayDate}
+                readOnly={!canAssignTemplate}
+                onAssigned={refreshDayDetail as any}
+              />
+              <div className="max-h-[700px] overflow-y-auto">
+                {/* ================= DAY PLAN HEADER ================= */}
+                <div className="border border-gray-200/80 rounded-xl p-3 bg-white mb-3 shadow-xs">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-gray-800">
+                        Diet Plan
+                      </div>
+                      <div className="text-xs text-gray-600 mt-1 flex items-center gap-2 flex-wrap">
+                        <span className="bg-blue-50 text-blue-700 border border-blue-200/80 px-2 py-0.5 rounded-md font-medium text-[11px]">
+                          Proposed: {dayDetail?.total_proposed_calories ?? '--'}{' '}
+                          kcal
+                        </span>
+                        <span className="bg-emerald-50 text-emerald-700 border border-emerald-200/80 px-2 py-0.5 rounded-md font-medium text-[11px]">
+                          Consumed: {dayDetail?.total_consumed_calories ?? 0}{' '}
+                          kcal
+                        </span>
+                      </div>
+                    </div>
+                    {canEditDay && effectiveCanAccessDiet && (
+                      <button
+                        type="button"
+                        onClick={() => setDayDietEditorOpen(true)}
+                        className="px-3 py-1.5 text-xs border rounded-lg btn-primary flex items-center gap-1 font-medium shadow-xs"
+                      >
+                        <Icons name="edit" className="w-3.5 h-3.5" />
+                        <span>Update Day</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* ================= MEALS ================= */}
+                {Array.isArray(dayDetail?.diet_plans) &&
+                dayDetail.diet_plans.length > 0 ? (
+                  <div className=" mt-3">
+                    {dayDetail.diet_plans.map((d: any) => {
+                      const totalItems = d?.items?.length || 0
+                      const completedItems =
+                        d?.item_statuses?.completed_item_ids?.length || 0
+                      const missedItems =
+                        d?.item_statuses?.not_taken_mandatory_item_ids
+                          ?.length || 0
+
+                      const progress =
+                        totalItems > 0 ? (completedItems / totalItems) * 100 : 0
+
+                      return (
+                        <div
+                          key={`${d?.id}-${d?.sequence_number}`}
+                          className="bg-white rounded-xl shadow-sm px-4 py-3"
+                        >
+                          {/* ---------- Meal Header ---------- */}
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <div className="text-lg font-semibold text-gray-800">
+                                  {d.meal_time} - {d.meal_time_time}
+                                </div>
+                                {isActionablePackage && (
+                                  <button
+                                    type="button"
+                                    className="p-0"
+                                    onClick={() => openMealTimeEdit(d)}
+                                    aria-label="Edit meal time"
+                                  >
+                                    <Icons
+                                      name="fab-edit"
+                                      className="w-4 h-4 text-[#60A5FA]"
+                                    />
+                                  </button>
+                                )}
+                              </div>
+                              {d?.meal_name && (
+                                <div className="text-sm text-gray-600 font-medium">
+                                  {formatMealName(d.meal_name)}
+                                </div>
+                              )}
+                              {d?.notes && (
+                                <div className="text-[10px] text-gray-500 mt-1">
+                                  Notes: {d.notes}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="text-right">
+                              <div className="text-sm font-semibold text-gray-700">
+                                {(() => {
+                                  const totalConsumedCalories =
+                                    d?.items?.reduce(
+                                      (sum: number, item: any) =>
+                                        sum +
+                                        (item?.actions?.consumed_calories || 0),
+                                      0
+                                    ) || 0
+                                  const otherConsumedCalories =
+                                    d?.other_consumed_items?.reduce(
+                                      (sum: number, item: any) =>
+                                        sum + (item?.consumed_calories || 0),
+                                      0
+                                    ) || 0
+                                  const totalCalories =
+                                    totalConsumedCalories +
+                                    otherConsumedCalories
+                                  return totalCalories > 0
+                                    ? `${totalCalories} kcal`
+                                    : `${d?.calories ?? '--'} kcal`
+                                })()}
+                              </div>
+                              <div className="text-[10px] text-gray-500">
+                                {completedItems}/{totalItems} completed
+                                {missedItems > 0 && (
+                                  <span className="text-red-500 ml-1">
+                                    • {missedItems} missed
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ---------- Progress Bar ---------- */}
+                          {totalItems > 0 && (
+                            <div className="relative w-full  bg-gray-200 rounded-full mt-2">
+                              {/* Progress fill */}
+                              <div
+                                className="h-full bg-green-500 rounded-full transition-all duration-500"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                          )}
+
+                          {/* ---------- Items ---------- */}
+                          {Array.isArray(d?.items) && d.items.length > 0 ? (
+                            <div className="mt-3 space-y-2">
+                              {d.items.map((it: any) => {
+                                const itemStatus = String(
+                                  it?.actions?.status || ''
+                                ).toLowerCase()
+
+                                const statusColor =
+                                  itemStatus === 'completed'
+                                    ? 'border-green-500'
+                                    : itemStatus === 'missed' ||
+                                        itemStatus === 'failed'
+                                      ? 'border-red-500'
+                                      : itemStatus === 'in_progress'
+                                        ? 'border-amber-500'
+                                        : 'border-gray-300'
+
+                                const dietItemKey = `${d?.id}-${it?.id}`
+                                const isExpanded =
+                                  !!expandedDietItems[dietItemKey]
+
+                                return (
+                                  <div
+                                    key={it?.id}
+                                    className={`border-l-2 ${statusColor} bg-gray-50 rounded-lg px-3 py-2 group relative`}
+                                  >
+                                    {/* Item Header */}
+                                    <div className="flex items-center justify-between">
+                                      <div className="text-[11px] font-medium text-gray-800">
+                                        {formatMealName(it?.meal_name)}
+                                      </div>
+
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          toggleDietItemDetails(dietItemKey)
+                                        }
+                                        className="text-[10px] text-primary"
+                                      >
+                                        {/* {isExpanded ? 'Hide' : 'Details'} */}
+                                      </button>
+                                    </div>
+
+                                    {/* Requirement and Planned Info - Only show when collapsed */}
+                                    {!isExpanded && (
+                                      <div className="mt-2 text-[10px] text-gray-600 space-y-1">
+                                        <div>
+                                          <span className="font-medium">
+                                            Requirement:
+                                          </span>{' '}
+                                          {it?.requirement
+                                            ? formatMealName(it.requirement)
+                                            : '--'}
+                                        </div>
+
+                                        <div>
+                                          <span className="font-medium">
+                                            Planned:
+                                          </span>{' '}
+                                          {it?.quantity} x {it?.serving_unit}
+                                          {it?.serving_quantity &&
+                                            it?.serving_quantity !==
+                                              it?.quantity &&
+                                            ` (${it?.serving_quantity} per serving)`}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {/* Hover Content - Always Visible on Hover */}
+                                    <div className="absolute left-0 right-0 top-full mt-1 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                      <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-[10px] text-gray-600 space-y-1">
+                                        {it?.per_serving && (
+                                          <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                                            <div className="font-medium text-blue-800 mb-1">
+                                              Per Serving Nutrition:
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-1">
+                                              <div>
+                                                Calories:{' '}
+                                                {it.per_serving.calories ??
+                                                  '--'}{' '}
+                                                kcal
+                                              </div>
+                                              <div>
+                                                Protein:{' '}
+                                                {it.per_serving.protein ?? '--'}
+                                                g
+                                              </div>
+                                              <div>
+                                                Carbs:{' '}
+                                                {it.per_serving.carbs ?? '--'}g
+                                              </div>
+                                              <div>
+                                                Fat:{' '}
+                                                {it.per_serving.fat ?? '--'}g
+                                              </div>
+                                              {it.per_serving.fiber && (
+                                                <div className="col-span-2">
+                                                  Fiber: {it.per_serving.fiber}g
+                                                </div>
+                                              )}
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {it?.actions?.consumed_quantity && (
+                                          <div className="bg-emerald-50 border border-emerald-200 rounded p-2">
+                                            <div className="font-medium text-emerald-800 mb-1">
+                                              Consumed:
+                                            </div>
+                                            <div>
+                                              Quantity:{' '}
+                                              {it.actions.consumed_quantity}{' '}
+                                              {it?.serving_unit}
+                                            </div>
+                                            {it.actions.consumed_calories !==
+                                              undefined && (
+                                              <div>
+                                                Calories:{' '}
+                                                {it.actions.consumed_calories}{' '}
+                                                kcal
+                                              </div>
+                                            )}
+                                            {it.actions.consumed_macros && (
+                                              <div className="grid grid-cols-2 gap-1 mt-1">
+                                                <div>
+                                                  Protein:{' '}
+                                                  {it.actions.consumed_macros
+                                                    .protein ?? '--'}
+                                                  g
+                                                </div>
+                                                <div>
+                                                  Carbs:{' '}
+                                                  {it.actions.consumed_macros
+                                                    .carbs ?? '--'}
+                                                  g
+                                                </div>
+                                                <div>
+                                                  Fat:{' '}
+                                                  {it.actions.consumed_macros
+                                                    .fat ?? '--'}
+                                                  g
+                                                </div>
+                                                {it.actions.consumed_macros
+                                                  .fiber && (
+                                                  <div className="col-span-2">
+                                                    Fiber:{' '}
+                                                    {
+                                                      it.actions.consumed_macros
+                                                        .fiber
+                                                    }
+                                                    g
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {it?.actions?.status && (
+                                          <div className="text-[9px] text-gray-500">
+                                            <span className="font-medium">
+                                              Status:
+                                            </span>{' '}
+                                            <span
+                                              className={`capitalize ${
+                                                it.actions.status ===
+                                                'completed'
+                                                  ? 'text-green-600'
+                                                  : it.actions.status ===
+                                                        'missed' ||
+                                                      it.actions.status ===
+                                                        'failed'
+                                                    ? 'text-red-600'
+                                                    : it.actions.status ===
+                                                        'in_progress'
+                                                      ? 'text-amber-600'
+                                                      : 'text-gray-600'
+                                              }`}
+                                            >
+                                              {it.actions.status.replace(
+                                                /_/g,
+                                                ' '
+                                              )}
+                                            </span>
+                                            {it?.actions?.completed_at && (
+                                              <span className="ml-2">
+                                                at{' '}
+                                                {new Date(
+                                                  it.actions.completed_at
+                                                ).toLocaleTimeString([], {
+                                                  hour: '2-digit',
+                                                  minute: '2-digit',
+                                                })}
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Expanded Content - Only when Details button is clicked */}
+                                    {isExpanded && (
+                                      <div className="mt-2 text-[10px] text-gray-600 space-y-1">
+                                        <div>
+                                          <span className="font-medium">
+                                            Requirement:
+                                          </span>{' '}
+                                          {it?.requirement
+                                            ? formatMealName(it.requirement)
+                                            : '--'}
+                                        </div>
+
+                                        <div>
+                                          <span className="font-medium">
+                                            Planned:
+                                          </span>{' '}
+                                          {it?.quantity} x {it?.serving_unit}
+                                          {it?.serving_quantity &&
+                                            it?.serving_quantity !==
+                                              it?.quantity &&
+                                            ` (${it?.serving_quantity} per serving)`}
+                                        </div>
+
+                                        {it?.actions?.status && (
+                                          <div className="text-[9px] text-gray-500">
+                                            <span className="font-medium">
+                                              Status:
+                                            </span>{' '}
+                                            <span
+                                              className={`capitalize ${
+                                                it.actions.status ===
+                                                'completed'
+                                                  ? 'text-green-600'
+                                                  : it.actions.status ===
+                                                        'missed' ||
+                                                      it.actions.status ===
+                                                        'failed'
+                                                    ? 'text-red-600'
+                                                    : it.actions.status ===
+                                                        'in_progress'
+                                                      ? 'text-amber-600'
+                                                      : 'text-gray-600'
+                                              }`}
+                                            >
+                                              {it.actions.status.replace(
+                                                /_/g,
+                                                ' '
+                                              )}
+                                            </span>
+                                            {it?.actions?.completed_at && (
+                                              <span className="ml-2">
+                                                at{' '}
+                                                {new Date(
+                                                  it.actions.completed_at
+                                                ).toLocaleTimeString([], {
+                                                  hour: '2-digit',
+                                                  minute: '2-digit',
+                                                })}
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          ) : (
+                            <div className="mt-4 text-sm text-gray-400 italic">
+                              No items defined for this meal.
+                            </div>
+                          )}
+
+                          {/* ---------- Other Consumed ---------- */}
+                          {Array.isArray(d?.other_consumed_items) &&
+                            d.other_consumed_items.length > 0 && (
+                              <div className="mt-3 border-t pt-2">
+                                <div className="text-[10px] font-semibold text-orange-600 mb-2 uppercase">
+                                  Other Items Consumed
+                                </div>
+
+                                <div className="space-y-2">
+                                  {d.other_consumed_items.map((extra: any) => {
+                                    const extraKey = `extra-${extra?.id}`
+                                    const isExtraExpanded =
+                                      !!expandedDietItems[extraKey]
+
+                                    return (
+                                      <div
+                                        key={extra?.id}
+                                        className="bg-orange-50 border border-orange-200 rounded-lg p-2 group relative"
+                                      >
+                                        <div className="flex items-start justify-between mb-1">
+                                          <div className="font-medium text-orange-800">
+                                            {formatMealName(extra?.meal_name)}
+                                          </div>
+                                          <div className="text-[9px] text-orange-600">
+                                            {extra?.meal_time}
+                                          </div>
+                                        </div>
+
+                                        {/* Consumed Info - Only show when collapsed */}
+                                        {!isExtraExpanded && (
+                                          <div className="text-[10px] text-gray-700 space-y-1">
+                                            <div>
+                                              <span className="font-medium">
+                                                Consumed:
+                                              </span>{' '}
+                                              {extra?.consumed_quantity ??
+                                                extra?.quantity ??
+                                                '--'}{' '}
+                                              {extra?.serving_unit}
+                                            </div>
+
+                                            {extra?.consumed_calories !==
+                                              undefined && (
+                                              <div>
+                                                <span className="font-medium">
+                                                  Calories:
+                                                </span>{' '}
+                                                {extra.consumed_calories} kcal
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {/* Hover Content - Always Visible on Hover */}
+                                        <div className="absolute left-0 right-0 top-full mt-1 z-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                                          <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 text-[10px] text-gray-600 space-y-1">
+                                            {extra?.per_serving && (
+                                              <div className="bg-orange-100 rounded p-1 mt-1">
+                                                <div className="font-medium text-orange-800 mb-1">
+                                                  Per Serving:
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-1 text-[9px]">
+                                                  <div>
+                                                    Calories:{' '}
+                                                    {extra.per_serving
+                                                      .calories ?? '--'}{' '}
+                                                    kcal
+                                                  </div>
+                                                  <div>
+                                                    Protein:{' '}
+                                                    {extra.per_serving
+                                                      .protein ?? '--'}
+                                                    g
+                                                  </div>
+                                                  <div>
+                                                    Carbs:{' '}
+                                                    {extra.per_serving.carbs ??
+                                                      '--'}
+                                                    g
+                                                  </div>
+                                                  <div>
+                                                    Fat:{' '}
+                                                    {extra.per_serving.fat ??
+                                                      '--'}
+                                                    g
+                                                  </div>
+                                                  {extra.per_serving.fiber && (
+                                                    <div className="col-span-2">
+                                                      Fiber:{' '}
+                                                      {extra.per_serving.fiber}g
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            {extra?.consumed_macros && (
+                                              <div className="bg-emerald-50 border border-emerald-200 rounded p-1 mt-1">
+                                                <div className="font-medium text-emerald-800 mb-1">
+                                                  Consumed Macros:
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-1 text-[9px]">
+                                                  <div>
+                                                    Protein:{' '}
+                                                    {extra.consumed_macros
+                                                      .protein ?? '--'}
+                                                    g
+                                                  </div>
+                                                  <div>
+                                                    Carbs:{' '}
+                                                    {extra.consumed_macros
+                                                      .carbs ?? '--'}
+                                                    g
+                                                  </div>
+                                                  <div>
+                                                    Fat:{' '}
+                                                    {extra.consumed_macros
+                                                      .fat ?? '--'}
+                                                    g
+                                                  </div>
+                                                  {extra.consumed_macros
+                                                    .fiber && (
+                                                    <div className="col-span-2">
+                                                      Fiber:{' '}
+                                                      {
+                                                        extra.consumed_macros
+                                                          .fiber
+                                                      }
+                                                      g
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            )}
+
+                                            {extra?.actions?.status && (
+                                              <div className="text-[9px] text-gray-500">
+                                                <span className="font-medium">
+                                                  Status:
+                                                </span>{' '}
+                                                <span
+                                                  className={`capitalize ${
+                                                    extra.actions.status ===
+                                                    'completed'
+                                                      ? 'text-green-600'
+                                                      : extra.actions.status ===
+                                                            'missed' ||
+                                                          extra.actions
+                                                            .status === 'failed'
+                                                        ? 'text-red-600'
+                                                        : extra.actions
+                                                              .status ===
+                                                            'in_progress'
+                                                          ? 'text-amber-600'
+                                                          : 'text-gray-600'
+                                                  }`}
+                                                >
+                                                  {extra.actions.status.replace(
+                                                    /_/g,
+                                                    ' '
+                                                  )}
+                                                </span>
+                                                {extra?.actions
+                                                  ?.completed_at && (
+                                                  <span className="ml-1">
+                                                    at{' '}
+                                                    {new Date(
+                                                      extra.actions.completed_at
+                                                    ).toLocaleTimeString([], {
+                                                      hour: '2-digit',
+                                                      minute: '2-digit',
+                                                    })}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="mt-6 text-sm text-gray-400 text-center">
+                    No diet plans available.
+                  </div>
+                )}
+              </div>
+            </Tab>
+          )}
+
+          {effectiveCanAccessWorkout && (
+            <Tab id="workout">
+              <WorkoutTemplateAssign
+                subscriptionId={subscriptionId}
+                currentName={
+                  dayDetail?.workout_template?.name ||
+                  dayDetail?.subscription?.workout_template_name
+                }
+                currentTemplateId={
+                  dayDetail?.workout_template?.id ||
+                  dayDetail?.subscription?.workout_template_id
+                }
+                readOnly={!canAssignTemplate}
+                onAssigned={refreshDayDetail as any}
+              />
+              <div className="max-h-[700px] overflow-y-auto">
+                <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-2 gap-3">
+                    <div className="text-sm font-semibold">Workout Plan</div>
+                    {dayDetail?.workout_plan &&
+                      canEditDay &&
+                      effectiveCanAccessWorkout && (
+                        <button
+                          type="button"
+                          className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
+                          onClick={onEditWorkoutPlan}
+                        >
+                          <Icons name="edit" />
+                          <span>Update Day</span>
+                        </button>
+                      )}
+                  </div>
+                  {dayDetail?.workout_plan ? (
+                    <div className="flex flex-col gap-2 text-xs">
+                      <div className="mb-1">
+                        <div className="font-medium">
+                          {dayDetail?.workout_plan?.title || 'Workout'}
+                        </div>
+                        {dayDetail?.workout_plan?.description && (
+                          <div className="text-gray-600">
+                            {dayDetail.workout_plan.description}
+                          </div>
+                        )}
+                      </div>
+                      {Array.isArray(dayDetail?.workout_plan?.exercises) &&
+                      dayDetail.workout_plan.exercises.length > 0 ? (
+                        <div className="flex flex-col gap-2">
+                          {dayDetail.workout_plan.exercises.map(
+                            (ex: any, idx: number) => {
+                              const action = ex?.actions
+                              const durationMinutesFromSeconds =
+                                typeof action?.duration_seconds === 'number'
+                                  ? (action.duration_seconds / 60).toFixed(1)
+                                  : null
+                              const workoutStatus = String(
+                                action?.status || ''
+                              ).toLowerCase()
+                              const workoutStatusClass =
+                                workoutStatus === 'completed'
+                                  ? 'text-green-600'
+                                  : workoutStatus === 'missed' ||
+                                      workoutStatus === 'failed'
+                                    ? 'text-red-600'
+                                    : workoutStatus === 'today' ||
+                                        workoutStatus === 'in_progress'
+                                      ? 'text-amber-600'
+                                      : 'text-gray-700'
+
+                              return (
+                                <div
+                                  key={`${ex?.id}-${idx}`}
+                                  className="flex items-center justify-between border rounded px-3 py-2 gap-3"
+                                >
+                                  <div className="flex items-start gap-3 flex-1">
+                                    <div className="flex flex-col">
+                                      <span className="font-medium">
+                                        {toTitleCase(ex?.workout_name) || '--'}
+                                      </span>
+                                      {ex?.video_url && (
+                                        <a
+                                          className="text-primaryBlue underline"
+                                          href={ex.video_url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          Video
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-right text-[11px] text-gray-600 space-y-0.5">
+                                    {ex?.reps ? (
+                                      <div>Reps: {ex.reps}</div>
+                                    ) : null}
+                                    {ex?.sets ? (
+                                      <div>Sets: {ex.sets}</div>
+                                    ) : null}
+                                    {ex?.duration_minutes ? (
+                                      <div>
+                                        Duration: {ex.duration_minutes}m
+                                      </div>
+                                    ) : null}
+                                    {action && (
+                                      <>
+                                        {action.status && (
+                                          <div>
+                                            <span className="text-gray-500">
+                                              Status:{' '}
+                                            </span>
+                                            <span
+                                              className={`font-semibold ${workoutStatusClass}`}
+                                            >
+                                              {workoutStatus
+                                                ? workoutStatus
+                                                    .charAt(0)
+                                                    .toUpperCase() +
+                                                  workoutStatus.slice(1)
+                                                : '--'}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {durationMinutesFromSeconds && (
+                                          <div>
+                                            <span className="text-gray-500">
+                                              Duration:{' '}
+                                            </span>
+                                            <span className="font-medium text-gray-800">
+                                              {durationMinutesFromSeconds}m
+                                            </span>
+                                          </div>
+                                        )}
+                                        {typeof action.duration_seconds ===
+                                          'number' && (
+                                          <div>
+                                            <span className="text-gray-500">
+                                              Duration sec:{' '}
+                                            </span>
+                                            <span className="font-medium text-gray-800">
+                                              {action.duration_seconds}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {action.video_watch_percentage && (
+                                          <div>
+                                            <span className="text-gray-500">
+                                              Watched:{' '}
+                                            </span>
+                                            <span className="font-medium text-gray-800">
+                                              {action.video_watch_percentage}%
+                                            </span>
+                                          </div>
+                                        )}
+                                        {action.notes && (
+                                          <div>
+                                            <span className="text-gray-500">
+                                              Notes:{' '}
+                                            </span>
+                                            <span className="font-medium text-gray-800">
+                                              {action.notes}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            }
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-500">
+                          No exercises.
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-500">
+                      No workout plan.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Tab>
+          )}
+
+          {effectiveCanAccessYoga &&
+            (dayDetail?.yoga_plan ||
+              dayDetail?.yoga_template ||
+              dayDetail?.subscription?.yoga_template_name ||
+              isSuperOrAdmin ||
+              isYogist) && (
+              <Tab id="yoga">
+                <YogaTemplateAssign
+                  subscriptionId={subscriptionId}
+                  currentName={
+                    dayDetail?.yoga_template?.name ||
+                    dayDetail?.subscription?.yoga_template_name
+                  }
+                  currentTemplateId={
+                    dayDetail?.yoga_template?.id ||
+                    dayDetail?.subscription?.yoga_template_id
+                  }
+                  readOnly={!canAssignTemplate}
+                  onAssigned={refreshDayDetail as any}
+                />
+                <div className="max-h-[700px] overflow-y-auto">
+                  <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
+                    <div className="flex items-center justify-between mb-2 gap-3">
+                      <div className="text-sm font-semibold">Yoga Plan</div>
+                      {dayDetail?.yoga_plan &&
+                        canEditDay &&
+                        effectiveCanAccessYoga && (
+                          <button
+                            type="button"
+                            className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
+                            onClick={onEditYogaPlan}
+                          >
+                            <Icons name="edit" />
+                            <span>Update Day</span>
+                          </button>
+                        )}
+                    </div>
+                    {dayDetail?.yoga_plan ? (
+                      <div className="flex flex-col gap-2 text-xs">
+                        <div className="mb-2">
+                          <div className="font-medium">
+                            {dayDetail?.yoga_plan?.title || 'Yoga Plan'}
+                          </div>
+                          {dayDetail?.yoga_plan?.description && (
+                            <div className="text-gray-600">
+                              {dayDetail.yoga_plan.description}
+                            </div>
+                          )}
+                        </div>
+                        {Array.isArray(dayDetail?.yoga_plan?.exercises) &&
+                        dayDetail.yoga_plan.exercises.length > 0 ? (
+                          <div className="flex flex-col gap-2 text-xs">
+                            {dayDetail.yoga_plan.exercises.map(
+                              (exercise: any, idx: number) => {
+                                const action = exercise?.actions
+                                const yogaStatus = String(
+                                  action?.status || ''
+                                ).toLowerCase()
+                                const yogaStatusClass =
+                                  yogaStatus === 'completed'
+                                    ? 'text-green-600'
+                                    : yogaStatus === 'missed' ||
+                                        yogaStatus === 'failed'
+                                      ? 'text-red-600'
+                                      : yogaStatus === 'in_progress'
+                                        ? 'text-amber-600'
+                                        : 'text-gray-600'
+
+                                return (
+                                  <div
+                                    key={exercise?.id || idx}
+                                    className="flex items-center justify-between border rounded px-3 py-2 bg-gray-50"
+                                  >
+                                    <div className="flex flex-col">
+                                      <span className="font-medium text-gray-800">
+                                        {exercise?.yoga_name ||
+                                          exercise?.title ||
+                                          exercise?.name ||
+                                          '--'}
+                                      </span>
+                                      {exercise?.video_url && (
+                                        <a
+                                          className="text-primaryBlue underline text-[11px]"
+                                          href={exercise.video_url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          Video
+                                        </a>
+                                      )}
+                                    </div>
+                                    <div className="text-right text-[11px] text-gray-600 space-y-0.5">
+                                      {exercise?.yoga_duration_minutes ? (
+                                        <div>
+                                          Duration:{' '}
+                                          {exercise.yoga_duration_minutes}m
+                                        </div>
+                                      ) : exercise?.duration_minutes ? (
+                                        <div>
+                                          Duration: {exercise.duration_minutes}m
+                                        </div>
+                                      ) : null}
+                                      {action && (
+                                        <>
+                                          {action.status && (
+                                            <div>
+                                              <span className="text-gray-500">
+                                                Status:{' '}
+                                              </span>
+                                              <span
+                                                className={`font-semibold ${yogaStatusClass}`}
+                                              >
+                                                {yogaStatus
+                                                  ? yogaStatus
+                                                      .charAt(0)
+                                                      .toUpperCase() +
+                                                    yogaStatus.slice(1)
+                                                  : '--'}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {action.action_date && (
+                                            <div>
+                                              <span className="text-gray-500">
+                                                Action date:{' '}
+                                              </span>
+                                              <span>{action.action_date}</span>
+                                            </div>
+                                          )}
+                                          {action.completed_at && (
+                                            <div>
+                                              <span className="text-gray-500">
+                                                Completed at:{' '}
+                                              </span>
+                                              <span>{action.completed_at}</span>
+                                            </div>
+                                          )}
+                                          {typeof action.duration_seconds ===
+                                            'number' && (
+                                            <div>
+                                              <span className="text-gray-500">
+                                                Duration sec:{' '}
+                                              </span>
+                                              <span className="font-medium text-gray-800">
+                                                {action.duration_seconds}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {action.video_watch_percentage && (
+                                            <div>
+                                              <span className="text-gray-500">
+                                                Watched %:{' '}
+                                              </span>
+                                              <span className="font-medium text-gray-800">
+                                                {action.video_watch_percentage}
+                                              </span>
+                                            </div>
+                                          )}
+                                          {action.notes && (
+                                            <div>
+                                              <span className="text-gray-500">
+                                                Notes:{' '}
+                                              </span>
+                                              <span className="font-medium text-gray-800">
+                                                {action.notes}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              }
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-gray-500">No yoga.</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-xs text-gray-500">No yoga plan.</div>
+                    )}
+                  </div>
+                </div>
+              </Tab>
+            )}
+
+          {effectiveCanAccessMeditation && (
+            <Tab id="meditation">
+              <div className="max-h-[700px] overflow-y-auto">
+                <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
+                  <div className="flex items-center justify-between mb-2 gap-3">
+                    <div className="text-sm font-semibold">Meditation</div>
+                    {canEditDay && effectiveCanAccessMeditation && (
+                      <button
+                        type="button"
+                        className="px-3 py-1 text-xs border rounded btn-primary flex items-center gap-1"
+                        onClick={onEditMeditationPlan}
+                      >
+                        <Icons name="edit" />
+                        <span>Update Day</span>
+                      </button>
+                    )}
+                  </div>
+                  {Array.isArray(dayDetail?.meditations) &&
+                  dayDetail.meditations.length > 0 ? (
+                    <div className="flex flex-col gap-2 text-xs">
+                      {dayDetail.meditations.map((m: any, idx: number) => {
+                        const action = m?.actions
+                        const meditationStatus = String(
+                          action?.status || ''
+                        ).toLowerCase()
+                        const meditationStatusClass =
+                          meditationStatus === 'completed'
+                            ? 'text-green-600'
+                            : meditationStatus === 'missed' ||
+                                meditationStatus === 'failed'
+                              ? 'text-red-600'
+                              : meditationStatus === 'today' ||
+                                  meditationStatus === 'in_progress'
+                                ? 'text-amber-600'
+                                : 'text-gray-700'
+
+                        return (
+                          <div
+                            key={`${m?.id}-${idx}`}
+                            className="flex items-center justify-between border rounded px-3 py-2"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {formatTitleCase(m?.title || '--')}
+                              </span>
+                              {m?.description && (
+                                <span className="text-gray-600">
+                                  {m.description}
+                                </span>
+                              )}
+                              {m?.video_url && (
+                                <a
+                                  className="text-primaryBlue underline mt-1"
+                                  href={m.video_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  Video
+                                </a>
+                              )}
+                            </div>
+                            <div className="text-right text-[11px] text-gray-600 space-y-0.5">
+                              {m?.duration_minutes ? (
+                                <div>Duration: {m.duration_minutes}m</div>
+                              ) : null}
+                              {action && (
+                                <>
+                                  {action.status && (
+                                    <div>
+                                      <span className="text-gray-500">
+                                        Status:{' '}
+                                      </span>
+                                      <span
+                                        className={`font-semibold ${meditationStatusClass}`}
+                                      >
+                                        {meditationStatus
+                                          ? meditationStatus
+                                              .charAt(0)
+                                              .toUpperCase() +
+                                            meditationStatus.slice(1)
+                                          : '--'}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {action.action_date && (
+                                    <div>
+                                      <span className="text-gray-500">
+                                        Action date:{' '}
+                                      </span>
+                                      <span>{action.action_date}</span>
+                                    </div>
+                                  )}
+                                  {action.completed_at && (
+                                    <div>
+                                      <span className="text-gray-500">
+                                        Completed at:{' '}
+                                      </span>
+                                      <span>{action.completed_at}</span>
+                                    </div>
+                                  )}
+                                  {typeof action.duration_seconds ===
+                                    'number' && (
+                                    <div>
+                                      <span className="text-gray-500">
+                                        Duration sec:{' '}
+                                      </span>
+                                      <span className="font-medium text-gray-800">
+                                        {action.duration_seconds}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {action.video_watch_percentage && (
+                                    <div>
+                                      <span className="text-gray-500">
+                                        Watched %:{' '}
+                                      </span>
+                                      <span className="font-medium text-gray-800">
+                                        {action.video_watch_percentage}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {action.notes && (
+                                    <div>
+                                      <span className="text-gray-500">
+                                        Notes:{' '}
+                                      </span>
+                                      <span className="font-medium text-gray-800">
+                                        {action.notes}
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-500">
+                      No meditation items.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Tab>
+          )}
+        </TabContainer>
+      </div>
+
+      <DialogModal
+        isOpen={mealTimeEditOpen}
+        onClose={closeMealTimeEdit}
+        title="Edit Meal Timing"
+        actionLabel="Save"
+        actionLoader={isUpdatingMealTime}
+        onSubmit={mealTimeForm.handleSubmit((values) => {
+          const missing: string[] = []
+          if (!selectedMealTiming) missing.push('meal')
+          if (!userId) missing.push('user_id')
+          if (
+            subscriptionId === null ||
+            subscriptionId === undefined ||
+            subscriptionId === ''
+          ) {
+            missing.push('subscription_id')
+          }
+          if (
+            templateId === null ||
+            templateId === undefined ||
+            templateId === ''
+          ) {
+            missing.push('diet_plan_template_id')
+          }
+
+          if (missing.length) {
+            enqueueSnackbar(`Missing required details: ${missing.join(', ')}`, {
+              variant: 'error',
+            })
+            return
+          }
+
+          const time12 = values.time
+            ? moment(values.time, ['HH:mm:ss', 'HH:mm']).format('hh:mm A')
+            : ''
+
+          const newMealTime = String(values.meal_time || '')
+            .trim()
+            .toUpperCase()
+          const oldMealTime = String(selectedMealTiming?.meal_time ?? '')
+            .trim()
+            .toUpperCase()
+
+          updateUserMealTimingMutate({
+            userId,
+            payload: {
+              user_meal_timing: {
+                meal_time: newMealTime,
+                old_meal_time: oldMealTime,
+                time: time12,
+                diet_plan_id: selectedMealTiming?.id,
+                diet_plan_template_id: templateId,
+                subscription_id: subscriptionId as any,
+                sequence_number: Number(
+                  selectedMealTiming?.sequence_number ?? 0
+                ),
+              },
+            },
+          })
+        })}
+        secondaryAction={closeMealTimeEdit}
+        secondaryActionLabel="Cancel"
+        small={false}
+        body={
+          <FormProvider {...mealTimeForm}>
+            <div className="flex flex-col gap-4">
+              <Controller
+                name="meal_time"
+                control={mealTimeForm.control}
+                rules={{
+                  required: 'Meal timing name is required.',
+                  validate: (val) =>
+                    Boolean(val && String(val).trim()) ||
+                    'Meal timing name is required.',
+                }}
+                render={({ field: { value, onChange } }) => (
+                  <TextField
+                    id="edit-meal-time"
+                    label="Meal Timing"
+                    name="meal_time"
+                    value={value || ''}
+                    placeholder="e.g. MORNING DRINK, BREAKFAST..."
+                    onChange={(e: any) => onChange(e?.target?.value ?? e)}
+                    disabled={isUpdatingMealTime}
+                    required
+                    errors={mealTimeForm.formState.errors as any}
+                  />
+                )}
+              />
+              <Controller
+                name="time"
+                control={mealTimeForm.control}
+                rules={{
+                  required: 'Required.',
+                  validate: (val) =>
+                    Boolean(val && String(val).trim()) || 'Required.',
+                }}
+                render={({ field: { value, onChange } }) => (
+                  <TimeSplitPicker
+                    label="Time"
+                    name="time"
+                    value={value}
+                    required
+                    hidePeriodIcon
+                    disabled={isUpdatingMealTime}
+                    errors={mealTimeForm.formState.errors as any}
+                    onChange={(data) => onChange(data.value)}
+                  />
+                )}
+              />
+            </div>
+          </FormProvider>
+        }
+      />
+
+      <DayDietEditorDrawer
+        open={dayDietEditorOpen}
+        handleClose={() => setDayDietEditorOpen(false)}
+        dayDetail={dayDetail}
+        subscriptionId={subscriptionId}
+        onSuccess={async () => {
+          try {
+            await refreshDayDetail?.()
+          } catch (err) {
+            console.error(
+              'Failed to refresh day detail after day diet update',
+              err
+            )
+          }
+        }}
+      />
+    </>
+  )
+}
+
+export default DayDetailTabsSection
+
+const toTitleCase = (value?: string | null) => {
+  if (!value) return ''
+  return value
+    .toString()
+    .toLowerCase()
+    .replace(/\b([a-z])/g, (letter) => letter.toUpperCase())
+}
+
+const formatTitleCase = (value?: string | null) => {
+  if (!value) return ''
+  return value
+    .split(' ')
+    .filter((segment) => segment.trim())
+    .map((segment) => {
+      const lower = segment.toLowerCase()
+      return lower.charAt(0).toUpperCase() + lower.slice(1)
+    })
+    .join(' ')
+}

@@ -9,7 +9,7 @@ const Close: React.FC<IconProps> = () => {
       viewBox="0 0 24 24"
       strokeWidth="1.5"
       stroke="currentColor"
-      className="w-5 h-5"
+      className="w-4 h-4 text-gray-800"
     >
       <path
         strokeLinecap="round"

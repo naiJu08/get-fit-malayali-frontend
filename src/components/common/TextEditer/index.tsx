@@ -1,4 +1,4 @@
-import { useState, FC } from 'react'
+import { useState, useEffect, FC } from 'react'
 import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
 
@@ -17,6 +17,11 @@ const TextEditor: FC<TextEditorProps> & { modules: any; formats: any } = ({
 }) => {
   const [editorValue, setEditorValue] = useState<string>(value)
 
+  // Keep internal state in sync when parent-controlled value changes
+  useEffect(() => {
+    setEditorValue(value)
+  }, [value])
+
   const handleChange = (content: string) => {
     setEditorValue(content)
     if (onChange) {
@@ -33,6 +38,7 @@ const TextEditor: FC<TextEditorProps> & { modules: any; formats: any } = ({
         placeholder={placeholder || 'Start typing...'}
         modules={TextEditor.modules}
         formats={TextEditor.formats}
+        className="my-quill-editor"
       />
     </div>
   )
