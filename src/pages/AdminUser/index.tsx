@@ -229,7 +229,11 @@ export default function AdminUser() {
         onViewAction: onViewAction,
         onNameClick: (row: any) => {
           const base = ROLE_PATHS[activeRole]
-          navigate(`${base}/${row?.id}`)
+          const suffix =
+            loginRole === 'superadmin' && activeRole === 'user'
+              ? '/subscriptions'
+              : ''
+          navigate(`${base}/${row?.id}${suffix}`)
         },
         activeRole,
       })
@@ -401,28 +405,40 @@ export default function AdminUser() {
         const found = rawOptions?.sales_reps?.find(
           (u: any) => String(u.id) === String(value)
         )
-        return `Sales Rep: ${found?.name || `#${value}`}`
+        const name = found?.name
+          ? found.name.charAt(0).toUpperCase() + found.name.slice(1)
+          : null
+        return `Sales Rep: ${name || `Assigned`}`
       }
       case 'nutritionist_id': {
         if (String(value) === 'unassigned') return 'Nutritionist: Unassigned'
         const found = rawOptions?.nutritionists?.find(
           (u: any) => String(u.id) === String(value)
         )
-        return `Nutritionist: ${found?.name || `#${value}`}`
+        const name = found?.name
+          ? found.name.charAt(0).toUpperCase() + found.name.slice(1)
+          : null
+        return `Nutritionist: ${name || `Assigned`}`
       }
       case 'physiotherapist_id': {
         if (String(value) === 'unassigned') return 'Physio: Unassigned'
         const found = rawOptions?.physiotherapists?.find(
           (u: any) => String(u.id) === String(value)
         )
-        return `Physio: ${found?.name || `#${value}`}`
+        const name = found?.name
+          ? found.name.charAt(0).toUpperCase() + found.name.slice(1)
+          : null
+        return `Physio: ${name || `Assigned`}`
       }
       case 'yogist_id': {
         if (String(value) === 'unassigned') return 'Yogist: Unassigned'
         const found = rawOptions?.yogists?.find(
           (u: any) => String(u.id) === String(value)
         )
-        return `Yogist: ${found?.name || `#${value}`}`
+        const name = found?.name
+          ? found.name.charAt(0).toUpperCase() + found.name.slice(1)
+          : null
+        return `Yogist: ${name || `Assigned`}`
       }
       case 'food_preferences':
         return `Diet: ${value}`

@@ -493,6 +493,10 @@ export default function ClientPackagesTab({
     return client?.assignments || []
   }, [selectedCycle, client?.assignments])
 
+  const hasAnyStaffAssignee = useMemo(() => {
+    return currentAssignments.some((a: any) => a.staff_user_id)
+  }, [currentAssignments])
+
   const salesRep = client?.sales_rep || user?.sales_rep || null
   const registrationSource =
     client?.registration_source ||
@@ -1014,9 +1018,15 @@ export default function ClientPackagesTab({
               <button
                 type="button"
                 onClick={() => setConfirmDialogOpen(true)}
-                disabled={cycleActionLoading}
-                className="inline-flex items-center gap-2 rounded-xl bg-primaryGreen px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-primaryGreen/25 hover:bg-emerald-600 transition active:scale-[0.98] disabled:opacity-50"
-                title="Confirm this package and its staff assignments"
+                disabled={
+                  cycleActionLoading || (isSuperAdmin && !hasAnyStaffAssignee)
+                }
+                title={
+                  isSuperAdmin && !hasAnyStaffAssignee
+                    ? 'Assign at least one staff member before confirming'
+                    : 'Confirm this package and its staff assignments'
+                }
+                className="inline-flex items-center gap-2 rounded-xl bg-primaryGreen px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-primaryGreen/25 hover:bg-emerald-600 transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Icons name="check-mark" className="h-4 w-4" />
                 {cycleActionLoading ? 'Confirming...' : 'Confirm package'}
@@ -1214,7 +1224,7 @@ export default function ClientPackagesTab({
                       <span>Historical assignments prior to cycle linking</span>
                     ) : selectedCycle ? (
                       <span>
-                        {formatDate(selectedCycle?.start_date)} –{' '}
+                        {formatDate(selectedCycle?.start_date)} to{' '}
                         {formatDate(selectedCycle?.end_date)}
                         {selectedCycle?.start_date &&
                           selectedCycle?.end_date && (
@@ -1732,7 +1742,9 @@ export default function ClientPackagesTab({
               <button
                 type="button"
                 onClick={handleConfirmCycle}
-                disabled={cycleActionLoading}
+                disabled={
+                  cycleActionLoading || (isSuperAdmin && !hasAnyStaffAssignee)
+                }
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-emerald-500/20 hover:from-cyan-600 hover:to-emerald-600 transition active:scale-[0.98] disabled:opacity-50"
               >
                 {cycleActionLoading ? (
@@ -2092,17 +2104,20 @@ export default function ClientPackagesTab({
                   </div>
                 </div>
 
-                {/* {isServiceStaff && (
+                {isSuperAdmin && (
                   <div className="flex shrink-0 items-center gap-2">
                     <Button
                       label="Update package"
                       icon="edit"
                       outlined
                       onClick={() => openProposalModal(activeProposal)}
-                      disabled={!client.profile_completed}
+                      disabled={
+                        !client.profile_completed ||
+                        (isSuperAdmin && !hasAnyStaffAssignee)
+                      }
                     />
                   </div>
-                )} */}
+                )}
               </div>
 
               <div className="mt-5 grid grid-cols-2 gap-3 border-t border-formBorder/70 pt-4 sm:grid-cols-4">

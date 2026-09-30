@@ -35,8 +35,7 @@ export default function CreatePlan({
     reValidateMode: 'onChange',
   })
 
-  const { handleSubmit, reset, setError, clearErrors, watch, setValue } =
-    methods
+  const { handleSubmit, reset, clearErrors, watch, setValue } = methods
   const actualPrice = watch('actual_price')
   const discountedPrice = watch('discounted_sale_price')
 
@@ -92,15 +91,7 @@ export default function CreatePlan({
 
     const thumbVal: any = values.thumbnail
     const hasNewThumbnail = thumbVal instanceof File
-    const hasExistingThumbnail = typeof thumbVal === 'string' && thumbVal !== ''
 
-    if (!hasNewThumbnail && !hasExistingThumbnail) {
-      setError('thumbnail' as any, {
-        type: 'manual',
-        message: 'Thumbnail is required.',
-      })
-      return
-    }
     clearErrors?.('thumbnail' as any)
 
     setIsSubmitting(true)
@@ -128,11 +119,6 @@ export default function CreatePlan({
     // CASE 1: New thumbnail uploaded
     if (hasNewThumbnail) {
       fd.append('plan[thumbnail]', thumbVal)
-    }
-
-    // CASE 2: Thumbnail manually removed
-    else if (thumbVal === '') {
-      fd.append('plan[thumbnail]', null as any)
     }
     if (edit && rowData?.plan?.id) {
       updatePlanMutate(
@@ -280,7 +266,7 @@ export default function CreatePlan({
       id: 'thumbnail',
       type: 'file_upload',
       placeholder: 'Upload thumbnail',
-      required: true,
+      required: false,
       accept: 'image/*',
       supportedExtensions: [
         'image/png',
