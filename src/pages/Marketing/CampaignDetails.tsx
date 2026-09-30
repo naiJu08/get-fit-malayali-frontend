@@ -1190,7 +1190,7 @@ export default function CampaignDetails() {
                 <span>
                   {moment(campaign.starts_on).format('DD-MM-YYYY')}
                   {campaign.ends_on
-                    ? ` – ${moment(campaign.ends_on).format('DD-MM-YYYY')}`
+                    ? ` to  ${moment(campaign.ends_on).format('DD-MM-YYYY')}`
                     : ''}
                 </span>
               </div>
@@ -1224,7 +1224,12 @@ export default function CampaignDetails() {
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <DetailItem label="Name" value={campaign.name} />
-                <DetailItem label="Description" value={campaign.description} />
+                {campaign.description && (
+                  <DetailItem
+                    label="Description"
+                    value={campaign.description}
+                  />
+                )}
                 <DetailItem
                   label="Status"
                   value={
@@ -1239,10 +1244,17 @@ export default function CampaignDetails() {
                     campaign.marketing_form?.name || campaign.form?.name || '--'
                   }
                 />
-                <DetailItem
-                  label="Total Leads"
-                  value={campaign.leads_count ?? 0}
-                />
+                {campaign.leads_count !== 0 &&
+                  campaign.leads_count !== null &&
+                  !(
+                    Array.isArray(campaign.leads_count) &&
+                    campaign.leads_count.length === 0
+                  ) && (
+                    <DetailItem
+                      label="Total Leads"
+                      value={campaign.leads_count}
+                    />
+                  )}
                 <DetailItem
                   label="Start Date"
                   value={formatDate(campaign.starts_on)}

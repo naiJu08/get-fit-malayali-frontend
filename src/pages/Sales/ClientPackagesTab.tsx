@@ -2366,7 +2366,7 @@ export default function ClientPackagesTab({
                                 <div>
                                   <span className="font-medium">Dates: </span>
                                   <span className="line-through text-red-500">
-                                    {formatDate(chg.old_start_date)} –{' '}
+                                    {formatDate(chg.old_start_date)} to{' '}
                                     {formatDate(chg.old_end_date)}
                                   </span>
                                 </div>
