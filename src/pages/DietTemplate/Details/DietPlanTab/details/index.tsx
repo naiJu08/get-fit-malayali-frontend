@@ -134,10 +134,11 @@ export default function DietPlanDetails() {
               value={capitalizeFirst(dp?.diet_plan_template_name)}
             />
             <DetailItem
-              label="Day Name"
-              value={capitalizeFirst(dp?.day_name)}
+              label="Day"
+              value={
+                dp?.day_number ? `Day ${dp.day_number}` : safeStr(dp?.day_name)
+              }
             />
-            <DetailItem label="Day Number" value={safeStr(dp?.day_number)} />
             <DetailItem
               label="Sequence Number"
               value={safeStr(dp?.sequence_number)}

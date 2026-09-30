@@ -21,16 +21,6 @@ import {
 import Button from '../../../../../components/common/buttons/Button'
 import { useSnackbarManager } from '../../../../../components/common/snackbar'
 
-const DAY_NAMES = [
-  'Sunday',
-  'Monday',
-  'Tuesday',
-  'Wednesday',
-  'Thursday',
-  'Friday',
-  'Saturday',
-]
-
 const MEAL_TIME_OPTIONS = [
   { id: 'Morning drink', name: 'Morning drink', value: 'Morning drink' },
   { id: 'Breakfast', name: 'Breakfast', value: 'Breakfast' },
@@ -41,36 +31,11 @@ const MEAL_TIME_OPTIONS = [
   { id: 'Bed time', name: 'Bed time', value: 'Bed time' },
 ]
 
-const DAY_NAME_INDEX_MAP = DAY_NAMES.reduce<Record<string, number>>(
-  (acc, name, index) => {
-    acc[name.toLowerCase()] = index
-    return acc
-  },
-  {}
-)
-
 const toTitleCase = (value: any) => {
   if (typeof value !== 'string') return ''
   return value
     .toLowerCase()
     .replace(/\b([a-z])/g, (letter) => letter.toUpperCase())
-}
-
-const getDayIndexFromName = (name?: string | null) => {
-  if (!name) return null
-  return DAY_NAME_INDEX_MAP[name.toLowerCase()] ?? null
-}
-
-const getDayNameFromNumber = (dayNumber?: number | string | null) => {
-  const num = Number(dayNumber)
-  if (!Number.isFinite(num) || num <= 0) return ''
-  const index = (num - 1) % DAY_NAMES.length
-  return DAY_NAMES[index] ?? ''
-}
-
-const normalizeDayName = (value?: string | null) => {
-  if (!value) return ''
-  return value.toString().trim().toLowerCase()
 }
 
 const getDayKeys = (
@@ -83,8 +48,6 @@ const getDayKeys = (
     keys.push(`number:${num}`)
     return keys
   }
-  const normalizedName = normalizeDayName(dayName)
-  if (normalizedName) keys.push(`name:${normalizedName}`)
   return keys
 }
 
@@ -119,8 +82,7 @@ const DietPlanForm = ({
   )
 
   // Check if this is creating a meal for a specific day (prefilled day info)
-  const isCreatingForSpecificDay =
-    !edit && rowData?.day_name && rowData?.day_number
+  const isCreatingForSpecificDay = !edit && Boolean(rowData?.day_number)
 
   const durationDays =
     Number(planDurationDays ?? 0) ||
@@ -145,7 +107,8 @@ const DietPlanForm = ({
       meal_time: rowData?.meal_time ?? '',
       meal_time_time: rowData?.meal_time_time ?? '',
       day_name:
-        rowData?.day_name ?? getDayNameFromNumber(rowData?.day_number) ?? '',
+        rowData?.day_name ??
+        (rowData?.day_number ? `Day ${rowData.day_number}` : ''),
       notes: rowData?.notes ?? '',
       protein: (rowData as any)?.protein ?? '',
       carbs: (rowData as any)?.carbs ?? '',
@@ -179,7 +142,6 @@ const DietPlanForm = ({
   })
 
   const selectedMealTime = watch('meal_time')
-  const selectedDayName = watch('day_name')
   const selectedDayNumber = watch('day_number')
 
   const mealTimingParams = useMemo(
@@ -223,54 +185,13 @@ const DietPlanForm = ({
   const { data: mealsData, refetch: refetchMeals } = useMeals(
     searchParams as any
   )
-  const dayNameOptions = useMemo(() => {
-    if (dayNumbers.length === 0) {
-      return DAY_NAMES.map((name) => ({
-        id: name.toLowerCase(),
-        name,
-        value: name,
-      }))
-    }
-
-    const availableIndices = new Set<number>()
-    dayNumbers.forEach((value) => {
-      if (!Number.isFinite(value) || value <= 0) return
-      const idx = (value - 1) % DAY_NAMES.length
-      availableIndices.add(idx)
-    })
-
-    const applicableNames =
-      availableIndices.size > 0
-        ? DAY_NAMES.filter((_, idx) => availableIndices.has(idx))
-        : DAY_NAMES
-
-    return applicableNames.map((name) => ({
-      id: name.toLowerCase(),
-      name,
-      value: name,
+  const dayOptions = useMemo(() => {
+    return dayNumbers.map((value) => ({
+      id: String(value),
+      name: `Day ${value}`,
+      value: String(value),
     }))
   }, [dayNumbers])
-
-  const filteredDayNumbers = useMemo(() => {
-    if (!selectedDayName) return dayNumbers
-    const index = getDayIndexFromName(selectedDayName)
-    if (index == null) return dayNumbers
-
-    return dayNumbers.filter((value) => {
-      if (!Number.isFinite(value) || value <= 0) return false
-      return (value - 1) % DAY_NAMES.length === index
-    })
-  }, [dayNumbers, selectedDayName])
-
-  const filteredDayOptions = useMemo(
-    () =>
-      filteredDayNumbers.map((value) => ({
-        id: String(value),
-        name: String(value),
-        value: String(value),
-      })),
-    [filteredDayNumbers]
-  )
 
   const normalizedExistingPlans = useMemo(() => {
     if (!Array.isArray(existingPlans)) return []
@@ -300,19 +221,15 @@ const DietPlanForm = ({
   }, [normalizedExistingPlans])
 
   const usedMealTimeValues = useMemo(() => {
-    const keys = getDayKeys(selectedDayName, selectedDayNumber)
-    const set = new Set<string>()
-    keys.forEach((key) => {
-      const values = dayMealTimeMap.get(key)
-      values?.forEach((val) => set.add(val))
-    })
-    return set
-  }, [selectedDayName, selectedDayNumber, dayMealTimeMap])
+    const num = Number(selectedDayNumber)
+    if (!Number.isFinite(num) || num <= 0) return new Set<string>()
+    return dayMealTimeMap.get(`number:${num}`) || new Set<string>()
+  }, [selectedDayNumber, dayMealTimeMap])
 
   const normalizedSelectedMealTime = normalizeMealTime(selectedMealTime)
 
   const availableMealTimeOptions = useMemo(() => {
-    if (!selectedDayName && !selectedDayNumber) return mealTimeOptions
+    if (!selectedDayNumber) return mealTimeOptions
     return mealTimeOptions.filter((option: any) => {
       const normalized = normalizeMealTime(option.value)
       if (
@@ -323,7 +240,6 @@ const DietPlanForm = ({
       return !usedMealTimeValues.has(normalized)
     })
   }, [
-    selectedDayName,
     selectedDayNumber,
     normalizedSelectedMealTime,
     usedMealTimeValues,
@@ -431,30 +347,6 @@ const DietPlanForm = ({
   }, 0)
 
   useEffect(() => {
-    if (edit) return
-    if (!selectedDayName) return
-
-    if (filteredDayNumbers.length === 0) {
-      setValue('day_number', 0, { shouldValidate: true })
-      return
-    }
-
-    const currentValue = Number(selectedDayNumber)
-    const hasCurrentSelection = filteredDayNumbers.some(
-      (value) => value === currentValue && value > 0
-    )
-
-    if (hasCurrentSelection) {
-      return
-    }
-
-    const nextValue = filteredDayNumbers[0]
-    if (!Number.isFinite(nextValue) || nextValue <= 0) return
-
-    setValue('day_number', nextValue, { shouldValidate: true })
-  }, [edit, filteredDayNumbers, selectedDayName, selectedDayNumber, setValue])
-
-  useEffect(() => {
     if (!selectedMealTime || edit) return
 
     const mapping: Record<string, number> = {
@@ -507,7 +399,7 @@ const DietPlanForm = ({
 
     // Store initial day name for resetting after "Add New"
     const dayName =
-      source?.day_name ?? getDayNameFromNumber(source?.day_number) ?? ''
+      source?.day_name || (source?.day_number ? `Day ${source.day_number}` : '')
     setInitialDayName(dayName)
 
     const itemsSource =
@@ -547,7 +439,8 @@ const DietPlanForm = ({
       meal_time: source?.meal_time ?? '',
       meal_name: source?.meal_name ?? '',
       day_name:
-        source?.day_name ?? getDayNameFromNumber(source?.day_number) ?? '',
+        source?.day_name ||
+        (source?.day_number ? `Day ${source.day_number}` : ''),
       notes: source?.notes ?? '',
       protein: (source as any)?.protein ?? '',
       carbs: (source as any)?.carbs ?? '',
@@ -893,67 +786,42 @@ const DietPlanForm = ({
         <div className="max-h-[70vh] min-h-[250px] pr-1">
           <FormProvider {...methods}>
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                <div>
-                  <label className="block text-[12px] text-grey-medium mb-1">
-                    Day Name <span className="text-error">*</span>
-                  </label>
-                  <Controller
-                    name="day_name"
-                    control={control}
-                    render={({ field: { value, onChange } }) => (
-                      <AutoComplete
-                        name="day_name"
-                        type="custom_search_select"
-                        desc="name"
-                        descId="id"
-                        placeholder="Select day name"
-                        data={dayNameOptions}
-                        value={value || ''}
-                        disabled={!!edit || isCreatingForSpecificDay}
-                        className="w-full"
-                        onChange={(option: any) => {
-                          const nextValue = option?.value ?? option?.name ?? ''
-                          onChange(nextValue)
-                        }}
-                      />
-                    )}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[12px] text-grey-medium mb-1">
-                    Day Number <span className="text-error">*</span>
-                  </label>
-                  <Controller
-                    name="day_number"
-                    control={control}
-                    render={({ field: { value, onChange } }) => (
-                      <AutoComplete
-                        key={`day-number-${selectedDayName || 'all'}`}
-                        name="day_number"
-                        type="custom_search_select"
-                        desc="name"
-                        descId="id"
-                        placeholder="Select day number"
-                        data={filteredDayOptions}
-                        value={value ? String(value) : ''}
-                        disabled={!!edit || isCreatingForSpecificDay}
-                        className="w-full"
-                        onChange={(option: any) => {
-                          const raw =
-                            option?.value ?? option?.id ?? option?.name
-                          const numeric = Number(raw)
-                          onChange(
-                            Number.isFinite(numeric) && numeric > 0
-                              ? numeric
-                              : 0
-                          )
-                        }}
-                      />
-                    )}
-                  />
-                </div>
+              <div className="mb-3">
+                <label className="block text-[12px] text-grey-medium mb-1">
+                  Day <span className="text-error">*</span>
+                </label>
+                <Controller
+                  name="day_number"
+                  control={control}
+                  render={({ field: { value, onChange } }) => (
+                    <AutoComplete
+                      name="day_number"
+                      type="custom_search_select"
+                      desc="name"
+                      descId="id"
+                      placeholder="Select day"
+                      data={dayOptions}
+                      value={
+                        value
+                          ? dayOptions.find((d) => d.value === String(value))
+                              ?.name || `Day ${value}`
+                          : ''
+                      }
+                      disabled={!!edit || isCreatingForSpecificDay}
+                      className="w-full"
+                      onChange={(option: any) => {
+                        const raw = option?.value ?? option?.id ?? option?.name
+                        const numeric = Number(raw)
+                        const nextNum =
+                          Number.isFinite(numeric) && numeric > 0 ? numeric : 0
+                        onChange(nextNum)
+                        setValue('day_name', nextNum ? `Day ${nextNum}` : '', {
+                          shouldValidate: false,
+                        })
+                      }}
+                    />
+                  )}
+                />
               </div>
 
               <FormBuilder data={formFields} edit={true} spacing />
