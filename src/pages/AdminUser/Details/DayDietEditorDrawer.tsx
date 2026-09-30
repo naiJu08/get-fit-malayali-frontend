@@ -1,4 +1,5 @@
 import React, { FC, useEffect, useMemo, useState } from 'react'
+import moment from 'moment'
 import CustomDrawer from '../../../components/common/drawer'
 import Icons from '../../../components/common/icons'
 import { useSnackbarManager } from '../../../components/common/snackbar'
@@ -13,6 +14,7 @@ const STANDARD_MEAL_TIMES = [
   'EVENING SNACK',
   'DINNER',
   'BED TIME',
+  'MIDNIGHT SNACK',
 ]
 
 interface EditMealItem {
@@ -180,7 +182,7 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
         meal_id: meal.id,
         meal_name: meal.name,
         quantity: 1,
-        requirement: 'mandatory',
+        requirement: 'optional',
         serving_unit: meal.serving_unit || '',
         serving_quantity: meal.default_serving_quantity,
         per_serving: {
@@ -348,7 +350,10 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
   const dayDateDisplay = useMemo(() => {
     const d = dayDetail?.date || dayDetail?.day_date
     if (!d) return `Day ${dayDetail?.day_number ?? ''}`
-    return `${d} (Day ${dayDetail?.day_number ?? ''})`
+    const formattedDate = moment(d).isValid()
+      ? moment(d).format('DD-MM-YYYY')
+      : d
+    return `${formattedDate} (Day ${dayDetail?.day_number ?? ''})`
   }, [dayDetail])
 
   return (
