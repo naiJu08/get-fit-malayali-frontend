@@ -837,9 +837,7 @@ export default function Campaigns() {
           >
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-primaryText">
-                  A4 form preview
-                </h3>
+                <h3 className="font-semibold text-primaryText">Form preview</h3>
                 <p className="text-xs text-gray-500">
                   This is how the selected form will appear to leads.
                 </p>
