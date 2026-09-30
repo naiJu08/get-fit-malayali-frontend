@@ -114,12 +114,20 @@ export const useUsersFilterOptions = (enabled = true) => {
 
 export const getStaffActiveAssignments = (
   id: string | number,
-  params?: { page?: number; per_page?: number; search?: string }
+  params?: {
+    page?: number
+    per_page?: number
+    search?: string
+    stage?: 'clients' | 'leads' | string
+    type?: string
+  }
 ) => {
   const queryParams = new URLSearchParams()
   if (params?.page) queryParams.append('page', String(params.page))
   if (params?.per_page) queryParams.append('per_page', String(params.per_page))
   if (params?.search) queryParams.append('search', params.search)
+  if (params?.stage) queryParams.append('stage', params.stage)
+  if (params?.type) queryParams.append('type', params.type)
   const queryString = queryParams.toString()
   return getData(
     `${apiUrl.ADMIN_USER}/${id}/active_assignments${queryString ? `?${queryString}` : ''}`
@@ -134,6 +142,9 @@ export const reassignStaffAssignment = (
     action_type?: string
     reason?: string
     notes?: string
+    is_lead?: boolean
+    assignment_type?: 'client' | 'lead' | string
+    stage?: 'clients' | 'leads' | string
   }
 ) => {
   return postData(`${apiUrl.ADMIN_USER}/${id}/reassign_assignment`, payload)
@@ -145,9 +156,12 @@ export const bulkReassignStaffAssignments = (
     new_staff_id: string | number
     assignment_ids?: (string | number)[]
     client_ids?: (string | number)[]
+    lead_ids?: (string | number)[]
     action_type?: string
     reason?: string
     notes?: string
+    assignment_type?: 'client' | 'lead' | string
+    stage?: 'clients' | 'leads' | string
   }
 ) => {
   return postData(
