@@ -540,7 +540,7 @@ export function ClientWorkflowDetails({
                           size="xs"
                           icon="edit"
                           className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
-                          label="Update package"
+                          label="Update and Confirm"
                           onClick={openProposalModal}
                           disabled={saving || !plans.length}
                         />

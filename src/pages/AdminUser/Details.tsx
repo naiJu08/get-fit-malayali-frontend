@@ -1473,7 +1473,7 @@ export default function UserDetails() {
                               {slot.shortLabel}:
                             </span>
                             <span
-                              className={`text-xs truncate ${
+                              className={`text-xs  ${
                                 hasStaff
                                   ? 'font-bold text-gray-900 group-hover:text-primaryGreen transition-colors'
                                   : 'font-medium text-gray-400 italic'

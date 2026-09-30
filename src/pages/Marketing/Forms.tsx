@@ -1011,7 +1011,7 @@ export function Builder({
                               </>
                             )}
                             <span
-                              className={`text-[10px] text-gray-300 font-mono ml-1 break-words ${layout === 'two' ? 'w-[100px]' : 'w-[300px]'}`}
+                              className={`text-[10px] text-gray-400 font-mono ml-1 break-words hidden ${layout === 'two' ? 'w-[100px]' : 'w-[300px]'}`}
                             >
                               {field.key}
                             </span>

@@ -179,7 +179,18 @@ export default function Subscriptions({
 
   const canConfirmPackage = useMemo(() => {
     if (!proposedPackage) return false
-    if (loginRole === 'superadmin' || loginRole === 'admin') return true
+    if (loginRole === 'superadmin' || loginRole === 'admin') {
+      const targetCycle =
+        selectedCycle &&
+        (selectedCycle.status === 'proposed' || !selectedCycle.subscription_id)
+          ? selectedCycle
+          : proposedCycle
+      const cycleAssignments = (targetCycle?.assignments ||
+        user?.admin_assignments ||
+        (workflowAssignment ? [workflowAssignment] : [])) as any[]
+      const hasStaff = cycleAssignments.some((a: any) => a.staff_user_id)
+      return hasStaff
+    }
 
     const targetCycle =
       selectedCycle &&
