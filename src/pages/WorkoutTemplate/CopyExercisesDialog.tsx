@@ -196,7 +196,7 @@ export default function CopyExercisesDialog({
       ? 'Legacy plan workout days'
       : selectedClientTarget?.target_kind === 'unassigned'
         ? 'No workout template assigned'
-        : `Workout assignment: ${formatDate(selectedClientTarget?.assignment_start_date)} – ${formatDate(selectedClientTarget?.assignment_end_date)}`
+        : `Workout assignment: ${formatDate(selectedClientTarget?.assignment_start_date)} to ${formatDate(selectedClientTarget?.assignment_end_date)}`
 
   const toggleTarget = (id: any) => {
     const key = String(id)
@@ -404,11 +404,19 @@ export default function CopyExercisesDialog({
                           {targetType === 'client' ? (
                             <p className="mt-1 text-xs text-gray-500">
                               Subscription dates: {formatDate(item.start_date)}{' '}
-                              – {formatDate(item.end_date)}
+                              to {formatDate(item.end_date)}
                             </p>
                           ) : (
                             <p className="mt-1 text-xs text-gray-500">
-                              {item.description || 'Workout template'}
+                              {item?.workout_template_category?.name ||
+                                item?.workout_template_category_name ||
+                                (typeof item?.workout_template_category ===
+                                'string'
+                                  ? item.workout_template_category
+                                  : '') ||
+                                item?.category_name ||
+                                item?.category ||
+                                'Workout template'}
                             </p>
                           )}
                           {targetType !== 'client' && (
@@ -446,9 +454,9 @@ export default function CopyExercisesDialog({
                 {targetType === 'client' && selectedClientTarget && (
                   <p className="mt-1 text-xs text-gray-500">
                     Subscription:{' '}
-                    {formatDate(selectedClientTarget.subscription_start_date)} –{' '}
-                    {formatDate(selectedClientTarget.subscription_end_date)} ·{' '}
-                    {clientTargetSummary}
+                    {formatDate(selectedClientTarget.subscription_start_date)}{' '}
+                    to {formatDate(selectedClientTarget.subscription_end_date)}{' '}
+                    · {clientTargetSummary}
                   </p>
                 )}
               </div>
@@ -552,16 +560,24 @@ export default function CopyExercisesDialog({
                           <span className="block text-sm font-medium">
                             {day.title || `Day ${day.day_number}`}
                           </span>
-                          <span className="mt-0.5 block text-xs text-gray-500">
-                            Day {day.day_number}
-                            {day.target_date
-                              ? ` · ${formatDate(day.target_date)}`
-                              : ''}
-                            {isSourceDay ? ' · Source day' : ''}
-                            {replaceBlocked
-                              ? ' · Today has started; append only'
-                              : ''}
-                          </span>
+                          {(() => {
+                            const subInfo = [
+                              day.target_date
+                                ? formatDate(day.target_date)
+                                : null,
+                              isSourceDay ? 'Source day' : null,
+                              replaceBlocked
+                                ? 'Today has started; append only'
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')
+                            return subInfo ? (
+                              <span className="mt-0.5 block text-xs text-gray-500">
+                                {subInfo}
+                              </span>
+                            ) : null
+                          })()}
                         </span>
                         {checked && <span className="text-blue-600">✓</span>}
                       </label>

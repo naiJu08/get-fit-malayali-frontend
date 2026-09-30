@@ -230,7 +230,7 @@ export default function CopyMealsDialog({
       ? 'Legacy plan diet days'
       : selectedClientTarget?.target_kind === 'unassigned'
         ? 'No diet template assigned'
-        : `Diet assignment: ${formatDate(selectedClientTarget?.assignment_start_date)} – ${formatDate(selectedClientTarget?.assignment_end_date)}`
+        : `Diet assignment: ${formatDate(selectedClientTarget?.assignment_start_date)} to ${formatDate(selectedClientTarget?.assignment_end_date)}`
 
   const toggleTarget = (id: any) => {
     const key = String(id)
@@ -435,11 +435,19 @@ export default function CopyMealsDialog({
                           {targetType === 'client' ? (
                             <p className="mt-1 text-xs text-gray-500">
                               Subscription dates: {formatDate(item.start_date)}{' '}
-                              – {formatDate(item.end_date)}
+                              to {formatDate(item.end_date)}
                             </p>
                           ) : (
                             <p className="mt-1 text-xs text-gray-500">
-                              {item.description || 'Diet template'}
+                              {item?.diet_template_category?.name ||
+                                item?.diet_template_category_name ||
+                                (typeof item?.diet_template_category ===
+                                'string'
+                                  ? item.diet_template_category
+                                  : '') ||
+                                item?.category_name ||
+                                item?.category ||
+                                'Diet template'}
                             </p>
                           )}
                           {targetType !== 'client' && (
@@ -476,9 +484,9 @@ export default function CopyMealsDialog({
                 {targetType === 'client' && selectedClientTarget && (
                   <p className="mt-1 text-xs text-gray-500">
                     Subscription:{' '}
-                    {formatDate(selectedClientTarget.subscription_start_date)} –{' '}
-                    {formatDate(selectedClientTarget.subscription_end_date)} ·{' '}
-                    {clientTargetSummary}
+                    {formatDate(selectedClientTarget.subscription_start_date)}{' '}
+                    to {formatDate(selectedClientTarget.subscription_end_date)}{' '}
+                    · {clientTargetSummary}
                   </p>
                 )}
               </div>
@@ -586,16 +594,24 @@ export default function CopyMealsDialog({
                               ? ` (${day.meals_count} meals)`
                               : ''}
                           </span>
-                          <span className="mt-0.5 block text-xs text-gray-500">
-                            Day {day.day_number ?? day.id}
-                            {day.target_date
-                              ? ` · ${formatDate(day.target_date)}`
-                              : ''}
-                            {isSourceDay ? ' · Source day' : ''}
-                            {replaceBlocked
-                              ? ' · Today has started; append only'
-                              : ''}
-                          </span>
+                          {(() => {
+                            const subInfo = [
+                              day.target_date
+                                ? formatDate(day.target_date)
+                                : null,
+                              isSourceDay ? 'Source day' : null,
+                              replaceBlocked
+                                ? 'Today has started; append only'
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')
+                            return subInfo ? (
+                              <span className="mt-0.5 block text-xs text-gray-500">
+                                {subInfo}
+                              </span>
+                            ) : null
+                          })()}
                         </span>
                         {checked && (
                           <span className="text-blue-600 font-bold">✓</span>

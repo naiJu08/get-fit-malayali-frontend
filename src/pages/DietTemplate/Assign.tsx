@@ -389,7 +389,7 @@ export default function DietTemplateAssign({
                 type="text"
                 className="w-full pl-10 pr-10 py-2.5 text-xs bg-white border border-gray-200 rounded-xl shadow-xs placeholder-gray-400 focus:outline-none focus:border-primaryGreen focus:ring-2 focus:ring-primaryGreen/20 transition-all"
                 value={search}
-                placeholder="Search diet templates by name, category, or description..."
+                placeholder="Search diet templates by name"
                 onChange={(e) => setSearch(e.target.value)}
               />
               {search && (

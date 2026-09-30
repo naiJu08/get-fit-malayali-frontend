@@ -187,11 +187,78 @@ function DietPlanContent({
     })
     return Array.from(grouped.values())
   }, [dietPlans, buildDayKey, templateDays, templateDurationDays])
-  const rawSelectedDayKey = urlSearchParams.get('day') || ''
+  const rawSelectedDayKey =
+    urlSearchParams.get('day') ||
+    urlSearchParams.get('day-number') ||
+    urlSearchParams.get('day_number') ||
+    ''
   const selectedDayKey = useMemo(
     () => normalizeDayKeyParam(rawSelectedDayKey),
     [rawSelectedDayKey]
   )
+
+  const requestedDayNumber = useMemo(() => {
+    if (!selectedDayKey) return null
+    if (selectedDayKey.startsWith('number:')) {
+      const num = Number(selectedDayKey.slice(7))
+      if (Number.isFinite(num)) return num
+    }
+    const num = Number(rawSelectedDayKey)
+    if (Number.isFinite(num)) return num
+    return null
+  }, [selectedDayKey, rawSelectedDayKey])
+
+  const maxAllowedDays = useMemo(() => {
+    const dur = Number(templateDurationDays || 0)
+    if (dur > 0) return dur
+    if (Array.isArray(templateDays) && templateDays.length > 0) {
+      return templateDays.length
+    }
+    if (aggregatedPlans.length > 0) {
+      const nums = aggregatedPlans
+        .map((p) => Number(p.day_number))
+        .filter((n) => Number.isFinite(n) && n > 0)
+      if (nums.length > 0) return Math.max(...nums)
+    }
+    return 0
+  }, [templateDurationDays, templateDays, aggregatedPlans])
+
+  const isInvalidDay = useMemo(() => {
+    if (!selectedDayKey) return false
+    if (isFetching && !aggregatedPlans.length) return false
+
+    if (requestedDayNumber !== null) {
+      if (requestedDayNumber <= 0) return true
+      if (maxAllowedDays > 0 && requestedDayNumber > maxAllowedDays) {
+        return true
+      }
+    }
+
+    const matchesKey = aggregatedPlans.some(
+      (item) => item?.day_key === selectedDayKey
+    )
+    if (matchesKey) return false
+
+    if (requestedDayNumber !== null) {
+      const matchesNum = aggregatedPlans.some(
+        (item) => Number(item?.day_number) === requestedDayNumber
+      )
+      if (matchesNum) return false
+    }
+
+    if (maxAllowedDays > 0) {
+      return true
+    }
+
+    return false
+  }, [
+    selectedDayKey,
+    isFetching,
+    aggregatedPlans,
+    requestedDayNumber,
+    maxAllowedDays,
+  ])
+
   const selectedDayRows = useMemo(() => {
     if (!selectedDayKey) return []
     const primaryMatch = dietPlans.filter(
@@ -371,9 +438,14 @@ function DietPlanContent({
 
   const handleConfirmDelete = useCallback(async () => {
     if (!selectedDietPlanId) return
-    await deleteDietPlan(selectedDietPlanId)
-    setDeleteModalOpen(false)
-    setSelectedDietPlanId(null)
+    try {
+      await deleteDietPlan(selectedDietPlanId)
+    } catch {
+      /* Handled by mutation onError */
+    } finally {
+      setDeleteModalOpen(false)
+      setSelectedDietPlanId(null)
+    }
   }, [deleteDietPlan, selectedDietPlanId])
 
   useEffect(() => {
@@ -400,6 +472,8 @@ function DietPlanContent({
     setUrlSearchParams((prev) => {
       const next = new URLSearchParams(prev)
       next.delete('day')
+      next.delete('day-number')
+      next.delete('day_number')
       return next
     })
   }
@@ -641,6 +715,60 @@ function DietPlanContent({
       : []
     : selectedDayNumbers
   const showCopyActions = copySourceDayNumbers.length > 0
+
+  if (isInvalidDay) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[calc(100vh-240px)] w-full py-12 px-4 text-center bg-white rounded-2xl border border-gray-100 shadow-xs my-2">
+        {/* Decorative Icon Container */}
+        <div className="relative mb-6">
+          <div className="absolute -inset-2 rounded-full bg-red-100/60 blur-lg animate-pulse" />
+          <div className="relative w-24 h-24 rounded-3xl bg-gradient-to-tr from-red-50 to-orange-50 border border-red-100 flex items-center justify-center shadow-md">
+            <svg
+              className="w-12 h-12 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.75}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+        </div>
+
+        {/* Title */}
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight mb-2">
+          Page Not Found
+        </h2>
+
+        {/* Subtitle */}
+        <p className="text-sm md:text-base text-gray-500 max-w-md mb-8 leading-relaxed">
+          The requested day{' '}
+          <span className="font-semibold text-gray-800 bg-gray-100 px-2 py-0.5 rounded">
+            Day {requestedDayNumber ?? rawSelectedDayKey}
+          </span>{' '}
+          does not exist for this diet template.
+        </p>
+
+        {/* Action Button */}
+        <button
+          type="button"
+          className="inline-flex items-center gap-2.5 px-6 py-2.5 bg-primaryGreen text-white text-sm font-semibold rounded-xl hover:bg-primaryGreen/90 active:scale-95 transition-all shadow-md hover:shadow-lg cursor-pointer"
+          onClick={clearDaySelection}
+        >
+          <Icons
+            name="left-arrow-icon"
+            className="w-4 h-4 fill-current text-white"
+          />
+          <span>Back to All Days</span>
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="">

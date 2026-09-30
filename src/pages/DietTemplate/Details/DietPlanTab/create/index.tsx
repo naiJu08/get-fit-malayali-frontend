@@ -163,10 +163,14 @@ const DietPlanForm = ({
     const fromApi = Array.isArray(items)
       ? items
           .map((mt: any) => {
-            const name = mt?.name
-            const id = mt?.id ?? name
-            if (!name) return null
-            return { id, name, value: name, time: mt?.time }
+            const rawName = mt?.name
+            const id = mt?.id ?? rawName
+            if (!rawName || typeof rawName !== 'string') return null
+            const trimmed = rawName.trim()
+            if (!trimmed) return null
+            const formattedName =
+              trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
+            return { id, name: formattedName, value: rawName, time: mt?.time }
           })
           .filter(Boolean)
       : []
@@ -229,16 +233,29 @@ const DietPlanForm = ({
   const normalizedSelectedMealTime = normalizeMealTime(selectedMealTime)
 
   const availableMealTimeOptions = useMemo(() => {
-    if (!selectedDayNumber) return mealTimeOptions
-    return mealTimeOptions.filter((option: any) => {
-      const normalized = normalizeMealTime(option.value)
-      if (
-        normalizedSelectedMealTime &&
-        normalized === normalizedSelectedMealTime
-      )
-        return true
-      return !usedMealTimeValues.has(normalized)
-    })
+    const formatSentenceCase = (str: any) => {
+      if (!str || typeof str !== 'string') return ''
+      const trimmed = str.trim()
+      if (!trimmed) return ''
+      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
+    }
+
+    const filtered = !selectedDayNumber
+      ? mealTimeOptions
+      : mealTimeOptions.filter((option: any) => {
+          const normalized = normalizeMealTime(option.value)
+          if (
+            normalizedSelectedMealTime &&
+            normalized === normalizedSelectedMealTime
+          )
+            return true
+          return !usedMealTimeValues.has(normalized)
+        })
+
+    return filtered.map((option: any) => ({
+      ...option,
+      name: formatSentenceCase(option.name),
+    }))
   }, [
     selectedDayNumber,
     normalizedSelectedMealTime,

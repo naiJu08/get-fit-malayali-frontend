@@ -282,7 +282,7 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
   const handleUpdateNotes = (planIndex: number, notes: string) => {
     setPlans((prev) => {
       const next = [...prev]
-      next[planIndex] = { ...next[planIndex], notes }
+      next[planIndex] = { ...next[planIndex], notes: notes.slice(0, 200) }
       return next
     })
   }
@@ -377,12 +377,33 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
         return normalizeMealTimeStr(m.meal_time) === target
       })
     }
+    if (activeAddMealIndex !== null && plans[activeAddMealIndex]) {
+      const currentItems = plans[activeAddMealIndex].items || []
+      const selectedMealIds = new Set(
+        currentItems
+          .map((it) => String(it.meal_id ?? it.id ?? ''))
+          .filter((v) => v !== '' && v !== 'undefined')
+      )
+      const selectedMealNames = new Set(
+        currentItems
+          .map((it) => it.meal_name?.trim().toLowerCase())
+          .filter(Boolean)
+      )
+
+      list = list.filter((m) => {
+        const mealId = String(m.id ?? '')
+        const mealName = m.name?.trim().toLowerCase()
+        if (mealId && selectedMealIds.has(mealId)) return false
+        if (mealName && selectedMealNames.has(mealName)) return false
+        return true
+      })
+    }
     if (mealSearchQuery) {
       const q = mealSearchQuery.toLowerCase().trim()
       list = list.filter((m) => m.name?.toLowerCase().includes(q))
     }
     return list.slice(0, 50)
-  }, [allMeals, activeMealTime, mealSearchQuery])
+  }, [allMeals, activeMealTime, activeAddMealIndex, plans, mealSearchQuery])
 
   const dayDateDisplay = useMemo(() => {
     const d = dayDetail?.date || dayDetail?.day_date
@@ -588,7 +609,7 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
                                     parseInt(e.target.value, 10) || 1
                                   )
                                 }
-                                className="w-10 text-center text-xs font-semibold text-gray-800 border-x py-1 focus:outline-none"
+                                className="w-10 text-center text-xs font-semibold text-gray-800 border-x py-1 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                               <button
                                 type="button"
@@ -632,6 +653,9 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
                     onChange={(e) => handleUpdateNotes(planIdx, e.target.value)}
                     className="w-full text-xs px-3 py-1.5 bg-gray-50/70 border border-gray-200 rounded-lg text-gray-700 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-emerald-400"
                   />
+                  <div className="text-[10px] text-gray-400 mt-0.5 text-right font-medium">
+                    {(plan.notes || '').length}/200 characters
+                  </div>
                 </div>
 
                 {/* Add Food Button / Inline Search Selector */}

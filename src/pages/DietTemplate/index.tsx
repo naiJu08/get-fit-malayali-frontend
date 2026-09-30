@@ -11,7 +11,7 @@ import { checkPermissions } from '../../layout/store'
 import { useAuthStore } from '../../store/authStore'
 import { useAdminUserFilterStore } from '../../store/filterSore/adminUserStore'
 import { calcWindowHeight } from '../../utilities/calcHeight'
-import { getSortedColumnName } from '../../utilities/parsers'
+import { getErrorMessage, getSortedColumnName } from '../../utilities/parsers'
 import { handleReturnEmptyMsg } from '../../utilities/validation'
 import {
   getTemplateDetails,
@@ -167,14 +167,21 @@ export default function DietTemplateMain() {
     if (!deleteTemplateId) return
     try {
       setLoader(true)
-      await deleteTemplate(String(deleteTemplateId))
+      const res: any = await deleteTemplate(String(deleteTemplateId))
+      const message =
+        res?.data?.message ||
+        res?.message ||
+        'Diet template deleted successfully'
+      enqueueSnackbar(message, { variant: 'success' })
       setDeleteTemplateModal(false)
       setDeleteTemplateId('')
       setDeleteTemplateError(null)
       refetch()
     } catch (error: any) {
       const errorMessage =
-        error?.response?.data?.errors?.[0] || 'Failed to delete template'
+        getErrorMessage(error) ||
+        error?.response?.data?.errors?.[0] ||
+        'Failed to delete template'
       setDeleteTemplateError(errorMessage)
       enqueueSnackbar(errorMessage, { variant: 'error' })
     } finally {

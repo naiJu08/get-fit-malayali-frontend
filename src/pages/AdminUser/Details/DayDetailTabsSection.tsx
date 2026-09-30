@@ -1430,9 +1430,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
             ? moment(values.time, ['HH:mm:ss', 'HH:mm']).format('hh:mm A')
             : ''
 
-          const newMealTime = String(
-            values.meal_time || selectedMealTiming?.meal_time || ''
-          )
+          const newMealTime = String(values.meal_time || '')
             .trim()
             .toUpperCase()
           const oldMealTime = String(selectedMealTiming?.meal_time ?? '')
@@ -1465,7 +1463,12 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
               <Controller
                 name="meal_time"
                 control={mealTimeForm.control}
-                rules={{ required: 'Meal timing name is required.' }}
+                rules={{
+                  required: 'Meal timing name is required.',
+                  validate: (val) =>
+                    Boolean(val && String(val).trim()) ||
+                    'Meal timing name is required.',
+                }}
                 render={({ field: { value, onChange } }) => (
                   <TextField
                     id="edit-meal-time"
@@ -1476,13 +1479,18 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     onChange={(e: any) => onChange(e?.target?.value ?? e)}
                     disabled={isUpdatingMealTime}
                     required
+                    errors={mealTimeForm.formState.errors as any}
                   />
                 )}
               />
               <Controller
                 name="time"
                 control={mealTimeForm.control}
-                rules={{ required: 'Required.' }}
+                rules={{
+                  required: 'Required.',
+                  validate: (val) =>
+                    Boolean(val && String(val).trim()) || 'Required.',
+                }}
                 render={({ field: { value, onChange } }) => (
                   <TimeSplitPicker
                     label="Time"
