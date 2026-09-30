@@ -284,7 +284,7 @@ function DietPlanContent({
         }),
       },
       {
-        title: 'Day Number',
+        title: 'Day',
         field: 'day_number',
         resizable: true,
         isVisible: true,
@@ -293,23 +293,14 @@ function DietPlanContent({
           cell: (
             <button
               type="button"
-              className="text-blue-600 hover:underline"
+              className="text-blue-600 hover:underline font-medium"
               onClick={() => handleViewDay(row)}
             >
-              {row?.day_number ?? ''}
+              Day {row?.day_number ?? ''}
             </button>
           ),
         }),
         sortKey: 'day_number',
-      },
-      {
-        title: 'Day',
-        field: 'day_name',
-        resizable: true,
-        isVisible: true,
-        customCell: true,
-        renderCell: (row: any) => ({ cell: row?.day_name ?? '' }),
-        sortKey: 'day_name',
       },
       {
         title: 'Calories',
@@ -606,7 +597,7 @@ function DietPlanContent({
   }, [currentDataset, currentPage, rowsPerPage])
 
   const tableTitle = viewingDay
-    ? `${toTitleCase(selectedDayMeta?.day_name || 'Selected Day')} - Meals`
+    ? `Day ${selectedDayMeta?.day_number || (selectedDayKey.startsWith('number:') ? selectedDayKey.slice(7) : '')} - Meals`
     : toTitleCase(templateName || 'Diet Plans')
 
   const aggregatedActions = [

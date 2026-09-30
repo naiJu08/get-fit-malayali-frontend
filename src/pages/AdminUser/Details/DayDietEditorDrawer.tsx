@@ -60,6 +60,27 @@ const formatTitle = (str?: string | null) => {
     .join(' ')
 }
 
+const normalizeMealTimeStr = (str?: string | null) => {
+  if (!str) return ''
+  const s = str.trim().toLowerCase()
+  if (s === 'evening snack' || s === 'evening snacks' || s === 'snack')
+    return 'EVENING SNACK'
+  if (s === 'morning drink' || s === 'morning drinks') return 'MORNING DRINK'
+  if (s === 'breakfast') return 'BREAKFAST'
+  if (s === 'mid day meal' || s === 'mid-day meal' || s === 'midday meal')
+    return 'MID DAY MEAL'
+  if (s === 'lunch') return 'LUNCH'
+  if (s === 'dinner') return 'DINNER'
+  if (
+    s === 'bed time' ||
+    s === 'bedtime' ||
+    s === 'bed drink' ||
+    s === 'bed drinks'
+  )
+    return 'BED TIME'
+  return str.trim().toUpperCase()
+}
+
 export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
   open,
   handleClose,
@@ -76,11 +97,19 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showMealTimePicker, setShowMealTimePicker] = useState(false)
 
-  // Fetch meals list for adding items
+  const activeMealTime =
+    activeAddMealIndex !== null
+      ? plans[activeAddMealIndex]?.meal_time
+      : undefined
+
+  // Fetch meals list for adding items, scoped to the active meal time
   const { data: mealsData, isLoading: mealsLoading } = useMeals({
     page: 1,
     per_page: 999,
     search: mealSearchQuery || undefined,
+    meal_time: activeMealTime
+      ? normalizeMealTimeStr(activeMealTime)
+      : undefined,
     status: 'active',
   } as any)
 
@@ -340,12 +369,20 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
   }, [plans])
 
   const filteredSearchMeals = useMemo(() => {
-    if (!mealSearchQuery) return allMeals.slice(0, 30)
-    const q = mealSearchQuery.toLowerCase().trim()
-    return allMeals
-      .filter((m) => m.name?.toLowerCase().includes(q))
-      .slice(0, 30)
-  }, [allMeals, mealSearchQuery])
+    let list = allMeals
+    if (activeMealTime) {
+      const target = normalizeMealTimeStr(activeMealTime)
+      list = list.filter((m) => {
+        if (!m.meal_time) return true
+        return normalizeMealTimeStr(m.meal_time) === target
+      })
+    }
+    if (mealSearchQuery) {
+      const q = mealSearchQuery.toLowerCase().trim()
+      list = list.filter((m) => m.name?.toLowerCase().includes(q))
+    }
+    return list.slice(0, 50)
+  }, [allMeals, activeMealTime, mealSearchQuery])
 
   const dayDateDisplay = useMemo(() => {
     const d = dayDetail?.date || dayDetail?.day_date
@@ -463,7 +500,7 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
                     <button
                       type="button"
                       onClick={() => handleRemoveMealSection(planIdx)}
-                      className="text-gray-400 hover:text-red-600 p-1 rounded transition-colors"
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                       title="Remove meal section"
                       aria-label="Remove meal section"
                     >
@@ -573,7 +610,7 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
                               onClick={() =>
                                 handleRemoveMealItem(planIdx, itemIdx)
                               }
-                              className="text-gray-400 hover:text-red-500 p-1 transition-colors"
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                               title="Delete food item"
                               aria-label="Delete food item"
                             >
@@ -646,7 +683,9 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
                           </div>
                         ) : filteredSearchMeals.length === 0 ? (
                           <div className="p-3 text-center text-xs text-gray-400">
-                            No matching foods found.
+                            {mealSearchQuery
+                              ? `No foods found matching "${mealSearchQuery}" in ${formatTitle(plan.meal_time)}.`
+                              : `No foods defined for ${formatTitle(plan.meal_time)}.`}
                           </div>
                         ) : (
                           filteredSearchMeals.map((meal) => {
