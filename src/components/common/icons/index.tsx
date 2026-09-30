@@ -410,7 +410,8 @@ const Icons: React.FC<IconsProps> = ({
       case 'lock-icon':
         return <LockIcon />
       case 'delete':
-        return <DeleteIcon />
+      case 'trash':
+        return <DeleteIcon className={className} />
       case 'question-circle':
         return <QuestionCircleIcon />
       case 'cloud-upload':

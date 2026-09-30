@@ -84,7 +84,7 @@ export const dietPlanFormSchema = z.object({
     .union([z.number(), z.string()])
     .transform((v) => Number(v))
     .refine((v) => Number.isFinite(v) && v >= 1, 'Day number must be >= 1'),
-  day_name: z.string().min(1, 'Day name is required'),
+  day_name: z.string().optional().default(''),
   sequence_number: z
     .union([z.number(), z.string()])
     .transform((v) => Number(v)),
