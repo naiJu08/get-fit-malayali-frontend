@@ -168,9 +168,11 @@ export default function SalesClients() {
               <button
                 type="button"
                 className="text-blue-600 hover:underline font-medium text-left"
-                onClick={() => navigate('/sales/clients/' + row.id)}
+                onClick={() => navigate(`/sales/clients/${row.id}`)}
               >
-                {row.name || 'Client #' + row.id}
+                {row.name
+                  ? row.name.charAt(0).toUpperCase() + row.name.slice(1)
+                  : 'Client #' + row.id}
               </button>
               <div className="text-xs text-secondary">{row.email || '--'}</div>
             </div>
@@ -277,7 +279,9 @@ export default function SalesClients() {
           cell: (
             <div>
               <div className="font-semibold text-slate-800 text-sm">
-                {row.name || 'Client #' + row.id}
+                {row.name
+                  ? row.name.charAt(0).toUpperCase() + row.name.slice(1)
+                  : 'Client #' + row.id}
               </div>
               <div className="text-xs text-secondary">{row.email || '--'}</div>
             </div>
