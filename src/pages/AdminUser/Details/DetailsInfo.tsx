@@ -54,9 +54,19 @@ function hasInterestedPlans(plans: any) {
 }
 function hasValue(value: any) {
   if (value === null || value === undefined) return false
-  if (typeof value === 'string') return value.trim() !== ''
+  if (typeof value === 'number') return !isNaN(value)
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return (
+      trimmed !== '' &&
+      trimmed !== '--' &&
+      trimmed !== 'null' &&
+      trimmed !== 'undefined' &&
+      trimmed !== 'NaN'
+    )
+  }
   if (Array.isArray(value)) return value.length > 0
-  return true
+  return Boolean(value)
 }
 function safeStr(v: any) {
   if (v === null || v === undefined || v === '') return '--'
@@ -64,6 +74,7 @@ function safeStr(v: any) {
 }
 
 function DetailItem({ label, value }: { label: string; value: any }) {
+  if (!hasValue(value)) return null
   return (
     <div className="border rounded-lg p-3 bg-white">
       <div className="text-xs text-gray-500 mb-1">{label}</div>

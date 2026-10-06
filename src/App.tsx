@@ -10,6 +10,7 @@ import { useDomainManageStore } from './store/domainManageStore'
 // import useIdleTimeout from './utilities/idleTimer'
 import { useThemeStore } from './store/themeStore'
 // import useActivityTracker from './utilities/activitytracker'
+import { getErrorMessage } from './utilities/parsers'
 import {
   useReloadOnStorageChange,
   useTabVisibility,
@@ -113,11 +114,7 @@ const App = () => {
       event.preventDefault()
       try {
         const reason: any = event.reason
-        const msg =
-          reason?.response?.data?.message ||
-          reason?.response?.data?.error?.message ||
-          reason?.message ||
-          'Request failed'
+        const msg = getErrorMessage(reason)
         enqueueSnackbar(msg, { variant: 'error' })
       } catch {
         // enqueueSnackbar('Request failed', { variant: 'error' })
@@ -149,12 +146,7 @@ const App = () => {
       if (isAxios || looksAxiosMsg) {
         event.preventDefault()
         try {
-          const msg =
-            err?.response?.data?.message ||
-            err?.response?.data?.error?.message ||
-            err?.message ||
-            msgText ||
-            'Request failed'
+          const msg = getErrorMessage(err || msgText)
           enqueueSnackbar(msg, { variant: 'error' })
         } catch {
           enqueueSnackbar('Request failed', { variant: 'error' })

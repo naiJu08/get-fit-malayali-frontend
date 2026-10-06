@@ -13,6 +13,12 @@ import CopyExercisesDialog, { CopyTargetType } from './CopyExercisesDialog'
 import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useAuthStore } from '../../store/authStore'
 
+const hasValue = (val: any) => {
+  if (val === undefined || val === null) return false
+  const str = String(val).trim()
+  return str !== '' && str !== '-' && str !== '--' && str !== 'N/A'
+}
+
 export default function WorkoutTemplateDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -149,30 +155,42 @@ export default function WorkoutTemplateDetails() {
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="border rounded-lg p-3 bg-white">
-              <div className="text-xs text-gray-500 mb-1">Template Name</div>
-              <div className="text-sm">{template.name || '--'}</div>
-            </div>
-            <div className="border rounded-lg p-3 bg-white">
-              <div className="text-xs text-gray-500 mb-1">Intensity Level</div>
-              <div className="text-sm">{template.intensity_level || '--'}</div>
-            </div>
-            <div className="border rounded-lg p-3 bg-white">
-              <div className="text-xs text-gray-500 mb-1">Days</div>
-              <div className="text-sm">{template.duration_days ?? '--'}</div>
-            </div>
-            <div className="border rounded-lg p-3 bg-white md:col-span-2 lg:col-span-3">
-              <div className="text-xs text-gray-500 mb-1">Description</div>
-              <div className="text-sm whitespace-pre-wrap">
-                {template.description || '--'}
+            {hasValue(template.name) && (
+              <div className="border rounded-lg p-3 bg-white">
+                <div className="text-xs text-gray-500 mb-1">Template Name</div>
+                <div className="text-sm">{template.name}</div>
               </div>
-            </div>
-            <div className="border rounded-lg p-3 bg-white md:col-span-2 lg:col-span-3">
-              <div className="text-xs text-gray-500 mb-1">Notes</div>
-              <div className="text-sm whitespace-pre-wrap">
-                {template.notes || '--'}
+            )}
+            {hasValue(template.intensity_level) && (
+              <div className="border rounded-lg p-3 bg-white">
+                <div className="text-xs text-gray-500 mb-1">
+                  Intensity Level
+                </div>
+                <div className="text-sm">{template.intensity_level}</div>
               </div>
-            </div>
+            )}
+            {hasValue(template.duration_days) && (
+              <div className="border rounded-lg p-3 bg-white">
+                <div className="text-xs text-gray-500 mb-1">Days</div>
+                <div className="text-sm">{template.duration_days}</div>
+              </div>
+            )}
+            {hasValue(template.description) && (
+              <div className="border rounded-lg p-3 bg-white md:col-span-2 lg:col-span-3">
+                <div className="text-xs text-gray-500 mb-1">Description</div>
+                <div className="text-sm whitespace-pre-wrap">
+                  {template.description}
+                </div>
+              </div>
+            )}
+            {hasValue(template.notes) && (
+              <div className="border rounded-lg p-3 bg-white md:col-span-2 lg:col-span-3">
+                <div className="text-xs text-gray-500 mb-1">Notes</div>
+                <div className="text-sm whitespace-pre-wrap">
+                  {template.notes}
+                </div>
+              </div>
+            )}
           </div>
         </Tab>
         <Tab id="days">

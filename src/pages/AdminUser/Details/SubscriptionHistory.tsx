@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 
 import { TableColumns } from '../../../common/types'
 import SmartTable from '../../../components/common/table/SmartTable'
@@ -15,6 +15,7 @@ const SubscriptionHistory = ({ userId }: SubscriptionHistoryProps) => {
   const { id: routeUserId } = useParams<{ id: string }>()
   const id = userId ?? routeUserId
   const navigate = useNavigate()
+  const location = useLocation()
 
   // State for search, pagination, and sorting
   const [search, setSearch] = useState('')
@@ -119,7 +120,9 @@ const SubscriptionHistory = ({ userId }: SubscriptionHistoryProps) => {
       rowClick: (row: any) => {
         const subscriptionId = row.id
         if (subscriptionId) {
-          navigate(`/subscriptions/${subscriptionId}`)
+          navigate(`/subscriptions/${subscriptionId}`, {
+            state: { from: location.pathname + location.search },
+          })
         }
       },
     },
@@ -156,7 +159,7 @@ const SubscriptionHistory = ({ userId }: SubscriptionHistoryProps) => {
       field: 'plan_fees',
       sortable: true,
       renderCell: (rowData: any) => {
-        const displayValue = rowData.plan_fees ? `$${rowData.plan_fees}` : '--'
+        const displayValue = rowData.plan_fees ? `₹${rowData.plan_fees}` : '--'
         return {
           cell: displayValue,
           toolTip: displayValue,
@@ -223,8 +226,13 @@ const SubscriptionHistory = ({ userId }: SubscriptionHistoryProps) => {
       field: 'days_remaining',
       sortable: true,
       renderCell: (rowData: any) => {
+        const isUpcoming = rowData.status?.toLowerCase() === 'upcoming'
         const displayValue =
-          rowData.days_remaining !== undefined ? rowData.days_remaining : '--'
+          isUpcoming ||
+          rowData.days_remaining === undefined ||
+          rowData.days_remaining === null
+            ? '--'
+            : rowData.days_remaining
         return {
           cell: displayValue,
           toolTip: displayValue,

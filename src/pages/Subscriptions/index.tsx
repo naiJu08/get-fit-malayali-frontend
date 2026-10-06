@@ -482,10 +482,12 @@ export default function Subscriptions() {
   const handleClientNameClick = useCallback(
     (row: any) => {
       if (row?.id) {
-        navigate(`/subscriptions/${row.id}`)
+        navigate(`/subscriptions/${row.id}`, {
+          state: { from: location.pathname + location.search },
+        })
       }
     },
-    [navigate]
+    [navigate, location.pathname, location.search]
   )
 
   useEffect(() => {
@@ -912,7 +914,10 @@ export default function Subscriptions() {
               actionProps={[
                 {
                   icon: <Icons name="eye" />,
-                  action: (row) => navigate(`/subscriptions/${row?.id}`),
+                  action: (row) =>
+                    navigate(`/subscriptions/${row?.id}`, {
+                      state: { from: location.pathname + location.search },
+                    }),
                   title: 'View',
                   toolTip: 'View',
                 },

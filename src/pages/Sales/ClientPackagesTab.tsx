@@ -297,6 +297,10 @@ export default function ClientPackagesTab({
   const isSales = loginRole === 'sales'
   // const isNutritionist = loginRole === 'nutritionist'
   const isSuperAdmin = loginRole === 'superadmin' || loginRole === 'admin'
+  const isYogist =
+    loginRole === 'yogist' ||
+    loginRole === 'yoga_trainer' ||
+    loginRole === 'yoga'
   const isServiceStaff = [
     'nutritionist',
     'physiotherapist',
@@ -347,6 +351,13 @@ export default function ClientPackagesTab({
 
     return daysRemaining >= 0 && daysRemaining <= 5
   }, [selectedCycle?.end_date, selectedCycle?.status])
+
+  const isPackageConfirmed = Boolean(
+    selectedCycle &&
+      (selectedCycle.status === 'active' ||
+        selectedCycle.status !== 'proposed' ||
+        !selectedCycle.can_confirm)
+  )
 
   const selectedValue = useMemo(() => {
     if (mode === 'assignments') {
@@ -1158,10 +1169,7 @@ export default function ClientPackagesTab({
 
         {/* Dropdown Selector Area */}
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <div
-            ref={periodDropdownRef}
-            className="relative min-w-[320px] max-w-xl flex-1"
-          >
+          <div ref={periodDropdownRef} className="relative w-full">
             <button
               type="button"
               id={'package-period-' + mode}
@@ -1521,50 +1529,6 @@ export default function ClientPackagesTab({
               retained as historical audit records.
             </span>
           </div>
-        ) : selectedCycle ? (
-          <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-formBorder bg-white/70 p-3 text-xs text-secondary shadow-xs">
-            <div className="flex items-center gap-2">
-              <Icons
-                name="calendar"
-                className=" w-4 text-primaryGreen shrink-0"
-              />
-              <span>
-                Selected period:{' '}
-                <strong className="text-primaryText font-semibold">
-                  {capitalizeFirst(selectedCycle.plan?.name) ||
-                    `Package #${selectedCycle.id}`}
-                </strong>{' '}
-                ({formatDate(selectedCycle.start_date)} to{' '}
-                {formatDate(selectedCycle.end_date)})
-              </span>
-            </div>
-            <div className="flex items-center gap-3 text-[11px]">
-              <span>
-                Staff assigned:{' '}
-                <strong className="text-primaryText font-semibold">
-                  {selectedCycle.assignments?.length || 0}
-                </strong>
-              </span>
-              {selectedCycle.status === 'active' && (
-                <span className="font-semibold text-emerald-700 flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{' '}
-                  Current active subscription
-                </span>
-              )}
-              {selectedCycle.status === 'expired' && (
-                <span className="font-semibold text-gray-500 flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />{' '}
-                  Expired Package Period (Read-only)
-                </span>
-              )}
-              {selectedCycle.status === 'refunded' && (
-                <span className="font-semibold text-rose-700 flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />{' '}
-                  Refunded & Cancelled
-                </span>
-              )}
-            </div>
-          </div>
         ) : null}
       </section>
       {renewalDialogOpen && (
@@ -1867,7 +1831,8 @@ export default function ClientPackagesTab({
                 />
               )
             ) : activeProposal ? (
-              isServiceStaff && (
+              isServiceStaff &&
+              !(isYogist && isPackageConfirmed) && (
                 <Button
                   label="Update package"
                   icon="edit"

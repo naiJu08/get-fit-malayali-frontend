@@ -404,8 +404,16 @@ export default function CopyExercisesDialog({
                               to {formatDate(item.end_date)}
                             </p>
                           ) : (
-                            <p className="mt-1 text-xs text-gray-500">
-                              {item?.yoga_template_category?.name ||
+                            <p
+                              className="mt-1 text-xs text-gray-500 truncate max-w-[320px]"
+                              title={
+                                typeof item?.description === 'string'
+                                  ? item.description
+                                  : ''
+                              }
+                            >
+                              {item?.description ||
+                                item?.yoga_template_category?.name ||
                                 item?.yoga_template_category_name ||
                                 (typeof item?.yoga_template_category ===
                                 'string'
@@ -419,7 +427,6 @@ export default function CopyExercisesDialog({
                           {targetType !== 'client' && (
                             <div className="mt-2 flex gap-3 text-[11px] text-gray-500">
                               <span>{item.duration_days || 0} days</span>
-                              <span>{item.days_count || 0} generated days</span>
                             </div>
                           )}
                         </div>

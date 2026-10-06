@@ -3,6 +3,7 @@ import { FormProvider, useForm } from 'react-hook-form'
 import { DialogModal } from '../../../components/common'
 import FormBuilder from '../../../components/app/formBuilder'
 import { useSnackbarManager } from '../../../components/common/snackbar'
+import { getErrorMessage } from '../../../utilities/parsers'
 import { useEffect } from 'react'
 import { createYogaTemplate, updateYogaTemplate } from '../api'
 import {
@@ -49,27 +50,31 @@ export default function YogaTemplateForm({
   }, [isOpen, rowData, reset])
 
   const submit = async (values: YogaTemplateValues) => {
-    const rawName = String(values.name || '').trim()
-    const capitalizedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
-    const data = new FormData()
-    data.append('yoga_template[name]', capitalizedName)
-    data.append('yoga_template[description]', values.description)
-    data.append('yoga_template[intensity_level]', values.intensity_level)
-    data.append('yoga_template[duration_days]', String(values.duration_days))
-    data.append('yoga_template[notes]', values.notes || '')
-    const response: any =
-      edit && rowData?.id
-        ? await updateYogaTemplate({ id: rowData.id, data })
-        : await createYogaTemplate(data)
-    enqueueSnackbar(
-      response?.message ||
-        (edit
-          ? 'Yoga template updated successfully'
-          : 'Yoga template created successfully'),
-      { variant: 'success' }
-    )
-    onSuccess?.()
-    handleClose()
+    try {
+      const rawName = String(values.name || '').trim()
+      const capitalizedName = rawName.charAt(0).toUpperCase() + rawName.slice(1)
+      const data = new FormData()
+      data.append('yoga_template[name]', capitalizedName)
+      data.append('yoga_template[description]', values.description)
+      data.append('yoga_template[intensity_level]', values.intensity_level)
+      data.append('yoga_template[duration_days]', String(values.duration_days))
+      data.append('yoga_template[notes]', values.notes || '')
+      const response: any =
+        edit && rowData?.id
+          ? await updateYogaTemplate({ id: rowData.id, data })
+          : await createYogaTemplate(data)
+      enqueueSnackbar(
+        response?.message ||
+          (edit
+            ? 'Yoga template updated successfully'
+            : 'Yoga template created successfully'),
+        { variant: 'success' }
+      )
+      onSuccess?.()
+      handleClose()
+    } catch (err: any) {
+      enqueueSnackbar(getErrorMessage(err), { variant: 'error' })
+    }
   }
 
   const fields: any[] = [
