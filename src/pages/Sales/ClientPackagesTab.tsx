@@ -1394,7 +1394,7 @@ export default function ClientPackagesTab({
                                     `Package #${c.id}`}
                                 </p>
                                 <p className="text-xs text-secondary mt-0.5">
-                                  {formatDate(c.start_date)} –{' '}
+                                  {formatDate(c.start_date)} to
                                   {formatDate(c.end_date)}
                                   {c.start_date && c.end_date && (
                                     <span className="ml-1 text-[11px]">
@@ -3992,7 +3992,9 @@ export default function ClientPackagesTab({
                       <div>
                         <div className="text-xs font-bold text-amber-950">
                           Currently Assigned:{' '}
-                          {currentAssignmentForModal.staff_name}
+                          {capitalizeFirst(
+                            currentAssignmentForModal.staff_name
+                          ) || '--'}
                         </div>
                         <div className="text-[11px] text-amber-700">
                           Assigned on{' '}
@@ -4091,7 +4093,7 @@ export default function ClientPackagesTab({
                           <span className="min-w-0 flex-1">
                             <span className="flex flex-wrap items-center gap-2">
                               <span className="truncate text-sm font-medium text-primaryText">
-                                {staff.name || 'Unnamed staff'}
+                                {capitalizeFirst(staff.name) || 'Unnamed staff'}
                               </span>
                               {isCurrentAssignee && (
                                 <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-300">

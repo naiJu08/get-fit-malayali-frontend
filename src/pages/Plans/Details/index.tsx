@@ -75,15 +75,16 @@ function PlanDetailsContent() {
   }, [plan?.meditation_included])
 
   type TabConfig = { id: string; label: string }
+  const canSeeMeditationTab = isSuperOrAdmin || isNutritionist || isYogist
   const tabs = useMemo(() => {
     const baseTabs: TabConfig[] = [
       { id: 'details', label: 'Details' },
       // { id: 'dietplan', label: 'Diet Plan' },
     ]
-    if (hasMeditationPlan)
+    if (hasMeditationPlan && canSeeMeditationTab)
       baseTabs.push({ id: 'meditationplan', label: 'Meditations' })
     return baseTabs
-  }, [hasMeditationPlan])
+  }, [hasMeditationPlan, canSeeMeditationTab])
 
   // Derive active tab from URL (like User Details)
   const path = location.pathname || ''
