@@ -107,6 +107,7 @@ export default function ModuleDashboard({
   const metrics = data?.metrics || {}
   const leadMetrics = metrics.leads || {}
   const salesMetrics = metrics
+  const clientsData = data?.clients || salesMetrics.clients || {}
   const cards = marketing
     ? [
         {
@@ -168,12 +169,12 @@ export default function ModuleDashboard({
           onClick: () => navigate('/sales/leads?status=confirmation_pending'),
         },
         {
-          title: 'Converted Clients',
-          value: fmt(salesMetrics.converted_clients),
-          sub: `${fmt(salesMetrics.active_packages)} active package plans`,
+          title: 'My Clients',
+          value: fmt(clientsData.total ?? salesMetrics.converted_clients),
+          sub: `${fmt(clientsData.admin_created ?? 0)} admin · ${fmt(clientsData.self_registered ?? 0)} self · ${fmt(clientsData.lead_converted ?? 0)} converted`,
           gradient: 'linear-gradient(135deg,#48bb78,#38b2ac)',
-          icon: '✅',
-          onClick: () => navigate('/sales/clients'),
+          icon: '👥',
+          onClick: () => navigate('/sales/clients?tab=my_clients'),
         },
       ]
 
@@ -273,7 +274,7 @@ export default function ModuleDashboard({
                   {fmt(
                     marketing
                       ? metrics.campaigns?.total
-                      : salesMetrics.converted_clients
+                      : (clientsData.total ?? salesMetrics.converted_clients)
                   )}
                 </span>
               </div>
@@ -285,6 +286,55 @@ export default function ModuleDashboard({
             <StatCard key={card.title} {...card} />
           ))}
         </div>
+        {!marketing && (
+          <div className="mt-6">
+            <h2 className="mb-3 text-sm font-semibold text-gray-500 uppercase tracking-wider">
+              Clients Breakdown
+            </h2>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              <StatCard
+                title="My Clients"
+                value={fmt(clientsData.total)}
+                sub={`${fmt(clientsData.admin_created ?? 0)} admin · ${fmt(clientsData.self_registered ?? 0)} self · ${fmt(clientsData.lead_converted ?? 0)} converted`}
+                gradient="linear-gradient(135deg,#10b981,#059669)"
+                icon="👥"
+                onClick={() => navigate('/sales/clients?tab=my_clients')}
+              />
+              <StatCard
+                title="Admin Created / Assigned"
+                value={fmt(clientsData.admin_created)}
+                sub="Admin & Superadmin assigned"
+                gradient="linear-gradient(135deg,#6366f1,#4f46e5)"
+                icon="👑"
+                onClick={() => navigate('/sales/clients?tab=my_clients')}
+              />
+              <StatCard
+                title="Self-Registered"
+                value={fmt(clientsData.self_registered)}
+                sub="Acquired user pool"
+                gradient="linear-gradient(135deg,#06b6d4,#0891b2)"
+                icon="⚡"
+                onClick={() => navigate('/sales/clients?tab=my_clients')}
+              />
+              <StatCard
+                title="Lead Converted"
+                value={fmt(clientsData.lead_converted)}
+                sub="Converted marketing leads"
+                gradient="linear-gradient(135deg,#8b5cf6,#7c3aed)"
+                icon="🎯"
+                onClick={() => navigate('/sales/clients?tab=my_clients')}
+              />
+              <StatCard
+                title="Self Registered Pool"
+                value={fmt(clientsData.unassigned_pool)}
+                sub="Available to acquire"
+                gradient="linear-gradient(135deg,#f59e0b,#d97706)"
+                icon="📥"
+                onClick={() => navigate('/sales/clients?tab=unassigned')}
+              />
+            </div>
+          </div>
+        )}
         {marketing && slices.length > 0 && (
           <div className="mt-6">
             <h2 className="mb-3 text-sm font-semibold text-gray-500 uppercase tracking-wider">

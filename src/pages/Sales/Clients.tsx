@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import moment from 'moment'
 import SmartTable from '../../components/common/table/SmartTable'
 import ListingHeader from '../../components/common/ListingTiles'
@@ -67,15 +67,27 @@ const sourceBadge = (source: string) => {
 
 export default function SalesClients() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { enqueueSnackbar } = useSnackbarManager()
+  const tabParam = searchParams.get('tab')
+
   const [activeTab, setActiveTab] = useState<'my_clients' | 'unassigned'>(
     () => {
+      if (tabParam === 'unassigned' || tabParam === 'my_clients') {
+        return tabParam
+      }
       const saved = localStorage.getItem('sales_clients_active_tab')
       return saved === 'unassigned' || saved === 'my_clients'
         ? saved
         : 'my_clients'
     }
   )
+
+  useEffect(() => {
+    if (tabParam === 'unassigned' || tabParam === 'my_clients') {
+      setActiveTab(tabParam)
+    }
+  }, [tabParam])
 
   useEffect(() => {
     localStorage.setItem('sales_clients_active_tab', activeTab)

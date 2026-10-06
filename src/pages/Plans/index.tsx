@@ -47,6 +47,7 @@ export default function Plans() {
   const [userId, setUserId] = useState('')
   const [openConfirm, setOpenConfirm] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [searchInput, setSearchInput] = useState<string>(
     (usePlanFilterStore.getState().pageParams?.search as string) || ''
   )
@@ -95,6 +96,11 @@ export default function Plans() {
     ...(statusFilter !== ''
       ? {
           active: statusFilter === 'true' ? true : false,
+        }
+      : {}),
+    ...(categoryFilter !== ''
+      ? {
+          category: categoryFilter,
         }
       : {}),
   }
@@ -311,6 +317,16 @@ export default function Plans() {
   //   }
   //   setPageParams({ ...pageParams, filters: nextFilters, page: 1 })
   // }
+  const applyCategoryFilter = (value: string) => {
+    setCategoryFilter(value)
+    const nextFilters: any = { ...(pageParams?.filters || {}) }
+    if (value?.trim()) {
+      nextFilters.category = value
+    } else {
+      delete nextFilters.category
+    }
+    setPageParams({ ...pageParams, filters: nextFilters, page: 1 })
+  }
   const applyStatusFilter = (value: string) => {
     setStatusFilter(value)
     const nextFilters: any = { ...(pageParams?.filters || {}) }
@@ -353,15 +369,32 @@ export default function Plans() {
               dataRowKey="id"
               toolbar={true}
               toolbarExtra={
-                <div className="flex items-end gap-3">
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="flex flex-col gap-1 ">
+                    <label className="text-xs text-gray-600">Category</label>
+                    <select
+                      className="w-56 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-lg bg-white text-xs focus:outline-none focus:ring-0 focus:border-gray-300"
+                      value={categoryFilter}
+                      onChange={(e) => applyCategoryFilter(e.target.value)}
+                    >
+                      <option value="">All Categories</option>
+                      <option value="Weight Loss">Weight Loss</option>
+                      <option value="Weight Gain">Weight Gain</option>
+                      <option value="Muscle Gain">Muscle Gain</option>
+                      <option value="Wellness">Wellness</option>
+                      <option value="Disease Management">
+                        Disease Management
+                      </option>
+                    </select>
+                  </div>
                   <div className="flex flex-col gap-1 ">
                     <label className="text-xs text-gray-600">Status</label>
                     <select
-                      className="w-64 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-lg bg-white text-xs focus:outline-none focus:ring-0 focus:border-gray-300"
+                      className="w-44 flex flex-col gap-1 z-20 border border-gray-300 p-[11px] rounded-lg bg-white text-xs focus:outline-none focus:ring-0 focus:border-gray-300"
                       value={statusFilter}
                       onChange={(e) => applyStatusFilter(e.target.value)}
                     >
-                      <option value="">All</option>
+                      <option value="">All Statuses</option>
                       <option value="true">Active</option>
                       <option value="false">Inactive</option>
                     </select>
