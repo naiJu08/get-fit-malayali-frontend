@@ -33,11 +33,21 @@ export const getErrorMessage = (error: any): string => {
     return 'An unexpected error occurred'
   }
   if (typeof error === 'string') {
+    if (error.startsWith('Request failed with status code')) {
+      return 'An error occurred while processing your request'
+    }
     return error
   }
 
   if (error?.response?.data) {
-    return getErrorMessage(error.response.data)
+    const dataMsg = getErrorMessage(error.response.data)
+    if (
+      dataMsg &&
+      dataMsg !== 'An unexpected error occurred' &&
+      !dataMsg.startsWith('Request failed with status code')
+    ) {
+      return dataMsg
+    }
   }
 
   // Some APIs return an array of validation errors
@@ -67,7 +77,8 @@ export const getErrorMessage = (error: any): string => {
     }
     // Fall back to stringifying the array elements
     return error
-      .map((e: any) => (typeof e === 'string' ? e : String(e)))
+      .map((e: any) => (typeof e === 'string' ? e : getErrorMessage(e)))
+      .filter((v: any) => v && v !== 'An unexpected error occurred')
       .join(', ')
   }
 
@@ -80,11 +91,29 @@ export const getErrorMessage = (error: any): string => {
         return getErrorMessage(error.errors)
       }
       if (typeof error.errors === 'object') {
-        const values = Object.values(error.errors)
-          .flatMap((v: any) => (Array.isArray(v) ? v : [v]))
-          .map((v: any) => (typeof v === 'string' ? v : getErrorMessage(v)))
-          .filter((v: any) => v && v !== 'An unexpected error occurred')
-        if (values.length) return values.join(', ')
+        const entries = Object.entries(error.errors)
+        const messages = entries
+          .map(([key, val]) => {
+            const valStr = Array.isArray(val)
+              ? val.join(', ')
+              : typeof val === 'object'
+                ? getErrorMessage(val)
+                : String(val)
+            if (!valStr || valStr === 'An unexpected error occurred') return ''
+            if (
+              valStr.toLowerCase().startsWith(key.toLowerCase()) ||
+              key === 'base' ||
+              key === 'detail'
+            ) {
+              return valStr.charAt(0).toUpperCase() + valStr.slice(1)
+            }
+            const keyFormatted = key.replace(/_/g, ' ')
+            const formattedKey =
+              keyFormatted.charAt(0).toUpperCase() + keyFormatted.slice(1)
+            return `${formattedKey} ${valStr}`
+          })
+          .filter(Boolean)
+        if (messages.length) return messages.join(', ')
       }
       return getErrorMessage(error.errors)
     }
@@ -96,7 +125,10 @@ export const getErrorMessage = (error: any): string => {
       if (Array.isArray(error.message)) {
         return error.message.join(', ')
       }
-      if (typeof error.message === 'string') {
+      if (
+        typeof error.message === 'string' &&
+        !error.message.startsWith('Request failed with status code')
+      ) {
         return error.message
       }
     }
@@ -110,8 +142,21 @@ export const getErrorMessage = (error: any): string => {
     const objValues = Object.values(error)
       .flatMap((v: any) => (Array.isArray(v) ? v : [v]))
       .map((v: any) => (typeof v === 'string' ? v : ''))
-      .filter((v: any) => v && v.length > 0 && v.length < 300)
+      .filter(
+        (v: any) =>
+          v &&
+          v.length > 0 &&
+          v.length < 300 &&
+          !v.startsWith('Request failed with status code')
+      )
     if (objValues.length) return objValues.join(', ')
+  }
+
+  if (
+    typeof error?.message === 'string' &&
+    !error.message.startsWith('Request failed with status code')
+  ) {
+    return error.message
   }
 
   return 'An unexpected error occurred'

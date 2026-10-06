@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react'
-import { useLocation, useNavigate, useParams, Link } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import moment from 'moment'
 import InfoBox from '../../../components/app/alertBox/infoBox'
 import { getSubscriptionDetails } from '../api'
@@ -96,21 +96,34 @@ export default function SubscriptionDetailsMain() {
   const refund = subscription?.refund_details
   const renewal = subscription?.renewal_details
 
-  const tabs = [
-    { id: 'details', label: 'Details' },
-    { id: 'subscriptions', label: 'Subscriptions' },
-    { id: 'body', label: 'Body measurements' },
-    { id: 'vitals', label: 'Vitals' },
-    { id: 'additional-information', label: 'Assessment' },
-    { id: 'reminders', label: 'Reminder settings' },
-    { id: 'diet-history', label: 'Diet history' },
-    { id: 'reports', label: 'Reports' },
-    { id: 'follow-ups', label: 'Follow-ups' },
-    { id: 'packages', label: 'Packages' },
-    { id: 'assignments', label: 'Assignments' },
-  ] as const
+  const isYogist =
+    loginRole === 'yogist' ||
+    loginRole === 'yoga_trainer' ||
+    loginRole === 'yoga'
 
-  type TabId = (typeof tabs)[number]['id']
+  const tabs = useMemo(() => {
+    const allTabs = [
+      { id: 'details', label: 'Details' },
+      { id: 'subscriptions', label: 'Subscriptions' },
+      { id: 'body', label: 'Body measurements' },
+      { id: 'vitals', label: 'Vitals' },
+      { id: 'additional-information', label: 'Assessment' },
+      { id: 'reminders', label: 'Reminder settings' },
+      { id: 'diet-history', label: 'Diet history' },
+      { id: 'reports', label: 'Reports' },
+      { id: 'follow-ups', label: 'Follow-ups' },
+      { id: 'packages', label: 'Packages' },
+      { id: 'assignments', label: 'Assignments' },
+    ]
+    if (isYogist) {
+      return allTabs.filter(
+        (t) => !['diet-history', 'reports', 'assignments'].includes(t.id)
+      )
+    }
+    return allTabs
+  }, [isYogist])
+
+  type TabId = string
 
   const activeTab: TabId = useMemo(() => {
     const path = location.pathname || ''
@@ -120,10 +133,8 @@ export default function SubscriptionDetailsMain() {
     const allowedTabIds = tabs.map((t) => t.id)
     const derived = lastSegment === String(id) ? 'details' : lastSegment
     if (derived === 'additional-info') return 'additional-information'
-    return (
-      allowedTabIds.includes(derived as TabId) ? derived : 'details'
-    ) as TabId
-  }, [location.pathname, id])
+    return (allowedTabIds.includes(derived) ? derived : 'details') as TabId
+  }, [location.pathname, id, tabs])
 
   const getStatusBadge = (status?: string) => {
     const s = (status || '').toLowerCase()
@@ -256,6 +267,35 @@ export default function SubscriptionDetailsMain() {
   const planCategory = plan?.category || 'Weight Loss'
   const planFees = plan?.fees ?? subscription?.plan_fees ?? 0
 
+  const handleBack = () => {
+    const fromPath = (location.state as any)?.from
+    if (fromPath) {
+      navigate(fromPath)
+      return
+    }
+
+    if (typeof window !== 'undefined' && window.history?.state?.idx > 0) {
+      navigate(-1)
+      return
+    }
+
+    const canViewSubscriptions = [
+      'superadmin',
+      'admin',
+      'nutritionist',
+    ].includes(loginRole)
+    if (canViewSubscriptions) {
+      navigate('/subscriptions')
+    } else if (
+      loginRole &&
+      ['yogist', 'physiotherapist', 'sales', 'marketing'].includes(loginRole)
+    ) {
+      navigate(`/users/${loginRole}/assigned-clients`)
+    } else {
+      navigate('/dashboard')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50/70 dark:bg-gray-950 p-3 sm:p-5 lg:p-6 space-y-4">
       {/* Compact Top Header Card */}
@@ -265,10 +305,10 @@ export default function SubscriptionDetailsMain() {
           {/* Left Title & Status */}
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/subscriptions')}
-              className="p-1.5 -ml-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 transition-colors"
-              aria-label="Back to Subscriptions"
-              title="Back to Subscriptions"
+              onClick={handleBack}
+              className="p-1.5 -ml-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              aria-label="Back"
+              title="Back"
             >
               <Icons name="left-arrow-icon" className="w-4 h-4" />
             </button>
@@ -318,10 +358,18 @@ export default function SubscriptionDetailsMain() {
                   {user.phone_number}
                 </p>
               )}
-              {subscription?.user_id && (
-                <Link
-                  to={`/clients/${subscription.user_id}/details`}
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+              {(user?.id || subscription?.user_id) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetId = user?.id || subscription?.user_id
+                    if (targetId) {
+                      navigate(`/users/${targetId}/details`, {
+                        state: { from: location.pathname },
+                      })
+                    }
+                  }}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer"
                 >
                   <span>View Client Profile</span>
                   <svg
@@ -337,7 +385,7 @@ export default function SubscriptionDetailsMain() {
                       d="M14 5l7 7m0 0l-7 7m7-7H3"
                     />
                   </svg>
-                </Link>
+                </button>
               )}
             </div>
           </div>

@@ -41,9 +41,14 @@ export default function PlanDetails() {
 function PlanDetailsContent() {
   const { id } = useParams()
   const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isSuperOrAdmin = roleName === 'superadmin' || roleName === 'admin'
   const isSales = roleName === 'sales'
   const isNutritionist = roleName === 'nutritionist'
-  const isPlanReadOnly = isNutritionist || isSales
+  const isYogist =
+    roleName === 'yogist' || roleName === 'yoga' || roleName === 'yoga_trainer'
+  const isPhysio = roleName === 'physiotherapist' || roleName === 'physio'
+  const isPlanReadOnly =
+    !isSuperOrAdmin || isNutritionist || isSales || isYogist || isPhysio
   const navigate = useNavigate()
   const location = useLocation()
   const { data, isLoading, isError, error, refetch } = usePlan(id as string)

@@ -73,7 +73,25 @@ const computeBMI = (weight: any, height: any) => {
   return (w / (heightInMeters * heightInMeters)).toFixed(1)
 }
 
+function hasValue(value: any) {
+  if (value === null || value === undefined) return false
+  if (typeof value === 'number') return !isNaN(value)
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    return (
+      trimmed !== '' &&
+      trimmed !== '--' &&
+      trimmed !== 'null' &&
+      trimmed !== 'undefined' &&
+      trimmed !== 'NaN'
+    )
+  }
+  if (Array.isArray(value)) return value.length > 0
+  return Boolean(value)
+}
+
 function DetailItem({ label, value }: { label: string; value: any }) {
+  if (!hasValue(value)) return null
   return (
     <div className="border border-formBorder/80 rounded-lg p-3.5 bg-white shadow-2xs hover:border-formBorder transition">
       <div className="text-xs text-secondary mb-1 font-medium">{label}</div>

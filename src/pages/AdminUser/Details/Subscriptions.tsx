@@ -87,7 +87,7 @@ export default function Subscriptions({
 
   const canAccessDiet = isSuperOrAdmin || isNutritionist
   const canAccessWorkout = isSuperOrAdmin || isPhysio
-  const canAccessYoga = isSuperOrAdmin || isYogist
+  const canAccessYoga = isSuperOrAdmin || isYogist || isNutritionist
   const canAccessMeditation = isSuperOrAdmin || isNutritionist || isYogist
 
   const isServiceRole = ['nutritionist', 'yogist', 'physiotherapist'].includes(
@@ -3334,7 +3334,9 @@ export default function Subscriptions({
                     Plan Calendar
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Daily scheduled diet, workouts, yoga & meditation
+                    {isYogist
+                      ? 'Daily scheduled yoga & meditation'
+                      : 'Daily scheduled diet, workouts, yoga & meditation'}
                   </p>
                 </div>
               </div>
@@ -3450,18 +3452,23 @@ export default function Subscriptions({
                                 className={`relative min-h-[170px] rounded-xl border p-2 flex flex-col justify-between transition-all duration-200 ${c?.inRange ? 'hover:-translate-y-0.5' : ''} select-none ${getDayCellClass(c)}`}
                                 title={
                                   c?.meta?.date
-                                    ? `${c.meta.date}  •  Diet: ${
-                                        c?.meta?.diet_summary?.total_items ?? 0
-                                      }  •  Workout: ${
-                                        c?.meta?.workout_summary
-                                          ?.total_exercises ?? 0
-                                      }  •  Yoga: ${
-                                        c?.meta?.yoga_summary
-                                          ?.total_exercises ?? 0
-                                      }  •  Meditation: ${
-                                        c?.meta?.meditation_summary
-                                          ?.total_items ?? 0
-                                      }`
+                                    ? [
+                                        moment(c.meta.date).isValid()
+                                          ? moment(c.meta.date).format(
+                                              'DD-MM-YYYY'
+                                            )
+                                          : c.meta.date,
+                                        canAccessDiet &&
+                                          `Diet: ${c?.meta?.diet_summary?.total_items ?? 0}`,
+                                        canAccessWorkout &&
+                                          `Workout: ${c?.meta?.workout_summary?.total_exercises ?? 0}`,
+                                        canAccessYoga &&
+                                          `Yoga: ${c?.meta?.yoga_summary?.total_exercises ?? 0}`,
+                                        canAccessMeditation &&
+                                          `Meditation: ${c?.meta?.meditation_summary?.total_items ?? 0}`,
+                                      ]
+                                        .filter(Boolean)
+                                        .join('  •  ')
                                     : ''
                                 }
                                 role={c?.inRange ? 'button' : undefined}

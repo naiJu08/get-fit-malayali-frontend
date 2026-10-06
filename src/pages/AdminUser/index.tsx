@@ -103,6 +103,25 @@ export default function AdminUser() {
     'yogist',
   ].includes(loginRole || '')
   const location = useLocation()
+  const queryParams = new URLSearchParams(location.search)
+  const isExplicitClientsTab = queryParams.get('tab') === 'clients'
+
+  useEffect(() => {
+    if (
+      isServiceStaffLogin &&
+      location.pathname === '/users' &&
+      !isExplicitClientsTab &&
+      loginRole
+    ) {
+      navigate(`/users/${loginRole}/assigned-clients`, { replace: true })
+    }
+  }, [
+    isServiceStaffLogin,
+    location.pathname,
+    isExplicitClientsTab,
+    loginRole,
+    navigate,
+  ])
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
   const [deleteItem, setDeleteItem] = useState('')
@@ -233,7 +252,9 @@ export default function AdminUser() {
             loginRole === 'superadmin' && activeRole === 'user'
               ? '/subscriptions'
               : ''
-          navigate(`${base}/${row?.id}${suffix}`)
+          navigate(`${base}/${row?.id}${suffix}`, {
+            state: { from: `${location.pathname}${location.search}` },
+          })
         },
         activeRole,
       })
@@ -745,11 +766,11 @@ export default function AdminUser() {
                       />
                     ) : null
                   }
-                  activeTab="clients"
+                  activeTab={isExplicitClientsTab ? 'clients' : 'clients'}
                   onClick={(tab) =>
                     navigate(
                       tab.id === 'clients'
-                        ? '/users'
+                        ? '/users?tab=clients'
                         : tab.id === 'inactive-clients'
                           ? '/admin/inactive-users'
                           : '/users/' + loginRole + '/assigned-clients'

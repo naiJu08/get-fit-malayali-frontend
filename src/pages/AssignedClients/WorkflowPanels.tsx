@@ -279,7 +279,7 @@ export function ClientWorkflowDetails({
               {toTitleCaseStr(activeSub?.status || 'Active')}
             </span>
             <span className="text-xs text-gray-500 font-medium">
-              • {startDateFormatted} – {endDateFormatted}
+              {startDateFormatted} to {endDateFormatted}
             </span>
           </div>
         </div>
@@ -906,6 +906,22 @@ export function ClientWorkflowFollowUps({
     }
   }
 
+  const handleCloseSchedule = () => {
+    setDialogOpen(false)
+    setFollowUp({ scheduled_at: '', notes: '' })
+  }
+
+  const handleOpenSchedule = () => {
+    setFollowUp({ scheduled_at: '', notes: '' })
+    setDialogOpen(true)
+  }
+
+  const handleCloseCompletion = () => {
+    setCompletionDialogOpen(false)
+    setSelectedFollowUp(null)
+    setCompletionNotes('')
+  }
+
   const submitFollowUp = async () => {
     if (!assignmentId) return
     if (!followUp.scheduled_at) {
@@ -923,8 +939,7 @@ export function ClientWorkflowFollowUps({
       'Follow-up scheduled successfully'
     )
     if (ok) {
-      setDialogOpen(false)
-      setFollowUp({ scheduled_at: '', notes: '' })
+      handleCloseSchedule()
     }
   }
 
@@ -940,9 +955,7 @@ export function ClientWorkflowFollowUps({
       'Follow-up marked as completed'
     )
     if (ok) {
-      setCompletionDialogOpen(false)
-      setSelectedFollowUp(null)
-      setCompletionNotes('')
+      handleCloseCompletion()
     }
   }
 
@@ -953,7 +966,7 @@ export function ClientWorkflowFollowUps({
           <Button
             outlined
             label="Schedule follow-up"
-            onClick={() => setDialogOpen(true)}
+            onClick={handleOpenSchedule}
             disabled={saving}
           />
         </div>
@@ -971,7 +984,7 @@ export function ClientWorkflowFollowUps({
               isVisible: true,
             },
             {
-              title: 'Assigned staff',
+              title: 'Staff',
               field: 'assigned_staff_name',
               customCell: true,
               renderCell: (row: any) => ({
@@ -981,15 +994,6 @@ export function ClientWorkflowFollowUps({
                     (row.assigned_staff_role || 'service team') +
                     ')'
                   : assignment?.staff_name || '--',
-              }),
-              isVisible: true,
-            },
-            {
-              title: 'Added by',
-              field: 'created_by',
-              customCell: true,
-              renderCell: (row: any) => ({
-                cell: row.created_by?.name || '--',
               }),
               isVisible: true,
             },
@@ -1060,18 +1064,18 @@ export function ClientWorkflowFollowUps({
 
       <DialogModal
         isOpen={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        onClose={handleCloseSchedule}
         title="Schedule follow-up"
         subTitle="Choose the date and time for the client call."
         onSubmit={submitFollowUp}
         actionLabel="Schedule"
         actionLoader={saving}
-        secondaryAction={() => setDialogOpen(false)}
+        secondaryAction={handleCloseSchedule}
         secondaryActionLabel="Cancel"
         body={
           <div className="space-y-4">
             <label className="block text-sm">
-              Date and time
+              Date and time <span className="text-red-500 ml-0.5">*</span>
               <input
                 className="mt-1 w-full border rounded-lg p-2"
                 type="datetime-local"
@@ -1098,13 +1102,13 @@ export function ClientWorkflowFollowUps({
       />
       <DialogModal
         isOpen={completionDialogOpen}
-        onClose={() => setCompletionDialogOpen(false)}
+        onClose={handleCloseCompletion}
         title="Complete follow-up"
         subTitle="Add remarks about the completed client follow-up."
         onSubmit={submitCompletion}
         actionLabel="Save remarks"
         actionLoader={saving}
-        secondaryAction={() => setCompletionDialogOpen(false)}
+        secondaryAction={handleCloseCompletion}
         secondaryActionLabel="Cancel"
         body={
           <label className="block text-sm">

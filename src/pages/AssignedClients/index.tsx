@@ -106,7 +106,10 @@ export default function AssignedClients() {
         field: 'user_name',
         customCell: true,
         link: true,
-        rowClick: (row: any) => navigate(location.pathname + '/' + row.id),
+        rowClick: (row: any) =>
+          navigate(location.pathname + '/' + row.id, {
+            state: { from: `${location.pathname}${location.search}` },
+          }),
         renderCell: (row: any) => ({
           cell: row.user_name || '--',
           toolTip: row.user_name || '',
@@ -173,7 +176,7 @@ export default function AssignedClients() {
           onClick={(tab) =>
             navigate(
               tab.id === 'clients'
-                ? '/users'
+                ? '/users?tab=clients'
                 : tab.id === 'inactive-clients'
                   ? '/admin/inactive-users'
                   : '/users/' + role + '/assigned-clients'

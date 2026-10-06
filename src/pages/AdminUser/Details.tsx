@@ -320,6 +320,10 @@ export default function UserDetails() {
   }, [loading, user?.id, userActualRole, detailRole])
 
   const isSuperAdmin = loginRole === 'superadmin'
+  const isLoginYogist =
+    loginRole === 'yogist' ||
+    loginRole === 'yoga_trainer' ||
+    loginRole === 'yoga'
   const isServiceClient =
     !isRoleMismatch &&
     ['nutritionist', 'physiotherapist', 'yogist'].includes(loginRole || '') &&
@@ -740,10 +744,11 @@ export default function UserDetails() {
     isSuperAdmin || loginRole === 'admin' || loginRole === 'nutritionist'
 
   const canAccessReports =
-    isSuperAdmin ||
-    loginRole === 'admin' ||
-    isServiceClient ||
-    loginRole === 'sales'
+    (isSuperAdmin ||
+      loginRole === 'admin' ||
+      isServiceClient ||
+      loginRole === 'sales') &&
+    !isLoginYogist
 
   const canAccessFollowUps =
     isWorkflowViewer ||
@@ -866,9 +871,21 @@ export default function UserDetails() {
               {/* Name row */}
               <div className="flex items-center">
                 <button
-                  onClick={() =>
-                    navigate((location.state as any)?.from || pathBase)
-                  }
+                  onClick={() => {
+                    const fromPath = (location.state as any)?.from
+                    if (fromPath) {
+                      navigate(fromPath)
+                    } else if (
+                      typeof window !== 'undefined' &&
+                      window.history?.state?.idx > 0
+                    ) {
+                      navigate(-1)
+                    } else if (isServiceClient && loginRole) {
+                      navigate(`/users/${loginRole}/assigned-clients`)
+                    } else {
+                      navigate(pathBase)
+                    }
+                  }}
                   className="rounded-lg hover:bg-gray-100 transition mr-2"
                   aria-label="Back"
                 >
@@ -1074,7 +1091,7 @@ export default function UserDetails() {
                                       <line x1="3" y1="10" x2="21" y2="10" />
                                     </svg>
                                     <span>
-                                      {formatDate(selectedCycle.start_date)} –{' '}
+                                      {formatDate(selectedCycle.start_date)} to{' '}
                                       {formatDate(selectedCycle.end_date)}
                                     </span>
                                   </div>
@@ -1082,7 +1099,9 @@ export default function UserDetails() {
                                   <span>Assigned package</span>
                                 )}
 
-                                {selectedCycle?.days_remaining !== undefined &&
+                                {selectedCycle?.status?.toLowerCase() !==
+                                  'upcoming' &&
+                                  selectedCycle?.days_remaining !== undefined &&
                                   selectedCycle?.days_remaining !== null && (
                                     <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-white/90 text-gray-700 border border-gray-200/90 shadow-2xs">
                                       {selectedCycle.days_remaining}d left
@@ -1281,13 +1300,15 @@ export default function UserDetails() {
                                                   y2="10"
                                                 />
                                               </svg>
-                                              {formatDate(c.start_date)} –{' '}
+                                              {formatDate(c.start_date)} to{' '}
                                               {formatDate(c.end_date)}
                                             </span>
                                           ) : (
                                             <span>Assigned package</span>
                                           )}
-                                          {c.days_remaining !== undefined &&
+                                          {c.status?.toLowerCase() !==
+                                            'upcoming' &&
+                                            c.days_remaining !== undefined &&
                                             c.days_remaining !== null && (
                                               <span className="font-semibold text-gray-500">
                                                 • {c.days_remaining}d remaining
