@@ -1263,7 +1263,7 @@ export default function SalesLeadDetails({
                     <Icons name="link" className="h-3.5 w-3.5" />
                     Copy link
                   </button>
-                  <button
+                  {/* <button
                     type="button"
                     className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-secondary hover:text-primaryText border border-formBorder hover:border-gray-400 bg-white rounded-lg transition-all duration-200 cursor-pointer"
                     onClick={() => {
@@ -1272,7 +1272,7 @@ export default function SalesLeadDetails({
                     }}
                   >
                     Regenerate link
-                  </button>
+                  </button> */}
                 </div>
               </div>
             ) : (

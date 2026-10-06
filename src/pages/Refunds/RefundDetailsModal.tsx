@@ -143,7 +143,7 @@ export default function RefundDetailsModal({
     <DialogModal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Refund Request #${refund.id}`}
+      title={`Refund Request `}
       subTitle="Complete audit history, package details, and timeline of the refund lifecycle."
       small={false}
       className="w-full max-w-4xl"
@@ -159,11 +159,14 @@ export default function RefundDetailsModal({
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-base font-bold text-primaryText">
-                      {refund.client?.name || 'Client'}
+                      {refund.client?.name
+                        ? refund.client.name.charAt(0).toUpperCase() +
+                          refund.client.name.slice(1)
+                        : 'Client'}
                     </h3>
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
+                    {/* <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-600">
                       ID #{refund.client?.id}
-                    </span>
+                    </span> */}
                   </div>
                   <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-secondary">
                     {refund.client?.email && (
@@ -270,7 +273,7 @@ export default function RefundDetailsModal({
               </div>
               <div className="mt-2 text-xs text-secondary flex items-center gap-1.5">
                 <span className="rounded-md bg-gray-100 px-2 py-0.5 font-medium text-gray-700">
-                  Subscription #{refund.subscription?.id || '—'}
+                  Subscription
                 </span>
                 {refund.subscription?.duration_days && (
                   <span className="text-gray-500">
@@ -491,7 +494,7 @@ export default function RefundDetailsModal({
                   Stage 2: Pending Sales review and supporting document
                   submission
                 </span>
-                {canSubmitToSuperadmin && onSubmitToSuperadmin && (
+                {/* {canSubmitToSuperadmin && onSubmitToSuperadmin && (
                   <button
                     type="button"
                     onClick={() => onSubmitToSuperadmin(refund)}
@@ -512,7 +515,7 @@ export default function RefundDetailsModal({
                     </svg>
                     <span>Submit to Superadmin</span>
                   </button>
-                )}
+                )} */}
               </div>
             )}
 
@@ -732,9 +735,8 @@ export default function RefundDetailsModal({
               ) : (
                 <span>
                   Once Sales completes the dispensation of ₹
-                  {Number(refund.amount || 0).toLocaleString()}, Subscription #
-                  {refund.subscription?.id} will immediately be marked as{' '}
-                  <strong>CANCELLED</strong>.
+                  {Number(refund.amount || 0).toLocaleString()}, Subscription
+                  will immediately be marked as <strong>CANCELLED</strong>.
                 </span>
               )}
             </div>
