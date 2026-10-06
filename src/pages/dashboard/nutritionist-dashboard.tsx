@@ -123,14 +123,10 @@ export default function NutritionistDashboardView({
     ? staffNameRaw.charAt(0).toUpperCase() + staffNameRaw.slice(1)
     : ''
 
-  const rangeLabel =
-    data?.date_info?.range_start && data?.date_info?.range_end
-      ? `${fmtDate(data.date_info.range_start)} - ${fmtDate(data.date_info.range_end)}`
-      : data?.generated_at
-        ? `As of ${fmtDate(data.generated_at)}`
-        : 'Recent 7 days'
-
-  const clientStatus = data?.clients?.by_status ?? {}
+  const asOfDate = data?.generated_at || data?.date_info?.target_date
+  const rangeLabel = asOfDate
+    ? `📅 As of ${fmtDate(asOfDate)}`
+    : '📅 As of Today'
 
   const missingTemplates =
     effectiveRole === 'physiotherapist'
@@ -219,10 +215,10 @@ export default function NutritionistDashboardView({
           <StatCard
             title="Assigned Clients"
             value={fmt(data?.clients?.total)}
-            sub={`${fmt(clientStatus.active)} active · ${fmt(clientStatus.suspended)} suspended · ${fmt(clientStatus.deactivated)} deactivated`}
+            sub={`${fmt(data?.clients?.accepted ?? 0)} accepted · ${fmt(data?.clients?.assigned ?? 0)} assigned · ${fmt(data?.clients?.inactive ?? inactiveCount)} inactive`}
             gradient="linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)"
             icon="👥"
-            onClick={() => navigate('/users')}
+            onClick={() => navigate(`/users/${effectiveRole}/assigned-clients`)}
             badge="Assigned Clients"
           />
           <StatCard
