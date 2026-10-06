@@ -97,6 +97,10 @@ const getSuccessMessage = (response: any, fallback: string) =>
 export default function AdminUser() {
   const navigate = useNavigate()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isYogist =
+    loginRole === 'yogist' ||
+    loginRole === 'yoga_trainer' ||
+    loginRole === 'yoga'
   const isServiceStaffLogin = [
     'nutritionist',
     'physiotherapist',
@@ -999,6 +1003,7 @@ export default function AdminUser() {
                     disabled: (rowData: any) =>
                       String(rowData?.status).toLowerCase() !== 'active',
                     variant: 'danger',
+                    hide: () => isYogist,
                   },
                   {
                     title: 'Activate',
@@ -1015,6 +1020,7 @@ export default function AdminUser() {
                     disabled: (rowData: any) =>
                       String(rowData?.status).toLowerCase() === 'active',
                     variant: 'success',
+                    hide: () => isYogist,
                   },
                   ...(activeRole === 'user' &&
                   ['superadmin', 'admin'].includes(loginRole || '')
