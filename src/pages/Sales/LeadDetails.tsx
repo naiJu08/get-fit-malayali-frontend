@@ -629,6 +629,11 @@ export default function SalesLeadDetails({
     try {
       setConversionLoader(true)
       const values = conversionMethods.getValues()
+      const rawGender: any = values.gender
+      const genderVal =
+        typeof rawGender === 'object' && rawGender !== null
+          ? rawGender.id || rawGender.name || ''
+          : rawGender
       const fullName = [values.first_name, values.last_name]
         .filter(Boolean)
         .map((s: string) => String(s).trim())
@@ -636,6 +641,7 @@ export default function SalesLeadDetails({
         .join(' ')
       await convertSalesLead(id, {
         ...values,
+        gender: genderVal,
         name: fullName || values.first_name || '',
       })
       enqueueSnackbar('Client created in pending state', { variant: 'success' })
@@ -1056,7 +1062,9 @@ export default function SalesLeadDetails({
                     <div>
                       <span className="text-secondary">Gender</span>
                       <div className="text-primaryText capitalize">
-                        {lead.client.gender || '--'}
+                        {lead.client.gender === 'others'
+                          ? 'Other'
+                          : lead.client.gender || '--'}
                       </div>
                     </div>
                     <div>
