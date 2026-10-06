@@ -64,6 +64,13 @@ export default function Sidenav() {
     buildMenuHierarchy(generateArray(router_config))
   )
 
+  const roleName = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isServiceStaffLogin = [
+    'nutritionist',
+    'physiotherapist',
+    'yogist',
+  ].includes(roleName || '')
+
   const navSubmenu = (e: React.MouseEvent, item: any) => {
     const visibleChildren = item.hasChild?.filter(checkPermission)
     if (visibleChildren && visibleChildren.length > 0) {
@@ -76,12 +83,30 @@ export default function Sidenav() {
         setExpand(true)
       }
     } else if (item?.path) {
-      navigate(item?.path)
+      if (
+        (item.path === '/users' ||
+          item.key === 'admin-user' ||
+          item.key === 'client-users') &&
+        isServiceStaffLogin &&
+        roleName
+      ) {
+        navigate(`/users/${roleName}/assigned-clients`)
+      } else {
+        navigate(item.path)
+      }
     }
   }
 
   const selectedSub = (index: number, childItem: any) => {
-    navigate(childItem.path)
+    if (
+      (childItem.path === '/users' || childItem.key === 'client-users') &&
+      isServiceStaffLogin &&
+      roleName
+    ) {
+      navigate(`/users/${roleName}/assigned-clients`)
+    } else {
+      navigate(childItem.path)
+    }
   }
 
   const { pathname } = useLocation()

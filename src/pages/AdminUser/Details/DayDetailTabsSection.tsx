@@ -75,7 +75,8 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     canAccessDiet ?? (isSuperOrAdmin || isNutritionistRole)
   const effectiveCanAccessWorkout =
     canAccessWorkout ?? (isSuperOrAdmin || isPhysio)
-  const effectiveCanAccessYoga = canAccessYoga ?? (isSuperOrAdmin || isYogist)
+  const effectiveCanAccessYoga =
+    canAccessYoga ?? (isSuperOrAdmin || isYogist || isNutritionistRole)
   const effectiveCanAccessMeditation =
     canAccessMeditation ?? (isSuperOrAdmin || isNutritionistRole || isYogist)
   const [dayDietEditorOpen, setDayDietEditorOpen] = useState(false)

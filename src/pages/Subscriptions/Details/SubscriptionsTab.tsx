@@ -10,6 +10,7 @@ import Icons from '../../../components/common/icons'
 import { getSubscriptionPlanOverview, getSubscriptionPlanDay } from '../api'
 import { useSnackbarManager } from '../../../components/common/snackbar'
 import { useUpdateUserMealTiming } from '../../AdminUser/api'
+import { useAuthStore } from '../../../store/authStore'
 
 type DayDetailTab = 'diet' | 'workout' | 'yoga' | 'meditation'
 
@@ -57,6 +58,20 @@ export default function SubscriptionUserSubscriptionsTab({
 
   const userId = subscription?.user_id
   const subscriptionId = subscription?.id
+
+  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isSuperOrAdmin = loginRole === 'superadmin' || loginRole === 'admin'
+  const isNutritionist = loginRole === 'nutritionist'
+  const isPhysio = loginRole === 'physiotherapist' || loginRole === 'physio'
+  const isYogist =
+    loginRole === 'yogist' ||
+    loginRole === 'yoga_trainer' ||
+    loginRole === 'yoga'
+
+  const canAccessDiet = isSuperOrAdmin || isNutritionist
+  const canAccessWorkout = isSuperOrAdmin || isPhysio
+  const canAccessYoga = isSuperOrAdmin || isYogist || isNutritionist
+  const canAccessMeditation = isSuperOrAdmin || isNutritionist || isYogist
 
   const { enqueueSnackbar } = useSnackbarManager()
 
@@ -513,6 +528,25 @@ export default function SubscriptionUserSubscriptionsTab({
                           className={`relative h-40 border px-2 py-1 text-[14px] transition-colors duration-150 ${getDayCellClass(
                             c
                           )} ${c?.inRange && c?.meta && !c?.meta?.freeze ? 'cursor-pointer' : ''}`}
+                          title={
+                            c?.meta?.date
+                              ? [
+                                  moment(c.meta.date).isValid()
+                                    ? moment(c.meta.date).format('DD-MM-YYYY')
+                                    : c.meta.date,
+                                  canAccessDiet &&
+                                    `Diet: ${c?.meta?.diet_summary?.total_items ?? 0}`,
+                                  canAccessWorkout &&
+                                    `Workout: ${c?.meta?.workout_summary?.total_exercises ?? 0}`,
+                                  canAccessYoga &&
+                                    `Yoga: ${c?.meta?.yoga_summary?.total_exercises ?? 0}`,
+                                  canAccessMeditation &&
+                                    `Meditation: ${c?.meta?.meditation_summary?.total_items ?? 0}`,
+                                ]
+                                  .filter(Boolean)
+                                  .join('  •  ')
+                              : ''
+                          }
                           onClick={() => openDayDetail(c)}
                         >
                           <div className="flex flex-col h-full w-full">

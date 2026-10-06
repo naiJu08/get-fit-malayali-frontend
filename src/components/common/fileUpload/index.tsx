@@ -49,9 +49,52 @@ const FileUpload: React.FC<FileUploadProps> = ({
   const [file, setFile] = useState<any>(value)
   const [deleteModal, setDeleteModal] = useState(false)
   const [item, setItem] = useState<any>([])
+  const [isDragging, setIsDragging] = useState(false)
   const { enqueueSnackbar } = useSnackbarManager()
   const { setValue, watch } = useFormContext()
   const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!disabled) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!disabled) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    if (disabled) return
+
+    const droppedFiles = e.dataTransfer.files
+    if (droppedFiles && droppedFiles.length > 0) {
+      if (inputRef.current) {
+        try {
+          inputRef.current.files = droppedFiles
+        } catch (err) {
+          // ignore
+        }
+      }
+      handleFileChange({ target: { files: droppedFiles, value: '' } })
+    }
+  }
 
   const resetInputValue = () => {
     if (inputRef.current) {
@@ -334,10 +377,16 @@ const FileUpload: React.FC<FileUploadProps> = ({
           </div>
         )}
         <div
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
           className={`customFileUpload-field relative flex flex-col items-center justify-center border-2 border-dashed rounded-3xl transition-all duration-200 p-8 text-center ${
             disabled
               ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
-              : 'bg-gradient-to-b from-[#F5FAFF] via-[#EEF5FE] to-[#F5FAFF] border-[#BFDBFE] hover:border-[#93C5FD] cursor-pointer group'
+              : isDragging
+                ? 'bg-blue-100/70 border-blue-500 scale-[1.01] shadow-lg cursor-pointer'
+                : 'bg-gradient-to-b from-[#F5FAFF] via-[#EEF5FE] to-[#F5FAFF] border-[#BFDBFE] hover:border-[#93C5FD] cursor-pointer group'
           }`}
         >
           <input
@@ -378,11 +427,13 @@ const FileUpload: React.FC<FileUploadProps> = ({
                 className={`w-14 h-14 rounded-full flex items-center justify-center transition-transform duration-200 shadow-xs ${
                   disabled
                     ? 'bg-gray-100 text-gray-400'
-                    : 'bg-[#DBEAFE] text-[#2563EB] group-hover:scale-105'
+                    : isDragging
+                      ? 'bg-blue-600 text-white scale-110'
+                      : 'bg-[#DBEAFE] text-[#2563EB] group-hover:scale-105'
                 }`}
               >
                 <Icons
-                  className="w-7 h-7 text-[#2563EB]"
+                  className={`w-7 h-7 ${isDragging ? 'text-white' : 'text-[#2563EB]'}`}
                   name={iconName || 'cloud-upload'}
                 />
               </div>
@@ -393,7 +444,15 @@ const FileUpload: React.FC<FileUploadProps> = ({
               Upload {label ? label.replace(/\s*\*/g, '') : 'File'}
             </h4>
             <p className="text-xs text-[#64748B] font-normal mb-4">
-              Drag & drop your image here, or browse to choose a file
+              Drag & drop your{' '}
+              {accept?.includes('video') ||
+              label?.toLowerCase().includes('video')
+                ? 'video'
+                : accept?.includes('image') ||
+                    label?.toLowerCase().includes('image')
+                  ? 'image'
+                  : 'file'}{' '}
+              here, or browse to choose a file
             </p>
 
             {/* Vibrant Blue Action Button */}

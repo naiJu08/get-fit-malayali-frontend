@@ -273,7 +273,7 @@ export default function InactiveUsers() {
               data={
                 isServiceStaffLogin
                   ? [
-                      { id: 'clients', label: 'Client' },
+                      { id: 'clients', label: 'Accepted Clients' },
                       { id: 'assigned-clients', label: 'Assigned Clients' },
                       { id: 'inactive-clients', label: 'Inactive Clients' },
                     ]
@@ -294,7 +294,9 @@ export default function InactiveUsers() {
               onClick={(tab) =>
                 navigate(
                   tab.id === 'clients'
-                    ? '/users'
+                    ? isServiceStaffLogin
+                      ? '/users?tab=clients'
+                      : '/users'
                     : tab.id === 'assigned-clients'
                       ? '/users/' + loginRole + '/assigned-clients'
                       : '/admin/inactive-users'

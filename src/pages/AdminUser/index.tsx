@@ -97,12 +97,35 @@ const getSuccessMessage = (response: any, fallback: string) =>
 export default function AdminUser() {
   const navigate = useNavigate()
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const isYogist =
+    loginRole === 'yogist' ||
+    loginRole === 'yoga_trainer' ||
+    loginRole === 'yoga'
   const isServiceStaffLogin = [
     'nutritionist',
     'physiotherapist',
     'yogist',
   ].includes(loginRole || '')
   const location = useLocation()
+  const queryParams = new URLSearchParams(location.search)
+  const isExplicitClientsTab = queryParams.get('tab') === 'clients'
+
+  useEffect(() => {
+    if (
+      isServiceStaffLogin &&
+      location.pathname === '/users' &&
+      !isExplicitClientsTab &&
+      loginRole
+    ) {
+      navigate(`/users/${loginRole}/assigned-clients`, { replace: true })
+    }
+  }, [
+    isServiceStaffLogin,
+    location.pathname,
+    isExplicitClientsTab,
+    loginRole,
+    navigate,
+  ])
   const [columns, setColumns] = useState<TableColumns[]>([])
   const { enqueueSnackbar } = useSnackbarManager()
   const [deleteItem, setDeleteItem] = useState('')
@@ -233,7 +256,9 @@ export default function AdminUser() {
             loginRole === 'superadmin' && activeRole === 'user'
               ? '/subscriptions'
               : ''
-          navigate(`${base}/${row?.id}${suffix}`)
+          navigate(`${base}/${row?.id}${suffix}`, {
+            state: { from: `${location.pathname}${location.search}` },
+          })
         },
         activeRole,
       })
@@ -745,11 +770,11 @@ export default function AdminUser() {
                       />
                     ) : null
                   }
-                  activeTab="clients"
+                  activeTab={isExplicitClientsTab ? 'clients' : 'clients'}
                   onClick={(tab) =>
                     navigate(
                       tab.id === 'clients'
-                        ? '/users'
+                        ? '/users?tab=clients'
                         : tab.id === 'inactive-clients'
                           ? '/admin/inactive-users'
                           : '/users/' + loginRole + '/assigned-clients'
@@ -978,6 +1003,7 @@ export default function AdminUser() {
                     disabled: (rowData: any) =>
                       String(rowData?.status).toLowerCase() !== 'active',
                     variant: 'danger',
+                    hide: () => isYogist,
                   },
                   {
                     title: 'Activate',
@@ -994,6 +1020,7 @@ export default function AdminUser() {
                     disabled: (rowData: any) =>
                       String(rowData?.status).toLowerCase() === 'active',
                     variant: 'success',
+                    hide: () => isYogist,
                   },
                   ...(activeRole === 'user' &&
                   ['superadmin', 'admin'].includes(loginRole || '')

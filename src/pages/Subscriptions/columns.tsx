@@ -93,7 +93,13 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
     {
       title: 'Days Remaining',
       field: 'days_remaining',
-      renderCell: createRenderCell('days_remaining'),
+      renderCell: (row: any) => {
+        const isUpcoming = row.status?.toLowerCase() === 'upcoming'
+        const val = getNestedProperty(row, 'days_remaining')
+        const cell =
+          isUpcoming || val === undefined || val === null ? '--' : val
+        return { cell, toolTip: typeof cell === 'string' ? cell : String(cell) }
+      },
       customCell: true,
       ...defaultColumnProps,
     },

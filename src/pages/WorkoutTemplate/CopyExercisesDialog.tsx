@@ -407,8 +407,16 @@ export default function CopyExercisesDialog({
                               to {formatDate(item.end_date)}
                             </p>
                           ) : (
-                            <p className="mt-1 text-xs text-gray-500">
-                              {item?.workout_template_category?.name ||
+                            <p
+                              className="mt-1 text-xs text-gray-500 truncate max-w-[320px]"
+                              title={
+                                typeof item?.description === 'string'
+                                  ? item.description
+                                  : ''
+                              }
+                            >
+                              {item?.description ||
+                                item?.workout_template_category?.name ||
                                 item?.workout_template_category_name ||
                                 (typeof item?.workout_template_category ===
                                 'string'

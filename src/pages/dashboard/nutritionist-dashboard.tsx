@@ -227,11 +227,7 @@ export default function NutritionistDashboardView({
             sub={`${fmt(data?.subscriptions?.expiring_soon)} expiring within ${fmt(data?.subscriptions?.expiring_within_days || 7)} days`}
             gradient="linear-gradient(135deg, #0284c7 0%, #2563eb 100%)"
             icon="📋"
-            onClick={
-              effectiveRole === 'nutritionist'
-                ? () => navigate('/subscriptions')
-                : undefined
-            }
+            onClick={() => navigate('/users')}
             badge="Active / Paused"
           />
           <StatCard
@@ -240,6 +236,7 @@ export default function NutritionistDashboardView({
             sub={primaryActivitySub}
             gradient="linear-gradient(135deg, #059669 0%, #0d9488 100%)"
             icon="⚡"
+            onClick={() => navigate('/users')}
             badge="7-Day Activity"
           />
           <StatCard
@@ -248,6 +245,7 @@ export default function NutritionistDashboardView({
             sub={`${fmt(expiringCount)} expiring · ${fmt(inactiveCount)} inactive · ${fmt(missingCount)} missing`}
             gradient="linear-gradient(135deg, #ea580c 0%, #e11d48 100%)"
             icon="⚠️"
+            onClick={() => navigate('/users')}
             badge={totalAlerts > 0 ? `${totalAlerts} Attention` : 'All Clear'}
           />
         </div>
