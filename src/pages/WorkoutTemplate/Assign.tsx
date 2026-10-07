@@ -376,7 +376,7 @@ export default function WorkoutTemplateAssign({
               type="text"
               className="w-full pl-10 pr-10 py-2.5 text-xs bg-white border border-gray-200 rounded-xl shadow-xs placeholder-gray-400 focus:outline-none focus:border-primaryGreen focus:ring-2 focus:ring-primaryGreen/20 transition-all"
               value={search}
-              placeholder="Search workout templates by name, intensity, or description..."
+              placeholder="Search workout templates by name..."
               onChange={(e) => setSearch(e.target.value)}
             />
             {search && (

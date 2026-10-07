@@ -608,6 +608,43 @@ export default function Subscriptions({
     [selectedYogaSubcategories]
   )
 
+  const yogaSubcategoryParentMap = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        categoryId: number | string | undefined
+        categoryName: string
+        label: string
+      }
+    > = {}
+
+    yogaCategoryOptions.forEach((cat: any) => {
+      const subs = Array.isArray(cat?.subcategories)
+        ? cat.subcategories
+        : Array.isArray(cat?.subcategory)
+          ? cat.subcategory
+          : []
+
+      subs.forEach((sub: any) => {
+        const subId = sub?.id ?? sub?.value
+        if (subId === undefined || subId === null) return
+
+        const catName = toTitleCase(cat?.name ?? '')
+        const subName = toTitleCase(sub?.value ?? sub?.name ?? sub?.label ?? '')
+        const formattedLabel =
+          catName && subName ? `${catName} - ${subName}` : subName || catName
+
+        map[String(subId)] = {
+          categoryId: cat?.id,
+          categoryName: catName,
+          label: formattedLabel,
+        }
+      })
+    })
+
+    return map
+  }, [yogaCategoryOptions])
+
   const normalizedSelectedYogaSubcategories = useMemo(() => {
     if (!selectedYogaSubcategories?.length) return []
     return selectedYogaSubcategories
@@ -616,16 +653,26 @@ export default function Subscriptions({
         const key = item?.id ?? item?.value ?? item
         if (key === undefined || key === null) return null
         const cached = yogaSubcategoryLookup[String(key)]
-        if (cached) return cached
+        const parentMeta = yogaSubcategoryParentMap[String(key)]
         const label =
-          item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
+          cached?.value ||
+          parentMeta?.label ||
+          item?.value ||
+          item?.name ||
+          item?.label ||
+          item?.desc ||
+          ''
         return {
           id: key,
           value: label,
         }
       })
       .filter(Boolean)
-  }, [selectedYogaSubcategories, yogaSubcategoryLookup])
+  }, [
+    selectedYogaSubcategories,
+    yogaSubcategoryLookup,
+    yogaSubcategoryParentMap,
+  ])
 
   const updateYogaSubcategoryLookup = useCallback((options: any[]) => {
     if (!Array.isArray(options) || options.length === 0) return
@@ -1487,6 +1534,401 @@ export default function Subscriptions({
       subcategories: Array.from(preferred.subs.values()),
     }
   }, [dayDetail?.workout_plan?.exercises, subcategoryParentMap])
+
+  const previouslySubmittedYogaSelection = useMemo(() => {
+    const exercises =
+      Array.isArray(dayDetail?.yoga_plan?.exercises) &&
+      dayDetail.yoga_plan.exercises.length > 0
+        ? dayDetail.yoga_plan.exercises
+        : Array.isArray(selectedYogas) && selectedYogas.length > 0
+          ? selectedYogas
+          : []
+
+    if (exercises.length === 0) return null
+
+    const buckets: Record<
+      string,
+      {
+        categoryId: number | string | undefined
+        categoryName: string
+        subs: Map<string, { id: any; value: string }>
+      }
+    > = {}
+
+    const getSubcategoryIdFromExercise = (exercise: any) => {
+      const candidates = [
+        exercise?.subcategory_id,
+        exercise?.yoga?.subcategory_id,
+        exercise?.subcategory?.id,
+        exercise?.yoga?.subcategory?.id,
+        Array.isArray(exercise?.subcategory_ids)
+          ? exercise.subcategory_ids[0]
+          : undefined,
+        Array.isArray(exercise?.yoga?.subcategory_ids)
+          ? exercise.yoga.subcategory_ids[0]
+          : undefined,
+        Array.isArray(exercise?.subcategories)
+          ? exercise.subcategories[0]?.id
+          : undefined,
+        Array.isArray(exercise?.yoga?.subcategories)
+          ? exercise.yoga.subcategories[0]?.id
+          : undefined,
+        exercise?.category?.parent_id ? exercise?.category?.id : undefined,
+        exercise?.yoga?.category?.parent_id
+          ? exercise?.yoga?.category?.id
+          : undefined,
+      ]
+
+      return candidates.find(
+        (candidate) =>
+          candidate !== undefined && candidate !== null && candidate !== ''
+      )
+    }
+
+    const getCategoryInfoFromExercise = (exercise: any) => {
+      const sources = [
+        exercise?.category?.main_category,
+        exercise?.yoga?.category?.main_category,
+        exercise?.category?.parent,
+        exercise?.yoga?.category?.parent,
+        exercise?.subcategory?.category,
+        exercise?.yoga?.subcategory?.category,
+        exercise?.subcategory?.parent,
+        exercise?.yoga?.subcategory?.parent,
+      ].filter(Boolean)
+
+      const primary = sources[0] as any
+
+      const idCandidates = [
+        primary?.id,
+        exercise?.category?.main_category_id,
+        exercise?.yoga?.category?.main_category_id,
+        exercise?.category?.parent_id,
+        exercise?.yoga?.category?.parent_id,
+        exercise?.yoga?.main_category_id,
+        exercise?.main_category_id,
+        exercise?.category_id,
+        exercise?.yoga?.category_id,
+        exercise?.category?.parent_id
+          ? exercise?.category?.parent_id
+          : exercise?.category?.id,
+        exercise?.yoga?.category?.parent_id
+          ? exercise?.yoga?.category?.parent_id
+          : exercise?.yoga?.category?.id,
+      ]
+
+      const categoryId = idCandidates.find(
+        (candidate) =>
+          candidate !== undefined && candidate !== null && candidate !== ''
+      )
+
+      const categoryName =
+        primary?.name ??
+        exercise?.category?.main_category?.name ??
+        exercise?.category?.main_category_name ??
+        exercise?.yoga?.category?.main_category?.name ??
+        exercise?.yoga?.category?.parent?.name ??
+        exercise?.category?.name ??
+        exercise?.yoga?.category?.name ??
+        ''
+
+      return {
+        categoryId,
+        categoryName,
+      }
+    }
+
+    const getSubcategoryLabelFromExercise = (exercise: any) =>
+      exercise?.subcategory?.name ??
+      exercise?.yoga?.subcategory?.name ??
+      exercise?.yoga?.subcategory_name ??
+      exercise?.subcategory_name ??
+      exercise?.category?.name ??
+      exercise?.yoga?.category?.name ??
+      ''
+
+    exercises.forEach((exercise: any) => {
+      const subId = getSubcategoryIdFromExercise(exercise)
+      if (subId === undefined) return
+
+      const mapMeta = yogaSubcategoryParentMap[String(subId)]
+      const catInfo = mapMeta?.categoryId
+        ? {
+            categoryId: mapMeta.categoryId,
+            categoryName: mapMeta.categoryName,
+          }
+        : getCategoryInfoFromExercise(exercise)
+
+      if (
+        catInfo.categoryId === undefined ||
+        catInfo.categoryId === null ||
+        catInfo.categoryId === ''
+      )
+        return
+
+      const bucketKey = String(catInfo.categoryId)
+      if (!buckets[bucketKey]) {
+        buckets[bucketKey] = {
+          categoryId: catInfo.categoryId,
+          categoryName: catInfo.categoryName || '',
+          subs: new Map(),
+        }
+      }
+
+      const label =
+        mapMeta?.label || getSubcategoryLabelFromExercise(exercise) || ''
+
+      buckets[bucketKey].subs.set(String(subId), {
+        id: subId,
+        value: label,
+      })
+    })
+
+    const bucketList = Object.values(buckets)
+    if (!bucketList.length) return null
+
+    bucketList.sort((a, b) => b.subs.size - a.subs.size)
+    const preferred = bucketList[0]
+
+    if (!preferred.categoryId) return null
+
+    return {
+      categoryId: preferred.categoryId,
+      categoryName: preferred.categoryName,
+      subcategories: Array.from(preferred.subs.values()),
+    }
+  }, [dayDetail?.yoga_plan?.exercises, selectedYogas, yogaSubcategoryParentMap])
+
+  const yogaPrefillAppliedRef = useRef(false)
+
+  useEffect(() => {
+    setSelectedYogaCategoryIds([])
+    setSelectedYogaSubcategories([])
+    yogaPrefillAppliedRef.current = false
+  }, [dayDetail?.yoga_plan?.id])
+
+  const previouslyAssignedYogaIds = useMemo(() => {
+    const exercises = dayDetail?.yoga_plan?.exercises
+    if (!Array.isArray(exercises) || exercises.length === 0) return []
+    return exercises
+      .map((ex: any) => getYogaId(ex))
+      .filter((id: unknown): id is number | string => id != null)
+  }, [dayDetail?.yoga_plan?.exercises])
+
+  const yogasById = useMemo(() => {
+    const map = new Map<string, any>()
+    const list = Array.isArray(yogas) ? yogas : []
+    list.forEach((y: any) => {
+      const id = getYogaId(y)
+      if (id != null) map.set(String(id), y)
+    })
+    const dayExercises = Array.isArray(dayDetail?.yoga_plan?.exercises)
+      ? dayDetail.yoga_plan.exercises
+      : []
+    dayExercises.forEach((ex: any) => {
+      const id = getYogaId(ex)
+      if (id != null && !map.has(String(id))) {
+        if (ex.yoga) map.set(String(id), ex.yoga)
+        else map.set(String(id), ex)
+      }
+    })
+    return map
+  }, [yogas, dayDetail?.yoga_plan?.exercises])
+
+  const yogaPrefillFromApi = useMemo(() => {
+    const yogaIds =
+      previouslyAssignedYogaIds.length > 0
+        ? previouslyAssignedYogaIds
+        : selectedYogas.map((y) => getYogaId(y)).filter(Boolean)
+
+    if (yogaIds.length === 0 || yogasById.size === 0) return null
+
+    type Bucket = {
+      categoryId: number | string
+      categoryName: string
+      subs: Map<string, { id: any; value: string }>
+      weight: number
+    }
+
+    const buckets = new Map<string, Bucket>()
+
+    yogaIds.forEach((yogaId: number | string) => {
+      const yoga = yogasById.get(String(yogaId))
+      if (!yoga) return
+
+      const subId =
+        yoga?.subcategory_id ??
+        yoga?.subcategory?.id ??
+        yoga?.category?.id ??
+        yoga?.category_id
+
+      const subMeta =
+        subId != null ? yogaSubcategoryParentMap[String(subId)] : undefined
+
+      const mainCategoryId =
+        yoga?.category?.main_category?.id ??
+        subMeta?.categoryId ??
+        yoga?.category?.main_category_id ??
+        yoga?.category?.parent_id ??
+        (yoga?.category?.parent_id
+          ? yoga?.category?.parent_id
+          : yoga?.category?.id)
+
+      if (mainCategoryId === undefined || mainCategoryId === null) return
+
+      const bucketKey = String(mainCategoryId)
+
+      if (!buckets.has(bucketKey)) {
+        buckets.set(bucketKey, {
+          categoryId: mainCategoryId,
+          categoryName:
+            yoga?.category?.main_category?.name ??
+            subMeta?.categoryName ??
+            yoga?.category?.main_category_name ??
+            yoga?.category?.parent?.name ??
+            yoga?.category?.name ??
+            '',
+          subs: new Map(),
+          weight: 0,
+        })
+      }
+
+      const bucket = buckets.get(bucketKey)!
+      bucket.weight += 1
+
+      if (subId != null) {
+        const subName =
+          subMeta?.label ||
+          yoga?.subcategory?.name ||
+          yoga?.subcategory_name ||
+          yoga?.category?.name ||
+          ''
+        bucket.subs.set(String(subId), {
+          id: subId,
+          value: subName,
+        })
+      }
+    })
+
+    const sortedBuckets = Array.from(buckets.values()).sort(
+      (a, b) => b.weight - a.weight
+    )
+
+    const top = sortedBuckets[0]
+    if (!top || !top.categoryId) return null
+
+    return {
+      categoryId: top.categoryId,
+      categoryName: top.categoryName,
+      subcategories: Array.from(top.subs.values()),
+    }
+  }, [
+    previouslyAssignedYogaIds,
+    selectedYogas,
+    yogasById,
+    yogaSubcategoryParentMap,
+  ])
+
+  const yogaSelectionCandidate: PrefillSelection | null = useMemo(() => {
+    if (yogaPrefillFromApi) return yogaPrefillFromApi
+    if (!previouslySubmittedYogaSelection) return null
+    const fallbackSubs = Array.isArray(
+      previouslySubmittedYogaSelection.subcategories
+    )
+      ? previouslySubmittedYogaSelection.subcategories
+      : []
+
+    return {
+      categoryId: previouslySubmittedYogaSelection.categoryId,
+      categoryName: previouslySubmittedYogaSelection.categoryName,
+      subcategories: fallbackSubs,
+    }
+  }, [yogaPrefillFromApi, previouslySubmittedYogaSelection])
+
+  const yogaSelectionSignature = useMemo(() => {
+    if (!yogaSelectionCandidate) return ''
+    const subIds = Array.isArray(yogaSelectionCandidate.subcategories)
+      ? yogaSelectionCandidate.subcategories
+          .map((sub) =>
+            sub?.id === undefined || sub?.id === null ? '' : String(sub.id)
+          )
+          .filter(Boolean)
+          .sort()
+          .join('|')
+      : ''
+
+    return `${yogaSelectionCandidate.categoryId ?? ''}::${subIds}`
+  }, [yogaSelectionCandidate])
+
+  const lastYogaPrefillSignatureRef = useRef<string>('')
+
+  useEffect(() => {
+    if (!yogaAssignOpen) return
+    if (!yogaSelectionCandidate) return
+
+    if (
+      yogaPrefillAppliedRef.current &&
+      lastYogaPrefillSignatureRef.current === yogaSelectionSignature
+    ) {
+      return
+    }
+
+    const categoryId = yogaSelectionCandidate.categoryId
+    const subcategories = yogaSelectionCandidate.subcategories || []
+
+    const applySubcategoriesIfChanged = () => {
+      if (!Array.isArray(subcategories) || subcategories.length === 0) return
+
+      setSelectedYogaSubcategories((prev) => {
+        const prevKey = prev
+          .map((item: any) => String(item?.id ?? ''))
+          .filter(Boolean)
+          .sort()
+          .join('|')
+        const nextKey = subcategories
+          .map((item: any) => String(item?.id ?? ''))
+          .filter(Boolean)
+          .sort()
+          .join('|')
+
+        if (prevKey === nextKey) {
+          return prev
+        }
+
+        updateYogaSubcategoryLookup(subcategories)
+        return subcategories
+      })
+    }
+
+    if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
+      setSelectedYogaCategoryIds((prev) => {
+        const prevKey = prev.map(String).sort().join('|')
+        const nextKey = [categoryId].map(String).sort().join('|')
+        if (prevKey === nextKey) return prev
+        return [categoryId]
+      })
+
+      applySubcategoriesIfChanged()
+    }
+
+    lastYogaPrefillSignatureRef.current = yogaSelectionSignature
+    yogaPrefillAppliedRef.current = true
+  }, [
+    yogaAssignOpen,
+    yogaSelectionCandidate,
+    yogaSelectionSignature,
+    updateYogaSubcategoryLookup,
+  ])
+
+  useEffect(() => {
+    if (yogaAssignOpen) return
+    if (yogaReviewOpen) return
+    yogaPrefillAppliedRef.current = false
+    lastYogaPrefillSignatureRef.current = ''
+    setSelectedYogaCategoryIds([])
+    setSelectedYogaSubcategories([])
+    setYogaCategoryFilter('')
+  }, [yogaAssignOpen, yogaReviewOpen])
 
   const selectionCandidate: PrefillSelection | null = useMemo(() => {
     if (workoutPrefillFromApi) return workoutPrefillFromApi
@@ -4126,6 +4568,8 @@ export default function Subscriptions({
           setSelectedYogaSubcategories([])
           setSelectedYogas([])
           yogaSelectionPrefilledRef.current = false
+          yogaPrefillAppliedRef.current = false
+          lastYogaPrefillSignatureRef.current = ''
         }}
         className="w-screen max-w-[100vw]"
         unmountOnClose
