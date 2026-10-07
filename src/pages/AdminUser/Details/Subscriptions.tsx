@@ -423,7 +423,7 @@ export default function Subscriptions({
     [formattedCategoryOptions, selectedCategoryIds]
   )
   const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
-  const [subcategoryLookup, setSubcategoryLookup] = useState<
+  const subcategoryLookupRef = useRef<
     Record<string, { id: any; value: string }>
   >({})
   const prefillAppliedRef = useRef(false)
@@ -456,7 +456,7 @@ export default function Subscriptions({
         if (!item) return null
         const key = item?.id ?? item?.value ?? item
         if (key === undefined || key === null) return null
-        const cached = subcategoryLookup[String(key)]
+        const cached = subcategoryLookupRef.current[String(key)]
         if (cached) return cached
         const label =
           item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
@@ -466,7 +466,7 @@ export default function Subscriptions({
         }
       })
       .filter(Boolean)
-  }, [selectedSubcategories, subcategoryLookup])
+  }, [selectedSubcategories])
   const deriveSubcategorySelection = useCallback((value?: any | any[]) => {
     if (!value) return []
     const list = Array.isArray(value) ? value : [value]
@@ -483,15 +483,11 @@ export default function Subscriptions({
   }, [])
   const updateSubcategoryLookup = useCallback((options: any[]) => {
     if (!Array.isArray(options) || options.length === 0) return
-    setSubcategoryLookup((prev) => {
-      const next = { ...prev }
-      options.forEach((opt: any) => {
-        const id = opt?.id ?? opt?.value ?? opt
-        if (id === undefined || id === null) return
-        const label = opt?.value ?? opt?.name ?? opt?.label ?? ''
-        next[String(id)] = { id, value: label }
-      })
-      return next
+    options.forEach((opt: any) => {
+      const id = opt?.id ?? opt?.value ?? opt
+      if (id === undefined || id === null) return
+      const label = opt?.value ?? opt?.name ?? opt?.label ?? ''
+      subcategoryLookupRef.current[String(id)] = { id, value: label }
     })
   }, [])
   const workoutListParams = useMemo(() => {
@@ -1528,7 +1524,7 @@ export default function Subscriptions({
     setSelectedCategoryIds([])
     setSelectedCategoryName('')
     setSelectedSubcategories([])
-    setSubcategoryLookup({})
+    subcategoryLookupRef.current = {}
     prefillAppliedRef.current = false
     lastPrefillSignatureRef.current = ''
   }, [dayDetail?.workout_plan?.id])

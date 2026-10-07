@@ -464,9 +464,7 @@ export default function YogaPlanDetails() {
     Array<number | string>
   >([])
   const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
-  const [subcategoryLookup, setSubcategoryLookup] = useState<
-    Record<string, any>
-  >({})
+  const subcategoryLookupRef = useRef<Record<string, any>>({})
   const [yogaFiltersEnabled, setYogaFiltersEnabled] = useState(false)
   const prefillAppliedRef = useRef(false)
   const drawerSelectionInitializedRef = useRef(false)
@@ -690,15 +688,11 @@ export default function YogaPlanDetails() {
 
   const updateSubcategoryLookup = useCallback((options: any[]) => {
     if (!Array.isArray(options) || options.length === 0) return
-    setSubcategoryLookup((prev) => {
-      const next = { ...prev }
-      options.forEach((opt) => {
-        const key = opt?.id ?? opt?.value
-        if (key !== undefined && key !== null) {
-          next[String(key)] = opt
-        }
-      })
-      return next
+    options.forEach((opt) => {
+      const key = opt?.id ?? opt?.value
+      if (key !== undefined && key !== null) {
+        subcategoryLookupRef.current[String(key)] = opt
+      }
     })
   }, [])
 
@@ -733,7 +727,7 @@ export default function YogaPlanDetails() {
       .map((item: any) => {
         const key = item?.id ?? item?.value
         if (key === undefined || key === null) return null
-        const fromLookup = subcategoryLookup[String(key)]
+        const fromLookup = subcategoryLookupRef.current[String(key)]
         const fromParent = subcategoryParentMap[String(key)]
         const label =
           fromLookup?.value ??
@@ -751,7 +745,7 @@ export default function YogaPlanDetails() {
         }
       })
       .filter(Boolean)
-  }, [selectedSubcategories, subcategoryLookup, subcategoryParentMap])
+  }, [selectedSubcategories, subcategoryParentMap])
 
   const deriveSubcategorySelection = useCallback((value?: any | any[]) => {
     if (!value) return []

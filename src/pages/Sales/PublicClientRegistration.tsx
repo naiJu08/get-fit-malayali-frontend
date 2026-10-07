@@ -703,60 +703,68 @@ export default function PublicClientRegistration() {
         @media (min-width: 1024px) { .reg-float { animation: float 4s ease-in-out infinite; } .reg-float-d1 { animation-delay: 1s; } .reg-float-d2 { animation-delay: 2s; } }
       `}</style>
 
+      {/* Left Brand Banner Panel */}
       <div
-        className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative overflow-hidden flex-col items-center justify-center p-10"
+        className="hidden lg:flex lg:w-[45%] xl:w-[50%] relative overflow-hidden flex-col items-center justify-center p-10 select-none"
         style={{
-          background:
-            'linear-gradient(135deg, #0fc8cd 0%, #0891b2 50%, #0e7490 100%)',
+          backgroundImage: 'url(/registration-hero-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
         }}
       >
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-[10%] left-[15%] w-24 h-24 rounded-full bg-white/30 reg-float" />
-          <div className="absolute top-[30%] right-[10%] w-16 h-16 rounded-full bg-white/20 reg-float reg-float-d1" />
-          <div className="absolute bottom-[20%] left-[20%] w-20 h-20 rounded-full bg-white/25 reg-float reg-float-d2" />
-          <div className="absolute bottom-[15%] right-[25%] w-12 h-12 rounded-full bg-white/20 reg-float" />
-        </div>
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(ellipse at 70% 30%, rgba(255,255,255,0.15) 0%, transparent 60%)',
-          }}
-        />
+        {/* Subtle light overlay to preserve natural image brightness while maintaining text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/15 to-black/30 pointer-events-none" />
 
-        <div className="relative z-10 text-center max-w-md">
-          <img
-            src="/gfm-logo.png"
-            alt="Get Fit Malayali"
-            className="h-16 mx-auto mb-8 drop-shadow-lg"
-          />
-          <h2 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-4">
+        {/* Ambient background glow highlights */}
+        <div className="absolute inset-0 opacity-30 pointer-events-none">
+          <div className="absolute top-[15%] left-[20%] w-48 h-48 rounded-full bg-cyan-400/25 blur-3xl reg-float" />
+          <div className="absolute bottom-[20%] right-[15%] w-44 h-44 rounded-full bg-pink-500/25 blur-3xl reg-float reg-float-d1" />
+        </div>
+
+        {/* Hero Content (Floating directly on image without any background) */}
+        <div className="relative z-10 text-center max-w-md flex flex-col items-center px-4">
+          {/* Transparent Logo (larger size, no background div) */}
+          <div className="relative inline-block mb-8">
+            <img
+              src="/gfm-logo.png"
+              alt="Get Fit Malayali"
+              className="h-24 sm:h-28 lg:h-32 w-auto object-contain drop-shadow-lg hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+
+          <h2 className="text-3xl xl:text-4xl font-black text-white leading-tight mb-3 tracking-tight drop-shadow-[0_2px_10px_rgba(0,0,0,0.6)]">
             Your fitness journey
             <br />
             starts here
           </h2>
-          <p className="text-white/70 text-sm leading-relaxed mb-8">
+
+          <p className="text-white/95 text-sm sm:text-base leading-relaxed mb-7 font-medium max-w-sm drop-shadow-[0_1px_6px_rgba(0,0,0,0.5)]">
             Share a few details and we will create a personalized health plan
             that truly works for you.
           </p>
-          <div className="flex items-center justify-center gap-6 text-white/60 text-xs">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-sm">
+
+          <div className="flex items-center justify-center gap-3 text-white text-xs flex-wrap">
+            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/35 shadow-lg hover:bg-white/30 hover:scale-105 transition-all">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#00c4cc] to-[#0093e6] text-white flex items-center justify-center text-xs shadow-md font-bold">
                 💪
               </div>
-              <span>Personalized Plans</span>
+              <span className="font-semibold tracking-wide text-white drop-shadow-xs">
+                Personalized Plans
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center text-sm">
+            <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2.5 rounded-full border border-white/35 shadow-lg hover:bg-white/30 hover:scale-105 transition-all">
+              <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-[#e91e63] to-[#ff4081] text-white flex items-center justify-center text-xs shadow-md font-bold">
                 🎯
               </div>
-              <span>Expert Guidance</span>
+              <span className="font-semibold tracking-wide text-white drop-shadow-xs">
+                Expert Guidance
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="absolute bottom-6 left-0 right-0 text-center">
-          <span className="text-white/40 text-xs">
+        <div className="absolute bottom-5 left-0 right-0 text-center z-10">
+          <span className="text-white/70 text-xs font-normal tracking-widest drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]">
             Powered by Get Fit Malayali
           </span>
         </div>
