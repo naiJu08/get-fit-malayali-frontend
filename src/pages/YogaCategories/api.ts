@@ -32,6 +32,9 @@ export const getYogaSubCategories = (parentId: string | number) => {
   return getData(`${apiUrl.CATEGORIES}/${parentId}`)
 }
 
+const capitalizeWords = (text: string) =>
+  text?.toLowerCase().replace(/\b\w/g, (char) => char.toUpperCase()) || ''
+
 export const getYogaPlanSubcategories = async (parentId?: string | number) => {
   if (!parentId) return []
   const detail: any = await getData(`${apiUrl.CATEGORIES}/${parentId}`)
@@ -39,15 +42,11 @@ export const getYogaPlanSubcategories = async (parentId?: string | number) => {
     detail?.category ?? detail?.data?.category ?? detail?.data ?? detail
   const subs: any[] = container?.subcategories || container?.subcategory || []
   const rawCatName = container?.name ?? ''
-  const catName = rawCatName
-    ? rawCatName.charAt(0).toUpperCase() + rawCatName.slice(1).toLowerCase()
-    : ''
+  const catName = capitalizeWords(rawCatName)
 
   return (Array.isArray(subs) ? subs : []).map((sub: any) => {
     const rawSubName = sub?.name ?? sub?.value ?? ''
-    const subName = rawSubName
-      ? rawSubName.charAt(0).toUpperCase() + rawSubName.slice(1).toLowerCase()
-      : ''
+    const subName = capitalizeWords(rawSubName)
     const formattedValue =
       catName && subName ? `${catName} - ${subName}` : subName
     return {

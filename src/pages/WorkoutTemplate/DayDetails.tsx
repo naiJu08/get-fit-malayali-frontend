@@ -623,13 +623,29 @@ export default function WorkoutPlanDetails() {
       }
     }
 
-    const getSubcategoryLabelFromExercise = (exercise: any) =>
-      exercise?.category?.name ??
-      exercise?.workout?.subcategory?.name ??
-      exercise?.workout?.category?.name ??
-      exercise?.workout?.subcategory_name ??
-      exercise?.category_name ??
-      ''
+    const getSubcategoryLabelFromExercise = (exercise: any) => {
+      const subId = getSubcategoryIdFromExercise(exercise)
+      if (subId !== undefined && subId !== null) {
+        const mapMeta = subcategoryParentMap[String(subId)]
+        if (mapMeta?.label) return mapMeta.label
+      }
+      const rawSub =
+        exercise?.workout?.subcategory?.name ??
+        exercise?.workout?.subcategory_name ??
+        exercise?.subcategory_name ??
+        exercise?.category?.name ??
+        ''
+      const catInfo = getCategoryInfoFromExercise(exercise)
+      const catName = capitalizeWords(catInfo.categoryName || '')
+      const subName = capitalizeWords(rawSub || '')
+      if (catName && subName) return `${catName} - ${subName}`
+      return (
+        subName ||
+        capitalizeWords(
+          exercise?.category?.name ?? exercise?.workout?.category?.name ?? ''
+        )
+      )
+    }
 
     wp.exercises.forEach((exercise: any) => {
       const subId = getSubcategoryIdFromExercise(exercise)
@@ -660,26 +676,42 @@ export default function WorkoutPlanDetails() {
       }
 
       const label =
-        getSubcategoryLabelFromExercise(exercise) || mapMeta?.label || ''
+        mapMeta?.label || getSubcategoryLabelFromExercise(exercise) || ''
 
       buckets[bucketKey].subs.set(String(subId), {
         id: subId,
-        value: label || mapMeta?.label || '',
+        value: label,
       })
     })
 
     const bucketList = Object.values(buckets)
     if (!bucketList.length) return null
 
-    bucketList.sort((a, b) => b.subs.size - a.subs.size)
-    const preferred = bucketList[0]
+    const categoryIds = Array.from(
+      new Set(
+        bucketList
+          .map((b) => b.categoryId)
+          .filter((id): id is number | string => id != null && id !== '')
+      )
+    )
+    const categoryNames = bucketList.map((b) => b.categoryName).filter(Boolean)
 
-    if (!preferred.categoryId) return null
+    const subMap = new Map<string, { id: any; value: string }>()
+    bucketList.forEach((b) => {
+      b.subs.forEach((sub, subKey) => {
+        if (!subMap.has(subKey)) {
+          subMap.set(subKey, sub)
+        }
+      })
+    })
+
+    if (!categoryIds.length) return null
 
     return {
-      categoryId: preferred.categoryId,
-      categoryName: preferred.categoryName,
-      subcategories: Array.from(preferred.subs.values()),
+      categoryIds,
+      categoryId: categoryIds[0],
+      categoryName: categoryNames.join(', '),
+      subcategories: Array.from(subMap.values()),
     }
   }, [wp?.exercises, subcategoryParentMap])
 
@@ -706,11 +738,19 @@ export default function WorkoutPlanDetails() {
     if (!assignOpen) return
     if (!previouslySubmittedSelection || prefillAppliedRef.current) return
 
-    const { categoryId, subcategories } = previouslySubmittedSelection
+    const { categoryIds, categoryId, subcategories } =
+      previouslySubmittedSelection
 
-    if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
-      setSelectedCategoryIds([categoryId])
-      setSelectedCategoryId(categoryId)
+    const targetCategoryIds =
+      Array.isArray(categoryIds) && categoryIds.length > 0
+        ? categoryIds
+        : categoryId !== undefined && categoryId !== null && categoryId !== ''
+          ? [categoryId]
+          : []
+
+    if (targetCategoryIds.length > 0) {
+      setSelectedCategoryIds(targetCategoryIds)
+      setSelectedCategoryId(targetCategoryIds[0])
     }
 
     if (Array.isArray(subcategories) && subcategories.length > 0) {
@@ -801,15 +841,15 @@ export default function WorkoutPlanDetails() {
         if (!item) return null
         const key = item?.id ?? item?.value ?? item
         if (key === undefined || key === null) return null
-        const cached = subcategoryLookupRef.current[String(key)]
-        if (cached) return cached
         const mapMeta = subcategoryParentMap[String(key)]
+        const cached = subcategoryLookupRef.current[String(key)]
         const label =
-          mapMeta?.label ??
-          item?.value ??
-          item?.name ??
-          item?.label ??
-          item?.desc ??
+          mapMeta?.label ||
+          cached?.value ||
+          item?.value ||
+          item?.name ||
+          item?.label ||
+          item?.desc ||
           ''
         return {
           id: key,

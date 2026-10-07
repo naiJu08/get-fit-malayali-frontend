@@ -154,7 +154,10 @@ export default function MeditationMain() {
     if (!deleteMeditationId) return
     try {
       setLoader(true)
-      await deleteMeditation(String(deleteMeditationId))
+      const res: any = await deleteMeditation(String(deleteMeditationId))
+      const successMessage =
+        res?.data?.message || res?.message || 'Meditation deleted successfully'
+      enqueueSnackbar(successMessage, { variant: 'success' })
       setDeleteMeditationModal(false)
       setDeleteMeditationId('')
       refetch()
