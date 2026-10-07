@@ -653,14 +653,29 @@ export default function YogaPlanDetails() {
       }
     }
 
-    const getSubcategoryLabelFromExercise = (exercise: any) =>
-      exercise?.subcategory?.name ??
-      exercise?.yoga?.subcategory?.name ??
-      exercise?.yoga?.subcategory_name ??
-      exercise?.subcategory_name ??
-      exercise?.category?.name ??
-      exercise?.yoga?.category?.name ??
-      ''
+    const getSubcategoryLabelFromExercise = (exercise: any) => {
+      const subId = getSubcategoryIdFromExercise(exercise)
+      if (subId !== undefined && subId !== null) {
+        const mapMeta = subcategoryParentMap[String(subId)]
+        if (mapMeta?.label) return mapMeta.label
+      }
+      const rawSub =
+        exercise?.subcategory?.name ??
+        exercise?.yoga?.subcategory?.name ??
+        exercise?.yoga?.subcategory_name ??
+        exercise?.subcategory_name ??
+        ''
+      const catInfo = getCategoryInfoFromExercise(exercise)
+      const catName = capitalizeWords(catInfo.categoryName || '')
+      const subName = capitalizeWords(rawSub || '')
+      if (catName && subName) return `${catName} - ${subName}`
+      return (
+        subName ||
+        capitalizeWords(
+          exercise?.category?.name ?? exercise?.yoga?.category?.name ?? ''
+        )
+      )
+    }
 
     exerciseList.forEach((exercise: any) => {
       const subId = getSubcategoryIdFromExercise(exercise)
@@ -702,15 +717,31 @@ export default function YogaPlanDetails() {
     const bucketList = Object.values(buckets)
     if (!bucketList.length) return null
 
-    bucketList.sort((a, b) => b.subs.size - a.subs.size)
-    const preferred = bucketList[0]
+    const categoryIds = Array.from(
+      new Set(
+        bucketList
+          .map((b) => b.categoryId)
+          .filter((id): id is number | string => id != null && id !== '')
+      )
+    )
+    const categoryNames = bucketList.map((b) => b.categoryName).filter(Boolean)
 
-    if (!preferred.categoryId) return null
+    const subMap = new Map<string, { id: any; value: string }>()
+    bucketList.forEach((b) => {
+      b.subs.forEach((sub, subKey) => {
+        if (!subMap.has(subKey)) {
+          subMap.set(subKey, sub)
+        }
+      })
+    })
+
+    if (!categoryIds.length) return null
 
     return {
-      categoryId: preferred.categoryId,
-      categoryName: preferred.categoryName,
-      subcategories: Array.from(preferred.subs.values()),
+      categoryIds,
+      categoryId: categoryIds[0],
+      categoryName: categoryNames.join(', '),
+      subcategories: Array.from(subMap.values()),
     }
   }, [wp?.exercises, selectedYogas, subcategoryParentMap])
 
@@ -737,10 +768,18 @@ export default function YogaPlanDetails() {
     if (!assignOpen) return
     if (!previouslySubmittedSelection || prefillAppliedRef.current) return
 
-    const { categoryId, subcategories } = previouslySubmittedSelection
+    const { categoryIds, categoryId, subcategories } =
+      previouslySubmittedSelection
 
-    if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
-      setSelectedCategoryIds([categoryId])
+    const targetCategoryIds =
+      Array.isArray(categoryIds) && categoryIds.length > 0
+        ? categoryIds
+        : categoryId !== undefined && categoryId !== null && categoryId !== ''
+          ? [categoryId]
+          : []
+
+    if (targetCategoryIds.length > 0) {
+      setSelectedCategoryIds(targetCategoryIds)
     }
 
     if (Array.isArray(subcategories) && subcategories.length > 0) {
@@ -764,13 +803,13 @@ export default function YogaPlanDetails() {
       .map((item: any) => {
         const key = item?.id ?? item?.value
         if (key === undefined || key === null) return null
-        const fromLookup = subcategoryLookupRef.current[String(key)]
         const fromParent = subcategoryParentMap[String(key)]
+        const fromLookup = subcategoryLookupRef.current[String(key)]
         const label =
+          fromParent?.label ||
           fromLookup?.value ||
           fromLookup?.name ||
           fromLookup?.label ||
-          fromParent?.label ||
           item?.value ||
           item?.name ||
           item?.label ||

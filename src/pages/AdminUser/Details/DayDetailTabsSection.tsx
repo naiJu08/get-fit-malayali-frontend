@@ -340,11 +340,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                   </button>
                                 )}
                               </div>
-                              {d?.meal_name && (
-                                <div className="text-sm text-gray-600 font-medium">
-                                  {formatMealName(d.meal_name)}
-                                </div>
-                              )}
                               {d?.notes && (
                                 <div className="text-[10px] text-gray-500 mt-1">
                                   Notes: {d.notes}

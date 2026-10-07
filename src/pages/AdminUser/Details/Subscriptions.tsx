@@ -105,7 +105,8 @@ export default function Subscriptions({
     canLoadClientProposal ? id : undefined,
     '/clients'
   )
-  const cycles = useMemo(() => cycleData?.cycles || [], [cycleData?.cycles])
+  const rawCycles = cycleData?.cycles
+  const cycles = useMemo(() => rawCycles || [], [rawCycles])
 
   const proposedCycle = useMemo(() => {
     if (selectedCycle) {
@@ -392,10 +393,15 @@ export default function Subscriptions({
         const subId = sub?.id ?? sub?.value
         if (subId === undefined || subId === null) return
 
+        const catName = toTitleCase(cat?.name ?? '')
+        const subName = toTitleCase(sub?.value ?? sub?.name ?? sub?.label ?? '')
+        const formattedLabel =
+          catName && subName ? `${catName} - ${subName}` : subName || catName
+
         map[String(subId)] = {
           categoryId: cat?.id,
-          categoryName: cat?.name ?? '',
-          label: sub?.name ?? sub?.value ?? sub?.label ?? '',
+          categoryName: catName,
+          label: formattedLabel,
         }
       })
     })
@@ -456,17 +462,23 @@ export default function Subscriptions({
         if (!item) return null
         const key = item?.id ?? item?.value ?? item
         if (key === undefined || key === null) return null
+        const parentMeta = subcategoryParentMap[String(key)]
         const cached = subcategoryLookupRef.current[String(key)]
-        if (cached) return cached
         const label =
-          item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
+          parentMeta?.label ||
+          cached?.value ||
+          item?.value ||
+          item?.name ||
+          item?.label ||
+          item?.desc ||
+          ''
         return {
           id: key,
           value: label,
         }
       })
       .filter(Boolean)
-  }, [selectedSubcategories])
+  }, [selectedSubcategories, subcategoryParentMap])
   const deriveSubcategorySelection = useCallback((value?: any | any[]) => {
     if (!value) return []
     const list = Array.isArray(value) ? value : [value]
@@ -652,11 +664,11 @@ export default function Subscriptions({
         if (!item) return null
         const key = item?.id ?? item?.value ?? item
         if (key === undefined || key === null) return null
-        const cached = yogaSubcategoryLookup[String(key)]
         const parentMeta = yogaSubcategoryParentMap[String(key)]
+        const cached = yogaSubcategoryLookup[String(key)]
         const label =
-          cached?.value ||
           parentMeta?.label ||
+          cached?.value ||
           item?.value ||
           item?.name ||
           item?.label ||
@@ -1387,23 +1399,37 @@ export default function Subscriptions({
 
     if (!buckets.size) return null
 
-    const preferred = Array.from(buckets.values()).sort((a, b) => {
-      if (b.weight === a.weight) {
-        return b.subs.size - a.subs.size
-      }
-      return b.weight - a.weight
-    })[0]
+    const allBuckets = Array.from(buckets.values())
+    const categoryIds = Array.from(
+      new Set(
+        allBuckets
+          .map((b) => b.categoryId)
+          .filter((id): id is number | string => id != null && id !== '')
+      )
+    )
+    const categoryNames = allBuckets.map((b) => b.categoryName).filter(Boolean)
+
+    const subMap = new Map<string, { id: any; value: string }>()
+    allBuckets.forEach((b) => {
+      b.subs.forEach((sub, subKey) => {
+        if (!subMap.has(subKey)) {
+          subMap.set(subKey, sub)
+        }
+      })
+    })
 
     return {
-      categoryId: preferred.categoryId,
-      categoryName: preferred.categoryName,
-      subcategories: Array.from(preferred.subs.values()),
+      categoryIds,
+      categoryId: categoryIds[0],
+      categoryName: categoryNames.join(', '),
+      subcategories: Array.from(subMap.values()),
     }
   }, [previouslyAssignedWorkoutIds, workoutsById, subcategoryParentMap])
 
   type PrefillSelection = {
-    categoryId: number | string
-    categoryName: string
+    categoryIds?: (number | string)[]
+    categoryId?: number | string
+    categoryName?: string
     subcategories: { id: any; value: string }[]
   }
 
@@ -1523,15 +1549,31 @@ export default function Subscriptions({
     const bucketList = Object.values(buckets)
     if (!bucketList.length) return null
 
-    bucketList.sort((a, b) => b.subs.size - a.subs.size)
-    const preferred = bucketList[0]
+    const categoryIds = Array.from(
+      new Set(
+        bucketList
+          .map((b) => b.categoryId)
+          .filter((id): id is number | string => id != null && id !== '')
+      )
+    )
+    const categoryNames = bucketList.map((b) => b.categoryName).filter(Boolean)
 
-    if (!preferred.categoryId) return null
+    const subMap = new Map<string, { id: any; value: string }>()
+    bucketList.forEach((b) => {
+      b.subs.forEach((sub, subKey) => {
+        if (!subMap.has(subKey)) {
+          subMap.set(subKey, sub)
+        }
+      })
+    })
+
+    if (!categoryIds.length) return null
 
     return {
-      categoryId: preferred.categoryId,
-      categoryName: preferred.categoryName,
-      subcategories: Array.from(preferred.subs.values()),
+      categoryIds,
+      categoryId: categoryIds[0],
+      categoryName: categoryNames.join(', '),
+      subcategories: Array.from(subMap.values()),
     }
   }, [dayDetail?.workout_plan?.exercises, subcategoryParentMap])
 
@@ -1687,15 +1729,31 @@ export default function Subscriptions({
     const bucketList = Object.values(buckets)
     if (!bucketList.length) return null
 
-    bucketList.sort((a, b) => b.subs.size - a.subs.size)
-    const preferred = bucketList[0]
+    const categoryIds = Array.from(
+      new Set(
+        bucketList
+          .map((b) => b.categoryId)
+          .filter((id): id is number | string => id != null && id !== '')
+      )
+    )
+    const categoryNames = bucketList.map((b) => b.categoryName).filter(Boolean)
 
-    if (!preferred.categoryId) return null
+    const subMap = new Map<string, { id: any; value: string }>()
+    bucketList.forEach((b) => {
+      b.subs.forEach((sub, subKey) => {
+        if (!subMap.has(subKey)) {
+          subMap.set(subKey, sub)
+        }
+      })
+    })
+
+    if (!categoryIds.length) return null
 
     return {
-      categoryId: preferred.categoryId,
-      categoryName: preferred.categoryName,
-      subcategories: Array.from(preferred.subs.values()),
+      categoryIds,
+      categoryId: categoryIds[0],
+      categoryName: categoryNames.join(', '),
+      subcategories: Array.from(subMap.values()),
     }
   }, [dayDetail?.yoga_plan?.exercises, selectedYogas, yogaSubcategoryParentMap])
 
@@ -1810,17 +1868,32 @@ export default function Subscriptions({
       }
     })
 
-    const sortedBuckets = Array.from(buckets.values()).sort(
-      (a, b) => b.weight - a.weight
-    )
+    if (!buckets.size) return null
 
-    const top = sortedBuckets[0]
-    if (!top || !top.categoryId) return null
+    const allBuckets = Array.from(buckets.values())
+    const categoryIds = Array.from(
+      new Set(
+        allBuckets
+          .map((b) => b.categoryId)
+          .filter((id): id is number | string => id != null && id !== '')
+      )
+    )
+    const categoryNames = allBuckets.map((b) => b.categoryName).filter(Boolean)
+
+    const subMap = new Map<string, { id: any; value: string }>()
+    allBuckets.forEach((b) => {
+      b.subs.forEach((sub, subKey) => {
+        if (!subMap.has(subKey)) {
+          subMap.set(subKey, sub)
+        }
+      })
+    })
 
     return {
-      categoryId: top.categoryId,
-      categoryName: top.categoryName,
-      subcategories: Array.from(top.subs.values()),
+      categoryIds,
+      categoryId: categoryIds[0],
+      categoryName: categoryNames.join(', '),
+      subcategories: Array.from(subMap.values()),
     }
   }, [
     previouslyAssignedYogaIds,
@@ -1839,6 +1912,11 @@ export default function Subscriptions({
       : []
 
     return {
+      categoryIds:
+        previouslySubmittedYogaSelection.categoryIds ||
+        (previouslySubmittedYogaSelection.categoryId != null
+          ? [previouslySubmittedYogaSelection.categoryId]
+          : []),
       categoryId: previouslySubmittedYogaSelection.categoryId,
       categoryName: previouslySubmittedYogaSelection.categoryName,
       subcategories: fallbackSubs,
@@ -1847,6 +1925,17 @@ export default function Subscriptions({
 
   const yogaSelectionSignature = useMemo(() => {
     if (!yogaSelectionCandidate) return ''
+    const catKeys = (
+      yogaSelectionCandidate.categoryIds ||
+      (yogaSelectionCandidate.categoryId != null
+        ? [yogaSelectionCandidate.categoryId]
+        : [])
+    )
+      .map((id) => (id == null ? '' : String(id)))
+      .filter(Boolean)
+      .sort()
+      .join(',')
+
     const subIds = Array.isArray(yogaSelectionCandidate.subcategories)
       ? yogaSelectionCandidate.subcategories
           .map((sub) =>
@@ -1857,7 +1946,7 @@ export default function Subscriptions({
           .join('|')
       : ''
 
-    return `${yogaSelectionCandidate.categoryId ?? ''}::${subIds}`
+    return `${catKeys}::${subIds}`
   }, [yogaSelectionCandidate])
 
   const lastYogaPrefillSignatureRef = useRef<string>('')
@@ -1873,7 +1962,14 @@ export default function Subscriptions({
       return
     }
 
-    const categoryId = yogaSelectionCandidate.categoryId
+    const categoryIds =
+      Array.isArray(yogaSelectionCandidate.categoryIds) &&
+      yogaSelectionCandidate.categoryIds.length > 0
+        ? yogaSelectionCandidate.categoryIds
+        : yogaSelectionCandidate.categoryId != null
+          ? [yogaSelectionCandidate.categoryId]
+          : []
+
     const subcategories = yogaSelectionCandidate.subcategories || []
 
     const applySubcategoriesIfChanged = () => {
@@ -1900,12 +1996,12 @@ export default function Subscriptions({
       })
     }
 
-    if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
+    if (categoryIds.length > 0) {
       setSelectedYogaCategoryIds((prev) => {
         const prevKey = prev.map(String).sort().join('|')
-        const nextKey = [categoryId].map(String).sort().join('|')
+        const nextKey = categoryIds.map(String).sort().join('|')
         if (prevKey === nextKey) return prev
-        return [categoryId]
+        return categoryIds
       })
 
       applySubcategoriesIfChanged()
@@ -1940,6 +2036,11 @@ export default function Subscriptions({
       : []
 
     return {
+      categoryIds:
+        previouslySubmittedSelection.categoryIds ||
+        (previouslySubmittedSelection.categoryId != null
+          ? [previouslySubmittedSelection.categoryId]
+          : []),
       categoryId: previouslySubmittedSelection.categoryId,
       categoryName: previouslySubmittedSelection.categoryName,
       subcategories: fallbackSubs,
@@ -1948,6 +2049,17 @@ export default function Subscriptions({
 
   const selectionSignature = useMemo(() => {
     if (!selectionCandidate) return ''
+    const catKeys = (
+      selectionCandidate.categoryIds ||
+      (selectionCandidate.categoryId != null
+        ? [selectionCandidate.categoryId]
+        : [])
+    )
+      .map((id) => (id == null ? '' : String(id)))
+      .filter(Boolean)
+      .sort()
+      .join(',')
+
     const subIds = Array.isArray(selectionCandidate.subcategories)
       ? selectionCandidate.subcategories
           .map((sub) =>
@@ -1958,7 +2070,7 @@ export default function Subscriptions({
           .join('|')
       : ''
 
-    return `${selectionCandidate.categoryId ?? ''}::${subIds}`
+    return `${catKeys}::${subIds}`
   }, [selectionCandidate])
 
   useEffect(() => {
@@ -1983,7 +2095,14 @@ export default function Subscriptions({
       return
     }
 
-    const categoryId = selectionCandidate.categoryId
+    const categoryIds =
+      Array.isArray(selectionCandidate.categoryIds) &&
+      selectionCandidate.categoryIds.length > 0
+        ? selectionCandidate.categoryIds
+        : selectionCandidate.categoryId != null
+          ? [selectionCandidate.categoryId]
+          : []
+
     const categoryName = selectionCandidate.categoryName
     const subcategories = selectionCandidate.subcategories || []
 
@@ -1991,7 +2110,7 @@ export default function Subscriptions({
       categoryName && categoryName.length > 0
         ? categoryName
         : (categoryOptions.find(
-            (cat: any) => String(cat?.id ?? '') === String(categoryId ?? '')
+            (cat: any) => String(cat?.id ?? '') === String(categoryIds[0] ?? '')
           )?.name ?? '')
 
     const applySubcategoriesIfChanged = () => {
@@ -2018,19 +2137,19 @@ export default function Subscriptions({
       })
     }
 
-    if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
+    if (categoryIds.length > 0) {
       setSelectedCategoryId((prev) => {
-        if (String(prev ?? '') === String(categoryId ?? '')) {
+        if (String(prev ?? '') === String(categoryIds[0] ?? '')) {
           return prev
         }
-        return categoryId
+        return categoryIds[0]
       })
 
       setSelectedCategoryIds((prev) => {
         const prevKey = prev.map(String).sort().join('|')
-        const nextKey = [categoryId].map(String).sort().join('|')
+        const nextKey = categoryIds.map(String).sort().join('|')
         if (prevKey === nextKey) return prev
-        return [categoryId]
+        return categoryIds
       })
 
       setSelectedCategoryName((prev) => {
