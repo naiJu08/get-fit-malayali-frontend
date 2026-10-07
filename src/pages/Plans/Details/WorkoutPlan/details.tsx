@@ -371,9 +371,7 @@ export default function WorkoutPlanDetails() {
   >(undefined)
   const [selectedCategoryName, setSelectedCategoryName] = useState<string>('')
   const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
-  const [subcategoryLookup, setSubcategoryLookup] = useState<
-    Record<string, any>
-  >({})
+  const subcategoryLookupRef = useRef<Record<string, any>>({})
   const [workoutFiltersEnabled, setWorkoutFiltersEnabled] = useState(false)
   const prefillAppliedRef = useRef(false)
   const drawerSelectionInitializedRef = useRef(false)
@@ -394,8 +392,13 @@ export default function WorkoutPlanDetails() {
     setSelectedCategoryId(undefined)
     setSelectedCategoryName('')
     setSelectedSubcategories([])
+    setSelectedWorkouts([])
+    setWorkoutCounts({})
+    setWorkoutFiltersEnabled(false)
     prefillAppliedRef.current = false
     drawerSelectionInitializedRef.current = false
+    selectAllNextWorkoutsRef.current = false
+    userSelectionTouchedRef.current = false
   }, [wp?.id])
 
   const refreshDetails = useCallback(async () => {
@@ -593,15 +596,11 @@ export default function WorkoutPlanDetails() {
 
   const updateSubcategoryLookup = useCallback((options: any[]) => {
     if (!Array.isArray(options) || options.length === 0) return
-    setSubcategoryLookup((prev) => {
-      const next = { ...prev }
-      options.forEach((opt) => {
-        const key = opt?.id ?? opt?.value
-        if (key !== undefined && key !== null) {
-          next[String(key)] = opt
-        }
-      })
-      return next
+    options.forEach((opt) => {
+      const key = opt?.id ?? opt?.value
+      if (key !== undefined && key !== null) {
+        subcategoryLookupRef.current[String(key)] = opt
+      }
     })
   }, [])
 
@@ -713,7 +712,7 @@ export default function WorkoutPlanDetails() {
         if (!item) return null
         const key = item?.id ?? item?.value ?? item
         if (key === undefined || key === null) return null
-        const cached = subcategoryLookup[String(key)]
+        const cached = subcategoryLookupRef.current[String(key)]
         if (cached) return cached
         const label =
           item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
@@ -723,7 +722,7 @@ export default function WorkoutPlanDetails() {
         }
       })
       .filter(Boolean)
-  }, [selectedSubcategories, subcategoryLookup])
+  }, [selectedSubcategories])
 
   const deriveSubcategorySelection = useCallback((value?: any | any[]) => {
     if (!value) return []
