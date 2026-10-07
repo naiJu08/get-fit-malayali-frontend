@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import moment from 'moment'
 import CustomDrawer from '../../components/common/drawer'
 import { getData, postData } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
@@ -8,8 +9,9 @@ import { shortDate } from '../../utilities/format'
 
 type Props = {
   subscriptionId?: string | number | null
-  currentName?: string
+  currentName?: string | null
   currentTemplateId?: string | number | null
+  selectedDayDate?: string | Date | null
   onAssigned?: () => void
   readOnly?: boolean
 }
@@ -74,6 +76,7 @@ export default function WorkoutTemplateAssign({
   subscriptionId,
   currentName,
   currentTemplateId,
+  selectedDayDate,
   onAssigned,
   readOnly = false,
 }: Props) {
@@ -192,11 +195,18 @@ export default function WorkoutTemplateAssign({
 
   const assign = async () => {
     if (!templateId) return
+    const formattedStartDate = selectedDayDate
+      ? moment(selectedDayDate).format('YYYY-MM-DD')
+      : undefined
+
     try {
       setAssigning(true)
       await postData(
         `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/assign_workout_template`,
-        { workout_template_id: Number(templateId) }
+        {
+          workout_template_id: Number(templateId),
+          start_date: formattedStartDate,
+        }
       )
       enqueueSnackbar('Workout template assigned successfully', {
         variant: 'success',
