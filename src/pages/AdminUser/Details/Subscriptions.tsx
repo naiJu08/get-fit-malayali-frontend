@@ -435,6 +435,7 @@ export default function Subscriptions({
   const prefillAppliedRef = useRef(false)
   const lastPrefillSignatureRef = useRef('')
   const selectAllNextWorkoutsRef = useRef(false)
+  const selectAllNextYogasRef = useRef(false)
   const drawerSelectionInitializedRef = useRef(false)
   const userSelectionTouchedRef = useRef(false)
   const pendingPrefillCategoryRef = useRef<string>('')
@@ -731,6 +732,101 @@ export default function Subscriptions({
     yogas.every((y: any) => isYogaSelected(y?.id))
   const hasVisibleYogaSelection =
     Array.isArray(yogas) && yogas.some((y: any) => isYogaSelected(y?.id))
+
+  const getYogaGroupLabels = useCallback(
+    (w: any) => {
+      const subId =
+        w?.subcategory_id ??
+        w?.yoga?.subcategory_id ??
+        w?.subcategory?.id ??
+        w?.yoga?.subcategory?.id
+
+      const parentMeta = subId ? yogaSubcategoryParentMap[String(subId)] : null
+
+      const main =
+        parentMeta?.categoryName ??
+        w?.category?.main_category?.name ??
+        w?.category?.parent?.name ??
+        w?.category?.main_category_name ??
+        w?.category?.parent_name ??
+        w?.yoga?.category?.main_category?.name ??
+        w?.yoga?.category?.parent?.name ??
+        w?.category?.name ??
+        w?.category_name ??
+        'Others'
+
+      const sub = parentMeta?.label?.includes(' - ')
+        ? parentMeta.label.split(' - ')[1]
+        : (parentMeta?.label ??
+          w?.subcategory?.name ??
+          w?.subcategory_name ??
+          w?.yoga?.subcategory?.name ??
+          w?.yoga?.subcategory_name ??
+          w?.yoga?.category?.name ??
+          w?.category?.name ??
+          w?.category ??
+          'Others')
+
+      const mainTitle = toTitleCase(String(main || 'Others'))
+      const subTitle = toTitleCase(String(sub || 'Others'))
+
+      return {
+        main: mainTitle,
+        sub: subTitle,
+        legend:
+          mainTitle && subTitle && mainTitle !== subTitle
+            ? `${mainTitle} - ${subTitle}`
+            : subTitle || mainTitle,
+      }
+    },
+    [yogaSubcategoryParentMap]
+  )
+
+  const getYogaGroupKey = useCallback(
+    (w: any) => {
+      const { main, sub } = getYogaGroupLabels(w)
+      return `${main}::${sub}`
+    },
+    [getYogaGroupLabels]
+  )
+
+  const groupedYogas = useMemo(() => {
+    if (!Array.isArray(yogas) || yogas.length === 0) return []
+
+    const sorted = yogas.slice().sort((a: any, b: any) => {
+      const pa = a?.category?.priority ?? 9999
+      const pb = b?.category?.priority ?? 9999
+      if (pa === pb) return 0
+      return pa < pb ? -1 : 1
+    })
+
+    const groups = new Map<
+      string,
+      { main: string; sub: string; legend: string; items: any[] }
+    >()
+
+    sorted.forEach((w: any) => {
+      const key = getYogaGroupKey(w)
+      if (!groups.has(key)) {
+        const labels = getYogaGroupLabels(w)
+        groups.set(key, {
+          main: labels.main,
+          sub: labels.sub,
+          legend: labels.legend,
+          items: [],
+        })
+      }
+      groups.get(key)!.items.push(w)
+    })
+
+    return Array.from(groups.values()).map((group) => ({
+      name: group.sub,
+      mainName: group.main,
+      legend: group.legend,
+      items: group.items,
+    }))
+  }, [yogas, getYogaGroupKey, getYogaGroupLabels])
+
   const sortedMeditations = useMemo(() => {
     if (!Array.isArray(meditations) || meditations.length === 0) return []
     return meditations.slice().sort((a: any, b: any) => {
@@ -1008,6 +1104,25 @@ export default function Subscriptions({
 
     return Array.from(unique.values())
   }, [])
+
+  const collectAllVisibleYogas = useCallback(
+    (list: any[]) => {
+      if (!Array.isArray(list) || list.length === 0) return []
+      const unique = new Map<string, any>()
+
+      list.forEach((item: any) => {
+        const normalized = toYogaSelectable(item)
+        if (!normalized?.id) return
+        const key = String(normalized.id)
+        if (!unique.has(key)) {
+          unique.set(key, normalized)
+        }
+      })
+
+      return Array.from(unique.values())
+    },
+    [toYogaSelectable]
+  )
   const handleSelectAllVisible = () => {
     if (!Array.isArray(meditations) || meditations.length === 0) return
     setSelectedMeditations((prev) => {
@@ -2236,6 +2351,23 @@ export default function Subscriptions({
     setSelectedWorkouts(collectAllVisibleWorkouts(workouts))
     selectAllNextWorkoutsRef.current = false
   }, [assignOpen, workoutsLoading, workouts])
+
+  useEffect(() => {
+    if (!yogaAssignOpen) {
+      selectAllNextYogasRef.current = false
+      return
+    }
+    if (yogasLoading) return
+    if (!selectAllNextYogasRef.current) return
+    if (!Array.isArray(yogas) || yogas.length === 0) {
+      setSelectedYogas([])
+      selectAllNextYogasRef.current = false
+      return
+    }
+
+    setSelectedYogas(collectAllVisibleYogas(yogas))
+    selectAllNextYogasRef.current = false
+  }, [yogaAssignOpen, yogasLoading, yogas, collectAllVisibleYogas])
 
   const getDefaultDayDetailTab = (): DayDetailTab => {
     if (canAccessDiet) return 'diet'
@@ -4729,8 +4861,19 @@ export default function Subscriptions({
                             value !== null &&
                             value !== ''
                         )
+                      const prevIdKey = selectedYogaCategoryIds
+                        .map(String)
+                        .sort()
+                        .join('|')
+                      const nextIdKey = ids.map(String).sort().join('|')
+                      const categoryActuallyChanged = prevIdKey !== nextIdKey
+
                       setSelectedYogaCategoryIds(ids)
                       setSelectedYogaSubcategories([])
+                      if (yogaAssignOpen && categoryActuallyChanged) {
+                        selectAllNextYogasRef.current = true
+                        setSelectedYogas([])
+                      }
                     }}
                   />
                 </div>
@@ -4794,7 +4937,27 @@ export default function Subscriptions({
                     }}
                     onChange={(value?: any | any[]) => {
                       const normalized = deriveSubcategorySelection(value)
+                      const prevKey = (selectedYogaSubcategories || [])
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(Boolean)
+                        .sort()
+                        .join('|')
+                      const nextKey = (normalized || [])
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(Boolean)
+                        .sort()
+                        .join('|')
+
+                      if (prevKey === nextKey) {
+                        setSelectedYogaSubcategories(normalized)
+                        return
+                      }
+
                       setSelectedYogaSubcategories(normalized)
+                      if (yogaAssignOpen) {
+                        selectAllNextYogasRef.current = true
+                        setSelectedYogas([])
+                      }
                     }}
                   />
                 </div>
@@ -4830,88 +4993,126 @@ export default function Subscriptions({
                 </div>
                 <div className="flex items-center gap-4 text-[11px] text-gray-600 ml-auto justify-end">
                   <span className="inline-flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    Repetitions
+                  </span>
+                  <span className="inline-flex items-center gap-1">
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                     Intensity
                   </span>
-                  <div className="flex items-center gap-1 text-[11px] text-gray-600">
+                  <span className="inline-flex items-center gap-1">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                     Duration
-                  </div>
+                  </span>
                 </div>
               </div>
             )}
 
             {!yogasLoading && yogas.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
-                {yogas.map((y: any) => {
-                  const url = y?.video_url || ''
-                  const embed = getEmbedUrl(url)
-                  const checked = isYogaSelected(y?.id)
-                  const durationLabel = getYogaDurationLabel(y)
-                  return (
-                    <div
-                      key={y?.id}
-                      className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
-                        checked ? 'ring-2 ring-primary/30' : ''
-                      }`}
-                      onClick={(e) => {
-                        if (
-                          (e.target as HTMLElement).tagName.toLowerCase() !==
-                          'input'
-                        ) {
-                          toggleYogaSelected(y)
-                        }
-                      }}
-                    >
-                      <div className="relative w-full h-40 bg-black/5">
-                        {embed ? (
-                          <iframe
-                            src={embed}
-                            title={`Yoga Video ${y?.id}`}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                          />
-                        ) : url ? (
-                          <video
-                            className="w-full h-full object-cover"
-                            src={String(url)}
-                            muted
-                            controls
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                            No video
-                          </div>
-                        )}
+              <div
+                className={`flex flex-col gap-4 transition-opacity duration-150 ${
+                  yogasLoading
+                    ? 'opacity-50 pointer-events-none'
+                    : 'opacity-100'
+                }`}
+              >
+                {groupedYogas.map((group) => {
+                  const legendText = group.legend
 
-                        {durationLabel && (
-                          <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
-                            <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-500 text-white px-2 py-0.5 font-medium backdrop-blur">
-                              <span className="w-2 h-2 rounded-full bg-white" />
-                              {durationLabel}
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
-                              <Icons name="activity" className="w-3 h-3" />
-                              {y?.intensity_level ||
-                                y?.yoga?.intensity_level ||
-                                '--'}
-                            </span>
-                          </div>
-                        )}
+                  return (
+                    <fieldset
+                      key={group.legend || group.name}
+                      className="border border-gray-300 rounded-xl p-4 bg-white"
+                    >
+                      <legend className="px-2 text-md font-semibold text-gray-600">
+                        {legendText}
+                      </legend>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
+                        {group.items.map((y: any) => {
+                          const url = y?.video_url || ''
+                          const embed = getEmbedUrl(url)
+                          const checked = isYogaSelected(y?.id)
+                          const durationLabel = getYogaDurationLabel(y)
+                          return (
+                            <div
+                              key={y?.id}
+                              className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
+                                checked ? 'ring-2 ring-primary/30' : ''
+                              }`}
+                              onClick={(e) => {
+                                if (
+                                  (
+                                    e.target as HTMLElement
+                                  ).tagName.toLowerCase() !== 'input'
+                                ) {
+                                  toggleYogaSelected(y)
+                                }
+                              }}
+                            >
+                              <div className="relative w-full h-40 bg-black/5">
+                                {embed ? (
+                                  <iframe
+                                    src={embed}
+                                    title={`Yoga Video ${y?.id}`}
+                                    className="w-full h-full pointer-events-none"
+                                    allowFullScreen
+                                  />
+                                ) : url ? (
+                                  <video
+                                    className="w-full h-full object-cover"
+                                    src={String(url)}
+                                    muted
+                                    controls
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                                    No video
+                                  </div>
+                                )}
+
+                                <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                                  {y?.reps ? (
+                                    <span className="items-center gap-1 rounded-sm bg-blue-600/90 text-white px-2 py-0.5 font-semibold backdrop-blur">
+                                      <Icons
+                                        name="repeat"
+                                        className="w-3 h-3"
+                                      />
+                                      {y.reps}
+                                    </span>
+                                  ) : null}
+                                  <span className="items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                                    <Icons
+                                      name="activity"
+                                      className="w-3 h-3"
+                                    />
+                                    {y?.intensity_level ||
+                                      y?.yoga?.intensity_level ||
+                                      '--'}
+                                  </span>
+                                  <span className="items-center gap-1 rounded-sm bg-green-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
+                                    <Icons name="clock" className="w-3 h-3" />
+                                    {durationLabel}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="px-2 py-2 text-xs flex items-center justify-between gap-2">
+                                <div className="font-medium line-clamp-1 flex-1">
+                                  {formatYogaName(y?.name || y?.title)}
+                                </div>
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer shrink-0"
+                                  checked={checked}
+                                  onChange={() => toggleYogaSelected(y)}
+                                />
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
-                      <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
-                        <div className="font-medium break-words w-40">
-                          {formatYogaName(y?.name || y?.title)}
-                        </div>
-                        <input
-                          type="checkbox"
-                          className="mt-0.5 shrink-0"
-                          checked={checked}
-                          onChange={() => toggleYogaSelected(y)}
-                        />
-                      </div>
-                    </div>
+                    </fieldset>
                   )
                 })}
               </div>
