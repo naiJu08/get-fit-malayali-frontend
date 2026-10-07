@@ -382,7 +382,7 @@ export default function YogaTemplateAssign({
               type="text"
               className="w-full pl-10 pr-10 py-2.5 text-xs bg-white border border-gray-200 rounded-xl shadow-xs placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
               value={search}
-              placeholder="Search yoga templates by name, intensity, or description..."
+              placeholder="Search yoga templates by name..."
               onChange={(e) => setSearch(e.target.value)}
             />
             {search && (
