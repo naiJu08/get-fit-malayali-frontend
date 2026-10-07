@@ -370,10 +370,18 @@ export type StaffDashboardResponse = {
   yogist?: StaffInfo
   clients?: {
     total?: number
+    accepted?: number
+    assigned?: number
+    inactive?: number
     by_status?: {
       active?: number
       suspended?: number
       deactivated?: number
+      [k: string]: number | undefined
+    }
+    by_workflow_status?: {
+      pending?: number
+      accepted?: number
       [k: string]: number | undefined
     }
     hints?: Record<string, string>

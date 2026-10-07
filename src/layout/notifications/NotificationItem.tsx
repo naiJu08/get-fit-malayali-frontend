@@ -39,11 +39,29 @@ const getTypeBadge = (type?: string) => {
         borderColor: 'border-amber-200 dark:border-amber-800',
       }
     case 'reminder':
+    case 'reminder_settings':
+    case 'user_reminder':
       return {
         label: 'Reminder',
         bgColor: 'bg-sky-100 dark:bg-sky-950/60',
         textColor: 'text-sky-700 dark:text-sky-300',
         borderColor: 'border-sky-200 dark:border-sky-800',
+      }
+    case 'body_measurement':
+    case 'body_measurements':
+      return {
+        label: 'Measurement',
+        bgColor: 'bg-violet-100 dark:bg-violet-950/60',
+        textColor: 'text-violet-700 dark:text-violet-300',
+        borderColor: 'border-violet-200 dark:border-violet-800',
+      }
+    case 'vitals':
+    case 'daily_vitals':
+      return {
+        label: 'Vitals',
+        bgColor: 'bg-cyan-100 dark:bg-cyan-950/60',
+        textColor: 'text-cyan-700 dark:text-cyan-300',
+        borderColor: 'border-cyan-200 dark:border-cyan-800',
       }
     case 'refund_request':
       return {

@@ -159,7 +159,10 @@ export default function RefundsPage() {
                 className="text-blue-600 hover:underline font-semibold text-sm text-left"
                 onClick={() => setDetailsModalRefund(row)}
               >
-                {row.client?.name || 'Client #' + row.client?.id}
+                {row.client?.name
+                  ? row.client.name.charAt(0).toUpperCase() +
+                    row.client.name.slice(1)
+                  : 'Client #' + row.client?.id}
               </button>
               <div className="text-xs text-secondary">
                 {row.client?.phone || row.client?.email || '--'}

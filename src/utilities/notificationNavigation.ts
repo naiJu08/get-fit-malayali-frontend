@@ -107,6 +107,21 @@ export function resolveNotificationUrl(
           role === 'sales' ? '/sales/clients' : '/users',
           targetName
         )
+      case 'body_measurement':
+      case 'body_measurements':
+      case 'vitals':
+      case 'daily_vitals':
+      case 'reminder_settings':
+      case 'user_reminder':
+        if (['nutritionist', 'physiotherapist', 'yogist'].includes(role)) {
+          return appendSearchQuery(
+            `/users/${role}/assigned-clients`,
+            targetName
+          )
+        }
+        if (role === 'sales')
+          return appendSearchQuery('/sales/clients', targetName)
+        return '/users'
       default:
         return '/dashboard'
     }

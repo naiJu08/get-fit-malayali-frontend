@@ -629,6 +629,11 @@ export default function SalesLeadDetails({
     try {
       setConversionLoader(true)
       const values = conversionMethods.getValues()
+      const rawGender: any = values.gender
+      const genderVal =
+        typeof rawGender === 'object' && rawGender !== null
+          ? rawGender.id || rawGender.name || ''
+          : rawGender
       const fullName = [values.first_name, values.last_name]
         .filter(Boolean)
         .map((s: string) => String(s).trim())
@@ -636,6 +641,7 @@ export default function SalesLeadDetails({
         .join(' ')
       await convertSalesLead(id, {
         ...values,
+        gender: genderVal,
         name: fullName || values.first_name || '',
       })
       enqueueSnackbar('Client created in pending state', { variant: 'success' })
@@ -1056,7 +1062,9 @@ export default function SalesLeadDetails({
                     <div>
                       <span className="text-secondary">Gender</span>
                       <div className="text-primaryText capitalize">
-                        {lead.client.gender || '--'}
+                        {lead.client.gender === 'others'
+                          ? 'Other'
+                          : lead.client.gender || '--'}
                       </div>
                     </div>
                     <div>
@@ -1263,7 +1271,7 @@ export default function SalesLeadDetails({
                     <Icons name="link" className="h-3.5 w-3.5" />
                     Copy link
                   </button>
-                  <button
+                  {/* <button
                     type="button"
                     className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-secondary hover:text-primaryText border border-formBorder hover:border-gray-400 bg-white rounded-lg transition-all duration-200 cursor-pointer"
                     onClick={() => {
@@ -1272,7 +1280,7 @@ export default function SalesLeadDetails({
                     }}
                   >
                     Regenerate link
-                  </button>
+                  </button> */}
                 </div>
               </div>
             ) : (
