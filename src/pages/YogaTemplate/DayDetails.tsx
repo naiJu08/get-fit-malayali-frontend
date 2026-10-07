@@ -1539,7 +1539,8 @@ export default function YogaPlanDetails() {
                       }
                       if (assignOpen && categoryActuallyChanged) {
                         userSelectionTouchedRef.current = true
-                        selectAllNextYogasRef.current = false
+                        selectAllNextYogasRef.current = true
+                        setSelectedYogas([])
                       }
                     }}
                   />
@@ -1622,7 +1623,8 @@ export default function YogaPlanDetails() {
 
                       if (assignOpen && prevKey !== nextKey) {
                         userSelectionTouchedRef.current = true
-                        selectAllNextYogasRef.current = false
+                        selectAllNextYogasRef.current = true
+                        setSelectedYogas([])
                       }
                     }}
                   />

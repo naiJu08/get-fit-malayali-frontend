@@ -1431,7 +1431,8 @@ export default function WorkoutPlanDetails() {
                       }
                       if (assignOpen && categoryActuallyChanged) {
                         userSelectionTouchedRef.current = true
-                        selectAllNextWorkoutsRef.current = false
+                        selectAllNextWorkoutsRef.current = true
+                        setSelectedWorkouts([])
                       }
                     }}
                   />
@@ -1490,7 +1491,8 @@ export default function WorkoutPlanDetails() {
 
                       if (assignOpen && prevKey !== nextKey) {
                         userSelectionTouchedRef.current = true
-                        selectAllNextWorkoutsRef.current = false
+                        selectAllNextWorkoutsRef.current = true
+                        setSelectedWorkouts([])
                       }
                     }}
                   />
