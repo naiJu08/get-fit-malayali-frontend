@@ -5511,9 +5511,70 @@ export default function Subscriptions({
                 <div>
                   <span className="text-xs text-gray-500 block">Category</span>
                   <span className="font-semibold text-gray-900 capitalize">
-                    {proposedPackage?.plan?.category ||
-                      proposedPackage?.plan?.plan_category ||
-                      '--'}
+                    {(() => {
+                      const getVal = (v: any) => {
+                        if (!v) return ''
+                        if (typeof v === 'string') return v
+                        if (typeof v === 'number') return String(v)
+                        if (typeof v === 'object') {
+                          return (
+                            v.name ||
+                            v.title ||
+                            v.label ||
+                            v.category_name ||
+                            v.category ||
+                            ''
+                          )
+                        }
+                        return ''
+                      }
+                      const candidates = [
+                        proposedPackage?.plan?.category,
+                        proposedPackage?.plan?.plan_category,
+                        proposedPackage?.plan?.category_name,
+                        proposedPackage?.plan?.plan_category_name,
+                        proposedPackage?.category,
+                        proposedPackage?.plan_category,
+                        proposedPackage?.category_name,
+                        proposedPackage?.plan_category_name,
+                        proposedPackage?.package_category,
+                        proposedPackage?.package_category_name,
+                        proposedCycle?.plan?.category,
+                        proposedCycle?.plan?.plan_category,
+                        proposedCycle?.plan?.category_name,
+                        proposedCycle?.plan?.plan_category_name,
+                        proposedCycle?.category,
+                        proposedCycle?.plan_category,
+                        proposedCycle?.category_name,
+                        proposedCycle?.plan_category_name,
+                        proposedCycle?.proposal?.plan?.category,
+                        proposedCycle?.proposal?.plan?.plan_category,
+                        proposedCycle?.proposal?.category,
+                        proposedCycle?.proposal?.plan_category,
+                        workflowAssignment?.anticipated_package?.category,
+                        workflowAssignment?.anticipated_package?.plan_category,
+                        workflowAssignment?.anticipated_package?.plan?.category,
+                        workflowAssignment?.anticipated_package?.plan
+                          ?.plan_category,
+                        clientDetail?.client?.plan_proposals?.find(
+                          (p: any) => p.status === 'proposed'
+                        )?.plan?.category,
+                        clientDetail?.client?.plan_proposals?.find(
+                          (p: any) => p.status === 'proposed'
+                        )?.plan?.plan_category,
+                        clientDetail?.client?.plan_proposals?.find(
+                          (p: any) => p.status === 'proposed'
+                        )?.category,
+                        clientDetail?.client?.plan_proposals?.find(
+                          (p: any) => p.status === 'proposed'
+                        )?.plan_category,
+                      ]
+                      for (const c of candidates) {
+                        const str = getVal(c)
+                        if (str && str.trim() !== '') return str
+                      }
+                      return '--'
+                    })()}
                   </span>
                 </div>
                 <div>
