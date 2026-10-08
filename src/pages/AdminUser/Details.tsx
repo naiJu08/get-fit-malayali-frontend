@@ -743,12 +743,16 @@ export default function UserDetails() {
   const canAccessDietAndRecipes =
     isSuperAdmin || loginRole === 'admin' || loginRole === 'nutritionist'
 
+  const isLoginPhysiotherapist =
+    loginRole === 'physiotherapist' || loginRole === 'physio'
+
   const canAccessReports =
     (isSuperAdmin ||
       loginRole === 'admin' ||
       isServiceClient ||
       loginRole === 'sales') &&
-    !isLoginYogist
+    !isLoginYogist &&
+    !isLoginPhysiotherapist
 
   const canAccessFollowUps =
     isWorkflowViewer ||
@@ -886,7 +890,7 @@ export default function UserDetails() {
                       navigate(pathBase)
                     }
                   }}
-                  className="rounded-lg hover:bg-gray-100 transition mr-2"
+                  className="rounded-lg hover:bg-gray-100 transition mr-2 mt-[10px]"
                   aria-label="Back"
                 >
                   <Icons name="left-arrow-icon" />
@@ -1501,7 +1505,7 @@ export default function UserDetails() {
                               }`}
                             >
                               {hasStaff
-                                ? item.staff_name || 'Assigned'
+                                ? capitalizeFirst(item.staff_name) || 'Assigned'
                                 : 'Unassigned'}
                             </span>
 
@@ -1543,8 +1547,8 @@ export default function UserDetails() {
                                 navigate(`/users/${roleUrl}/${staffId}/details`)
                               }}
                               className="flex h-5 w-5 shrink-0 items-center justify-center rounded text-gray-400 hover:text-primaryGreen hover:bg-primaryGreen/10 transition-all active:scale-90"
-                              title={`Go to ${item.staff_name || slot.title}'s detail page`}
-                              aria-label={`Go to ${item.staff_name || slot.title}'s detail page`}
+                              title={`Go to ${capitalizeFirst(item.staff_name) || slot.title}'s detail page`}
+                              aria-label={`Go to ${capitalizeFirst(item.staff_name) || slot.title}'s detail page`}
                             >
                               <svg
                                 className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5"

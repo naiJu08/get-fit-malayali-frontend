@@ -8,6 +8,7 @@ import InfoBox from '../../../components/app/alertBox/infoBox'
 import FormBuilder from '../../../components/app/formBuilder'
 import { DialogModal } from '../../../components/common'
 import CustomeSideViewer from '../../../components/common/drawer/customeSideViewer'
+import { useSnackbarManager } from '../../../components/common/snackbar'
 import { humanizeDatetime } from '../../../utilities/format'
 // import { getRoles, useCreateAdmin, useUpdateAdmin } from '../../organisation/common/commonUtils'
 // import FormFieldView from '../../../components/common/inputs/FormFieldView'
@@ -327,6 +328,7 @@ export default function CreateAdmin({
   setEditViewIndicator,
   activeRole,
 }: Props) {
+  const { enqueueSnackbar } = useSnackbarManager()
   const textField = (
     name: string,
     label: string,
@@ -982,6 +984,23 @@ export default function CreateAdmin({
   }, [medicalConditionsValue, isDrawerOpen])
 
   const onSubmit = async (details: any) => {
+    if (isClientTab && !edit) {
+      const salesRepVal = details?.sales_rep_id
+      if (
+        salesRepVal === null ||
+        salesRepVal === undefined ||
+        salesRepVal === ''
+      ) {
+        methods.setError('sales_rep_id' as any, {
+          type: 'manual',
+          message: 'Required.',
+        })
+        enqueueSnackbar('Assign Sales Representative is required.', {
+          variant: 'error',
+        })
+        return
+      }
+    }
     console.log('Form details submitted:', details)
     console.log('State field value:', details?.state)
     const pickId = (v: any, fallback = 0) => {
