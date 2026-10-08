@@ -186,7 +186,9 @@ export default function SalesClientDetails() {
               <Icons name="left-arrow-icon" />
             </button>
             <h1 className="text-xl font-semibold text-gray-900">
-              {client.name || 'Client #' + id}
+              {client.name
+                ? client.name.charAt(0).toUpperCase() + client.name.slice(1)
+                : 'Client #' + id}
             </h1>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">

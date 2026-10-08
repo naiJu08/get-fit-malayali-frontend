@@ -16,41 +16,49 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import Icons from '../../components/common/icons'
 import { getAdminDetails } from '../AdminUser/api'
 import moment from 'moment'
-const generateInvoice = async (row: any) => {
+export const generateInvoice = async (row: any, subscriptionData?: any) => {
   // Dynamically import jspdf and html2canvas
   const { default: jsPDF } = await import('jspdf')
   const { default: html2canvas } = await import('html2canvas')
 
+  const client = row?.client || subscriptionData?.client || null
+  const sub = row?.subscription || subscriptionData || null
+
   // Fetch complete user details
   let userDetails = {
-    name: row?.user_name || 'N/A',
-    userId: row?.user_id || 'N/A',
-    email: 'N/A',
-    phone: 'N/A',
-    dateOfBirth: 'N/A',
-    gender: 'N/A',
+    name: client?.name || row?.user_name || row?.client_name || 'N/A',
+    userId: client?.id || row?.user_id || 'N/A',
+    email: client?.email || row?.client_email || 'N/A',
+    phone: client?.phone || row?.client_phone || 'N/A',
+    dateOfBirth: client?.profile?.date_of_birth || 'N/A',
+    gender: client?.profile?.gender || 'N/A',
     address: 'N/A',
-    state: 'N/A',
-    ethnicity: 'N/A',
+    state: client?.profile?.state || client?.state || 'N/A',
+    ethnicity: client?.profile?.ethnicity || client?.ethnicity || 'N/A',
   }
 
   try {
-    if (row?.user_id) {
-      const userResponse = await getAdminDetails(String(row.user_id))
+    const fetchId = client?.id || row?.user_id
+    if (fetchId) {
+      const userResponse = await getAdminDetails(String(fetchId))
       const user = userResponse?.user || userResponse
+      const profile = user?.profile || {}
       if (user) {
         userDetails = {
-          name: user?.name || user?.display_name || row?.user_name || 'N/A',
-          userId: user?.id || row?.user_id || 'N/A',
-          email: user?.email || user?.username || 'N/A',
-          phone: user?.phone || 'N/A',
-          dateOfBirth: user?.date_of_birth
-            ? moment(user.date_of_birth).format('YYYY-MM-DD')
-            : 'N/A',
-          gender: user?.gender,
-          address: user?.address || 'N/A',
-          state: user?.state || 'N/A',
-          ethnicity: user?.ethnicity || 'N/A',
+          name: user?.name || client?.name || row?.user_name || 'N/A',
+          userId: user?.id || fetchId,
+          email: user?.email || client?.email || 'N/A',
+          phone: user?.phone || client?.phone || 'N/A',
+          dateOfBirth:
+            user?.date_of_birth || profile?.date_of_birth
+              ? moment(user?.date_of_birth || profile?.date_of_birth).format(
+                  'YYYY-MM-DD'
+                )
+              : 'N/A',
+          gender: user?.gender || profile?.gender || 'N/A',
+          address: 'N/A',
+          state: user?.state || profile?.state || 'N/A',
+          ethnicity: user?.ethnicity || profile?.ethnicity || 'N/A',
         }
       }
     }
@@ -63,15 +71,17 @@ const generateInvoice = async (row: any) => {
     invoiceNumber: `INV-${row?.id || Date.now()}`,
     invoiceDate: moment().format('DD-MM-YYYY'),
     subscriptionDetails: {
-      planName: row?.plan_name || 'N/A',
-      startDate: row?.start_date
-        ? moment(row.start_date).format('DD-MM-YYYY')
-        : 'N/A',
-      endDate: row?.end_date
-        ? moment(row.end_date).format('DD-MM-YYYY')
-        : 'N/A',
-      fees: row?.amount || row?.plan_fees || '0',
-      status: row?.status || 'N/A',
+      planName: row?.plan_name || sub?.plan_name || sub?.plan?.name || 'N/A',
+      startDate:
+        row?.start_date || sub?.start_date
+          ? moment(row?.start_date || sub?.start_date).format('DD-MM-YYYY')
+          : 'N/A',
+      endDate:
+        row?.end_date || sub?.end_date
+          ? moment(row?.end_date || sub?.end_date).format('DD-MM-YYYY')
+          : 'N/A',
+      fees: row?.amount || row?.plan_fees || sub?.plan_fees || '0',
+      status: row?.status || sub?.status || 'N/A',
     },
     userDetails,
     company: {
