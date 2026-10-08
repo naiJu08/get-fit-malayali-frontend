@@ -137,7 +137,7 @@ export default function Subscriptions({
       if (selectedCycle.proposal) {
         return {
           ...selectedCycle.proposal,
-          plan: selectedCycle.plan || selectedCycle.proposal?.plan,
+          plan: selectedCycle.proposal?.plan || selectedCycle.plan,
           start_date:
             selectedCycle.start_date || selectedCycle.proposal?.start_date,
           end_date: selectedCycle.end_date || selectedCycle.proposal?.end_date,

@@ -987,6 +987,8 @@ export default function AdminUser() {
                     action: (row) => handleEdit(row),
                     title: 'Edit',
                     toolTip: 'Edit',
+                    hide: () =>
+                      ['physiotherapist', 'physio'].includes(loginRole || ''),
                   },
                   {
                     title: 'Deactivate',
@@ -1003,7 +1005,9 @@ export default function AdminUser() {
                     disabled: (rowData: any) =>
                       String(rowData?.status).toLowerCase() !== 'active',
                     variant: 'danger',
-                    hide: () => isYogist,
+                    hide: () =>
+                      isYogist ||
+                      ['physiotherapist', 'physio'].includes(loginRole || ''),
                   },
                   {
                     title: 'Activate',
@@ -1020,7 +1024,9 @@ export default function AdminUser() {
                     disabled: (rowData: any) =>
                       String(rowData?.status).toLowerCase() === 'active',
                     variant: 'success',
-                    hide: () => isYogist,
+                    hide: () =>
+                      isYogist ||
+                      ['physiotherapist', 'physio'].includes(loginRole || ''),
                   },
                   ...(activeRole === 'user' &&
                   ['superadmin', 'admin'].includes(loginRole || '')

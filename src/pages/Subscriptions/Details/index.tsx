@@ -17,10 +17,10 @@ import { ClientWorkflowFollowUps } from '../../AssignedClients/WorkflowPanels'
 import { useAssignedClientForUser } from '../../AssignedClients/api'
 import { useAuthStore } from '../../../store/authStore'
 
-const formatDate = (dateString?: string | null) => {
-  if (!dateString) return '-'
-  return moment(dateString).format('MMM D, YYYY')
-}
+// const formatDate = (dateString?: string | null) => {
+//   if (!dateString) return '-'
+//   return moment(dateString).format('DD-MM-YYYY')
+// }
 
 const formatCurrency = (amount?: number | string | null) => {
   if (amount === undefined || amount === null) return '₹0'
@@ -91,7 +91,17 @@ export default function SubscriptionDetailsMain() {
   const staffList: any[] = Array.isArray(subscription?.assigned_staff)
     ? subscription.assigned_staff
     : []
-  const salesOwner = subscription?.sales_owner
+  const salesOwner =
+    subscription?.sales_owner ||
+    subscription?.anticipated_package?.created_by ||
+    workflowAssignment?.anticipated_package?.created_by ||
+    (workflowAssignment?.assigned_by?.role === 'sales'
+      ? workflowAssignment?.assigned_by
+      : null) ||
+    (subscription?.assigned_by?.role === 'sales'
+      ? subscription?.assigned_by
+      : null) ||
+    null
   const proposal = subscription?.proposal_details
   const refund = subscription?.refund_details
   const renewal = subscription?.renewal_details
@@ -100,6 +110,7 @@ export default function SubscriptionDetailsMain() {
     loginRole === 'yogist' ||
     loginRole === 'yoga_trainer' ||
     loginRole === 'yoga'
+  const isPhysio = loginRole === 'physiotherapist' || loginRole === 'physio'
 
   const tabs = useMemo(() => {
     const allTabs = [
@@ -118,8 +129,11 @@ export default function SubscriptionDetailsMain() {
     if (isYogist) {
       return allTabs.filter((t) => !['reports', 'assignments'].includes(t.id))
     }
+    if (isPhysio) {
+      return allTabs.filter((t) => !['diet-history', 'reports'].includes(t.id))
+    }
     return allTabs
-  }, [isYogist])
+  }, [isYogist, isPhysio])
 
   type TabId = string
 
@@ -305,17 +319,17 @@ export default function SubscriptionDetailsMain() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleBack}
-              className="p-1.5 -ml-1 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              className="p-2 mt-6 -ml-1 rounded-lg text-black-500 hover:text-black-900 hover:bg-black-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
               aria-label="Back"
               title="Back"
             >
-              <Icons name="left-arrow-icon" className="w-4 h-4" />
+              <Icons name="left-arrow-icon" />
             </button>
             <div>
               <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 font-mono">
+                {/* <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 font-mono">
                   #{subscription?.id}
-                </span>
+                </span> */}
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/70 dark:border-blue-800">
                   {planCategory}
                 </span>
@@ -345,9 +359,9 @@ export default function SubscriptionDetailsMain() {
                 <h4 className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-[140px]">
                   {userName}
                 </h4>
-                <span className="text-[10px] px-1 py-0.2 rounded bg-gray-200/70 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-mono">
+                {/* <span className="text-[10px] px-1 py-0.2 rounded bg-gray-200/70 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-mono">
                   ID: #{user?.id || subscription?.user_id}
-                </span>
+                </span> */}
               </div>
               <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[180px]">
                 {user?.email || user?.phone_number || '-'}
@@ -407,9 +421,9 @@ export default function SubscriptionDetailsMain() {
                 </span>
               )}
             </div>
-            <span className="text-[10px] text-gray-400 dark:text-gray-400 block">
+            {/* <span className="text-[10px] text-gray-400 dark:text-gray-400 block">
               Paid: {formatCurrency(totalPaid)}
-            </span>
+            </span> */}
           </div>
 
           {/* Metric 2: Duration */}
@@ -421,8 +435,13 @@ export default function SubscriptionDetailsMain() {
               {plan?.duration_days ? `${plan.duration_days} Days` : '-'}
             </span>
             <span className="text-[10px] text-gray-400 dark:text-gray-400 block truncate">
-              {formatDate(subscription?.start_date)} -{' '}
-              {formatDate(subscription?.end_date)}
+              {subscription?.start_date
+                ? moment(subscription.start_date).format('DD-MM-YYYY')
+                : '--'}{' '}
+              to
+              {subscription?.end_date
+                ? moment(subscription.end_date).format('DD-MM-YYYY')
+                : '--'}
             </span>
           </div>
 
@@ -541,8 +560,13 @@ export default function SubscriptionDetailsMain() {
                       Start & End Dates
                     </span>
                     <span className="text-xs font-medium text-gray-900 dark:text-white">
-                      {formatDate(subscription?.start_date)} -{' '}
-                      {formatDate(subscription?.end_date)}
+                      {subscription?.start_date
+                        ? moment(subscription.start_date).format('DD-MM-YYYY')
+                        : '--'}{' '}
+                      to{' '}
+                      {subscription?.end_date
+                        ? moment(subscription.end_date).format('DD-MM-YYYY')
+                        : '--'}
                     </span>
                   </div>
                 </div>
@@ -717,12 +741,15 @@ export default function SubscriptionDetailsMain() {
                   <div className="p-2.5 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 flex items-center justify-between text-xs">
                     <div>
                       <span className="font-semibold text-blue-900 dark:text-blue-200">
-                        Proposal #{proposal.id}
+                        Proposal
                       </span>
                       <span className="text-blue-600 dark:text-blue-300 block text-[11px] mt-0.5">
-                        Created on {formatDate(proposal.created_at)}
+                        Created on{' '}
+                        {proposal.created_at
+                          ? moment(proposal.created_at).format('DD-MM-YYYY')
+                          : '--'}
                         {proposal.created_by_name
-                          ? ` by ${proposal.created_by_name}`
+                          ? ` by ${proposal.created_by_name.charAt(0).toUpperCase() + proposal.created_by_name.slice(1)}`
                           : ''}
                       </span>
                     </div>
@@ -762,13 +789,22 @@ export default function SubscriptionDetailsMain() {
                               className="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors"
                             >
                               <td className="py-2 px-2.5 font-medium text-gray-900 dark:text-gray-200 whitespace-nowrap">
-                                {formatDate(pm.payment_date || pm.created_at)}
+                                {pm.payment_date || pm.created_at
+                                  ? moment(
+                                      pm.payment_date || pm.created_at
+                                    ).format('DD-MM-YYYY')
+                                  : '--'}
                               </td>
                               <td className="py-2 px-2.5 uppercase text-gray-600 dark:text-gray-300 font-mono">
                                 {pm.payment_mode || 'N/A'}
                               </td>
                               <td className="py-2 px-2.5 text-gray-600 dark:text-gray-400 truncate max-w-[100px]">
-                                {pm.recorded_by_name || '-'}
+                                {pm.recorded_by_name
+                                  ? pm.recorded_by_name
+                                      .charAt(0)
+                                      .toUpperCase() +
+                                    pm.recorded_by_name.slice(1)
+                                  : '-'}
                               </td>
                               <td className="py-2 px-2.5 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                                 {formatCurrency(pm.amount)}
@@ -842,7 +878,12 @@ export default function SubscriptionDetailsMain() {
                     {assignedNutritionist ? (
                       <div>
                         <h5 className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                          {assignedNutritionist.name}
+                          {assignedNutritionist.name
+                            ? assignedNutritionist.name
+                                .charAt(0)
+                                .toUpperCase() +
+                              assignedNutritionist.name.slice(1)
+                            : '--'}
                         </h5>
                         <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
                           {assignedNutritionist.email}
@@ -874,7 +915,10 @@ export default function SubscriptionDetailsMain() {
                     {assignedPhysio ? (
                       <div>
                         <h5 className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                          {assignedPhysio.name}
+                          {assignedPhysio.name
+                            ? assignedPhysio.name.charAt(0).toUpperCase() +
+                              assignedPhysio.name.slice(1)
+                            : '--'}
                         </h5>
                         <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
                           {assignedPhysio.email}
@@ -906,7 +950,10 @@ export default function SubscriptionDetailsMain() {
                     {assignedYogist ? (
                       <div>
                         <h5 className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                          {assignedYogist.name}
+                          {assignedYogist.name
+                            ? assignedYogist.name.charAt(0).toUpperCase() +
+                              assignedYogist.name.slice(1)
+                            : '--'}
                         </h5>
                         <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
                           {assignedYogist.email}
@@ -938,7 +985,10 @@ export default function SubscriptionDetailsMain() {
                     {salesOwner ? (
                       <div>
                         <h5 className="text-xs font-bold text-gray-900 dark:text-white truncate">
-                          {salesOwner.name}
+                          {salesOwner.name
+                            ? salesOwner.name.charAt(0).toUpperCase() +
+                              salesOwner.name.slice(1)
+                            : '--'}
                         </h5>
                         <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate">
                           {salesOwner.email}
@@ -1011,7 +1061,10 @@ export default function SubscriptionDetailsMain() {
                       </span>
                     </div>
                     <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                      Initiated on {formatDate(renewal.created_at)}
+                      Initiated on{' '}
+                      {renewal.created_at
+                        ? moment(renewal.created_at).format('DD-MM-YYYY')
+                        : '--'}
                     </p>
                   </div>
                 )}
@@ -1030,8 +1083,13 @@ export default function SubscriptionDetailsMain() {
                         >
                           <div>
                             <span className="font-semibold text-gray-900 dark:text-white">
-                              {formatDate(fz.start_date)} -{' '}
-                              {formatDate(fz.end_date)}
+                              {fz.start_date
+                                ? moment(fz.start_date).format('DD-MM-YYYY')
+                                : '--'}{' '}
+                              -{' '}
+                              {fz.end_date
+                                ? moment(fz.end_date).format('DD-MM-YYYY')
+                                : '--'}
                             </span>
                             <span className="text-gray-500 dark:text-gray-400 block text-[11px] mt-0.5">
                               {fz.total_days} Days • Reason:{' '}

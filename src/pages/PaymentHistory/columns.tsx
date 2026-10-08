@@ -169,14 +169,18 @@ export const getColumns = (navigate?: (path: string) => void) => {
     {
       title: 'Payment Notes',
       field: 'notes',
-      renderCell: createRenderCell('notes', (val) => val || '-'),
+      renderCell: createRenderCell('notes', (val) =>
+        val ? (val.length > 30 ? val.slice(0, 30) + '......' : val) : '-'
+      ),
       customCell: true,
       ...defaultColumnProps,
     },
     {
       title: 'Recorded By',
       field: 'recorded_by.name',
-      renderCell: createRenderCell('recorded_by.name', (val) => val || '-'),
+      renderCell: createRenderCell('recorded_by.name', (val) =>
+        val ? val.charAt(0).toUpperCase() + val.slice(1) : '-'
+      ),
       customCell: true,
       ...defaultColumnProps,
     },
