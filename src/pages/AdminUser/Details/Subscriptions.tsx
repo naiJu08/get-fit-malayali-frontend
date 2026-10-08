@@ -86,7 +86,7 @@ export default function Subscriptions({
     loginRole === 'yoga'
 
   const canAccessDiet = isSuperOrAdmin || isNutritionist
-  const canAccessWorkout = isSuperOrAdmin || isPhysio
+  const canAccessWorkout = isSuperOrAdmin || isPhysio || isNutritionist
   const canAccessYoga = isSuperOrAdmin || isYogist || isNutritionist
   const canAccessMeditation = isSuperOrAdmin || isNutritionist || isYogist
 
@@ -4408,21 +4408,54 @@ export default function Subscriptions({
                             value !== null &&
                             value !== ''
                         )
-                      const prevIdKey = selectedCategoryIds
-                        .map(String)
-                        .sort()
-                        .join('|')
-                      const nextIdKey = ids.map(String).sort().join('|')
-                      const categoryActuallyChanged = prevIdKey !== nextIdKey
+
+                      const removedCategoryIds = selectedCategoryIds.filter(
+                        (oldId) => !ids.map(String).includes(String(oldId))
+                      )
+
+                      const remainingSubcategories =
+                        selectedSubcategories.filter((sub: any) => {
+                          const key = String(sub?.id ?? sub?.value ?? '')
+                          const parent =
+                            subcategoryParentMap[key] ||
+                            subcategoryLookupRef.current[key]
+                          const catId = parent?.categoryId
+                          if (catId !== undefined && catId !== null) {
+                            return !removedCategoryIds
+                              .map(String)
+                              .includes(String(catId))
+                          }
+                          return true
+                        })
+
+                      const remainingWorkouts = selectedWorkouts.filter(
+                        (w: any) => {
+                          const catId =
+                            w?.category?.main_category?.id ??
+                            w?.workout?.category?.main_category?.id ??
+                            w?.category?.parent_id ??
+                            w?.workout?.category?.parent_id ??
+                            w?.main_category_id ??
+                            w?.workout?.main_category_id ??
+                            w?.category_id ??
+                            w?.workout?.category_id ??
+                            w?.category?.id ??
+                            w?.workout?.category?.id
+
+                          if (catId !== undefined && catId !== null) {
+                            return !removedCategoryIds
+                              .map(String)
+                              .includes(String(catId))
+                          }
+                          return true
+                        }
+                      )
 
                       setSelectedCategoryIds(ids)
                       setSelectedCategoryId(ids[0] || undefined)
-                      setSelectedSubcategories([])
+                      setSelectedSubcategories(remainingSubcategories)
+                      setSelectedWorkouts(remainingWorkouts)
                       setWpPage(1)
-                      if (assignOpen && categoryActuallyChanged) {
-                        selectAllNextWorkoutsRef.current = true
-                        setSelectedWorkouts([])
-                      }
                     }}
                   />
                 </div>
@@ -4500,16 +4533,55 @@ export default function Subscriptions({
                         .sort()
                         .join('|')
 
+                      const removedSubcategoryIds = (
+                        selectedSubcategories || []
+                      )
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(
+                          (oldId) =>
+                            !normalized
+                              .map((n: any) => String(n?.id ?? ''))
+                              .includes(oldId)
+                        )
+
+                      if (removedSubcategoryIds.length > 0) {
+                        const remainingWorkouts = selectedWorkouts.filter(
+                          (w: any) => {
+                            const subId =
+                              w?.subcategory_id ??
+                              w?.workout?.subcategory_id ??
+                              w?.subcategory?.id ??
+                              w?.workout?.subcategory?.id ??
+                              (Array.isArray(w?.subcategory_ids)
+                                ? w.subcategory_ids[0]
+                                : undefined) ??
+                              (Array.isArray(w?.workout?.subcategory_ids)
+                                ? w.workout.subcategory_ids[0]
+                                : undefined) ??
+                              (Array.isArray(w?.subcategories)
+                                ? w.subcategories[0]?.id
+                                : undefined) ??
+                              (Array.isArray(w?.workout?.subcategories)
+                                ? w.workout.subcategories[0]?.id
+                                : undefined)
+
+                            if (subId !== undefined && subId !== null) {
+                              return !removedSubcategoryIds.includes(
+                                String(subId)
+                              )
+                            }
+                            return true
+                          }
+                        )
+                        setSelectedWorkouts(remainingWorkouts)
+                      }
+
                       if (prevKey === nextKey) {
                         setSelectedSubcategories(normalized)
                         return
                       }
 
                       setSelectedSubcategories(normalized)
-                      if (assignOpen) {
-                        selectAllNextWorkoutsRef.current = true
-                        setSelectedWorkouts([])
-                      }
                     }}
                   />
                 </div>
@@ -4861,19 +4933,50 @@ export default function Subscriptions({
                             value !== null &&
                             value !== ''
                         )
-                      const prevIdKey = selectedYogaCategoryIds
-                        .map(String)
-                        .sort()
-                        .join('|')
-                      const nextIdKey = ids.map(String).sort().join('|')
-                      const categoryActuallyChanged = prevIdKey !== nextIdKey
+
+                      const removedCategoryIds = selectedYogaCategoryIds.filter(
+                        (oldId) => !ids.map(String).includes(String(oldId))
+                      )
+
+                      const remainingSubcategories =
+                        selectedYogaSubcategories.filter((sub: any) => {
+                          const key = String(sub?.id ?? sub?.value ?? '')
+                          const parent =
+                            yogaSubcategoryParentMap[key] ||
+                            yogaSubcategoryLookup[key]
+                          const catId = parent?.categoryId
+                          if (catId !== undefined && catId !== null) {
+                            return !removedCategoryIds
+                              .map(String)
+                              .includes(String(catId))
+                          }
+                          return true
+                        })
+
+                      const remainingYogas = selectedYogas.filter((y: any) => {
+                        const catId =
+                          y?.category?.main_category?.id ??
+                          y?.yoga?.category?.main_category?.id ??
+                          y?.category?.parent_id ??
+                          y?.yoga?.category?.parent_id ??
+                          y?.main_category_id ??
+                          y?.yoga?.main_category_id ??
+                          y?.category_id ??
+                          y?.yoga?.category_id ??
+                          y?.category?.id ??
+                          y?.yoga?.category?.id
+
+                        if (catId !== undefined && catId !== null) {
+                          return !removedCategoryIds
+                            .map(String)
+                            .includes(String(catId))
+                        }
+                        return true
+                      })
 
                       setSelectedYogaCategoryIds(ids)
-                      setSelectedYogaSubcategories([])
-                      if (yogaAssignOpen && categoryActuallyChanged) {
-                        selectAllNextYogasRef.current = true
-                        setSelectedYogas([])
-                      }
+                      setSelectedYogaSubcategories(remainingSubcategories)
+                      setSelectedYogas(remainingYogas)
                     }}
                   />
                 </div>
@@ -4948,16 +5051,55 @@ export default function Subscriptions({
                         .sort()
                         .join('|')
 
+                      const removedSubcategoryIds = (
+                        selectedYogaSubcategories || []
+                      )
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(
+                          (oldId) =>
+                            !normalized
+                              .map((n: any) => String(n?.id ?? ''))
+                              .includes(oldId)
+                        )
+
+                      if (removedSubcategoryIds.length > 0) {
+                        const remainingYogas = selectedYogas.filter(
+                          (y: any) => {
+                            const subId =
+                              y?.subcategory_id ??
+                              y?.yoga?.subcategory_id ??
+                              y?.subcategory?.id ??
+                              y?.yoga?.subcategory?.id ??
+                              (Array.isArray(y?.subcategory_ids)
+                                ? y.subcategory_ids[0]
+                                : undefined) ??
+                              (Array.isArray(y?.yoga?.subcategory_ids)
+                                ? y.yoga.subcategory_ids[0]
+                                : undefined) ??
+                              (Array.isArray(y?.subcategories)
+                                ? y.subcategories[0]?.id
+                                : undefined) ??
+                              (Array.isArray(y?.yoga?.subcategories)
+                                ? y.yoga.subcategories[0]?.id
+                                : undefined)
+
+                            if (subId !== undefined && subId !== null) {
+                              return !removedSubcategoryIds.includes(
+                                String(subId)
+                              )
+                            }
+                            return true
+                          }
+                        )
+                        setSelectedYogas(remainingYogas)
+                      }
+
                       if (prevKey === nextKey) {
                         setSelectedYogaSubcategories(normalized)
                         return
                       }
 
                       setSelectedYogaSubcategories(normalized)
-                      if (yogaAssignOpen) {
-                        selectAllNextYogasRef.current = true
-                        setSelectedYogas([])
-                      }
                     }}
                   />
                 </div>

@@ -1531,16 +1531,55 @@ export default function YogaPlanDetails() {
                       const nextIdKey = ids.map(String).sort().join('|')
                       const categoryActuallyChanged = prevIdKey !== nextIdKey
 
+                      const removedCategoryIds = selectedCategoryIds.filter(
+                        (oldId) => !ids.map(String).includes(String(oldId))
+                      )
+
+                      const remainingSubcategories =
+                        selectedSubcategories.filter((sub: any) => {
+                          const key = String(sub?.id ?? sub?.value ?? '')
+                          const parent =
+                            subcategoryParentMap[key] ||
+                            subcategoryLookupRef.current[key]
+                          const catId = parent?.categoryId
+                          if (catId !== undefined && catId !== null) {
+                            return !removedCategoryIds
+                              .map(String)
+                              .includes(String(catId))
+                          }
+                          return true
+                        })
+
+                      const remainingYogas = selectedYogas.filter((y: any) => {
+                        const catId =
+                          y?.category?.main_category?.id ??
+                          y?.yoga?.category?.main_category?.id ??
+                          y?.category?.parent_id ??
+                          y?.yoga?.category?.parent_id ??
+                          y?.main_category_id ??
+                          y?.yoga?.main_category_id ??
+                          y?.category_id ??
+                          y?.yoga?.category_id ??
+                          y?.category?.id ??
+                          y?.yoga?.category?.id
+
+                        if (catId !== undefined && catId !== null) {
+                          return !removedCategoryIds
+                            .map(String)
+                            .includes(String(catId))
+                        }
+                        return true
+                      })
+
                       setSelectedCategoryIds(ids)
-                      setSelectedSubcategories([])
+                      setSelectedSubcategories(remainingSubcategories)
+                      setSelectedYogas(remainingYogas)
                       setWpPage(1)
                       if (ids.length) {
                         setYogaFiltersEnabled(true)
                       }
                       if (assignOpen && categoryActuallyChanged) {
                         userSelectionTouchedRef.current = true
-                        selectAllNextYogasRef.current = true
-                        setSelectedYogas([])
                       }
                     }}
                   />
@@ -1616,6 +1655,49 @@ export default function YogaPlanDetails() {
                         .sort()
                         .join('|')
 
+                      const removedSubcategoryIds = (
+                        selectedSubcategories || []
+                      )
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(
+                          (oldId) =>
+                            !normalized
+                              .map((n: any) => String(n?.id ?? ''))
+                              .includes(oldId)
+                        )
+
+                      if (removedSubcategoryIds.length > 0) {
+                        const remainingYogas = selectedYogas.filter(
+                          (y: any) => {
+                            const subId =
+                              y?.subcategory_id ??
+                              y?.yoga?.subcategory_id ??
+                              y?.subcategory?.id ??
+                              y?.yoga?.subcategory?.id ??
+                              (Array.isArray(y?.subcategory_ids)
+                                ? y.subcategory_ids[0]
+                                : undefined) ??
+                              (Array.isArray(y?.yoga?.subcategory_ids)
+                                ? y.yoga.subcategory_ids[0]
+                                : undefined) ??
+                              (Array.isArray(y?.subcategories)
+                                ? y.subcategories[0]?.id
+                                : undefined) ??
+                              (Array.isArray(y?.yoga?.subcategories)
+                                ? y.yoga.subcategories[0]?.id
+                                : undefined)
+
+                            if (subId !== undefined && subId !== null) {
+                              return !removedSubcategoryIds.includes(
+                                String(subId)
+                              )
+                            }
+                            return true
+                          }
+                        )
+                        setSelectedYogas(remainingYogas)
+                      }
+
                       setSelectedSubcategories(normalized)
                       if (normalized.length > 0) {
                         setYogaFiltersEnabled(true)
@@ -1623,8 +1705,6 @@ export default function YogaPlanDetails() {
 
                       if (assignOpen && prevKey !== nextKey) {
                         userSelectionTouchedRef.current = true
-                        selectAllNextYogasRef.current = true
-                        setSelectedYogas([])
                       }
                     }}
                   />

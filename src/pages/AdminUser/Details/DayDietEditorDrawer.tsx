@@ -422,7 +422,11 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
       unmountOnClose
       title={`Edit Day Diet - ${dayDateDisplay}`}
       handleSubmit={handleSave}
-      disableSubmit={isSubmitting}
+      disableSubmit={
+        isSubmitting ||
+        plans.length === 0 ||
+        plans.some((p) => p.items.length === 0)
+      }
       actionLoader={isSubmitting}
       actionLabel="Save Changes"
     >
