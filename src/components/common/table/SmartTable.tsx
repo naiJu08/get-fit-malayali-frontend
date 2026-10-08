@@ -617,7 +617,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
                               return (
                                 <button
                                   type="button"
-                                  className={`$${'underline-offset-2'} ${
+                                  className={`text-left underline-offset-2 ${
                                     anyCol.link
                                       ? 'text-blue-600 hover:underline'
                                       : 'hover:opacity-80'
