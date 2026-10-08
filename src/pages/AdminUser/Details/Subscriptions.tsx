@@ -105,7 +105,8 @@ export default function Subscriptions({
     canLoadClientProposal ? id : undefined,
     '/clients'
   )
-  const cycles = useMemo(() => cycleData?.cycles || [], [cycleData?.cycles])
+  const rawCycles = cycleData?.cycles
+  const cycles = useMemo(() => rawCycles || [], [rawCycles])
 
   const proposedCycle = useMemo(() => {
     if (selectedCycle) {
@@ -392,10 +393,15 @@ export default function Subscriptions({
         const subId = sub?.id ?? sub?.value
         if (subId === undefined || subId === null) return
 
+        const catName = toTitleCase(cat?.name ?? '')
+        const subName = toTitleCase(sub?.value ?? sub?.name ?? sub?.label ?? '')
+        const formattedLabel =
+          catName && subName ? `${catName} - ${subName}` : subName || catName
+
         map[String(subId)] = {
           categoryId: cat?.id,
-          categoryName: cat?.name ?? '',
-          label: sub?.name ?? sub?.value ?? sub?.label ?? '',
+          categoryName: catName,
+          label: formattedLabel,
         }
       })
     })
@@ -429,6 +435,7 @@ export default function Subscriptions({
   const prefillAppliedRef = useRef(false)
   const lastPrefillSignatureRef = useRef('')
   const selectAllNextWorkoutsRef = useRef(false)
+  const selectAllNextYogasRef = useRef(false)
   const drawerSelectionInitializedRef = useRef(false)
   const userSelectionTouchedRef = useRef(false)
   const pendingPrefillCategoryRef = useRef<string>('')
@@ -456,17 +463,23 @@ export default function Subscriptions({
         if (!item) return null
         const key = item?.id ?? item?.value ?? item
         if (key === undefined || key === null) return null
+        const parentMeta = subcategoryParentMap[String(key)]
         const cached = subcategoryLookupRef.current[String(key)]
-        if (cached) return cached
         const label =
-          item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
+          parentMeta?.label ||
+          cached?.value ||
+          item?.value ||
+          item?.name ||
+          item?.label ||
+          item?.desc ||
+          ''
         return {
           id: key,
           value: label,
         }
       })
       .filter(Boolean)
-  }, [selectedSubcategories])
+  }, [selectedSubcategories, subcategoryParentMap])
   const deriveSubcategorySelection = useCallback((value?: any | any[]) => {
     if (!value) return []
     const list = Array.isArray(value) ? value : [value]
@@ -608,6 +621,43 @@ export default function Subscriptions({
     [selectedYogaSubcategories]
   )
 
+  const yogaSubcategoryParentMap = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        categoryId: number | string | undefined
+        categoryName: string
+        label: string
+      }
+    > = {}
+
+    yogaCategoryOptions.forEach((cat: any) => {
+      const subs = Array.isArray(cat?.subcategories)
+        ? cat.subcategories
+        : Array.isArray(cat?.subcategory)
+          ? cat.subcategory
+          : []
+
+      subs.forEach((sub: any) => {
+        const subId = sub?.id ?? sub?.value
+        if (subId === undefined || subId === null) return
+
+        const catName = toTitleCase(cat?.name ?? '')
+        const subName = toTitleCase(sub?.value ?? sub?.name ?? sub?.label ?? '')
+        const formattedLabel =
+          catName && subName ? `${catName} - ${subName}` : subName || catName
+
+        map[String(subId)] = {
+          categoryId: cat?.id,
+          categoryName: catName,
+          label: formattedLabel,
+        }
+      })
+    })
+
+    return map
+  }, [yogaCategoryOptions])
+
   const normalizedSelectedYogaSubcategories = useMemo(() => {
     if (!selectedYogaSubcategories?.length) return []
     return selectedYogaSubcategories
@@ -615,17 +665,27 @@ export default function Subscriptions({
         if (!item) return null
         const key = item?.id ?? item?.value ?? item
         if (key === undefined || key === null) return null
+        const parentMeta = yogaSubcategoryParentMap[String(key)]
         const cached = yogaSubcategoryLookup[String(key)]
-        if (cached) return cached
         const label =
-          item?.value ?? item?.name ?? item?.label ?? item?.desc ?? ''
+          parentMeta?.label ||
+          cached?.value ||
+          item?.value ||
+          item?.name ||
+          item?.label ||
+          item?.desc ||
+          ''
         return {
           id: key,
           value: label,
         }
       })
       .filter(Boolean)
-  }, [selectedYogaSubcategories, yogaSubcategoryLookup])
+  }, [
+    selectedYogaSubcategories,
+    yogaSubcategoryLookup,
+    yogaSubcategoryParentMap,
+  ])
 
   const updateYogaSubcategoryLookup = useCallback((options: any[]) => {
     if (!Array.isArray(options) || options.length === 0) return
@@ -672,6 +732,101 @@ export default function Subscriptions({
     yogas.every((y: any) => isYogaSelected(y?.id))
   const hasVisibleYogaSelection =
     Array.isArray(yogas) && yogas.some((y: any) => isYogaSelected(y?.id))
+
+  const getYogaGroupLabels = useCallback(
+    (w: any) => {
+      const subId =
+        w?.subcategory_id ??
+        w?.yoga?.subcategory_id ??
+        w?.subcategory?.id ??
+        w?.yoga?.subcategory?.id
+
+      const parentMeta = subId ? yogaSubcategoryParentMap[String(subId)] : null
+
+      const main =
+        parentMeta?.categoryName ??
+        w?.category?.main_category?.name ??
+        w?.category?.parent?.name ??
+        w?.category?.main_category_name ??
+        w?.category?.parent_name ??
+        w?.yoga?.category?.main_category?.name ??
+        w?.yoga?.category?.parent?.name ??
+        w?.category?.name ??
+        w?.category_name ??
+        'Others'
+
+      const sub = parentMeta?.label?.includes(' - ')
+        ? parentMeta.label.split(' - ')[1]
+        : (parentMeta?.label ??
+          w?.subcategory?.name ??
+          w?.subcategory_name ??
+          w?.yoga?.subcategory?.name ??
+          w?.yoga?.subcategory_name ??
+          w?.yoga?.category?.name ??
+          w?.category?.name ??
+          w?.category ??
+          'Others')
+
+      const mainTitle = toTitleCase(String(main || 'Others'))
+      const subTitle = toTitleCase(String(sub || 'Others'))
+
+      return {
+        main: mainTitle,
+        sub: subTitle,
+        legend:
+          mainTitle && subTitle && mainTitle !== subTitle
+            ? `${mainTitle} - ${subTitle}`
+            : subTitle || mainTitle,
+      }
+    },
+    [yogaSubcategoryParentMap]
+  )
+
+  const getYogaGroupKey = useCallback(
+    (w: any) => {
+      const { main, sub } = getYogaGroupLabels(w)
+      return `${main}::${sub}`
+    },
+    [getYogaGroupLabels]
+  )
+
+  const groupedYogas = useMemo(() => {
+    if (!Array.isArray(yogas) || yogas.length === 0) return []
+
+    const sorted = yogas.slice().sort((a: any, b: any) => {
+      const pa = a?.category?.priority ?? 9999
+      const pb = b?.category?.priority ?? 9999
+      if (pa === pb) return 0
+      return pa < pb ? -1 : 1
+    })
+
+    const groups = new Map<
+      string,
+      { main: string; sub: string; legend: string; items: any[] }
+    >()
+
+    sorted.forEach((w: any) => {
+      const key = getYogaGroupKey(w)
+      if (!groups.has(key)) {
+        const labels = getYogaGroupLabels(w)
+        groups.set(key, {
+          main: labels.main,
+          sub: labels.sub,
+          legend: labels.legend,
+          items: [],
+        })
+      }
+      groups.get(key)!.items.push(w)
+    })
+
+    return Array.from(groups.values()).map((group) => ({
+      name: group.sub,
+      mainName: group.main,
+      legend: group.legend,
+      items: group.items,
+    }))
+  }, [yogas, getYogaGroupKey, getYogaGroupLabels])
+
   const sortedMeditations = useMemo(() => {
     if (!Array.isArray(meditations) || meditations.length === 0) return []
     return meditations.slice().sort((a: any, b: any) => {
@@ -949,6 +1104,25 @@ export default function Subscriptions({
 
     return Array.from(unique.values())
   }, [])
+
+  const collectAllVisibleYogas = useCallback(
+    (list: any[]) => {
+      if (!Array.isArray(list) || list.length === 0) return []
+      const unique = new Map<string, any>()
+
+      list.forEach((item: any) => {
+        const normalized = toYogaSelectable(item)
+        if (!normalized?.id) return
+        const key = String(normalized.id)
+        if (!unique.has(key)) {
+          unique.set(key, normalized)
+        }
+      })
+
+      return Array.from(unique.values())
+    },
+    [toYogaSelectable]
+  )
   const handleSelectAllVisible = () => {
     if (!Array.isArray(meditations) || meditations.length === 0) return
     setSelectedMeditations((prev) => {
@@ -1340,23 +1514,37 @@ export default function Subscriptions({
 
     if (!buckets.size) return null
 
-    const preferred = Array.from(buckets.values()).sort((a, b) => {
-      if (b.weight === a.weight) {
-        return b.subs.size - a.subs.size
-      }
-      return b.weight - a.weight
-    })[0]
+    const allBuckets = Array.from(buckets.values())
+    const categoryIds = Array.from(
+      new Set(
+        allBuckets
+          .map((b) => b.categoryId)
+          .filter((id): id is number | string => id != null && id !== '')
+      )
+    )
+    const categoryNames = allBuckets.map((b) => b.categoryName).filter(Boolean)
+
+    const subMap = new Map<string, { id: any; value: string }>()
+    allBuckets.forEach((b) => {
+      b.subs.forEach((sub, subKey) => {
+        if (!subMap.has(subKey)) {
+          subMap.set(subKey, sub)
+        }
+      })
+    })
 
     return {
-      categoryId: preferred.categoryId,
-      categoryName: preferred.categoryName,
-      subcategories: Array.from(preferred.subs.values()),
+      categoryIds,
+      categoryId: categoryIds[0],
+      categoryName: categoryNames.join(', '),
+      subcategories: Array.from(subMap.values()),
     }
   }, [previouslyAssignedWorkoutIds, workoutsById, subcategoryParentMap])
 
   type PrefillSelection = {
-    categoryId: number | string
-    categoryName: string
+    categoryIds?: (number | string)[]
+    categoryId?: number | string
+    categoryName?: string
     subcategories: { id: any; value: string }[]
   }
 
@@ -1476,17 +1664,482 @@ export default function Subscriptions({
     const bucketList = Object.values(buckets)
     if (!bucketList.length) return null
 
-    bucketList.sort((a, b) => b.subs.size - a.subs.size)
-    const preferred = bucketList[0]
+    const categoryIds = Array.from(
+      new Set(
+        bucketList
+          .map((b) => b.categoryId)
+          .filter((id): id is number | string => id != null && id !== '')
+      )
+    )
+    const categoryNames = bucketList.map((b) => b.categoryName).filter(Boolean)
 
-    if (!preferred.categoryId) return null
+    const subMap = new Map<string, { id: any; value: string }>()
+    bucketList.forEach((b) => {
+      b.subs.forEach((sub, subKey) => {
+        if (!subMap.has(subKey)) {
+          subMap.set(subKey, sub)
+        }
+      })
+    })
+
+    if (!categoryIds.length) return null
 
     return {
-      categoryId: preferred.categoryId,
-      categoryName: preferred.categoryName,
-      subcategories: Array.from(preferred.subs.values()),
+      categoryIds,
+      categoryId: categoryIds[0],
+      categoryName: categoryNames.join(', '),
+      subcategories: Array.from(subMap.values()),
     }
   }, [dayDetail?.workout_plan?.exercises, subcategoryParentMap])
+
+  const previouslySubmittedYogaSelection = useMemo(() => {
+    const exercises =
+      Array.isArray(dayDetail?.yoga_plan?.exercises) &&
+      dayDetail.yoga_plan.exercises.length > 0
+        ? dayDetail.yoga_plan.exercises
+        : Array.isArray(selectedYogas) && selectedYogas.length > 0
+          ? selectedYogas
+          : []
+
+    if (exercises.length === 0) return null
+
+    const buckets: Record<
+      string,
+      {
+        categoryId: number | string | undefined
+        categoryName: string
+        subs: Map<string, { id: any; value: string }>
+      }
+    > = {}
+
+    const getSubcategoryIdFromExercise = (exercise: any) => {
+      const candidates = [
+        exercise?.subcategory_id,
+        exercise?.yoga?.subcategory_id,
+        exercise?.subcategory?.id,
+        exercise?.yoga?.subcategory?.id,
+        Array.isArray(exercise?.subcategory_ids)
+          ? exercise.subcategory_ids[0]
+          : undefined,
+        Array.isArray(exercise?.yoga?.subcategory_ids)
+          ? exercise.yoga.subcategory_ids[0]
+          : undefined,
+        Array.isArray(exercise?.subcategories)
+          ? exercise.subcategories[0]?.id
+          : undefined,
+        Array.isArray(exercise?.yoga?.subcategories)
+          ? exercise.yoga.subcategories[0]?.id
+          : undefined,
+        exercise?.category?.parent_id ? exercise?.category?.id : undefined,
+        exercise?.yoga?.category?.parent_id
+          ? exercise?.yoga?.category?.id
+          : undefined,
+      ]
+
+      return candidates.find(
+        (candidate) =>
+          candidate !== undefined && candidate !== null && candidate !== ''
+      )
+    }
+
+    const getCategoryInfoFromExercise = (exercise: any) => {
+      const sources = [
+        exercise?.category?.main_category,
+        exercise?.yoga?.category?.main_category,
+        exercise?.category?.parent,
+        exercise?.yoga?.category?.parent,
+        exercise?.subcategory?.category,
+        exercise?.yoga?.subcategory?.category,
+        exercise?.subcategory?.parent,
+        exercise?.yoga?.subcategory?.parent,
+      ].filter(Boolean)
+
+      const primary = sources[0] as any
+
+      const idCandidates = [
+        primary?.id,
+        exercise?.category?.main_category_id,
+        exercise?.yoga?.category?.main_category_id,
+        exercise?.category?.parent_id,
+        exercise?.yoga?.category?.parent_id,
+        exercise?.yoga?.main_category_id,
+        exercise?.main_category_id,
+        exercise?.category_id,
+        exercise?.yoga?.category_id,
+        exercise?.category?.parent_id
+          ? exercise?.category?.parent_id
+          : exercise?.category?.id,
+        exercise?.yoga?.category?.parent_id
+          ? exercise?.yoga?.category?.parent_id
+          : exercise?.yoga?.category?.id,
+      ]
+
+      const categoryId = idCandidates.find(
+        (candidate) =>
+          candidate !== undefined && candidate !== null && candidate !== ''
+      )
+
+      const categoryName =
+        primary?.name ??
+        exercise?.category?.main_category?.name ??
+        exercise?.category?.main_category_name ??
+        exercise?.yoga?.category?.main_category?.name ??
+        exercise?.yoga?.category?.parent?.name ??
+        exercise?.category?.name ??
+        exercise?.yoga?.category?.name ??
+        ''
+
+      return {
+        categoryId,
+        categoryName,
+      }
+    }
+
+    const getSubcategoryLabelFromExercise = (exercise: any) =>
+      exercise?.subcategory?.name ??
+      exercise?.yoga?.subcategory?.name ??
+      exercise?.yoga?.subcategory_name ??
+      exercise?.subcategory_name ??
+      exercise?.category?.name ??
+      exercise?.yoga?.category?.name ??
+      ''
+
+    exercises.forEach((exercise: any) => {
+      const subId = getSubcategoryIdFromExercise(exercise)
+      if (subId === undefined) return
+
+      const mapMeta = yogaSubcategoryParentMap[String(subId)]
+      const catInfo = mapMeta?.categoryId
+        ? {
+            categoryId: mapMeta.categoryId,
+            categoryName: mapMeta.categoryName,
+          }
+        : getCategoryInfoFromExercise(exercise)
+
+      if (
+        catInfo.categoryId === undefined ||
+        catInfo.categoryId === null ||
+        catInfo.categoryId === ''
+      )
+        return
+
+      const bucketKey = String(catInfo.categoryId)
+      if (!buckets[bucketKey]) {
+        buckets[bucketKey] = {
+          categoryId: catInfo.categoryId,
+          categoryName: catInfo.categoryName || '',
+          subs: new Map(),
+        }
+      }
+
+      const label =
+        mapMeta?.label || getSubcategoryLabelFromExercise(exercise) || ''
+
+      buckets[bucketKey].subs.set(String(subId), {
+        id: subId,
+        value: label,
+      })
+    })
+
+    const bucketList = Object.values(buckets)
+    if (!bucketList.length) return null
+
+    const categoryIds = Array.from(
+      new Set(
+        bucketList
+          .map((b) => b.categoryId)
+          .filter((id): id is number | string => id != null && id !== '')
+      )
+    )
+    const categoryNames = bucketList.map((b) => b.categoryName).filter(Boolean)
+
+    const subMap = new Map<string, { id: any; value: string }>()
+    bucketList.forEach((b) => {
+      b.subs.forEach((sub, subKey) => {
+        if (!subMap.has(subKey)) {
+          subMap.set(subKey, sub)
+        }
+      })
+    })
+
+    if (!categoryIds.length) return null
+
+    return {
+      categoryIds,
+      categoryId: categoryIds[0],
+      categoryName: categoryNames.join(', '),
+      subcategories: Array.from(subMap.values()),
+    }
+  }, [dayDetail?.yoga_plan?.exercises, selectedYogas, yogaSubcategoryParentMap])
+
+  const yogaPrefillAppliedRef = useRef(false)
+
+  useEffect(() => {
+    setSelectedYogaCategoryIds([])
+    setSelectedYogaSubcategories([])
+    yogaPrefillAppliedRef.current = false
+  }, [dayDetail?.yoga_plan?.id])
+
+  const previouslyAssignedYogaIds = useMemo(() => {
+    const exercises = dayDetail?.yoga_plan?.exercises
+    if (!Array.isArray(exercises) || exercises.length === 0) return []
+    return exercises
+      .map((ex: any) => getYogaId(ex))
+      .filter((id: unknown): id is number | string => id != null)
+  }, [dayDetail?.yoga_plan?.exercises])
+
+  const yogasById = useMemo(() => {
+    const map = new Map<string, any>()
+    const list = Array.isArray(yogas) ? yogas : []
+    list.forEach((y: any) => {
+      const id = getYogaId(y)
+      if (id != null) map.set(String(id), y)
+    })
+    const dayExercises = Array.isArray(dayDetail?.yoga_plan?.exercises)
+      ? dayDetail.yoga_plan.exercises
+      : []
+    dayExercises.forEach((ex: any) => {
+      const id = getYogaId(ex)
+      if (id != null && !map.has(String(id))) {
+        if (ex.yoga) map.set(String(id), ex.yoga)
+        else map.set(String(id), ex)
+      }
+    })
+    return map
+  }, [yogas, dayDetail?.yoga_plan?.exercises])
+
+  const yogaPrefillFromApi = useMemo(() => {
+    const yogaIds =
+      previouslyAssignedYogaIds.length > 0
+        ? previouslyAssignedYogaIds
+        : selectedYogas.map((y) => getYogaId(y)).filter(Boolean)
+
+    if (yogaIds.length === 0 || yogasById.size === 0) return null
+
+    type Bucket = {
+      categoryId: number | string
+      categoryName: string
+      subs: Map<string, { id: any; value: string }>
+      weight: number
+    }
+
+    const buckets = new Map<string, Bucket>()
+
+    yogaIds.forEach((yogaId: number | string) => {
+      const yoga = yogasById.get(String(yogaId))
+      if (!yoga) return
+
+      const subId =
+        yoga?.subcategory_id ??
+        yoga?.subcategory?.id ??
+        yoga?.category?.id ??
+        yoga?.category_id
+
+      const subMeta =
+        subId != null ? yogaSubcategoryParentMap[String(subId)] : undefined
+
+      const mainCategoryId =
+        yoga?.category?.main_category?.id ??
+        subMeta?.categoryId ??
+        yoga?.category?.main_category_id ??
+        yoga?.category?.parent_id ??
+        (yoga?.category?.parent_id
+          ? yoga?.category?.parent_id
+          : yoga?.category?.id)
+
+      if (mainCategoryId === undefined || mainCategoryId === null) return
+
+      const bucketKey = String(mainCategoryId)
+
+      if (!buckets.has(bucketKey)) {
+        buckets.set(bucketKey, {
+          categoryId: mainCategoryId,
+          categoryName:
+            yoga?.category?.main_category?.name ??
+            subMeta?.categoryName ??
+            yoga?.category?.main_category_name ??
+            yoga?.category?.parent?.name ??
+            yoga?.category?.name ??
+            '',
+          subs: new Map(),
+          weight: 0,
+        })
+      }
+
+      const bucket = buckets.get(bucketKey)!
+      bucket.weight += 1
+
+      if (subId != null) {
+        const subName =
+          subMeta?.label ||
+          yoga?.subcategory?.name ||
+          yoga?.subcategory_name ||
+          yoga?.category?.name ||
+          ''
+        bucket.subs.set(String(subId), {
+          id: subId,
+          value: subName,
+        })
+      }
+    })
+
+    if (!buckets.size) return null
+
+    const allBuckets = Array.from(buckets.values())
+    const categoryIds = Array.from(
+      new Set(
+        allBuckets
+          .map((b) => b.categoryId)
+          .filter((id): id is number | string => id != null && id !== '')
+      )
+    )
+    const categoryNames = allBuckets.map((b) => b.categoryName).filter(Boolean)
+
+    const subMap = new Map<string, { id: any; value: string }>()
+    allBuckets.forEach((b) => {
+      b.subs.forEach((sub, subKey) => {
+        if (!subMap.has(subKey)) {
+          subMap.set(subKey, sub)
+        }
+      })
+    })
+
+    return {
+      categoryIds,
+      categoryId: categoryIds[0],
+      categoryName: categoryNames.join(', '),
+      subcategories: Array.from(subMap.values()),
+    }
+  }, [
+    previouslyAssignedYogaIds,
+    selectedYogas,
+    yogasById,
+    yogaSubcategoryParentMap,
+  ])
+
+  const yogaSelectionCandidate: PrefillSelection | null = useMemo(() => {
+    if (yogaPrefillFromApi) return yogaPrefillFromApi
+    if (!previouslySubmittedYogaSelection) return null
+    const fallbackSubs = Array.isArray(
+      previouslySubmittedYogaSelection.subcategories
+    )
+      ? previouslySubmittedYogaSelection.subcategories
+      : []
+
+    return {
+      categoryIds:
+        previouslySubmittedYogaSelection.categoryIds ||
+        (previouslySubmittedYogaSelection.categoryId != null
+          ? [previouslySubmittedYogaSelection.categoryId]
+          : []),
+      categoryId: previouslySubmittedYogaSelection.categoryId,
+      categoryName: previouslySubmittedYogaSelection.categoryName,
+      subcategories: fallbackSubs,
+    }
+  }, [yogaPrefillFromApi, previouslySubmittedYogaSelection])
+
+  const yogaSelectionSignature = useMemo(() => {
+    if (!yogaSelectionCandidate) return ''
+    const catKeys = (
+      yogaSelectionCandidate.categoryIds ||
+      (yogaSelectionCandidate.categoryId != null
+        ? [yogaSelectionCandidate.categoryId]
+        : [])
+    )
+      .map((id) => (id == null ? '' : String(id)))
+      .filter(Boolean)
+      .sort()
+      .join(',')
+
+    const subIds = Array.isArray(yogaSelectionCandidate.subcategories)
+      ? yogaSelectionCandidate.subcategories
+          .map((sub) =>
+            sub?.id === undefined || sub?.id === null ? '' : String(sub.id)
+          )
+          .filter(Boolean)
+          .sort()
+          .join('|')
+      : ''
+
+    return `${catKeys}::${subIds}`
+  }, [yogaSelectionCandidate])
+
+  const lastYogaPrefillSignatureRef = useRef<string>('')
+
+  useEffect(() => {
+    if (!yogaAssignOpen) return
+    if (!yogaSelectionCandidate) return
+
+    if (
+      yogaPrefillAppliedRef.current &&
+      lastYogaPrefillSignatureRef.current === yogaSelectionSignature
+    ) {
+      return
+    }
+
+    const categoryIds =
+      Array.isArray(yogaSelectionCandidate.categoryIds) &&
+      yogaSelectionCandidate.categoryIds.length > 0
+        ? yogaSelectionCandidate.categoryIds
+        : yogaSelectionCandidate.categoryId != null
+          ? [yogaSelectionCandidate.categoryId]
+          : []
+
+    const subcategories = yogaSelectionCandidate.subcategories || []
+
+    const applySubcategoriesIfChanged = () => {
+      if (!Array.isArray(subcategories) || subcategories.length === 0) return
+
+      setSelectedYogaSubcategories((prev) => {
+        const prevKey = prev
+          .map((item: any) => String(item?.id ?? ''))
+          .filter(Boolean)
+          .sort()
+          .join('|')
+        const nextKey = subcategories
+          .map((item: any) => String(item?.id ?? ''))
+          .filter(Boolean)
+          .sort()
+          .join('|')
+
+        if (prevKey === nextKey) {
+          return prev
+        }
+
+        updateYogaSubcategoryLookup(subcategories)
+        return subcategories
+      })
+    }
+
+    if (categoryIds.length > 0) {
+      setSelectedYogaCategoryIds((prev) => {
+        const prevKey = prev.map(String).sort().join('|')
+        const nextKey = categoryIds.map(String).sort().join('|')
+        if (prevKey === nextKey) return prev
+        return categoryIds
+      })
+
+      applySubcategoriesIfChanged()
+    }
+
+    lastYogaPrefillSignatureRef.current = yogaSelectionSignature
+    yogaPrefillAppliedRef.current = true
+  }, [
+    yogaAssignOpen,
+    yogaSelectionCandidate,
+    yogaSelectionSignature,
+    updateYogaSubcategoryLookup,
+  ])
+
+  useEffect(() => {
+    if (yogaAssignOpen) return
+    if (yogaReviewOpen) return
+    yogaPrefillAppliedRef.current = false
+    lastYogaPrefillSignatureRef.current = ''
+    setSelectedYogaCategoryIds([])
+    setSelectedYogaSubcategories([])
+    setYogaCategoryFilter('')
+  }, [yogaAssignOpen, yogaReviewOpen])
 
   const selectionCandidate: PrefillSelection | null = useMemo(() => {
     if (workoutPrefillFromApi) return workoutPrefillFromApi
@@ -1498,6 +2151,11 @@ export default function Subscriptions({
       : []
 
     return {
+      categoryIds:
+        previouslySubmittedSelection.categoryIds ||
+        (previouslySubmittedSelection.categoryId != null
+          ? [previouslySubmittedSelection.categoryId]
+          : []),
       categoryId: previouslySubmittedSelection.categoryId,
       categoryName: previouslySubmittedSelection.categoryName,
       subcategories: fallbackSubs,
@@ -1506,6 +2164,17 @@ export default function Subscriptions({
 
   const selectionSignature = useMemo(() => {
     if (!selectionCandidate) return ''
+    const catKeys = (
+      selectionCandidate.categoryIds ||
+      (selectionCandidate.categoryId != null
+        ? [selectionCandidate.categoryId]
+        : [])
+    )
+      .map((id) => (id == null ? '' : String(id)))
+      .filter(Boolean)
+      .sort()
+      .join(',')
+
     const subIds = Array.isArray(selectionCandidate.subcategories)
       ? selectionCandidate.subcategories
           .map((sub) =>
@@ -1516,7 +2185,7 @@ export default function Subscriptions({
           .join('|')
       : ''
 
-    return `${selectionCandidate.categoryId ?? ''}::${subIds}`
+    return `${catKeys}::${subIds}`
   }, [selectionCandidate])
 
   useEffect(() => {
@@ -1541,7 +2210,14 @@ export default function Subscriptions({
       return
     }
 
-    const categoryId = selectionCandidate.categoryId
+    const categoryIds =
+      Array.isArray(selectionCandidate.categoryIds) &&
+      selectionCandidate.categoryIds.length > 0
+        ? selectionCandidate.categoryIds
+        : selectionCandidate.categoryId != null
+          ? [selectionCandidate.categoryId]
+          : []
+
     const categoryName = selectionCandidate.categoryName
     const subcategories = selectionCandidate.subcategories || []
 
@@ -1549,7 +2225,7 @@ export default function Subscriptions({
       categoryName && categoryName.length > 0
         ? categoryName
         : (categoryOptions.find(
-            (cat: any) => String(cat?.id ?? '') === String(categoryId ?? '')
+            (cat: any) => String(cat?.id ?? '') === String(categoryIds[0] ?? '')
           )?.name ?? '')
 
     const applySubcategoriesIfChanged = () => {
@@ -1576,19 +2252,19 @@ export default function Subscriptions({
       })
     }
 
-    if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
+    if (categoryIds.length > 0) {
       setSelectedCategoryId((prev) => {
-        if (String(prev ?? '') === String(categoryId ?? '')) {
+        if (String(prev ?? '') === String(categoryIds[0] ?? '')) {
           return prev
         }
-        return categoryId
+        return categoryIds[0]
       })
 
       setSelectedCategoryIds((prev) => {
         const prevKey = prev.map(String).sort().join('|')
-        const nextKey = [categoryId].map(String).sort().join('|')
+        const nextKey = categoryIds.map(String).sort().join('|')
         if (prevKey === nextKey) return prev
-        return [categoryId]
+        return categoryIds
       })
 
       setSelectedCategoryName((prev) => {
@@ -1675,6 +2351,23 @@ export default function Subscriptions({
     setSelectedWorkouts(collectAllVisibleWorkouts(workouts))
     selectAllNextWorkoutsRef.current = false
   }, [assignOpen, workoutsLoading, workouts])
+
+  useEffect(() => {
+    if (!yogaAssignOpen) {
+      selectAllNextYogasRef.current = false
+      return
+    }
+    if (yogasLoading) return
+    if (!selectAllNextYogasRef.current) return
+    if (!Array.isArray(yogas) || yogas.length === 0) {
+      setSelectedYogas([])
+      selectAllNextYogasRef.current = false
+      return
+    }
+
+    setSelectedYogas(collectAllVisibleYogas(yogas))
+    selectAllNextYogasRef.current = false
+  }, [yogaAssignOpen, yogasLoading, yogas, collectAllVisibleYogas])
 
   const getDefaultDayDetailTab = (): DayDetailTab => {
     if (canAccessDiet) return 'diet'
@@ -4126,6 +4819,8 @@ export default function Subscriptions({
           setSelectedYogaSubcategories([])
           setSelectedYogas([])
           yogaSelectionPrefilledRef.current = false
+          yogaPrefillAppliedRef.current = false
+          lastYogaPrefillSignatureRef.current = ''
         }}
         className="w-screen max-w-[100vw]"
         unmountOnClose
@@ -4166,8 +4861,19 @@ export default function Subscriptions({
                             value !== null &&
                             value !== ''
                         )
+                      const prevIdKey = selectedYogaCategoryIds
+                        .map(String)
+                        .sort()
+                        .join('|')
+                      const nextIdKey = ids.map(String).sort().join('|')
+                      const categoryActuallyChanged = prevIdKey !== nextIdKey
+
                       setSelectedYogaCategoryIds(ids)
                       setSelectedYogaSubcategories([])
+                      if (yogaAssignOpen && categoryActuallyChanged) {
+                        selectAllNextYogasRef.current = true
+                        setSelectedYogas([])
+                      }
                     }}
                   />
                 </div>
@@ -4231,7 +4937,27 @@ export default function Subscriptions({
                     }}
                     onChange={(value?: any | any[]) => {
                       const normalized = deriveSubcategorySelection(value)
+                      const prevKey = (selectedYogaSubcategories || [])
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(Boolean)
+                        .sort()
+                        .join('|')
+                      const nextKey = (normalized || [])
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(Boolean)
+                        .sort()
+                        .join('|')
+
+                      if (prevKey === nextKey) {
+                        setSelectedYogaSubcategories(normalized)
+                        return
+                      }
+
                       setSelectedYogaSubcategories(normalized)
+                      if (yogaAssignOpen) {
+                        selectAllNextYogasRef.current = true
+                        setSelectedYogas([])
+                      }
                     }}
                   />
                 </div>
@@ -4267,88 +4993,126 @@ export default function Subscriptions({
                 </div>
                 <div className="flex items-center gap-4 text-[11px] text-gray-600 ml-auto justify-end">
                   <span className="inline-flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    Repetitions
+                  </span>
+                  <span className="inline-flex items-center gap-1">
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                     Intensity
                   </span>
-                  <div className="flex items-center gap-1 text-[11px] text-gray-600">
+                  <span className="inline-flex items-center gap-1">
                     <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                     Duration
-                  </div>
+                  </span>
                 </div>
               </div>
             )}
 
             {!yogasLoading && yogas.length > 0 && (
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
-                {yogas.map((y: any) => {
-                  const url = y?.video_url || ''
-                  const embed = getEmbedUrl(url)
-                  const checked = isYogaSelected(y?.id)
-                  const durationLabel = getYogaDurationLabel(y)
-                  return (
-                    <div
-                      key={y?.id}
-                      className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
-                        checked ? 'ring-2 ring-primary/30' : ''
-                      }`}
-                      onClick={(e) => {
-                        if (
-                          (e.target as HTMLElement).tagName.toLowerCase() !==
-                          'input'
-                        ) {
-                          toggleYogaSelected(y)
-                        }
-                      }}
-                    >
-                      <div className="relative w-full h-40 bg-black/5">
-                        {embed ? (
-                          <iframe
-                            src={embed}
-                            title={`Yoga Video ${y?.id}`}
-                            className="w-full h-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            allowFullScreen
-                          />
-                        ) : url ? (
-                          <video
-                            className="w-full h-full object-cover"
-                            src={String(url)}
-                            muted
-                            controls
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
-                            No video
-                          </div>
-                        )}
+              <div
+                className={`flex flex-col gap-4 transition-opacity duration-150 ${
+                  yogasLoading
+                    ? 'opacity-50 pointer-events-none'
+                    : 'opacity-100'
+                }`}
+              >
+                {groupedYogas.map((group) => {
+                  const legendText = group.legend
 
-                        {durationLabel && (
-                          <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
-                            <span className="inline-flex items-center gap-1 rounded-sm bg-emerald-500 text-white px-2 py-0.5 font-medium backdrop-blur">
-                              <span className="w-2 h-2 rounded-full bg-white" />
-                              {durationLabel}
-                            </span>
-                            <span className="inline-flex items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
-                              <Icons name="activity" className="w-3 h-3" />
-                              {y?.intensity_level ||
-                                y?.yoga?.intensity_level ||
-                                '--'}
-                            </span>
-                          </div>
-                        )}
+                  return (
+                    <fieldset
+                      key={group.legend || group.name}
+                      className="border border-gray-300 rounded-xl p-4 bg-white"
+                    >
+                      <legend className="px-2 text-md font-semibold text-gray-600">
+                        {legendText}
+                      </legend>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
+                        {group.items.map((y: any) => {
+                          const url = y?.video_url || ''
+                          const embed = getEmbedUrl(url)
+                          const checked = isYogaSelected(y?.id)
+                          const durationLabel = getYogaDurationLabel(y)
+                          return (
+                            <div
+                              key={y?.id}
+                              className={`border rounded bg-white overflow-hidden w-full cursor-pointer ${
+                                checked ? 'ring-2 ring-primary/30' : ''
+                              }`}
+                              onClick={(e) => {
+                                if (
+                                  (
+                                    e.target as HTMLElement
+                                  ).tagName.toLowerCase() !== 'input'
+                                ) {
+                                  toggleYogaSelected(y)
+                                }
+                              }}
+                            >
+                              <div className="relative w-full h-40 bg-black/5">
+                                {embed ? (
+                                  <iframe
+                                    src={embed}
+                                    title={`Yoga Video ${y?.id}`}
+                                    className="w-full h-full pointer-events-none"
+                                    allowFullScreen
+                                  />
+                                ) : url ? (
+                                  <video
+                                    className="w-full h-full object-cover"
+                                    src={String(url)}
+                                    muted
+                                    controls
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-xxs text-gray-500 bg-gray-50">
+                                    No video
+                                  </div>
+                                )}
+
+                                <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
+                                  {y?.reps ? (
+                                    <span className="items-center gap-1 rounded-sm bg-blue-600/90 text-white px-2 py-0.5 font-semibold backdrop-blur">
+                                      <Icons
+                                        name="repeat"
+                                        className="w-3 h-3"
+                                      />
+                                      {y.reps}
+                                    </span>
+                                  ) : null}
+                                  <span className="items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
+                                    <Icons
+                                      name="activity"
+                                      className="w-3 h-3"
+                                    />
+                                    {y?.intensity_level ||
+                                      y?.yoga?.intensity_level ||
+                                      '--'}
+                                  </span>
+                                  <span className="items-center gap-1 rounded-sm bg-green-600/90 text-white px-2 py-0.5 font-medium backdrop-blur">
+                                    <Icons name="clock" className="w-3 h-3" />
+                                    {durationLabel}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="px-2 py-2 text-xs flex items-center justify-between gap-2">
+                                <div className="font-medium line-clamp-1 flex-1">
+                                  {formatYogaName(y?.name || y?.title)}
+                                </div>
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer shrink-0"
+                                  checked={checked}
+                                  onChange={() => toggleYogaSelected(y)}
+                                />
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
-                      <div className="px-3 py-2 text-sm flex items-start justify-between gap-2">
-                        <div className="font-medium break-words w-40">
-                          {formatYogaName(y?.name || y?.title)}
-                        </div>
-                        <input
-                          type="checkbox"
-                          className="mt-0.5 shrink-0"
-                          checked={checked}
-                          onChange={() => toggleYogaSelected(y)}
-                        />
-                      </div>
-                    </div>
+                    </fieldset>
                   )
                 })}
               </div>
@@ -4747,9 +5511,70 @@ export default function Subscriptions({
                 <div>
                   <span className="text-xs text-gray-500 block">Category</span>
                   <span className="font-semibold text-gray-900 capitalize">
-                    {proposedPackage?.plan?.category ||
-                      proposedPackage?.plan?.plan_category ||
-                      '--'}
+                    {(() => {
+                      const getVal = (v: any) => {
+                        if (!v) return ''
+                        if (typeof v === 'string') return v
+                        if (typeof v === 'number') return String(v)
+                        if (typeof v === 'object') {
+                          return (
+                            v.name ||
+                            v.title ||
+                            v.label ||
+                            v.category_name ||
+                            v.category ||
+                            ''
+                          )
+                        }
+                        return ''
+                      }
+                      const candidates = [
+                        proposedPackage?.plan?.category,
+                        proposedPackage?.plan?.plan_category,
+                        proposedPackage?.plan?.category_name,
+                        proposedPackage?.plan?.plan_category_name,
+                        proposedPackage?.category,
+                        proposedPackage?.plan_category,
+                        proposedPackage?.category_name,
+                        proposedPackage?.plan_category_name,
+                        proposedPackage?.package_category,
+                        proposedPackage?.package_category_name,
+                        proposedCycle?.plan?.category,
+                        proposedCycle?.plan?.plan_category,
+                        proposedCycle?.plan?.category_name,
+                        proposedCycle?.plan?.plan_category_name,
+                        proposedCycle?.category,
+                        proposedCycle?.plan_category,
+                        proposedCycle?.category_name,
+                        proposedCycle?.plan_category_name,
+                        proposedCycle?.proposal?.plan?.category,
+                        proposedCycle?.proposal?.plan?.plan_category,
+                        proposedCycle?.proposal?.category,
+                        proposedCycle?.proposal?.plan_category,
+                        workflowAssignment?.anticipated_package?.category,
+                        workflowAssignment?.anticipated_package?.plan_category,
+                        workflowAssignment?.anticipated_package?.plan?.category,
+                        workflowAssignment?.anticipated_package?.plan
+                          ?.plan_category,
+                        clientDetail?.client?.plan_proposals?.find(
+                          (p: any) => p.status === 'proposed'
+                        )?.plan?.category,
+                        clientDetail?.client?.plan_proposals?.find(
+                          (p: any) => p.status === 'proposed'
+                        )?.plan?.plan_category,
+                        clientDetail?.client?.plan_proposals?.find(
+                          (p: any) => p.status === 'proposed'
+                        )?.category,
+                        clientDetail?.client?.plan_proposals?.find(
+                          (p: any) => p.status === 'proposed'
+                        )?.plan_category,
+                      ]
+                      for (const c of candidates) {
+                        const str = getVal(c)
+                        if (str && str.trim() !== '') return str
+                      }
+                      return '--'
+                    })()}
                   </span>
                 </div>
                 <div>

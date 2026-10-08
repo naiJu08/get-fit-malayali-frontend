@@ -120,16 +120,14 @@ export default function SubscriptionDetailsMain() {
       { id: 'vitals', label: 'Vitals' },
       { id: 'additional-information', label: 'Assessment' },
       { id: 'reminders', label: 'Reminder settings' },
-      { id: 'diet-history', label: 'Diet history' },
+      { id: 'assignments-history', label: 'Assignments history' },
       { id: 'reports', label: 'Reports' },
       { id: 'follow-ups', label: 'Follow-ups' },
       { id: 'packages', label: 'Packages' },
       { id: 'assignments', label: 'Assignments' },
     ]
     if (isYogist) {
-      return allTabs.filter(
-        (t) => !['diet-history', 'reports', 'assignments'].includes(t.id)
-      )
+      return allTabs.filter((t) => !['reports', 'assignments'].includes(t.id))
     }
     if (isPhysio) {
       return allTabs.filter((t) => !['diet-history', 'reports'].includes(t.id))
@@ -147,6 +145,7 @@ export default function SubscriptionDetailsMain() {
     const allowedTabIds = tabs.map((t) => t.id)
     const derived = lastSegment === String(id) ? 'details' : lastSegment
     if (derived === 'additional-info') return 'additional-information'
+    if (derived === 'diet-history') return 'assignments-history'
     return (allowedTabIds.includes(derived) ? derived : 'details') as TabId
   }, [location.pathname, id, tabs])
 
@@ -1171,9 +1170,10 @@ export default function SubscriptionDetailsMain() {
           ) : null}
         </Tab>
 
-        {/* Tab 7: Diet History */}
-        <Tab id="diet-history">
-          {activeTab === 'diet-history' ? (
+        {/* Assignments History */}
+        <Tab id="assignments-history">
+          {activeTab === 'assignments-history' ||
+          activeTab === 'diet-history' ? (
             <DietHistory subscriptionId={subscription?.id} />
           ) : null}
         </Tab>

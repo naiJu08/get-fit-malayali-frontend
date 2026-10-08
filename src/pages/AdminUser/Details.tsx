@@ -17,7 +17,7 @@ import ReminderSettings from './Details/ReminderSettings'
 import AdditionalInfo from './Details/AdditionalInfo'
 import RecipesTab from './Details/Recipe.tsx/Recipes'
 import SubscriptionHistory from './Details/SubscriptionHistory'
-import DietHistory from './Details/DietHistory'
+import AssignmentsHistory from './Details/AssignmentsHistory'
 import UserCampaigns from './Details/UserCampaigns'
 import UserSalesLeads from './Details/UserSalesLeads'
 import UserSalesClients from './Details/UserSalesClients'
@@ -701,6 +701,7 @@ export default function UserDetails() {
     if (last === String(id)) return 'details'
     if (last === 'clients' && !isSales) return 'accepted-clients'
     if (last === 'sales_clients') return 'sales_clients'
+    if (last === 'diet-history') return 'assignments-history'
     return last
   }, [location.pathname, id, isSales]) as
     | 'details'
@@ -717,6 +718,8 @@ export default function UserDetails() {
     | 'follow-ups'
     | 'packages'
     | 'assignments'
+    | 'assignments-history'
+    | 'diet-history'
     | 'forms'
     | 'campaigns'
     | 'leads'
@@ -760,6 +763,13 @@ export default function UserDetails() {
     loginRole === 'admin' ||
     loginRole === 'sales'
 
+  const canAccessAssignmentsHistory =
+    isSuperAdmin ||
+    loginRole === 'admin' ||
+    loginRole === 'nutritionist' ||
+    loginRole === 'physiotherapist' ||
+    loginRole === 'yogist'
+
   const tabs = useMemo(() => {
     if (detailRole !== 'user') {
       if (isNutritionist) {
@@ -767,7 +777,7 @@ export default function UserDetails() {
           { id: 'details', label: 'Details' },
           { id: 'accepted-clients', label: 'Accepted Clients' },
           { id: 'assigned-clients', label: 'Assigned Clients' },
-          { id: 'diet-history', label: 'Diet history' },
+          { id: 'assignments-history', label: 'Assignments history' },
         ]
       }
       if (isMarketing) {
@@ -809,8 +819,8 @@ export default function UserDetails() {
         : []),
       { id: 'additional-info', label: 'Assessment' },
       { id: 'subscription-history', label: 'Subscription history' },
-      ...(canAccessDietAndRecipes
-        ? [{ id: 'diet-history', label: 'Diet history' }]
+      ...(canAccessAssignmentsHistory
+        ? [{ id: 'assignments-history', label: 'Assignments history' }]
         : []),
       ...(hasSubscription && canAccessReports
         ? [{ id: 'reports', label: 'Reports' }]
@@ -835,6 +845,7 @@ export default function UserDetails() {
     isSales,
     hasSubscription,
     canAccessDietAndRecipes,
+    canAccessAssignmentsHistory,
     canAccessReports,
     canAccessFollowUps,
     loginRole,
@@ -1773,11 +1784,14 @@ export default function UserDetails() {
               </Tab>
             )}
 
-            {/* Diet History (Nutritionist / Superadmin / Admin) */}
-            {(canAccessDietAndRecipes ||
+            {/* Assignments History (Superadmin, Nutritionist, Physio, Yogist) */}
+            {(canAccessAssignmentsHistory ||
               (isNutritionist && detailRole !== 'user')) && (
-              <Tab id="diet-history">
-                <DietHistory subscriptionId={activeSubscriptionId} />
+              <Tab id="assignments-history">
+                <AssignmentsHistory
+                  subscriptionId={activeSubscriptionId}
+                  role={loginRole}
+                />
               </Tab>
             )}
 

@@ -340,11 +340,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                   </button>
                                 )}
                               </div>
-                              {d?.meal_name && (
-                                <div className="text-sm text-gray-600 font-medium">
-                                  {formatMealName(d.meal_name)}
-                                </div>
-                              )}
                               {d?.notes && (
                                 <div className="text-[10px] text-gray-500 mt-1">
                                   Notes: {d.notes}
@@ -883,6 +878,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                   dayDetail?.workout_template?.id ||
                   dayDetail?.subscription?.workout_template_id
                 }
+                selectedDayDate={selectedDayDate}
                 readOnly={!canAssignTemplate}
                 onAssigned={refreshDayDetail as any}
               />
@@ -1074,6 +1070,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     dayDetail?.yoga_template?.id ||
                     dayDetail?.subscription?.yoga_template_id
                   }
+                  selectedDayDate={selectedDayDate}
                   readOnly={!canAssignTemplate}
                   onAssigned={refreshDayDetail as any}
                 />

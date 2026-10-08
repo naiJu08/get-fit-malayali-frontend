@@ -864,6 +864,14 @@ export default function MainRoutes() {
             <UserDetails />
           </UserRoute>
         }
+        path="/users/:id/assignments-history"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
         path="/users/:id/diet-history"
       />
       <Route
@@ -873,6 +881,14 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/users/:id/clients"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="ADMIN_USER">
+            <UserDetails />
+          </UserRoute>
+        }
+        path="/users/nutritionist/:id/assignments-history"
       />
       <Route
         element={
@@ -1093,6 +1109,14 @@ export default function MainRoutes() {
           </UserRoute>
         }
         path="/subscriptions/:id/reports"
+      />
+      <Route
+        element={
+          <UserRoute slug_key="SUBSCRIPTIONS_DETAILS">
+            <SubscriptionDetailsMain />
+          </UserRoute>
+        }
+        path="/subscriptions/:id/assignments-history"
       />
       <Route
         element={

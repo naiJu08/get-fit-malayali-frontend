@@ -523,6 +523,7 @@ export default function YogaPlanDetails() {
   useEffect(() => {
     if (assignOpen) return
     if (reviewOpen) return
+    prefillAppliedRef.current = false
     drawerSelectionInitializedRef.current = false
     selectAllNextYogasRef.current = false
     setYogaFiltersEnabled(false)
@@ -551,7 +552,14 @@ export default function YogaPlanDetails() {
   }, [id])
 
   const previouslySubmittedSelection = useMemo(() => {
-    if (!Array.isArray(wp?.exercises) || wp.exercises.length === 0) return null
+    const exerciseList =
+      Array.isArray(wp?.exercises) && wp.exercises.length > 0
+        ? wp.exercises
+        : Array.isArray(selectedYogas) && selectedYogas.length > 0
+          ? selectedYogas
+          : []
+
+    if (exerciseList.length === 0) return null
 
     const buckets: Record<
       string,
@@ -565,12 +573,25 @@ export default function YogaPlanDetails() {
     const getSubcategoryIdFromExercise = (exercise: any) => {
       const candidates = [
         exercise?.subcategory_id,
-        exercise?.category?.id,
-        exercise?.category_id,
         exercise?.yoga?.subcategory_id,
+        exercise?.subcategory?.id,
         exercise?.yoga?.subcategory?.id,
-        exercise?.yoga?.category?.id,
-        exercise?.yoga?.category_id,
+        Array.isArray(exercise?.subcategory_ids)
+          ? exercise.subcategory_ids[0]
+          : undefined,
+        Array.isArray(exercise?.yoga?.subcategory_ids)
+          ? exercise.yoga.subcategory_ids[0]
+          : undefined,
+        Array.isArray(exercise?.subcategories)
+          ? exercise.subcategories[0]?.id
+          : undefined,
+        Array.isArray(exercise?.yoga?.subcategories)
+          ? exercise.yoga.subcategories[0]?.id
+          : undefined,
+        exercise?.category?.parent_id ? exercise?.category?.id : undefined,
+        exercise?.yoga?.category?.parent_id
+          ? exercise?.yoga?.category?.id
+          : undefined,
       ]
 
       return candidates.find(
@@ -585,6 +606,10 @@ export default function YogaPlanDetails() {
         exercise?.yoga?.category?.main_category,
         exercise?.category?.parent,
         exercise?.yoga?.category?.parent,
+        exercise?.subcategory?.category,
+        exercise?.yoga?.subcategory?.category,
+        exercise?.subcategory?.parent,
+        exercise?.yoga?.subcategory?.parent,
       ].filter(Boolean)
 
       const primary = sources[0] as any
@@ -596,6 +621,15 @@ export default function YogaPlanDetails() {
         exercise?.category?.parent_id,
         exercise?.yoga?.category?.parent_id,
         exercise?.yoga?.main_category_id,
+        exercise?.main_category_id,
+        exercise?.category_id,
+        exercise?.yoga?.category_id,
+        exercise?.category?.parent_id
+          ? exercise?.category?.parent_id
+          : exercise?.category?.id,
+        exercise?.yoga?.category?.parent_id
+          ? exercise?.yoga?.category?.parent_id
+          : exercise?.yoga?.category?.id,
       ]
 
       const categoryId = idCandidates.find(
@@ -609,6 +643,8 @@ export default function YogaPlanDetails() {
         exercise?.category?.main_category_name ??
         exercise?.yoga?.category?.main_category?.name ??
         exercise?.yoga?.category?.parent?.name ??
+        exercise?.category?.name ??
+        exercise?.yoga?.category?.name ??
         ''
 
       return {
@@ -617,15 +653,31 @@ export default function YogaPlanDetails() {
       }
     }
 
-    const getSubcategoryLabelFromExercise = (exercise: any) =>
-      exercise?.category?.name ??
-      exercise?.yoga?.subcategory?.name ??
-      exercise?.yoga?.category?.name ??
-      exercise?.yoga?.subcategory_name ??
-      exercise?.category_name ??
-      ''
+    const getSubcategoryLabelFromExercise = (exercise: any) => {
+      const subId = getSubcategoryIdFromExercise(exercise)
+      if (subId !== undefined && subId !== null) {
+        const mapMeta = subcategoryParentMap[String(subId)]
+        if (mapMeta?.label) return mapMeta.label
+      }
+      const rawSub =
+        exercise?.subcategory?.name ??
+        exercise?.yoga?.subcategory?.name ??
+        exercise?.yoga?.subcategory_name ??
+        exercise?.subcategory_name ??
+        ''
+      const catInfo = getCategoryInfoFromExercise(exercise)
+      const catName = capitalizeWords(catInfo.categoryName || '')
+      const subName = capitalizeWords(rawSub || '')
+      if (catName && subName) return `${catName} - ${subName}`
+      return (
+        subName ||
+        capitalizeWords(
+          exercise?.category?.name ?? exercise?.yoga?.category?.name ?? ''
+        )
+      )
+    }
 
-    wp.exercises.forEach((exercise: any) => {
+    exerciseList.forEach((exercise: any) => {
       const subId = getSubcategoryIdFromExercise(exercise)
       if (subId === undefined) return
 
@@ -654,28 +706,44 @@ export default function YogaPlanDetails() {
       }
 
       const label =
-        getSubcategoryLabelFromExercise(exercise) || mapMeta?.label || ''
+        mapMeta?.label || getSubcategoryLabelFromExercise(exercise) || ''
 
       buckets[bucketKey].subs.set(String(subId), {
         id: subId,
-        value: label || mapMeta?.label || '',
+        value: label,
       })
     })
 
     const bucketList = Object.values(buckets)
     if (!bucketList.length) return null
 
-    bucketList.sort((a, b) => b.subs.size - a.subs.size)
-    const preferred = bucketList[0]
+    const categoryIds = Array.from(
+      new Set(
+        bucketList
+          .map((b) => b.categoryId)
+          .filter((id): id is number | string => id != null && id !== '')
+      )
+    )
+    const categoryNames = bucketList.map((b) => b.categoryName).filter(Boolean)
 
-    if (!preferred.categoryId) return null
+    const subMap = new Map<string, { id: any; value: string }>()
+    bucketList.forEach((b) => {
+      b.subs.forEach((sub, subKey) => {
+        if (!subMap.has(subKey)) {
+          subMap.set(subKey, sub)
+        }
+      })
+    })
+
+    if (!categoryIds.length) return null
 
     return {
-      categoryId: preferred.categoryId,
-      categoryName: preferred.categoryName,
-      subcategories: Array.from(preferred.subs.values()),
+      categoryIds,
+      categoryId: categoryIds[0],
+      categoryName: categoryNames.join(', '),
+      subcategories: Array.from(subMap.values()),
     }
-  }, [wp?.exercises, subcategoryParentMap])
+  }, [wp?.exercises, selectedYogas, subcategoryParentMap])
 
   // Derive selected subcategory IDs from multi-select
   const selectedSubcategoryIds = useMemo(
@@ -700,10 +768,18 @@ export default function YogaPlanDetails() {
     if (!assignOpen) return
     if (!previouslySubmittedSelection || prefillAppliedRef.current) return
 
-    const { categoryId, subcategories } = previouslySubmittedSelection
+    const { categoryIds, categoryId, subcategories } =
+      previouslySubmittedSelection
 
-    if (categoryId !== undefined && categoryId !== null && categoryId !== '') {
-      setSelectedCategoryIds([categoryId])
+    const targetCategoryIds =
+      Array.isArray(categoryIds) && categoryIds.length > 0
+        ? categoryIds
+        : categoryId !== undefined && categoryId !== null && categoryId !== ''
+          ? [categoryId]
+          : []
+
+    if (targetCategoryIds.length > 0) {
+      setSelectedCategoryIds(targetCategoryIds)
     }
 
     if (Array.isArray(subcategories) && subcategories.length > 0) {
@@ -727,17 +803,17 @@ export default function YogaPlanDetails() {
       .map((item: any) => {
         const key = item?.id ?? item?.value
         if (key === undefined || key === null) return null
-        const fromLookup = subcategoryLookupRef.current[String(key)]
         const fromParent = subcategoryParentMap[String(key)]
+        const fromLookup = subcategoryLookupRef.current[String(key)]
         const label =
-          fromLookup?.value ??
-          fromLookup?.name ??
-          fromLookup?.label ??
-          fromParent?.label ??
-          item?.value ??
-          item?.name ??
-          item?.label ??
-          item?.desc ??
+          fromParent?.label ||
+          fromLookup?.value ||
+          fromLookup?.name ||
+          fromLookup?.label ||
+          item?.value ||
+          item?.name ||
+          item?.label ||
+          item?.desc ||
           ''
         return {
           id: key,
@@ -1463,7 +1539,8 @@ export default function YogaPlanDetails() {
                       }
                       if (assignOpen && categoryActuallyChanged) {
                         userSelectionTouchedRef.current = true
-                        selectAllNextYogasRef.current = false
+                        selectAllNextYogasRef.current = true
+                        setSelectedYogas([])
                       }
                     }}
                   />
@@ -1546,7 +1623,8 @@ export default function YogaPlanDetails() {
 
                       if (assignOpen && prevKey !== nextKey) {
                         userSelectionTouchedRef.current = true
-                        selectAllNextYogasRef.current = false
+                        selectAllNextYogasRef.current = true
+                        setSelectedYogas([])
                       }
                     }}
                   />

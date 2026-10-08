@@ -252,7 +252,7 @@ export default function NutritionistDashboardView({
 
         {/* Middle Section: Status & Engagement Analytics */}
         <div className="db-grid-2 mt-6">
-          <ClientStatusCard data={data} />
+          <ClientStatusCard data={data} role={effectiveRole} />
           <EngagementTotalsCard data={data} role={effectiveRole} />
         </div>
 
@@ -270,12 +270,29 @@ export default function NutritionistDashboardView({
   )
 }
 
-function ClientStatusCard({ data }: { data?: StaffDashboardResponse }) {
+function ClientStatusCard({
+  data,
+  role,
+}: {
+  data?: StaffDashboardResponse
+  role?: 'nutritionist' | 'physiotherapist' | 'yogist'
+}) {
+  const authRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
+  const effectiveRole = role || authRole
+  const isYogist = effectiveRole === 'yogist'
   const byStatus = data?.clients?.by_status ?? {}
   const total = data?.clients?.total ?? 0
   const slices = [
     { label: 'Active', value: byStatus.active ?? 0, color: '#10b981' },
-    { label: 'Suspended', value: byStatus.suspended ?? 0, color: '#f59e0b' },
+    ...(!isYogist
+      ? [
+          {
+            label: 'Suspended',
+            value: byStatus.suspended ?? 0,
+            color: '#f59e0b',
+          },
+        ]
+      : []),
     {
       label: 'Deactivated',
       value: byStatus.deactivated ?? 0,
@@ -316,14 +333,18 @@ function ClientStatusCard({ data }: { data?: StaffDashboardResponse }) {
             pct={total ? Math.round(((byStatus.active ?? 0) / total) * 100) : 0}
             color="#10b981"
           />
-          <LegendRow
-            label="Suspended"
-            value={byStatus.suspended ?? 0}
-            pct={
-              total ? Math.round(((byStatus.suspended ?? 0) / total) * 100) : 0
-            }
-            color="#f59e0b"
-          />
+          {!isYogist && (
+            <LegendRow
+              label="Suspended"
+              value={byStatus.suspended ?? 0}
+              pct={
+                total
+                  ? Math.round(((byStatus.suspended ?? 0) / total) * 100)
+                  : 0
+              }
+              color="#f59e0b"
+            />
+          )}
           <LegendRow
             label="Deactivated"
             value={byStatus.deactivated ?? 0}

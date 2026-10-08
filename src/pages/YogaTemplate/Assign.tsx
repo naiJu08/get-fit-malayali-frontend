@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import moment from 'moment'
 import CustomDrawer from '../../components/common/drawer'
 import { getData, postData } from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
@@ -8,8 +9,9 @@ import { shortDate } from '../../utilities/format'
 
 type Props = {
   subscriptionId?: string | number | null
-  currentName?: string
+  currentName?: string | null
   currentTemplateId?: string | number | null
+  selectedDayDate?: string | Date | null
   onAssigned?: () => void
   readOnly?: boolean
 }
@@ -74,6 +76,7 @@ export default function YogaTemplateAssign({
   subscriptionId,
   currentName,
   currentTemplateId,
+  selectedDayDate,
   onAssigned,
   readOnly = false,
 }: Props) {
@@ -190,11 +193,18 @@ export default function YogaTemplateAssign({
 
   const assign = async () => {
     if (!templateId) return
+    const formattedStartDate = selectedDayDate
+      ? moment(selectedDayDate).format('YYYY-MM-DD')
+      : undefined
+
     try {
       setAssigning(true)
       await postData(
         `${apiUrl.SUBSCRIPTIONS}/${subscriptionId}/assign_yoga_template`,
-        { yoga_template_id: Number(templateId) }
+        {
+          yoga_template_id: Number(templateId),
+          start_date: formattedStartDate,
+        }
       )
       enqueueSnackbar('Yoga template assigned successfully', {
         variant: 'success',
@@ -372,7 +382,7 @@ export default function YogaTemplateAssign({
               type="text"
               className="w-full pl-10 pr-10 py-2.5 text-xs bg-white border border-gray-200 rounded-xl shadow-xs placeholder-gray-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all"
               value={search}
-              placeholder="Search yoga templates by name, intensity, or description..."
+              placeholder="Search yoga templates by name..."
               onChange={(e) => setSearch(e.target.value)}
             />
             {search && (
