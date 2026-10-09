@@ -170,14 +170,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   const selectedDayDate =
     dayDetail?.date ?? dayDetail?.day_date ?? dayDetail?.dayDate ?? null
 
-  const hasYogaData = useMemo(() => {
-    return !!(
-      dayDetail?.yoga_plan ||
-      dayDetail?.yoga_template ||
-      dayDetail?.subscription?.yoga_template_name
-    )
-  }, [dayDetail])
-
   const isCompleted = useMemo(() => {
     const status = String(dayDetail?.status || '').toLowerCase()
     return status === 'completed' || status === 'over'
@@ -223,7 +215,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     if (effectiveCanAccessWorkout) {
       list.push({ label: 'Workout', id: 'workout' })
     }
-    if (effectiveCanAccessYoga && (hasYogaData || isSuperOrAdmin || isYogist)) {
+    if (effectiveCanAccessYoga) {
       list.push({ label: 'Yoga', id: 'yoga' })
     }
     if (effectiveCanAccessMeditation) {
@@ -235,9 +227,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     effectiveCanAccessWorkout,
     effectiveCanAccessYoga,
     effectiveCanAccessMeditation,
-    hasYogaData,
-    isSuperOrAdmin,
-    isYogist,
   ])
 
   useEffect(() => {
@@ -970,18 +959,16 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                           </div>
                         </div>
 
-                        {dayDetail?.workout_plan &&
-                          canEditDay &&
-                          effectiveCanAccessWorkout && (
-                            <button
-                              type="button"
-                              className="px-3 py-1.5 text-xs border rounded-lg btn-primary flex items-center gap-1 font-medium shadow-xs shrink-0"
-                              onClick={onEditWorkoutPlan}
-                            >
-                              <Icons name="edit" className="w-3.5 h-3.5" />
-                              <span>Update Day</span>
-                            </button>
-                          )}
+                        {canEditDay && effectiveCanAccessWorkout && (
+                          <button
+                            type="button"
+                            className="px-3 py-1.5 text-xs border rounded-lg btn-primary flex items-center gap-1 font-medium shadow-xs shrink-0"
+                            onClick={onEditWorkoutPlan}
+                          >
+                            <Icons name="edit" className="w-3.5 h-3.5" />
+                            <span>Update Day</span>
+                          </button>
+                        )}
                       </div>
 
                       {/* Plan-level progress bar */}
@@ -1462,601 +1449,588 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
             </Tab>
           )}
 
-          {effectiveCanAccessYoga &&
-            (dayDetail?.yoga_plan ||
-              dayDetail?.yoga_template ||
-              dayDetail?.subscription?.yoga_template_name ||
-              isSuperOrAdmin ||
-              isYogist) && (
-              <Tab id="yoga">
-                <YogaTemplateAssign
-                  subscriptionId={subscriptionId}
-                  currentName={
-                    dayDetail?.yoga_template?.name ||
-                    dayDetail?.subscription?.yoga_template_name
-                  }
-                  currentTemplateId={
-                    dayDetail?.yoga_template?.id ||
-                    dayDetail?.subscription?.yoga_template_id
-                  }
-                  selectedDayDate={selectedDayDate}
-                  readOnly={!canAssignTemplate}
-                  onAssigned={refreshDayDetail as any}
-                />
-                <div className="max-h-[700px] overflow-y-auto">
-                  {/* ── Yoga Plan Header Card ── */}
-                  {(() => {
+          {effectiveCanAccessYoga && (
+            <Tab id="yoga">
+              <YogaTemplateAssign
+                subscriptionId={subscriptionId}
+                currentName={
+                  dayDetail?.yoga_template?.name ||
+                  dayDetail?.subscription?.yoga_template_name
+                }
+                currentTemplateId={
+                  dayDetail?.yoga_template?.id ||
+                  dayDetail?.subscription?.yoga_template_id
+                }
+                selectedDayDate={selectedDayDate}
+                readOnly={!canAssignTemplate}
+                onAssigned={refreshDayDetail as any}
+              />
+              <div className="max-h-[700px] overflow-y-auto">
+                {/* ── Yoga Plan Header Card ── */}
+                {(() => {
+                  const yexs: any[] = Array.isArray(
+                    dayDetail?.yoga_plan?.exercises
+                  )
+                    ? dayDetail.yoga_plan.exercises
+                    : []
+                  const totalCount = yexs.length
+                  const doneCount = yexs.filter(
+                    (e: any) =>
+                      String(e?.actions?.status || '').toLowerCase() ===
+                      'completed'
+                  ).length
+                  const inProgressCount = yexs.filter(
+                    (e: any) =>
+                      String(e?.actions?.status || '').toLowerCase() ===
+                      'in_progress'
+                  ).length
+                  const progressPct =
+                    totalCount > 0
+                      ? Math.round((doneCount / totalCount) * 100)
+                      : 0
+
+                  const totalEstMinutes = yexs.reduce((sum: number, e: any) => {
+                    const dur =
+                      e?.yoga_duration_minutes ??
+                      e?.duration_minutes ??
+                      (typeof e?.actions?.duration_seconds === 'number'
+                        ? e.actions.duration_seconds / 60
+                        : 0)
+                    return sum + (Number(dur) || 0)
+                  }, 0)
+
+                  return (
+                    <div className="bg-white border border-gray-200/80 rounded-xl p-3.5 mb-3 shadow-xs">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className="text-sm font-bold text-gray-800">
+                              {dayDetail?.yoga_plan?.title || 'Yoga Plan'}
+                            </div>
+                            {totalCount > 0 && (
+                              <span
+                                className={`text-[10px] font-semibold border px-2 py-0.5 rounded-full ${
+                                  progressPct === 100
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : progressPct > 0
+                                      ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                      : 'bg-gray-50 text-gray-600 border-gray-200'
+                                }`}
+                              >
+                                {doneCount}/{totalCount} Completed (
+                                {progressPct}%)
+                              </span>
+                            )}
+                          </div>
+                          {dayDetail?.yoga_plan?.description && (
+                            <div className="text-[11px] text-gray-500 mt-0.5 line-clamp-2">
+                              {dayDetail.yoga_plan.description}
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-600 mt-2 flex items-center gap-2 flex-wrap">
+                            <span className="bg-slate-50 text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md font-medium text-[11px]">
+                              🧘 {totalCount}{' '}
+                              {totalCount === 1
+                                ? 'Asana / Exercise'
+                                : 'Asanas / Exercises'}
+                            </span>
+                            {totalEstMinutes > 0 && (
+                              <span className="bg-teal-50 text-teal-700 border border-teal-200/80 px-2 py-0.5 rounded-md font-medium text-[11px]">
+                                ⏱ Est. {totalEstMinutes.toFixed(1)} mins
+                              </span>
+                            )}
+                            {inProgressCount > 0 && (
+                              <span className="bg-amber-50 text-amber-700 border border-amber-200/80 px-2 py-0.5 rounded-md font-medium text-[11px]">
+                                ⏳ {inProgressCount} in progress
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {canEditDay && effectiveCanAccessYoga && (
+                          <button
+                            type="button"
+                            className="px-3 py-1.5 text-xs border rounded-lg btn-primary flex items-center gap-1 font-medium shadow-xs shrink-0"
+                            onClick={onEditYogaPlan}
+                          >
+                            <Icons name="edit" className="w-3.5 h-3.5" />
+                            <span>Update Day</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Plan-level progress bar */}
+                      {totalCount > 0 && (
+                        <div className="mt-2.5">
+                          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-500"
+                              style={{
+                                width: `${progressPct}%`,
+                                background:
+                                  progressPct === 100
+                                    ? '#22c55e'
+                                    : progressPct > 50
+                                      ? 'linear-gradient(90deg, #8b5cf6, #ec4899)'
+                                      : progressPct > 0
+                                        ? '#f59e0b'
+                                        : '#e2e8f0',
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
+                {/* ── Yoga Exercises Grouped by Category & Subcategory ── */}
+                {dayDetail?.yoga_plan ? (
+                  (() => {
                     const yexs: any[] = Array.isArray(
-                      dayDetail?.yoga_plan?.exercises
+                      dayDetail.yoga_plan.exercises
                     )
                       ? dayDetail.yoga_plan.exercises
                       : []
-                    const totalCount = yexs.length
-                    const doneCount = yexs.filter(
-                      (e: any) =>
-                        String(e?.actions?.status || '').toLowerCase() ===
-                        'completed'
-                    ).length
-                    const inProgressCount = yexs.filter(
-                      (e: any) =>
-                        String(e?.actions?.status || '').toLowerCase() ===
-                        'in_progress'
-                    ).length
-                    const progressPct =
-                      totalCount > 0
-                        ? Math.round((doneCount / totalCount) * 100)
-                        : 0
 
-                    const totalEstMinutes = yexs.reduce(
-                      (sum: number, e: any) => {
-                        const dur =
-                          e?.yoga_duration_minutes ??
-                          e?.duration_minutes ??
-                          (typeof e?.actions?.duration_seconds === 'number'
-                            ? e.actions.duration_seconds / 60
-                            : 0)
-                        return sum + (Number(dur) || 0)
+                    if (yexs.length === 0)
+                      return (
+                        <div className="text-xs text-gray-400 text-center py-8">
+                          No yoga exercises assigned.
+                        </div>
+                      )
+
+                    // Helper to extract full yoga metadata
+                    const getYogaMeta = (exercise: any) => {
+                      const yogaId =
+                        exercise?.yoga_id || exercise?.yoga?.id || exercise?.id
+                      const canonical = yogasById?.get(String(yogaId))
+                      const subId =
+                        exercise?.category?.id ??
+                        exercise?.subcategory_id ??
+                        exercise?.subcategory?.id ??
+                        exercise?.category_id ??
+                        canonical?.category?.id ??
+                        canonical?.subcategory?.id
+
+                      const subMeta =
+                        subId != null && yogaSubcategoryParentMap
+                          ? yogaSubcategoryParentMap[String(subId)]
+                          : undefined
+
+                      const catName = toTitleCase(
+                        subMeta?.categoryName ??
+                          canonical?.category?.main_category?.name ??
+                          canonical?.category?.parent?.name ??
+                          canonical?.category_name ??
+                          canonical?.category?.name ??
+                          exercise?.category?.main_category?.name ??
+                          exercise?.category?.parent?.name ??
+                          exercise?.category?.main_category_name ??
+                          exercise?.main_category_name ??
+                          exercise?.category_name ??
+                          (typeof exercise?.category === 'string'
+                            ? exercise.category
+                            : '') ??
+                          ''
+                      )
+
+                      const subName = toTitleCase(
+                        subMeta?.label ??
+                          canonical?.subcategory?.name ??
+                          canonical?.subcategory_name ??
+                          canonical?.category?.name ??
+                          exercise?.category?.name ??
+                          exercise?.subcategory?.name ??
+                          exercise?.subcategory_name ??
+                          (typeof exercise?.subcategory === 'string'
+                            ? exercise.subcategory
+                            : '') ??
+                          ''
+                      )
+
+                      const yogaName = toTitleCase(
+                        exercise?.yoga_name ??
+                          exercise?.yoga?.title ??
+                          exercise?.yoga?.name ??
+                          canonical?.name ??
+                          canonical?.title ??
+                          exercise?.title ??
+                          exercise?.name ??
+                          '--'
+                      )
+
+                      const videoUrl =
+                        exercise?.video_url ??
+                        exercise?.yoga?.video_url ??
+                        canonical?.video_url ??
+                        null
+
+                      const action = exercise?.actions
+                      const durationSec =
+                        typeof action?.duration_seconds === 'number'
+                          ? action.duration_seconds
+                          : null
+
+                      const durationMin =
+                        exercise?.yoga_duration_minutes ??
+                        exercise?.duration_minutes ??
+                        canonical?.duration_minutes ??
+                        (durationSec != null
+                          ? (durationSec / 60).toFixed(1)
+                          : null)
+
+                      const intensity = toTitleCase(
+                        exercise?.intensity ??
+                          exercise?.difficulty ??
+                          canonical?.intensity ??
+                          canonical?.difficulty ??
+                          ''
+                      )
+
+                      const yogaType = toTitleCase(
+                        exercise?.yoga_type ??
+                          canonical?.yoga_type ??
+                          exercise?.type ??
+                          ''
+                      )
+
+                      const reps =
+                        exercise?.reps ??
+                        exercise?.yoga?.reps ??
+                        canonical?.reps ??
+                        null
+                      const rounds =
+                        exercise?.rounds ??
+                        exercise?.yoga?.rounds ??
+                        canonical?.rounds ??
+                        null
+                      const holdSeconds =
+                        exercise?.hold_seconds ??
+                        exercise?.yoga?.hold_seconds ??
+                        canonical?.hold_seconds ??
+                        null
+
+                      return {
+                        catName,
+                        subName,
+                        yogaName,
+                        videoUrl,
+                        durationMin,
+                        intensity,
+                        yogaType,
+                        reps,
+                        rounds,
+                        holdSeconds,
+                        action,
+                      }
+                    }
+
+                    // Group by resolved category & subcategory
+                    const yogaGrouped: Record<
+                      string,
+                      { groupKey: string; items: any[] }
+                    > = {}
+
+                    yexs.forEach((ex: any) => {
+                      const meta = getYogaMeta(ex)
+                      const groupKey =
+                        meta.catName &&
+                        meta.subName &&
+                        meta.catName.toLowerCase() !==
+                          meta.subName.toLowerCase()
+                          ? `${meta.catName} - ${meta.subName}`
+                          : meta.subName || meta.catName || 'General Yoga'
+
+                      if (!yogaGrouped[groupKey]) {
+                        yogaGrouped[groupKey] = { groupKey, items: [] }
+                      }
+                      yogaGrouped[groupKey].items.push(ex)
+                    })
+
+                    const yogaGroupList = Object.values(yogaGrouped)
+
+                    const yogaGroupColors = [
+                      {
+                        bg: 'bg-purple-50/80',
+                        border: 'border-purple-200/80',
+                        text: 'text-purple-800',
+                        dot: 'bg-purple-500',
+                        badge: 'bg-purple-100 text-purple-700',
                       },
-                      0
-                    )
+                      {
+                        bg: 'bg-pink-50/80',
+                        border: 'border-pink-200/80',
+                        text: 'text-pink-800',
+                        dot: 'bg-pink-500',
+                        badge: 'bg-pink-100 text-pink-700',
+                      },
+                      {
+                        bg: 'bg-teal-50/80',
+                        border: 'border-teal-200/80',
+                        text: 'text-teal-800',
+                        dot: 'bg-teal-500',
+                        badge: 'bg-teal-100 text-teal-700',
+                      },
+                      {
+                        bg: 'bg-indigo-50/80',
+                        border: 'border-indigo-200/80',
+                        text: 'text-indigo-800',
+                        dot: 'bg-indigo-500',
+                        badge: 'bg-indigo-100 text-indigo-700',
+                      },
+                      {
+                        bg: 'bg-orange-50/80',
+                        border: 'border-orange-200/80',
+                        text: 'text-orange-800',
+                        dot: 'bg-orange-500',
+                        badge: 'bg-orange-100 text-orange-700',
+                      },
+                      {
+                        bg: 'bg-cyan-50/80',
+                        border: 'border-cyan-200/80',
+                        text: 'text-cyan-800',
+                        dot: 'bg-cyan-500',
+                        badge: 'bg-cyan-100 text-cyan-700',
+                      },
+                    ]
 
                     return (
-                      <div className="bg-white border border-gray-200/80 rounded-xl p-3.5 mb-3 shadow-xs">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <div className="text-sm font-bold text-gray-800">
-                                {dayDetail?.yoga_plan?.title || 'Yoga Plan'}
-                              </div>
-                              {totalCount > 0 && (
-                                <span
-                                  className={`text-[10px] font-semibold border px-2 py-0.5 rounded-full ${
-                                    progressPct === 100
-                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                      : progressPct > 0
-                                        ? 'bg-purple-50 text-purple-700 border-purple-200'
-                                        : 'bg-gray-50 text-gray-600 border-gray-200'
-                                  }`}
-                                >
-                                  {doneCount}/{totalCount} Completed (
-                                  {progressPct}%)
-                                </span>
-                              )}
-                            </div>
-                            {dayDetail?.yoga_plan?.description && (
-                              <div className="text-[11px] text-gray-500 mt-0.5 line-clamp-2">
-                                {dayDetail.yoga_plan.description}
-                              </div>
-                            )}
-                            <div className="text-xs text-gray-600 mt-2 flex items-center gap-2 flex-wrap">
-                              <span className="bg-slate-50 text-slate-700 border border-slate-200 px-2 py-0.5 rounded-md font-medium text-[11px]">
-                                🧘 {totalCount}{' '}
-                                {totalCount === 1
-                                  ? 'Asana / Exercise'
-                                  : 'Asanas / Exercises'}
-                              </span>
-                              {totalEstMinutes > 0 && (
-                                <span className="bg-teal-50 text-teal-700 border border-teal-200/80 px-2 py-0.5 rounded-md font-medium text-[11px]">
-                                  ⏱ Est. {totalEstMinutes.toFixed(1)} mins
-                                </span>
-                              )}
-                              {inProgressCount > 0 && (
-                                <span className="bg-amber-50 text-amber-700 border border-amber-200/80 px-2 py-0.5 rounded-md font-medium text-[11px]">
-                                  ⏳ {inProgressCount} in progress
-                                </span>
-                              )}
-                            </div>
-                          </div>
+                      <div className="flex flex-col gap-3">
+                        {yogaGroupList.map(({ groupKey, items }, gi) => {
+                          const col =
+                            yogaGroupColors[gi % yogaGroupColors.length]
+                          const gDone = items.filter(
+                            (e: any) =>
+                              String(e?.actions?.status || '').toLowerCase() ===
+                              'completed'
+                          ).length
 
-                          {dayDetail?.yoga_plan &&
-                            canEditDay &&
-                            effectiveCanAccessYoga && (
-                              <button
-                                type="button"
-                                className="px-3 py-1.5 text-xs border rounded-lg btn-primary flex items-center gap-1 font-medium shadow-xs shrink-0"
-                                onClick={onEditYogaPlan}
-                              >
-                                <Icons name="edit" className="w-3.5 h-3.5" />
-                                <span>Update Day</span>
-                              </button>
-                            )}
-                        </div>
-
-                        {/* Plan-level progress bar */}
-                        {totalCount > 0 && (
-                          <div className="mt-2.5">
-                            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          return (
+                            <div
+                              key={groupKey}
+                              className={`rounded-xl border ${col.border} overflow-hidden bg-white shadow-xs`}
+                            >
+                              {/* Group Header */}
                               <div
-                                className="h-full rounded-full transition-all duration-500"
-                                style={{
-                                  width: `${progressPct}%`,
-                                  background:
-                                    progressPct === 100
-                                      ? '#22c55e'
-                                      : progressPct > 50
-                                        ? 'linear-gradient(90deg, #8b5cf6, #ec4899)'
-                                        : progressPct > 0
-                                          ? '#f59e0b'
-                                          : '#e2e8f0',
-                                }}
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })()}
-
-                  {/* ── Yoga Exercises Grouped by Category & Subcategory ── */}
-                  {dayDetail?.yoga_plan ? (
-                    (() => {
-                      const yexs: any[] = Array.isArray(
-                        dayDetail.yoga_plan.exercises
-                      )
-                        ? dayDetail.yoga_plan.exercises
-                        : []
-
-                      if (yexs.length === 0)
-                        return (
-                          <div className="text-xs text-gray-400 text-center py-8">
-                            No yoga exercises assigned.
-                          </div>
-                        )
-
-                      // Helper to extract full yoga metadata
-                      const getYogaMeta = (exercise: any) => {
-                        const yogaId =
-                          exercise?.yoga_id ||
-                          exercise?.yoga?.id ||
-                          exercise?.id
-                        const canonical = yogasById?.get(String(yogaId))
-                        const subId =
-                          exercise?.category?.id ??
-                          exercise?.subcategory_id ??
-                          exercise?.subcategory?.id ??
-                          exercise?.category_id ??
-                          canonical?.category?.id ??
-                          canonical?.subcategory?.id
-
-                        const subMeta =
-                          subId != null && yogaSubcategoryParentMap
-                            ? yogaSubcategoryParentMap[String(subId)]
-                            : undefined
-
-                        const catName = toTitleCase(
-                          subMeta?.categoryName ??
-                            canonical?.category?.main_category?.name ??
-                            canonical?.category?.parent?.name ??
-                            canonical?.category_name ??
-                            canonical?.category?.name ??
-                            exercise?.category?.main_category?.name ??
-                            exercise?.category?.parent?.name ??
-                            exercise?.category?.main_category_name ??
-                            exercise?.main_category_name ??
-                            exercise?.category_name ??
-                            (typeof exercise?.category === 'string'
-                              ? exercise.category
-                              : '') ??
-                            ''
-                        )
-
-                        const subName = toTitleCase(
-                          subMeta?.label ??
-                            canonical?.subcategory?.name ??
-                            canonical?.subcategory_name ??
-                            canonical?.category?.name ??
-                            exercise?.category?.name ??
-                            exercise?.subcategory?.name ??
-                            exercise?.subcategory_name ??
-                            (typeof exercise?.subcategory === 'string'
-                              ? exercise.subcategory
-                              : '') ??
-                            ''
-                        )
-
-                        const yogaName = toTitleCase(
-                          exercise?.yoga_name ??
-                            exercise?.yoga?.title ??
-                            exercise?.yoga?.name ??
-                            canonical?.name ??
-                            canonical?.title ??
-                            exercise?.title ??
-                            exercise?.name ??
-                            '--'
-                        )
-
-                        const videoUrl =
-                          exercise?.video_url ??
-                          exercise?.yoga?.video_url ??
-                          canonical?.video_url ??
-                          null
-
-                        const action = exercise?.actions
-                        const durationSec =
-                          typeof action?.duration_seconds === 'number'
-                            ? action.duration_seconds
-                            : null
-
-                        const durationMin =
-                          exercise?.yoga_duration_minutes ??
-                          exercise?.duration_minutes ??
-                          canonical?.duration_minutes ??
-                          (durationSec != null
-                            ? (durationSec / 60).toFixed(1)
-                            : null)
-
-                        const intensity = toTitleCase(
-                          exercise?.intensity ??
-                            exercise?.difficulty ??
-                            canonical?.intensity ??
-                            canonical?.difficulty ??
-                            ''
-                        )
-
-                        const yogaType = toTitleCase(
-                          exercise?.yoga_type ??
-                            canonical?.yoga_type ??
-                            exercise?.type ??
-                            ''
-                        )
-
-                        const reps =
-                          exercise?.reps ??
-                          exercise?.yoga?.reps ??
-                          canonical?.reps ??
-                          null
-                        const rounds =
-                          exercise?.rounds ??
-                          exercise?.yoga?.rounds ??
-                          canonical?.rounds ??
-                          null
-                        const holdSeconds =
-                          exercise?.hold_seconds ??
-                          exercise?.yoga?.hold_seconds ??
-                          canonical?.hold_seconds ??
-                          null
-
-                        return {
-                          catName,
-                          subName,
-                          yogaName,
-                          videoUrl,
-                          durationMin,
-                          intensity,
-                          yogaType,
-                          reps,
-                          rounds,
-                          holdSeconds,
-                          action,
-                        }
-                      }
-
-                      // Group by resolved category & subcategory
-                      const yogaGrouped: Record<
-                        string,
-                        { groupKey: string; items: any[] }
-                      > = {}
-
-                      yexs.forEach((ex: any) => {
-                        const meta = getYogaMeta(ex)
-                        const groupKey =
-                          meta.catName &&
-                          meta.subName &&
-                          meta.catName.toLowerCase() !==
-                            meta.subName.toLowerCase()
-                            ? `${meta.catName} - ${meta.subName}`
-                            : meta.subName || meta.catName || 'General Yoga'
-
-                        if (!yogaGrouped[groupKey]) {
-                          yogaGrouped[groupKey] = { groupKey, items: [] }
-                        }
-                        yogaGrouped[groupKey].items.push(ex)
-                      })
-
-                      const yogaGroupList = Object.values(yogaGrouped)
-
-                      const yogaGroupColors = [
-                        {
-                          bg: 'bg-purple-50/80',
-                          border: 'border-purple-200/80',
-                          text: 'text-purple-800',
-                          dot: 'bg-purple-500',
-                          badge: 'bg-purple-100 text-purple-700',
-                        },
-                        {
-                          bg: 'bg-pink-50/80',
-                          border: 'border-pink-200/80',
-                          text: 'text-pink-800',
-                          dot: 'bg-pink-500',
-                          badge: 'bg-pink-100 text-pink-700',
-                        },
-                        {
-                          bg: 'bg-teal-50/80',
-                          border: 'border-teal-200/80',
-                          text: 'text-teal-800',
-                          dot: 'bg-teal-500',
-                          badge: 'bg-teal-100 text-teal-700',
-                        },
-                        {
-                          bg: 'bg-indigo-50/80',
-                          border: 'border-indigo-200/80',
-                          text: 'text-indigo-800',
-                          dot: 'bg-indigo-500',
-                          badge: 'bg-indigo-100 text-indigo-700',
-                        },
-                        {
-                          bg: 'bg-orange-50/80',
-                          border: 'border-orange-200/80',
-                          text: 'text-orange-800',
-                          dot: 'bg-orange-500',
-                          badge: 'bg-orange-100 text-orange-700',
-                        },
-                        {
-                          bg: 'bg-cyan-50/80',
-                          border: 'border-cyan-200/80',
-                          text: 'text-cyan-800',
-                          dot: 'bg-cyan-500',
-                          badge: 'bg-cyan-100 text-cyan-700',
-                        },
-                      ]
-
-                      return (
-                        <div className="flex flex-col gap-3">
-                          {yogaGroupList.map(({ groupKey, items }, gi) => {
-                            const col =
-                              yogaGroupColors[gi % yogaGroupColors.length]
-                            const gDone = items.filter(
-                              (e: any) =>
-                                String(
-                                  e?.actions?.status || ''
-                                ).toLowerCase() === 'completed'
-                            ).length
-
-                            return (
-                              <div
-                                key={groupKey}
-                                className={`rounded-xl border ${col.border} overflow-hidden bg-white shadow-xs`}
+                                className={`${col.bg} px-3.5 py-2 flex items-center justify-between border-b ${col.border}`}
                               >
-                                {/* Group Header */}
-                                <div
-                                  className={`${col.bg} px-3.5 py-2 flex items-center justify-between border-b ${col.border}`}
-                                >
-                                  <div className="flex items-center gap-2">
-                                    <span
-                                      className={`w-2 h-2 rounded-full ${col.dot} shrink-0 ring-2 ring-white`}
-                                    />
-                                    <span
-                                      className={`text-[12px] font-semibold ${col.text}`}
-                                    >
-                                      {groupKey}
-                                    </span>
-                                  </div>
+                                <div className="flex items-center gap-2">
                                   <span
-                                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${col.badge}`}
+                                    className={`w-2 h-2 rounded-full ${col.dot} shrink-0 ring-2 ring-white`}
+                                  />
+                                  <span
+                                    className={`text-[12px] font-semibold ${col.text}`}
                                   >
-                                    {gDone}/{items.length} completed
+                                    {groupKey}
                                   </span>
                                 </div>
+                                <span
+                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${col.badge}`}
+                                >
+                                  {gDone}/{items.length} completed
+                                </span>
+                              </div>
 
-                                {/* Yoga Cards */}
-                                <div className="divide-y divide-gray-100">
-                                  {items.map((exercise: any, exIdx: number) => {
-                                    const meta = getYogaMeta(exercise)
-                                    const action = meta.action
-                                    const status = String(
-                                      action?.status || ''
-                                    ).toLowerCase()
-                                    const isC = status === 'completed'
-                                    const isM =
-                                      status === 'missed' || status === 'failed'
-                                    const isIP = status === 'in_progress'
-                                    const hasVideo = !!meta.videoUrl
-                                    const watchPct =
-                                      action?.video_watch_percentage != null
-                                        ? Number(action.video_watch_percentage)
-                                        : null
+                              {/* Yoga Cards */}
+                              <div className="divide-y divide-gray-100">
+                                {items.map((exercise: any, exIdx: number) => {
+                                  const meta = getYogaMeta(exercise)
+                                  const action = meta.action
+                                  const status = String(
+                                    action?.status || ''
+                                  ).toLowerCase()
+                                  const isC = status === 'completed'
+                                  const isM =
+                                    status === 'missed' || status === 'failed'
+                                  const isIP = status === 'in_progress'
+                                  const hasVideo = !!meta.videoUrl
+                                  const watchPct =
+                                    action?.video_watch_percentage != null
+                                      ? Number(action.video_watch_percentage)
+                                      : null
 
-                                    const statusPill = isC
-                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                      : isM
-                                        ? 'bg-red-50 text-red-700 border-red-200'
-                                        : isIP
-                                          ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                          : status
-                                            ? 'bg-slate-50 text-slate-600 border-slate-200'
-                                            : ''
+                                  const statusPill = isC
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : isM
+                                      ? 'bg-red-50 text-red-700 border-red-200'
+                                      : isIP
+                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                        : status
+                                          ? 'bg-slate-50 text-slate-600 border-slate-200'
+                                          : ''
 
-                                    const leftAccent = isC
-                                      ? 'border-l-[3px] border-l-emerald-500'
-                                      : isM
-                                        ? 'border-l-[3px] border-l-red-500'
-                                        : isIP
-                                          ? 'border-l-[3px] border-l-amber-500'
-                                          : 'border-l-[3px] border-l-gray-300'
+                                  const leftAccent = isC
+                                    ? 'border-l-[3px] border-l-emerald-500'
+                                    : isM
+                                      ? 'border-l-[3px] border-l-red-500'
+                                      : isIP
+                                        ? 'border-l-[3px] border-l-amber-500'
+                                        : 'border-l-[3px] border-l-gray-300'
 
-                                    return (
-                                      <div
-                                        key={exercise?.id || exIdx}
-                                        className={`bg-white px-3.5 py-2.5 ${leftAccent} hover:bg-slate-50/50 transition-colors`}
-                                      >
-                                        {/* Top row */}
-                                        <div className="flex items-start justify-between gap-2">
-                                          <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
-                                            <span className="text-[12px] font-semibold text-gray-800 leading-tight">
-                                              {meta.yogaName}
-                                            </span>
-                                            {meta.yogaType && (
-                                              <span className="text-[9px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.2 rounded font-medium">
-                                                {meta.yogaType}
-                                              </span>
-                                            )}
-                                          </div>
-                                          {status && (
-                                            <span
-                                              className={`shrink-0 text-[9px] font-semibold border rounded-full px-2 py-0.5 capitalize ${statusPill}`}
-                                            >
-                                              {isC && '✓ '}
-                                              {isIP && '⏳ '}
-                                              {isM && '✕ '}
-                                              {status.replace(/_/g, ' ')}
+                                  return (
+                                    <div
+                                      key={exercise?.id || exIdx}
+                                      className={`bg-white px-3.5 py-2.5 ${leftAccent} hover:bg-slate-50/50 transition-colors`}
+                                    >
+                                      {/* Top row */}
+                                      <div className="flex items-start justify-between gap-2">
+                                        <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+                                          <span className="text-[12px] font-semibold text-gray-800 leading-tight">
+                                            {meta.yogaName}
+                                          </span>
+                                          {meta.yogaType && (
+                                            <span className="text-[9px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.2 rounded font-medium">
+                                              {meta.yogaType}
                                             </span>
                                           )}
                                         </div>
-
-                                        {/* Tags */}
-                                        <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                                          {hasVideo && (
-                                            <a
-                                              href={meta.videoUrl}
-                                              target="_blank"
-                                              rel="noreferrer"
-                                              className="inline-flex items-center gap-1 text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 rounded px-1.5 py-0.5 hover:bg-purple-100 hover:border-purple-300 transition-colors shadow-2xs"
-                                            >
-                                              <svg
-                                                className="w-2.5 h-2.5 fill-purple-600"
-                                                viewBox="0 0 20 20"
-                                              >
-                                                <path d="M2 6a2 2 0 012-2h6l2 2h4a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                                <path
-                                                  fill="white"
-                                                  d="M10 9l3 2-3 2V9z"
-                                                />
-                                              </svg>
-                                              <span>Video</span>
-                                            </a>
-                                          )}
-
-                                          {watchPct != null && (
-                                            <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                              👁 {watchPct}% watched
-                                            </span>
-                                          )}
-
-                                          {meta.durationMin != null && (
-                                            <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-teal-50 text-teal-700 border border-teal-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                              <span>⏱</span>
-                                              <span>{meta.durationMin}m</span>
-                                            </span>
-                                          )}
-
-                                          {meta.rounds != null && (
-                                            <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-pink-50 text-pink-700 border border-pink-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                              <span>🔄</span>
-                                              <span>{meta.rounds} rounds</span>
-                                            </span>
-                                          )}
-
-                                          {meta.reps != null && (
-                                            <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-pink-50 text-pink-700 border border-pink-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                              <span>🔁</span>
-                                              <span>{meta.reps} reps</span>
-                                            </span>
-                                          )}
-
-                                          {meta.holdSeconds != null && (
-                                            <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                              <span>⏳</span>
-                                              <span>
-                                                {meta.holdSeconds}s hold
-                                              </span>
-                                            </span>
-                                          )}
-
-                                          {meta.intensity && (
-                                            <span
-                                              className={`inline-flex items-center gap-0.5 text-[9px] font-semibold border rounded px-1.5 py-0.5 shadow-2xs ${
-                                                meta.intensity.toLowerCase() ===
-                                                'high'
-                                                  ? 'bg-red-50 text-red-700 border-red-200'
-                                                  : meta.intensity.toLowerCase() ===
-                                                      'moderate'
-                                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                              }`}
-                                            >
-                                              <span>⚡</span>
-                                              <span>{meta.intensity}</span>
-                                            </span>
-                                          )}
-
-                                          {action?.completed_at && (
-                                            <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-500 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5">
-                                              <span className="text-emerald-500 font-bold">
-                                                ✓
-                                              </span>
-                                              <span>
-                                                {new Date(
-                                                  action.completed_at
-                                                ).toLocaleTimeString([], {
-                                                  hour: '2-digit',
-                                                  minute: '2-digit',
-                                                })}
-                                              </span>
-                                            </span>
-                                          )}
-
-                                          {action?.notes && (
-                                            <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-600 bg-amber-50/60 border border-amber-200/60 rounded px-1.5 py-0.5 italic">
-                                              <span>💬</span>
-                                              <span>
-                                                &ldquo;{action.notes}&rdquo;
-                                              </span>
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        {/* Video progress bar */}
-                                        {watchPct != null && watchPct > 0 && (
-                                          <div className="mt-1.5 h-1 bg-gray-100 rounded-full overflow-hidden">
-                                            <div
-                                              className="h-full bg-purple-500 rounded-full transition-all duration-300"
-                                              style={{
-                                                width: `${Math.min(
-                                                  watchPct,
-                                                  100
-                                                )}%`,
-                                              }}
-                                            />
-                                          </div>
+                                        {status && (
+                                          <span
+                                            className={`shrink-0 text-[9px] font-semibold border rounded-full px-2 py-0.5 capitalize ${statusPill}`}
+                                          >
+                                            {isC && '✓ '}
+                                            {isIP && '⏳ '}
+                                            {isM && '✕ '}
+                                            {status.replace(/_/g, ' ')}
+                                          </span>
                                         )}
                                       </div>
-                                    )
-                                  })}
-                                </div>
+
+                                      {/* Tags */}
+                                      <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                                        {hasVideo && (
+                                          <a
+                                            href={meta.videoUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1 text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 rounded px-1.5 py-0.5 hover:bg-purple-100 hover:border-purple-300 transition-colors shadow-2xs"
+                                          >
+                                            <svg
+                                              className="w-2.5 h-2.5 fill-purple-600"
+                                              viewBox="0 0 20 20"
+                                            >
+                                              <path d="M2 6a2 2 0 012-2h6l2 2h4a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                                              <path
+                                                fill="white"
+                                                d="M10 9l3 2-3 2V9z"
+                                              />
+                                            </svg>
+                                            <span>Video</span>
+                                          </a>
+                                        )}
+
+                                        {watchPct != null && (
+                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                            👁 {watchPct}% watched
+                                          </span>
+                                        )}
+
+                                        {meta.durationMin != null && (
+                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-teal-50 text-teal-700 border border-teal-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                            <span>⏱</span>
+                                            <span>{meta.durationMin}m</span>
+                                          </span>
+                                        )}
+
+                                        {meta.rounds != null && (
+                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-pink-50 text-pink-700 border border-pink-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                            <span>🔄</span>
+                                            <span>{meta.rounds} rounds</span>
+                                          </span>
+                                        )}
+
+                                        {meta.reps != null && (
+                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-pink-50 text-pink-700 border border-pink-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                            <span>🔁</span>
+                                            <span>{meta.reps} reps</span>
+                                          </span>
+                                        )}
+
+                                        {meta.holdSeconds != null && (
+                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                            <span>⏳</span>
+                                            <span>
+                                              {meta.holdSeconds}s hold
+                                            </span>
+                                          </span>
+                                        )}
+
+                                        {meta.intensity && (
+                                          <span
+                                            className={`inline-flex items-center gap-0.5 text-[9px] font-semibold border rounded px-1.5 py-0.5 shadow-2xs ${
+                                              meta.intensity.toLowerCase() ===
+                                              'high'
+                                                ? 'bg-red-50 text-red-700 border-red-200'
+                                                : meta.intensity.toLowerCase() ===
+                                                    'moderate'
+                                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                            }`}
+                                          >
+                                            <span>⚡</span>
+                                            <span>{meta.intensity}</span>
+                                          </span>
+                                        )}
+
+                                        {action?.completed_at && (
+                                          <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-500 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5">
+                                            <span className="text-emerald-500 font-bold">
+                                              ✓
+                                            </span>
+                                            <span>
+                                              {new Date(
+                                                action.completed_at
+                                              ).toLocaleTimeString([], {
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                              })}
+                                            </span>
+                                          </span>
+                                        )}
+
+                                        {action?.notes && (
+                                          <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-600 bg-amber-50/60 border border-amber-200/60 rounded px-1.5 py-0.5 italic">
+                                            <span>💬</span>
+                                            <span>
+                                              &ldquo;{action.notes}&rdquo;
+                                            </span>
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Video progress bar */}
+                                      {watchPct != null && watchPct > 0 && (
+                                        <div className="mt-1.5 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                          <div
+                                            className="h-full bg-purple-500 rounded-full transition-all duration-300"
+                                            style={{
+                                              width: `${Math.min(
+                                                watchPct,
+                                                100
+                                              )}%`,
+                                            }}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })}
                               </div>
-                            )
-                          })}
-                        </div>
-                      )
-                    })()
-                  ) : (
-                    <div className="text-xs text-gray-400 text-center py-8">
-                      No yoga plan assigned.
-                    </div>
-                  )}
-                </div>
-              </Tab>
-            )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )
+                  })()
+                ) : (
+                  <div className="text-xs text-gray-400 text-center py-8">
+                    No yoga plan assigned.
+                  </div>
+                )}
+              </div>
+            </Tab>
+          )}
 
           {effectiveCanAccessMeditation && (
             <Tab id="meditation">

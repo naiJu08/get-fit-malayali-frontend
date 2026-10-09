@@ -346,7 +346,15 @@ export default function Subscriptions({
         staleTime: 5 * 60 * 1000,
       }
     )
-  const isSelected = (id: any) => selectedWorkouts.some((w) => w?.id === id)
+  const getWorkoutSelectableId = (item: any) =>
+    item?.workout_id || item?.workout?.id || item?.id || item?.workoutId
+
+  const isSelected = (id: any) =>
+    selectedWorkouts.some(
+      (w) =>
+        String(getWorkoutSelectableId(w)) === String(id) ||
+        String(w?.id) === String(id)
+    )
 
   const allWorkoutsForLookup = allWorkoutsResp?.workouts ?? []
   const { data: categoriesResponse } = useQuery(
@@ -1026,13 +1034,94 @@ export default function Subscriptions({
   }
 
   const toggleSelected = (w: any) => {
-    if (!w?.id) return
+    const workoutId = getWorkoutSelectableId(w) ?? w?.id
+    if (workoutId == null) return
+    const key = String(workoutId)
     userSelectionTouchedRef.current = true
-    setSelectedWorkouts((prev) =>
-      prev.some((x) => x?.id === w.id)
-        ? prev.filter((x) => x?.id !== w.id)
-        : [...prev, w]
-    )
+    setSelectedWorkouts((prev) => {
+      const exists = prev.some(
+        (x) =>
+          String(getWorkoutSelectableId(x)) === key || String(x?.id) === key
+      )
+      if (exists) {
+        setWorkoutCounts((counts) => {
+          const next = { ...counts }
+          delete next[key]
+          return next
+        })
+        return prev.filter(
+          (x) =>
+            String(getWorkoutSelectableId(x)) !== key && String(x?.id) !== key
+        )
+      } else {
+        setWorkoutCounts((counts) => ({
+          ...counts,
+          [key]: Math.max(1, counts[key] ?? 1),
+        }))
+        return [...prev, w]
+      }
+    })
+  }
+
+  const allVisibleWorkoutSelected = useMemo(() => {
+    if (!Array.isArray(workouts) || workouts.length === 0) return false
+    return workouts.every((w: any) => {
+      const id = getWorkoutSelectableId(w) ?? w?.id
+      return id != null && isSelected(id)
+    })
+  }, [workouts, selectedWorkouts])
+
+  const hasVisibleWorkoutSelection = useMemo(() => {
+    if (!Array.isArray(workouts) || workouts.length === 0) return false
+    return workouts.some((w: any) => {
+      const id = getWorkoutSelectableId(w) ?? w?.id
+      return id != null && isSelected(id)
+    })
+  }, [workouts, selectedWorkouts])
+
+  const handleWorkoutSelectAllVisible = () => {
+    if (!Array.isArray(workouts) || workouts.length === 0) return
+    userSelectionTouchedRef.current = true
+    setSelectedWorkouts((prev) => {
+      const existingIds = new Set(
+        prev.map((item) => String(getWorkoutSelectableId(item) ?? item?.id))
+      )
+      const next = [...prev]
+      workouts.forEach((w: any) => {
+        const id = getWorkoutSelectableId(w) ?? w?.id
+        if (id == null) return
+        const key = String(id)
+        if (!existingIds.has(key)) {
+          existingIds.add(key)
+          next.push(w)
+          setWorkoutCounts((counts) => ({
+            ...counts,
+            [key]: Math.max(1, counts[key] ?? 1),
+          }))
+        }
+      })
+      return next
+    })
+  }
+
+  const handleWorkoutUnselectAllVisible = () => {
+    if (!hasVisibleWorkoutSelection) return
+    userSelectionTouchedRef.current = true
+    setSelectedWorkouts((prev) => {
+      if (!Array.isArray(workouts) || workouts.length === 0) return []
+      const visibleIds = new Set(
+        workouts.map((w: any) => String(getWorkoutSelectableId(w) ?? w?.id))
+      )
+      setWorkoutCounts((counts) => {
+        const next = { ...counts }
+        visibleIds.forEach((id) => delete next[id])
+        return next
+      })
+      return prev.filter(
+        (item) =>
+          !visibleIds.has(String(getWorkoutSelectableId(item) ?? item?.id))
+      )
+    })
   }
 
   const yogaCanProceedToReview = selectedYogas.length > 0
@@ -1075,35 +1164,65 @@ export default function Subscriptions({
     })
   }
 
-  const getWorkoutGroupKey = (w: any) => {
-    const rawSub =
-      w?.subcategory?.name ??
-      w?.subcategory_name ??
-      w?.subcategory ??
-      w?.category?.name ??
-      'Others'
+  const getWorkoutGroupLabels = useCallback(
+    (w: any) => {
+      const subId =
+        w?.category_id ??
+        w?.subcategory_id ??
+        w?.workout?.subcategory_id ??
+        w?.subcategory?.id ??
+        w?.workout?.category_id ??
+        w?.workout?.category?.id
 
-    return String(rawSub || 'Others')
-  }
+      const parentMeta =
+        subId != null ? subcategoryParentMap[String(subId)] : null
 
-  const getWorkoutSelectableId = (item: any) =>
-    item?.workout_id || item?.workout?.id || item?.id || item?.workoutId
+      const main =
+        parentMeta?.categoryName ??
+        w?.category?.main_category?.name ??
+        w?.category?.parent?.name ??
+        w?.category?.main_category_name ??
+        w?.category?.parent_name ??
+        w?.workout?.category?.main_category?.name ??
+        w?.workout?.category?.parent?.name ??
+        w?.category?.name ??
+        w?.category_name ??
+        'Others'
 
-  const collectAllVisibleWorkouts = useCallback((list: any[]) => {
-    if (!Array.isArray(list) || list.length === 0) return []
-    const unique = new Map<string, any>()
+      const sub = parentMeta?.label?.includes(' - ')
+        ? parentMeta.label.split(' - ')[1]
+        : (parentMeta?.label ??
+          w?.subcategory?.name ??
+          w?.subcategory_name ??
+          w?.workout?.subcategory?.name ??
+          w?.workout?.subcategory_name ??
+          w?.workout?.category?.name ??
+          w?.category?.name ??
+          w?.category ??
+          'Others')
 
-    list.forEach((item: any) => {
-      const workoutId = getWorkoutSelectableId(item)
-      if (workoutId == null) return
-      const key = String(workoutId)
-      if (!unique.has(key)) {
-        unique.set(key, item)
+      const mainTitle = toTitleCase(String(main || 'Others'))
+      const subTitle = toTitleCase(String(sub || 'Others'))
+
+      return {
+        main: mainTitle,
+        sub: subTitle,
+        legend:
+          mainTitle && subTitle && mainTitle !== subTitle
+            ? `${mainTitle} - ${subTitle}`
+            : subTitle || mainTitle,
       }
-    })
+    },
+    [subcategoryParentMap]
+  )
 
-    return Array.from(unique.values())
-  }, [])
+  const getWorkoutGroupKey = useCallback(
+    (w: any) => {
+      const { main, sub } = getWorkoutGroupLabels(w)
+      return `${main}::${sub}`
+    },
+    [getWorkoutGroupLabels]
+  )
 
   const collectAllVisibleYogas = useCallback(
     (list: any[]) => {
@@ -1163,46 +1282,83 @@ export default function Subscriptions({
       return pa < pb ? -1 : 1
     })
 
-    const groups = new Map<string, any[]>()
+    const groups = new Map<
+      string,
+      {
+        main: string
+        sub: string
+        legend: string
+        priority: number
+        items: any[]
+      }
+    >()
 
     sorted.forEach((w: any) => {
       const key = getWorkoutGroupKey(w)
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push(w)
+      if (!groups.has(key)) {
+        const labels = getWorkoutGroupLabels(w)
+        const p = w?.category?.priority ?? 9999
+        groups.set(key, {
+          main: labels.main,
+          sub: labels.sub,
+          legend: labels.legend,
+          priority: p,
+          items: [],
+        })
+      }
+      groups.get(key)!.items.push(w)
     })
 
-    return Array.from(groups.entries()).map(([name, items]) => ({
-      name,
-      items,
+    return Array.from(groups.values()).map((group) => ({
+      name: group.sub,
+      mainName: group.main,
+      legend: group.legend,
+      priority: group.priority,
+      items: group.items,
     }))
-  }, [workouts])
+  }, [workouts, getWorkoutGroupKey, getWorkoutGroupLabels])
 
   const groupedSelectedWorkouts = useMemo(() => {
     if (!Array.isArray(selectedWorkouts) || selectedWorkouts.length === 0)
       return []
 
-    const groups = new Map<string, any[]>()
-    const priorities = new Map<string, number>()
+    const groups = new Map<
+      string,
+      {
+        main: string
+        sub: string
+        legend: string
+        priority: number
+        items: any[]
+      }
+    >()
 
     selectedWorkouts.forEach((w: any) => {
       const key = getWorkoutGroupKey(w)
-      if (!groups.has(key)) groups.set(key, [])
-      groups.get(key)!.push(w)
-
-      if (!priorities.has(key)) {
+      if (!groups.has(key)) {
+        const labels = getWorkoutGroupLabels(w)
         const p = w?.category?.priority ?? 9999
-        priorities.set(key, p)
+        groups.set(key, {
+          main: labels.main,
+          sub: labels.sub,
+          legend: labels.legend,
+          priority: p,
+          items: [],
+        })
       }
+      groups.get(key)!.items.push(w)
     })
 
-    return Array.from(groups.entries())
-      .map(([name, items]) => ({
-        name,
-        items,
-        priority: priorities.get(name) ?? 9999,
+    return Array.from(groups.values())
+      .map((group) => ({
+        name: group.sub,
+        mainName: group.main,
+        legend: group.legend,
+        priority: group.priority,
+        items: group.items,
       }))
       .sort((a, b) => a.priority - b.priority)
-  }, [selectedWorkouts])
+  }, [selectedWorkouts, getWorkoutGroupKey, getWorkoutGroupLabels])
 
   const canReorderWorkoutGroups = useMemo(
     () =>
@@ -1398,11 +1554,16 @@ export default function Subscriptions({
   }
 
   const decrementWorkoutCount = (workout: any) => {
-    const workoutId = getWorkoutSelectableId(workout)
+    const workoutId = getWorkoutSelectableId(workout) ?? workout?.id
     if (workoutId == null) return
     const key = String(workoutId)
+    userSelectionTouchedRef.current = true
+
     if (
-      !selectedWorkouts.some((w) => String(getWorkoutSelectableId(w)) === key)
+      !selectedWorkouts.some(
+        (w) =>
+          String(getWorkoutSelectableId(w)) === key || String(w?.id) === key
+      )
     )
       return
 
@@ -1417,13 +1578,24 @@ export default function Subscriptions({
   }
 
   const incrementWorkoutCount = (workout: any) => {
-    const workoutId = getWorkoutSelectableId(workout)
+    const workoutId = getWorkoutSelectableId(workout) ?? workout?.id
     if (workoutId == null) return
     const key = String(workoutId)
+    userSelectionTouchedRef.current = true
+
     if (
-      !selectedWorkouts.some((w) => String(getWorkoutSelectableId(w)) === key)
-    )
+      !selectedWorkouts.some(
+        (w) =>
+          String(getWorkoutSelectableId(w)) === key || String(w?.id) === key
+      )
+    ) {
+      setSelectedWorkouts((prev) => [...prev, workout])
+      setWorkoutCounts((prev) => ({
+        ...prev,
+        [key]: 1,
+      }))
       return
+    }
 
     setWorkoutCounts((prev) => ({
       ...prev,
@@ -2338,19 +2510,8 @@ export default function Subscriptions({
   useEffect(() => {
     if (!assignOpen) {
       selectAllNextWorkoutsRef.current = false
-      return
     }
-    if (workoutsLoading) return
-    if (!selectAllNextWorkoutsRef.current) return
-    if (!Array.isArray(workouts) || workouts.length === 0) {
-      setSelectedWorkouts([])
-      selectAllNextWorkoutsRef.current = false
-      return
-    }
-
-    setSelectedWorkouts(collectAllVisibleWorkouts(workouts))
-    selectAllNextWorkoutsRef.current = false
-  }, [assignOpen, workoutsLoading, workouts])
+  }, [assignOpen])
 
   useEffect(() => {
     if (!yogaAssignOpen) {
@@ -2566,10 +2727,6 @@ export default function Subscriptions({
     const prefilledWorkouts = Array.from(map.values())
     setSelectedWorkouts(prefilledWorkouts)
 
-    if (prefilledWorkouts.length === 0) {
-      selectAllNextWorkoutsRef.current = true
-    }
-
     drawerSelectionInitializedRef.current = true
   }, [
     assignOpen,
@@ -2768,7 +2925,16 @@ export default function Subscriptions({
       await refreshDayDetail()
       setSelectedWorkouts([])
       setWorkoutCounts({})
+      setSelectedCategoryId(undefined)
+      setSelectedCategoryIds([])
+      setSelectedCategoryName('')
+      setSelectedSubcategories([])
+      prefillAppliedRef.current = false
+      lastPrefillSignatureRef.current = ''
+      drawerSelectionInitializedRef.current = false
+      userSelectionTouchedRef.current = false
       setReviewOpen(false)
+      setAssignOpen(false)
       enqueueSnackbar('Workout plan updated successfully', {
         variant: 'success',
       })
@@ -2954,8 +3120,14 @@ export default function Subscriptions({
 
       await refreshDayDetail()
       setSelectedYogas([])
+      setSelectedYogaCategoryIds([])
+      setSelectedYogaSubcategories([])
+      setYogaCategoryFilter('')
+      yogaPrefillAppliedRef.current = false
+      lastYogaPrefillSignatureRef.current = ''
       yogaSelectionPrefilledRef.current = false
       setYogaReviewOpen(false)
+      setYogaAssignOpen(false)
       enqueueSnackbar('Yoga plan updated successfully', { variant: 'success' })
       refreshEntirePage()
     } catch (error: any) {
@@ -4584,20 +4756,42 @@ export default function Subscriptions({
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-4 text-[11px] text-gray-600 ml-auto justify-end">
-              <span className="inline-flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                Repetitions
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                Intensity
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                Duration
-              </span>
-            </div>
+            {!workoutsLoading && workouts.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between text-xs text-gray-600">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                    onClick={handleWorkoutSelectAllVisible}
+                    disabled={workoutsLoading || allVisibleWorkoutSelected}
+                  >
+                    Select All
+                  </button>
+                  <button
+                    type="button"
+                    className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                    onClick={handleWorkoutUnselectAllVisible}
+                    disabled={!hasVisibleWorkoutSelection}
+                  >
+                    Unselect All
+                  </button>
+                </div>
+                <div className="flex items-center gap-4 text-[11px] text-gray-600 ml-auto justify-end">
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    Repetitions
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                    Intensity
+                  </span>
+                  <span className="inline-flex items-center gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    Duration
+                  </span>
+                </div>
+              </div>
+            )}
             {workoutsLoading && workouts.length === 0 && (
               <div className="flex items-center justify-center py-12 text-xs text-gray-500 min-h-[200px]">
                 Loading...
@@ -4618,22 +4812,13 @@ export default function Subscriptions({
                 }`}
               >
                 {groupedWorkouts.map((group) => {
-                  const first = group.items?.[0]
-                  const categoryName =
-                    first?.category?.main_category?.name ??
-                    first?.category_name ??
-                    'Others'
-                  const legendText = categoryName
-                    ? `${categoryName} - ${group.name}`
-                    : group.name
-
                   return (
                     <fieldset
-                      key={group.name}
+                      key={group.legend}
                       className="border border-gray-300 rounded-xl p-4 bg-white"
                     >
                       <legend className="px-2 text-md font-semibold text-gray-600">
-                        {legendText}
+                        {group.legend}
                       </legend>
 
                       <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-4">
@@ -4796,22 +4981,13 @@ export default function Subscriptions({
           {selectedWorkouts.length > 0 ? (
             <div className="flex flex-col gap-4">
               {groupedSelectedWorkouts.map((group) => {
-                const first = group.items?.[0]
-                const categoryName =
-                  first?.category?.main_category?.name ??
-                  first?.category_name ??
-                  'Others'
-                const legendText = categoryName
-                  ? `${categoryName} - ${group.name}`
-                  : group.name
-
                 return (
                   <fieldset
-                    key={group.name}
+                    key={group.legend}
                     className="border border-gray-300 rounded-xl p-4 bg-white"
                   >
                     <legend className="px-2 text-md font-semibold text-gray-600">
-                      {legendText}
+                      {group.legend}
                     </legend>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-5">
@@ -4828,9 +5004,9 @@ export default function Subscriptions({
                           <div
                             key={w?.id}
                             draggable
-                            onDragStart={() => onDragStart(index, group.name)}
+                            onDragStart={() => onDragStart(index, group.legend)}
                             onDragOver={(e) => onDragOver(e)}
-                            onDrop={() => onDrop(index, group.name)}
+                            onDrop={() => onDrop(index, group.legend)}
                             className="rounded-xl shadow-lg bg-white border hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing overflow-hidden"
                           >
                             <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
