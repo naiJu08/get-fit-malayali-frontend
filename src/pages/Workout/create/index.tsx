@@ -470,6 +470,7 @@ export default function CreateAdmin({
   const { handleSubmit, watch, setError, clearErrors } = methods
   const watchedVideoFile = watch('video_file')
   const watchedVideoSource = watch('video_source')
+  const watchedVideoUrl = watch('video_url')
   const selectedCategoryId = watch('category_id')
 
   const subcategoryOptions = useMemo(() => {
@@ -664,15 +665,29 @@ export default function CreateAdmin({
                 'Enter YouTube or direct video URL',
                 true
               ),
+              bottomAddon:
+                videoDurationMs !== null &&
+                typeof watchedVideoUrl === 'string' &&
+                watchedVideoUrl !== '' ? (
+                  <div className="text-sm text-primaryText">
+                    {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
+                  </div>
+                ) : null,
             },
           ]
         : [
             {
               name: 'video_file',
               label: 'Video File',
-              labelAddon: videoDurationMs
-                ? formatVideoDurationLabel(videoDurationMs)
-                : '',
+              bottomAddon:
+                videoDurationMs !== null &&
+                (watchedVideoFile instanceof File ||
+                  (typeof watchedVideoFile === 'string' &&
+                    watchedVideoFile !== '')) ? (
+                  <div className="text-sm text-primaryText">
+                    {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
+                  </div>
+                ) : null,
               id: 'video_file',
               type: 'file_upload',
               placeholder: 'Upload video file',
@@ -1077,15 +1092,6 @@ export default function CreateAdmin({
                     spacing
                   />
                 </FormProvider>
-
-                {videoDurationMs !== null &&
-                  (watchedVideoFile instanceof File ||
-                    (typeof watchedVideoFile === 'string' &&
-                      watchedVideoFile !== '')) && (
-                    <div className="text-sm text-primaryText">
-                      {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
-                    </div>
-                  )}
               </>
             ) : (
               <CustomeSideViewer

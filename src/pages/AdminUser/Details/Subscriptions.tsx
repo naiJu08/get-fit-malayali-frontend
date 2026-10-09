@@ -88,7 +88,6 @@ export default function Subscriptions({
   const canAccessDiet = isSuperOrAdmin || isNutritionist
   const canAccessWorkout = isSuperOrAdmin || isPhysio || isNutritionist
   const canAccessYoga = isSuperOrAdmin || isYogist || isNutritionist
-  const canAccessMeditation = isSuperOrAdmin || isNutritionist || isYogist
 
   const isServiceRole = ['nutritionist', 'yogist', 'physiotherapist'].includes(
     loginRole || ''
@@ -235,6 +234,43 @@ export default function Subscriptions({
   const [overview, setOverview] = useState<any>(null)
   const [overviewLoading, setOverviewLoading] = useState(false)
   const [overviewError, setOverviewError] = useState<string>('')
+
+  const isMeditationIncluded = useMemo(() => {
+    const candidates = [
+      overview?.subscription?.plan?.meditation_included,
+      overview?.subscription?.meditation_included,
+      selectedCycle?.plan?.meditation_included,
+      selectedCycle?.proposal?.plan?.meditation_included,
+      proposedPackage?.plan?.meditation_included,
+      user?.subscribed_plan?.meditation_included,
+      user?.plan?.meditation_included,
+      user?.subscription?.plan?.meditation_included,
+      user?.subscription?.meditation_included,
+      user?.meditation_included,
+      clientDetail?.client?.plan?.meditation_included,
+      clientDetail?.client?.subscription?.plan?.meditation_included,
+      clientDetail?.client?.subscription?.meditation_included,
+    ]
+
+    for (const val of candidates) {
+      if (val !== undefined && val !== null) {
+        if (typeof val === 'boolean') return val
+        if (typeof val === 'number') return val === 1
+        if (typeof val === 'string')
+          return val === '1' || val.toLowerCase() === 'true'
+      }
+    }
+    return false
+  }, [
+    overview?.subscription,
+    selectedCycle,
+    proposedPackage,
+    user,
+    clientDetail,
+  ])
+
+  const canAccessMeditation =
+    (isSuperOrAdmin || isNutritionist || isYogist) && isMeditationIncluded
   const [currentMonth, setCurrentMonth] = useState<string>('')
   const [dayDetailOpen, setDayDetailOpen] = useState(false)
   const [dayDetail, setDayDetail] = useState<any>(null)
@@ -522,18 +558,12 @@ export default function Subscriptions({
     } else if (selectedCategoryId) {
       params.category_id = selectedCategoryId
     }
-    if (selectedSubcategoryIds.length) {
-      params.subcategory_ids = selectedSubcategoryIds.join(',')
-    }
+    // We intentionally DO NOT send subcategory_ids to the API here.
+    // If we send it, the backend filters strictly and excludes workouts from
+    // other categories that don't have subcategories selected. We will filter locally.
+
     return params
-  }, [
-    wpPage,
-    wpPerPage,
-    wpSearch,
-    selectedCategoryIds,
-    selectedCategoryId,
-    selectedSubcategoryIds,
-  ])
+  }, [wpPage, wpPerPage, wpSearch, selectedCategoryIds, selectedCategoryId])
   const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList(
     workoutListParams as any,
     {
@@ -542,7 +572,35 @@ export default function Subscriptions({
       staleTime: 5 * 60 * 1000,
     }
   )
-  const workouts = workoutsResp?.workouts ?? []
+
+  const workouts = useMemo(() => {
+    const raw = workoutsResp?.workouts ?? []
+    if (!selectedSubcategoryIds.length) return raw
+
+    return raw.filter((w: any) => {
+      const mainCatId =
+        w?.category?.main_category?.id ??
+        w?.category?.parent_id ??
+        w?.category_id ??
+        w?.category?.id
+
+      const hasSubSelectedForThisCat = selectedSubcategoryIds.some((subId) => {
+        const meta = subcategoryParentMap[String(subId)]
+        return String(meta?.categoryId) === String(mainCatId)
+      })
+
+      if (!hasSubSelectedForThisCat) {
+        return true
+      }
+
+      const wSubId =
+        w?.subcategory?.id ??
+        w?.subcategory_id ??
+        w?.category?.id ??
+        w?.category_id
+      return selectedSubcategoryIds.map(String).includes(String(wSubId))
+    })
+  }, [workoutsResp, selectedSubcategoryIds, subcategoryParentMap])
   const {
     data: medResp,
     isFetching: medLoading,
@@ -1637,11 +1695,19 @@ export default function Subscriptions({
       const subMeta =
         subId != null ? subcategoryParentMap[String(subId)] : undefined
 
+      const isMainCategory = categoryOptions.some(
+        (c: any) => String(c.id) === String(subId)
+      )
+      const mainCatMatch = isMainCategory
+        ? categoryOptions.find((c: any) => String(c.id) === String(subId))
+        : undefined
+
       const mainCategoryId =
         workout?.category?.main_category?.id ??
         subMeta?.categoryId ??
         workout?.category?.main_category_id ??
-        workout?.category?.parent_id
+        workout?.category?.parent_id ??
+        (isMainCategory ? subId : undefined)
 
       if (mainCategoryId === undefined || mainCategoryId === null) return
 
@@ -1655,6 +1721,7 @@ export default function Subscriptions({
             subMeta?.categoryName ??
             workout?.category?.main_category_name ??
             workout?.category?.parent?.name ??
+            mainCatMatch?.name ??
             '',
           subs: new Map(),
           weight: 0,
@@ -1668,6 +1735,7 @@ export default function Subscriptions({
         subId !== undefined &&
         subId !== null &&
         subId !== '' &&
+        !isMainCategory &&
         !bucket.subs.has(String(subId))
       ) {
         const fallbackLabel =
@@ -1769,6 +1837,21 @@ export default function Subscriptions({
         exercise?.workout?.main_category_id,
       ]
 
+      // If the category object explicitly has no main_category/parent, it must be the main category itself
+      if (
+        exercise?.category &&
+        (exercise?.category?.main_category_id === null ||
+          exercise?.category?.parent_id === null)
+      ) {
+        idCandidates.push(exercise?.category?.id)
+      } else if (
+        exercise?.workout?.category &&
+        (exercise?.workout?.category?.main_category_id === null ||
+          exercise?.workout?.category?.parent_id === null)
+      ) {
+        idCandidates.push(exercise?.workout?.category?.id)
+      }
+
       const categoryId = idCandidates.find(
         (candidate) =>
           candidate !== undefined && candidate !== null && candidate !== ''
@@ -1801,12 +1884,25 @@ export default function Subscriptions({
 
       const mapMeta =
         subId != null ? subcategoryParentMap[String(subId)] : undefined
+
+      const isMainCategory = categoryOptions.some(
+        (c: any) => String(c.id) === String(subId)
+      )
+      const mainCatMatch = isMainCategory
+        ? categoryOptions.find((c: any) => String(c.id) === String(subId))
+        : undefined
+
       const catInfo = mapMeta?.categoryId
         ? {
             categoryId: mapMeta.categoryId,
             categoryName: mapMeta.categoryName,
           }
-        : getCategoryInfoFromExercise(exercise)
+        : mainCatMatch
+          ? {
+              categoryId: mainCatMatch.id,
+              categoryName: mainCatMatch.name,
+            }
+          : getCategoryInfoFromExercise(exercise)
 
       if (
         catInfo.categoryId === undefined ||
@@ -1824,7 +1920,12 @@ export default function Subscriptions({
         }
       }
 
-      if (subId !== undefined && subId !== null && subId !== '') {
+      if (
+        subId !== undefined &&
+        subId !== null &&
+        subId !== '' &&
+        !isMainCategory
+      ) {
         const label =
           getSubcategoryLabelFromExercise(exercise) || mapMeta?.label || ''
 

@@ -144,6 +144,7 @@ export interface FileUploadProps {
   subName: string
   label?: string
   labelAddon?: ReactNode
+  bottomAddon?: ReactNode
   type?: string
   fullwidth?: boolean
   disabled?: boolean
@@ -512,6 +513,7 @@ export interface FormBuilderProps {
   subData?: any[]
   toLowercase?: boolean
   labelAddon?: ReactNode
+  bottomAddon?: ReactNode
   aspectRatio?: AspectRatioSpec
   requiredWidth?: number
   requiredHeight?: number

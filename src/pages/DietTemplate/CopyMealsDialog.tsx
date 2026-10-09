@@ -162,6 +162,7 @@ export default function CopyMealsDialog({
     setTargets([])
     setSelectedTargetDays([])
     setError('')
+    setSearch('')
 
     const loadTarget =
       targetType === 'other_template'
@@ -212,7 +213,7 @@ export default function CopyMealsDialog({
   const parentOptions = targetType === 'same_template' ? [] : parents
   const dayOptions =
     targetType === 'same_template' || selectedParentId
-      ? filteredTargets.filter(
+      ? (selectedParentId ? targets : filteredTargets).filter(
           (day: any) =>
             (day?.id != null || day?.day_number != null) &&
             (!day?.target_date ||
@@ -406,6 +407,7 @@ export default function CopyMealsDialog({
                         setTargets([])
                         setSelectedTargetDays([])
                         setError('')
+                        setSearch('')
                         setSelectedParentId(String(item.id))
                       }}
                     >
@@ -498,6 +500,7 @@ export default function CopyMealsDialog({
                   setSelectedClientTarget(null)
                   setTargets([])
                   setSelectedTargetDays([])
+                  setSearch('')
                 }}
               >
                 Change selection

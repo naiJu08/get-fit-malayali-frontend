@@ -249,6 +249,11 @@ const FormBuilder: React.FC<Props> = (props) => {
                 />
               )}
             />
+            {field.bottomAddon && (
+              <div className="mt-2 text-sm text-primaryText">
+                {field.bottomAddon}
+              </div>
+            )}
             {duplicates?.[field.name]?.length > 0 && (
               <ul className="duplicate-dropdown-list">
                 <li className="p-1 text-xxs leading-4 font-semibold text-secondary bg-transparent hover:bg-transparent">
@@ -734,6 +739,7 @@ const FormBuilder: React.FC<Props> = (props) => {
                     onChange={(value) => handleFileUpload(value, field)}
                     label={field.label ?? ''}
                     labelAddon={field.labelAddon}
+                    bottomAddon={field.bottomAddon}
                     value={fileValue}
                     isMultiple={field.isMultiple}
                     errors={!isEditable() ? errors : undefined}

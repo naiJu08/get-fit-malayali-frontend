@@ -135,6 +135,7 @@ export default function CopyExercisesDialog({
     setTargets([])
     setSelectedTargetIds([])
     setError('')
+    setSearch('')
     const loadTarget =
       targetType === 'other_template'
         ? getData(
@@ -177,7 +178,7 @@ export default function CopyExercisesDialog({
   const parentOptions = targetType === 'same_template' ? [] : parents
   const dayOptions =
     targetType === 'same_template' || selectedParentId
-      ? filteredTargets.filter(
+      ? (selectedParentId ? targets : filteredTargets).filter(
           (day: any) =>
             day?.id != null &&
             (!day?.target_date ||
@@ -372,6 +373,7 @@ export default function CopyExercisesDialog({
                         setTargets([])
                         setSelectedTargetIds([])
                         setError('')
+                        setSearch('')
                         setSelectedParentId(String(item.id))
                       }}
                     >
@@ -472,6 +474,7 @@ export default function CopyExercisesDialog({
                   setSelectedClientTarget(null)
                   setTargets([])
                   setSelectedTargetIds([])
+                  setSearch('')
                 }}
               >
                 Change selection
