@@ -4413,20 +4413,12 @@ export default function Subscriptions({
                         (oldId) => !ids.map(String).includes(String(oldId))
                       )
 
-                      const remainingSubcategories =
-                        selectedSubcategories.filter((sub: any) => {
-                          const key = String(sub?.id ?? sub?.value ?? '')
-                          const parent =
-                            subcategoryParentMap[key] ||
-                            subcategoryLookupRef.current[key]
-                          const catId = parent?.categoryId
-                          if (catId !== undefined && catId !== null) {
-                            return !removedCategoryIds
-                              .map(String)
-                              .includes(String(catId))
-                          }
-                          return true
-                        })
+                      // When categories change (add or remove), clear ALL
+                      // subcategories so the workout list refetches without
+                      // stale subcategory filters for the new category set.
+                      const categoriesChanged =
+                        ids.map(String).sort().join(',') !==
+                        selectedCategoryIds.map(String).sort().join(',')
 
                       const remainingWorkouts = selectedWorkouts.filter(
                         (w: any) => {
@@ -4453,7 +4445,11 @@ export default function Subscriptions({
 
                       setSelectedCategoryIds(ids)
                       setSelectedCategoryId(ids[0] || undefined)
-                      setSelectedSubcategories(remainingSubcategories)
+                      // Clear all subcategories whenever categories change so
+                      // the workout query key updates and a fresh fetch fires.
+                      if (categoriesChanged) {
+                        setSelectedSubcategories([])
+                      }
                       setSelectedWorkouts(remainingWorkouts)
                       setWpPage(1)
                     }}
@@ -4461,6 +4457,7 @@ export default function Subscriptions({
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <AutoComplete
+                    key={selectedCategoryIds.join(',')}
                     placeholder="Select subcategories"
                     desc="value"
                     descId="id"
@@ -4938,20 +4935,12 @@ export default function Subscriptions({
                         (oldId) => !ids.map(String).includes(String(oldId))
                       )
 
-                      const remainingSubcategories =
-                        selectedYogaSubcategories.filter((sub: any) => {
-                          const key = String(sub?.id ?? sub?.value ?? '')
-                          const parent =
-                            yogaSubcategoryParentMap[key] ||
-                            yogaSubcategoryLookup[key]
-                          const catId = parent?.categoryId
-                          if (catId !== undefined && catId !== null) {
-                            return !removedCategoryIds
-                              .map(String)
-                              .includes(String(catId))
-                          }
-                          return true
-                        })
+                      // When categories change (add or remove), clear ALL
+                      // subcategories so the yoga list refetches without
+                      // stale subcategory filters for the new category set.
+                      const categoriesChanged =
+                        ids.map(String).sort().join(',') !==
+                        selectedYogaCategoryIds.map(String).sort().join(',')
 
                       const remainingYogas = selectedYogas.filter((y: any) => {
                         const catId =
@@ -4975,13 +4964,18 @@ export default function Subscriptions({
                       })
 
                       setSelectedYogaCategoryIds(ids)
-                      setSelectedYogaSubcategories(remainingSubcategories)
+                      // Clear all subcategories whenever categories change so
+                      // the yoga query key updates and a fresh fetch fires.
+                      if (categoriesChanged) {
+                        setSelectedYogaSubcategories([])
+                      }
                       setSelectedYogas(remainingYogas)
                     }}
                   />
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <AutoComplete
+                    key={selectedYogaCategoryIds.join(',')}
                     placeholder="Select subcategories"
                     desc="value"
                     descId="id"
@@ -5944,6 +5938,10 @@ export default function Subscriptions({
               subscriptionId={overview?.subscription?.id}
               userId={id}
               refreshDayDetail={refreshDayDetail}
+              workoutsById={workoutsById}
+              subcategoryParentMap={subcategoryParentMap}
+              yogasById={yogasById}
+              yogaSubcategoryParentMap={yogaSubcategoryParentMap}
               onEditWorkoutPlan={() => {
                 setDragIndex(null)
                 setReviewOpen(false)
