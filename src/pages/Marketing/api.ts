@@ -27,6 +27,13 @@ export const createMarketingForm = (data: any) =>
   postData(apiUrl.MARKETING_FORMS, { marketing_form: data })
 export const updateMarketingForm = ({ id, data }: any) =>
   updateData(apiUrl.MARKETING_FORMS + '/' + id, { marketing_form: data })
+export const updateMarketingFormStatus = ({
+  id,
+  status,
+}: {
+  id: any
+  status: string
+}) => updateData(apiUrl.MARKETING_FORMS + '/' + id + '/status', { status })
 export const deleteMarketingForm = (id: any) =>
   deleteData(apiUrl.MARKETING_FORMS + '/' + id)
 export const useMarketingCampaigns = (params: any) =>

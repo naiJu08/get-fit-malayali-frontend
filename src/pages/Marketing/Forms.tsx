@@ -15,7 +15,11 @@ import { calcWindowHeight } from '../../utilities/calcHeight'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { getApiErrorMessage } from '../../utilities/commonUtilities'
 import { useNavigate } from 'react-router-dom'
-import { useMarketingForms, deleteMarketingForm } from './api'
+import {
+  useMarketingForms,
+  deleteMarketingForm,
+  updateMarketingFormStatus,
+} from './api'
 import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 
 type FormField = {
@@ -1196,6 +1200,30 @@ export default function Forms() {
   const { data, isFetching, refetch } = useMarketingForms(params)
   const [deleteRow, setDeleteRow] = useState<any>(null)
   const [deleting, setDeleting] = useState(false)
+  const [updatingStatusId, setUpdatingStatusId] = useState<any>(null)
+
+  const handleStatusChange = async (id: any, newStatus: string) => {
+    try {
+      setUpdatingStatusId(id)
+      const res = await updateMarketingFormStatus({ id, status: newStatus })
+      enqueueSnackbar(
+        res?.message || `Form status changed to ${newStatus} successfully`,
+        {
+          variant: 'success',
+        }
+      )
+      refetch()
+    } catch (error: any) {
+      enqueueSnackbar(
+        getApiErrorMessage(error, 'Failed to update form status'),
+        {
+          variant: 'error',
+        }
+      )
+    } finally {
+      setUpdatingStatusId(null)
+    }
+  }
 
   const rows = data?.marketing_forms || []
   const columns: any[] = useMemo(
@@ -1337,6 +1365,33 @@ export default function Forms() {
               icon: <Icons name="edit" />,
               action: (row: any) =>
                 navigate('/marketing/forms/' + row.id + '/edit'),
+            },
+            {
+              title: 'Active',
+              toolTip: 'Mark as Active',
+              icon: <Icons name="activate-icon" />,
+              variant: 'success',
+              hide: (row: any) => row?.status?.toLowerCase() === 'active',
+              disabled: (row: any) => updatingStatusId === row.id,
+              action: (row: any) => handleStatusChange(row.id, 'active'),
+            },
+            {
+              title: 'Inactive',
+              toolTip: 'Mark as Inactive',
+              icon: <Icons name="deactivate-icon" />,
+              variant: 'danger',
+              hide: (row: any) => row?.status?.toLowerCase() === 'inactive',
+              disabled: (row: any) => updatingStatusId === row.id,
+              action: (row: any) => handleStatusChange(row.id, 'inactive'),
+            },
+            {
+              title: 'Draft',
+              toolTip: 'Mark as Draft',
+              icon: <Icons name="document-icon" />,
+              variant: 'secondary',
+              hide: (row: any) => row?.status?.toLowerCase() === 'draft',
+              disabled: (row: any) => updatingStatusId === row.id,
+              action: (row: any) => handleStatusChange(row.id, 'draft'),
             },
             {
               title: 'Delete',

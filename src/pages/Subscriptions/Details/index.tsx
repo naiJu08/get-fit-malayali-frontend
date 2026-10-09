@@ -577,44 +577,88 @@ export default function SubscriptionDetailsMain() {
                     Package Inclusions
                   </span>
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 text-[11px] font-medium">
-                      <svg
-                        className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                    <div
+                      className={`flex items-center gap-2 p-2 rounded-lg border text-[11px] font-medium ${
+                        subscription?.diet_assigned
+                          ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/70 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300'
+                          : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-400'
+                      }`}
+                    >
+                      {subscription?.diet_assigned ? (
+                        <svg
+                          className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-3.5 h-3.5 text-gray-400 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      )}
                       <span>Custom Diet Plan</span>
                     </div>
 
-                    <div className="flex items-center gap-2 p-2 rounded-lg bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/70 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300 text-[11px] font-medium">
-                      <svg
-                        className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                    <div
+                      className={`flex items-center gap-2 p-2 rounded-lg border text-[11px] font-medium ${
+                        subscription?.workout_assigned
+                          ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/70 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300'
+                          : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-400'
+                      }`}
+                    >
+                      {subscription?.workout_assigned ? (
+                        <svg
+                          className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          className="w-3.5 h-3.5 text-gray-400 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      )}
                       <span>Workout Routine</span>
                     </div>
 
                     <div
                       className={`flex items-center gap-2 p-2 rounded-lg border text-[11px] font-medium ${
-                        plan?.yoga_included
+                        subscription?.yoga_assigned
                           ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/70 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300'
                           : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-400'
                       }`}
                     >
-                      {plan?.yoga_included ? (
+                      {subscription?.yoga_assigned ? (
                         <svg
                           className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0"
                           fill="currentColor"
@@ -646,12 +690,14 @@ export default function SubscriptionDetailsMain() {
 
                     <div
                       className={`flex items-center gap-2 p-2 rounded-lg border text-[11px] font-medium ${
-                        plan?.meditation_included
+                        plan?.meditation_included ||
+                        subscription?.meditation_included
                           ? 'bg-emerald-50/70 dark:bg-emerald-950/30 border-emerald-200/70 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300'
                           : 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-400'
                       }`}
                     >
-                      {plan?.meditation_included ? (
+                      {plan?.meditation_included ||
+                      subscription?.meditation_included ? (
                         <svg
                           className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0"
                           fill="currentColor"
