@@ -142,18 +142,24 @@ export const formSchema = z
           }
         )
     ),
-    lifestyle: z.string().optional(),
-    goal: z.string().optional(),
-    food_preferences: z.string().optional(),
-    medical_conditions: medicalConditionsFieldSchema.optional(),
+    lifestyle: z.string().min(1, { message: 'Required.' }),
+    goal: z.string().min(1, { message: 'Required.' }),
+    food_preferences: z.string().min(1, { message: 'Required.' }),
+    medical_conditions: medicalConditionsFieldSchema.refine(
+      (val) => val !== null && val !== undefined && val !== '',
+      { message: 'Required.' }
+    ),
     other_medical_condition: z.string().optional(),
-    food_allergies: foodAllergiesFieldSchema.optional(),
-    state: z.string().optional(),
+    food_allergies: foodAllergiesFieldSchema.refine(
+      (val) => val !== null && val !== undefined && val !== '',
+      { message: 'Required.' }
+    ),
+    state: z.string().min(1, { message: 'Required.' }),
     ethnicity: z.string().optional(),
-    language: z.string().optional(),
-    country: z.string().optional(),
-    work_schedule: z.string().optional(),
-    occupation: z.string().optional(),
+    language: z.string().min(1, { message: 'Required.' }),
+    country: z.string().min(1, { message: 'Required.' }),
+    work_schedule: z.string().min(1, { message: 'Required.' }),
+    occupation: z.string().min(1, { message: 'Required.' }),
     sales_rep: z.any().optional(),
     sales_rep_id: z.any().optional(),
     status: z.union([z.number(), z.string()]).optional(),

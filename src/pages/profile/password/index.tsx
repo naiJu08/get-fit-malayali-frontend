@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { DialogModal } from '../../../components/common'
+import { useAuthStore } from '../../../store/authStore'
 import { useChangePassword } from '../api'
 
 type Props = {
@@ -8,6 +10,8 @@ type Props = {
 }
 
 export default function ChangePassword({ isOpen, handleClose }: Props) {
+  const navigate = useNavigate()
+  const clearAuth = useAuthStore((s) => s.clearAuthenticated)
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -16,6 +20,23 @@ export default function ChangePassword({ isOpen, handleClose }: Props) {
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [validationError, setValidationError] = useState<string | null>(null)
+
+  const passwordChecks = [
+    {
+      label: 'At least one uppercase letter',
+      test: (v: string) => /[A-Z]/.test(v),
+    },
+    {
+      label: 'At least one lowercase letter',
+      test: (v: string) => /[a-z]/.test(v),
+    },
+    { label: 'At least one number', test: (v: string) => /\d/.test(v) },
+    {
+      label: 'At least one special character',
+      test: (v: string) => /[`~<>?,./!@#$%^&*()\-_=+"'\|{}\[\];:\\]/.test(v),
+    },
+    { label: 'Minimum 8 characters', test: (v: string) => v.length >= 8 },
+  ]
 
   const resetForm = () => {
     setCurrentPassword('')
@@ -34,6 +55,8 @@ export default function ChangePassword({ isOpen, handleClose }: Props) {
 
   const changePasswordMutation = useChangePassword(() => {
     onClose()
+    clearAuth()
+    navigate('/login', { replace: true })
   })
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -48,8 +71,11 @@ export default function ChangePassword({ isOpen, handleClose }: Props) {
       setValidationError('Please enter a new password.')
       return
     }
-    if (newPassword.length < 6) {
-      setValidationError('New password must be at least 6 characters long.')
+    const failedChecks = passwordChecks.filter((c) => !c.test(newPassword))
+    if (failedChecks.length > 0) {
+      setValidationError(
+        'New password must contain at least one uppercase letter, one lowercase letter, one number, one special character, and be minimum 8 characters.'
+      )
       return
     }
     if (newPassword !== confirmPassword) {
@@ -183,6 +209,23 @@ export default function ChangePassword({ isOpen, handleClose }: Props) {
                 )}
               </button>
             </div>
+            {newPassword &&
+              (() => {
+                const failed = passwordChecks.filter(
+                  (c) => !c.test(newPassword)
+                )
+                return failed.length === 0 ? (
+                  <p className="mt-2 text-xs text-emerald-600 font-medium">
+                    Password meets all requirements.
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-gray-400">
+                    New password must contain at least one uppercase letter, one
+                    lowercase letter, one number, one special character, and be
+                    minimum 8 characters.
+                  </p>
+                )
+              })()}
           </div>
 
           <div>

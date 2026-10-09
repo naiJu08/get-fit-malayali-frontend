@@ -379,7 +379,9 @@ export default function ClientPackagesTab({
   }, [mode, selectedCycle, selectedCycleId, canCreateUpcomingPackage])
 
   const canManageStaff =
-    canManage && Boolean(selectedCycle?.can_manage_assignments)
+    canManage &&
+    Boolean(selectedCycle?.can_manage_assignments) &&
+    (!isSuperAdmin || Boolean(data?.client?.sales_rep || data?.user?.sales_rep))
   const canEditProposal =
     Boolean(selectedCycle?.can_edit_proposal) ||
     (canManage && selectedValue === 'new' && canCreateUpcomingPackage)
@@ -1831,16 +1833,25 @@ export default function ClientPackagesTab({
                 />
               )
             ) : activeProposal ? (
-              isServiceStaff &&
-              !(isYogist && isPackageConfirmed) && (
-                <Button
-                  label="Update package"
-                  icon="edit"
-                  outlined
-                  onClick={() => openProposalModal(activeProposal)}
-                  disabled={!client.profile_completed}
-                />
-              )
+              <>
+                {isServiceStaff && !(isYogist && isPackageConfirmed) && (
+                  <Button
+                    label="Update package"
+                    icon="edit"
+                    outlined
+                    onClick={() => openProposalModal(activeProposal)}
+                    disabled={!client.profile_completed}
+                  />
+                )}
+                {isSuperAdmin && (
+                  <Button
+                    label="Add proposed package"
+                    icon="plus"
+                    onClick={() => openProposalModal(undefined, true)}
+                    disabled={!client.profile_completed}
+                  />
+                )}
+              </>
             ) : canCreateUpcomingPackage ? (
               <Button
                 label="Add proposed package"
