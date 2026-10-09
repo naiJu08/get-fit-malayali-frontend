@@ -363,12 +363,29 @@ export default function CreateAdmin({
               'Enter YouTube or direct video URL',
               true
             ),
+            bottomAddon:
+              videoDurationMs !== null &&
+              typeof watchedVideoUrl === 'string' &&
+              watchedVideoUrl !== '' ? (
+                <div className="text-sm text-primaryText">
+                  {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
+                </div>
+              ) : null,
           },
         ]
       : [
           {
             name: 'video_file',
             label: 'Video File',
+            bottomAddon:
+              videoDurationMs !== null &&
+              (watchedVideoFile instanceof File ||
+                (typeof watchedVideoFile === 'string' &&
+                  watchedVideoFile !== '')) ? (
+                <div className="text-sm text-primaryText">
+                  {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
+                </div>
+              ) : null,
             id: 'video_file',
             type: 'file_upload',
             placeholder: 'Upload video file',
@@ -994,16 +1011,6 @@ export default function CreateAdmin({
                     spacing
                   />
                 </FormProvider>
-
-                {videoDurationMs !== null &&
-                  (watchedVideoFile instanceof File ||
-                    (typeof watchedVideoFile === 'string' &&
-                      watchedVideoFile !== '') ||
-                    watchedVideoSource === 'url') && (
-                    <div className="text-sm text-primaryText">
-                      {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
-                    </div>
-                  )}
               </>
             ) : (
               <CustomeSideViewer

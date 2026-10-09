@@ -71,7 +71,31 @@ export default function SubscriptionUserSubscriptionsTab({
   const canAccessDiet = isSuperOrAdmin || isNutritionist
   const canAccessWorkout = isSuperOrAdmin || isPhysio || isNutritionist
   const canAccessYoga = isSuperOrAdmin || isYogist || isNutritionist
-  const canAccessMeditation = isSuperOrAdmin || isNutritionist || isYogist
+
+  const isMeditationIncluded = useMemo(() => {
+    const subObj = overview?.subscription as any
+    const sub = subscription as any
+    const candidates = [
+      subObj?.plan?.meditation_included,
+      subObj?.meditation_included,
+      sub?.plan?.meditation_included,
+      sub?.meditation_included,
+      sub?.plan_meditation_included,
+    ]
+
+    for (const val of candidates) {
+      if (val !== undefined && val !== null) {
+        if (typeof val === 'boolean') return val
+        if (typeof val === 'number') return val === 1
+        if (typeof val === 'string')
+          return val === '1' || val.toLowerCase() === 'true'
+      }
+    }
+    return false
+  }, [overview?.subscription, subscription])
+
+  const canAccessMeditation =
+    (isSuperOrAdmin || isNutritionist || isYogist) && isMeditationIncluded
 
   const { enqueueSnackbar } = useSnackbarManager()
 
@@ -558,57 +582,71 @@ export default function SubscriptionUserSubscriptionsTab({
                             </div>
                             {c?.meta && (
                               <div className="mt-1 text-[10px] leading-4 space-y-1">
-                                <div
-                                  className="flex items-center justify-between border rounded-[5px] bg-red-100 text-black px-2 py-1 cursor-pointer hover:bg-red-200 transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    openDayDetail(c, 'diet')
-                                  }}
-                                >
-                                  <span>Diet</span>
-                                  <span className="font-medium">
-                                    {c?.meta?.diet_summary?.total_items ?? 0}
-                                  </span>
-                                </div>
-                                <div
-                                  className="flex items-center justify-between border rounded-[5px] bg-violet-200 text-black px-2 py-1 cursor-pointer hover:bg-violet-300 transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    openDayDetail(c, 'workout')
-                                  }}
-                                >
-                                  <span>Workout</span>
-                                  <span className="font-medium">
-                                    {c?.meta?.workout_summary
-                                      ?.total_exercises ?? 0}
-                                  </span>
-                                </div>
-                                <div
-                                  className="flex items-center justify-between border rounded-[5px] bg-green-200 text-black px-2 py-1 cursor-pointer hover:bg-green-300 transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    openDayDetail(c, 'yoga')
-                                  }}
-                                >
-                                  <span>Yoga</span>
-                                  <span className="font-medium">
-                                    {c?.meta?.yoga_summary?.total_exercises ??
-                                      0}
-                                  </span>
-                                </div>
-                                <div
-                                  className="flex items-center justify-between border rounded-[5px] bg-blue-200 text-black px-2 py-1 cursor-pointer hover:bg-blue-300 transition-colors"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    openDayDetail(c, 'meditation')
-                                  }}
-                                >
-                                  <span>Meditation</span>
-                                  <span className="font-medium">
-                                    {c?.meta?.meditation_summary?.total_items ??
-                                      0}
-                                  </span>
-                                </div>
+                                {canAccessDiet && (
+                                  <div
+                                    className="flex items-center justify-between border rounded-[5px] bg-red-100 text-black px-2 py-1 cursor-pointer hover:bg-red-200 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openDayDetail(c, 'diet')
+                                    }}
+                                  >
+                                    <span>Diet</span>
+                                    <span className="font-medium">
+                                      {c?.meta?.diet_summary?.total_items ?? 0}
+                                    </span>
+                                  </div>
+                                )}
+                                {canAccessWorkout && (
+                                  <div
+                                    className="flex items-center justify-between border rounded-[5px] bg-violet-200 text-black px-2 py-1 cursor-pointer hover:bg-violet-300 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openDayDetail(c, 'workout')
+                                    }}
+                                  >
+                                    <span>Workout</span>
+                                    <span className="font-medium">
+                                      {c?.meta?.workout_summary
+                                        ?.total_exercises ?? 0}
+                                    </span>
+                                  </div>
+                                )}
+                                {canAccessYoga && (
+                                  <div
+                                    className="flex items-center justify-between border rounded-[5px] bg-green-200 text-black px-2 py-1 cursor-pointer hover:bg-green-300 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openDayDetail(c, 'yoga')
+                                    }}
+                                  >
+                                    <span>Yoga</span>
+                                    <span className="font-medium">
+                                      {c?.meta?.yoga_summary?.total_exercises ??
+                                        0}
+                                    </span>
+                                  </div>
+                                )}
+                                {canAccessMeditation && (
+                                  <div
+                                    className="flex items-center justify-between border rounded-[5px] bg-blue-200 text-black px-2 py-1 cursor-pointer hover:bg-blue-300 transition-colors"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      openDayDetail(c, 'meditation')
+                                    }}
+                                  >
+                                    <span>Meditation</span>
+                                    <span className="font-medium">
+                                      {c?.meta?.freeze ||
+                                      c?.meta?.is_frozen ||
+                                      String(
+                                        c?.meta?.status || ''
+                                      ).toLowerCase() === 'frozen'
+                                        ? 0
+                                        : (c?.meta?.meditation_summary
+                                            ?.total_items ?? 0)}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -628,10 +666,14 @@ export default function SubscriptionUserSubscriptionsTab({
         <div className="bg-white border border-gray-300 rounded-lg p-3 mt-4">
           <TabContainer
             data={[
-              { label: 'Diet', id: 'diet' },
-              { label: 'Workout', id: 'workout' },
-              { label: 'Yoga', id: 'yoga' },
-              { label: 'Meditation', id: 'meditation' },
+              ...(canAccessDiet ? [{ label: 'Diet', id: 'diet' }] : []),
+              ...(canAccessWorkout
+                ? [{ label: 'Workout', id: 'workout' }]
+                : []),
+              ...(canAccessYoga ? [{ label: 'Yoga', id: 'yoga' }] : []),
+              ...(canAccessMeditation
+                ? [{ label: 'Meditation', id: 'meditation' }]
+                : []),
             ]}
             activeTab={dayDetailTab}
             onClick={(item) => {
