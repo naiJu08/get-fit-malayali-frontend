@@ -8,7 +8,7 @@ import {
 import Icons from '../icons/index'
 import TextField from './TextField'
 
-import 'react-datepicker/dist/react-datepicker.css'
+// import 'react-datepicker/dist/react-datepicker.css'
 
 type Props = {
   label?: string
@@ -109,6 +109,7 @@ const CustomDatePicker = (props: Props) => {
             minDate={minDate}
             data-testid={name}
             onChange={(date) => handleDatePickerChange(date)}
+            onChangeRaw={(event) => event.preventDefault()}
             placeholderText={placeholder}
             className={` w-full textfield ${errorFlag && 'textfield-error'}`}
             dateFormat={showTimeSelectOnly ? 'hh:mm aa' : 'dd-MM-yyyy'}
@@ -118,7 +119,25 @@ const CustomDatePicker = (props: Props) => {
             timeFormat="hh:mm aa"
             timeCaption="Time"
             selectsRange={selectRange}
-            customInput={<input value={value} />}
+            strictParsing
+            customInput={
+              <input
+                value={value}
+                readOnly
+                onKeyDown={(e) => {
+                  if (
+                    e.key.length === 1 ||
+                    e.key === 'Backspace' ||
+                    e.key === 'Delete' ||
+                    e.key.startsWith('Arrow')
+                  ) {
+                    e.preventDefault()
+                  }
+                }}
+                onPaste={(e) => e.preventDefault()}
+                className="cursor-pointer"
+              />
+            }
           />
         )}
         <div className="absolute right-2 flex items-center justify-center gap-1 top-2  bg-transparent">
