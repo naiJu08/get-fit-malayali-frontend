@@ -483,6 +483,7 @@ export default function CreateAdmin({
             id: 'lifestyle',
             desc: 'name',
             descId: 'id',
+            required: true,
             data: [
               { id: 'Mostly sitting', name: 'Mostly sitting' },
               {
@@ -506,6 +507,7 @@ export default function CreateAdmin({
             id: 'goal',
             desc: 'name',
             descId: 'id',
+            required: true,
             data: [
               { id: 'Weight Loss', name: 'Weight Loss' },
               { id: 'Muscle Gain', name: 'Muscle Gain' },
@@ -526,6 +528,7 @@ export default function CreateAdmin({
             id: 'food_preferences',
             desc: 'name',
             descId: 'id',
+            required: true,
             data: [
               { id: 'Vegetarian', name: 'Vegetarian' },
               { id: 'Non-Vegetarian', name: 'Non-Vegetarian' },
@@ -544,6 +547,7 @@ export default function CreateAdmin({
             id: 'medical_conditions',
             desc: 'name',
             descId: 'id',
+            required: true,
             data: medicalConditionOptions,
             getData: () => medicalConditionOptions,
             type: 'multi_select',
@@ -571,6 +575,7 @@ export default function CreateAdmin({
             id: 'food_allergies',
             desc: 'name',
             descId: 'id',
+            required: true,
             data: foodAllergyOptions,
             getData: () => foodAllergyOptions,
             type: 'multi_select',
@@ -579,22 +584,25 @@ export default function CreateAdmin({
             initialLoad: true,
             isMultiple: true,
           },
-          { ...textField('state', 'State', 'Enter state') },
-          { ...textField('country', 'Country', 'Enter country') },
-          { ...textField('language', 'Language', 'Enter language') },
+          { ...textField('state', 'State', 'Enter state', true) },
+          { ...textField('country', 'Country', 'Enter country', true) },
+          { ...textField('language', 'Language', 'Enter language', true) },
           {
             name: 'work_schedule',
             label: 'Work Schedule',
             id: 'work_schedule',
             desc: 'name',
             descId: 'id',
+            required: true,
             data: workScheduleOptions,
             type: 'custom_select',
             placeholder: 'Select work schedule',
             async: false,
             initialLoad: true,
           },
-          { ...textField('occupation', 'Occupation', 'Enter occupation') },
+          {
+            ...textField('occupation', 'Occupation', 'Enter occupation', true),
+          },
           ...(!edit
             ? [
                 {
