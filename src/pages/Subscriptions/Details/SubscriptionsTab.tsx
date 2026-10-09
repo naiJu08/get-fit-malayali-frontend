@@ -76,23 +76,59 @@ export default function SubscriptionUserSubscriptionsTab({
     const subObj = overview?.subscription as any
     const sub = subscription as any
     const candidates = [
+      subObj?.plan_details?.meditation_included,
       subObj?.plan?.meditation_included,
+      subObj?.package_details?.meditation_included,
+      subObj?.package?.meditation_included,
       subObj?.meditation_included,
+      sub?.plan_details?.meditation_included,
       sub?.plan?.meditation_included,
+      sub?.package_details?.meditation_included,
+      sub?.package?.meditation_included,
       sub?.meditation_included,
       sub?.plan_meditation_included,
+      subObj?.plan_details?.meditationIncluded,
+      subObj?.plan?.meditationIncluded,
+      subObj?.meditationIncluded,
+      sub?.plan_details?.meditationIncluded,
+      sub?.plan?.meditationIncluded,
+      sub?.meditationIncluded,
     ]
 
     for (const val of candidates) {
       if (val !== undefined && val !== null) {
         if (typeof val === 'boolean') return val
-        if (typeof val === 'number') return val === 1
-        if (typeof val === 'string')
-          return val === '1' || val.toLowerCase() === 'true'
+        if (typeof val === 'number') return val === 1 || val > 0
+        if (typeof val === 'string') {
+          const lower = val.toLowerCase().trim()
+          if (lower === '0' || lower === 'false' || lower === 'no') return false
+          if (lower === '1' || lower === 'true' || lower === 'yes') return true
+        }
       }
     }
-    return false
-  }, [overview?.subscription, subscription])
+
+    const ov = overview as any
+    const daysList =
+      ov?.days || ov?.data?.days || subObj?.days || sub?.days || []
+
+    if (Array.isArray(daysList) && daysList.length > 0) {
+      const hasMeditationSummary = daysList.some(
+        (day: any) =>
+          day?.meditation_summary !== undefined &&
+          day?.meditation_summary !== null
+      )
+      return hasMeditationSummary
+    }
+
+    if (
+      ov?.meditation_summary !== undefined &&
+      ov?.meditation_summary !== null
+    ) {
+      return true
+    }
+
+    return true
+  }, [overview, subscription])
 
   const canAccessMeditation =
     (isSuperOrAdmin || isNutritionist || isYogist) && isMeditationIncluded

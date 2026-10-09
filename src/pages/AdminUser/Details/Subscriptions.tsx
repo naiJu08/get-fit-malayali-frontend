@@ -237,37 +237,113 @@ export default function Subscriptions({
 
   const isMeditationIncluded = useMemo(() => {
     const candidates = [
+      overview?.subscription?.plan_details?.meditation_included,
       overview?.subscription?.plan?.meditation_included,
+      overview?.subscription?.package_details?.meditation_included,
+      overview?.subscription?.package?.meditation_included,
       overview?.subscription?.meditation_included,
+      overview?.plan_details?.meditation_included,
+      overview?.plan?.meditation_included,
+      overview?.package?.meditation_included,
+      overview?.meditation_included,
+      selectedCycle?.plan_details?.meditation_included,
       selectedCycle?.plan?.meditation_included,
+      selectedCycle?.package_details?.meditation_included,
+      selectedCycle?.package?.meditation_included,
+      selectedCycle?.meditation_included,
+      selectedCycle?.proposal?.plan_details?.meditation_included,
       selectedCycle?.proposal?.plan?.meditation_included,
+      selectedCycle?.proposal?.package_details?.meditation_included,
+      selectedCycle?.proposal?.package?.meditation_included,
+      selectedCycle?.proposal?.meditation_included,
+      proposedPackage?.plan_details?.meditation_included,
       proposedPackage?.plan?.meditation_included,
+      proposedPackage?.package_details?.meditation_included,
+      proposedPackage?.package?.meditation_included,
+      proposedPackage?.meditation_included,
       user?.subscribed_plan?.meditation_included,
+      user?.subscribed_package?.meditation_included,
+      user?.plan_details?.meditation_included,
       user?.plan?.meditation_included,
+      user?.package?.meditation_included,
+      user?.subscription?.plan_details?.meditation_included,
       user?.subscription?.plan?.meditation_included,
+      user?.subscription?.package_details?.meditation_included,
+      user?.subscription?.package?.meditation_included,
       user?.subscription?.meditation_included,
       user?.meditation_included,
+      clientDetail?.client?.plan_details?.meditation_included,
       clientDetail?.client?.plan?.meditation_included,
+      clientDetail?.client?.package_details?.meditation_included,
+      clientDetail?.client?.package?.meditation_included,
+      clientDetail?.client?.subscription?.plan_details?.meditation_included,
       clientDetail?.client?.subscription?.plan?.meditation_included,
+      clientDetail?.client?.subscription?.package_details?.meditation_included,
+      clientDetail?.client?.subscription?.package?.meditation_included,
       clientDetail?.client?.subscription?.meditation_included,
+      clientDetail?.client?.active_subscription?.plan_details
+        ?.meditation_included,
+      clientDetail?.client?.active_subscription?.plan?.meditation_included,
+      clientDetail?.client?.active_subscription?.meditation_included,
+      overview?.subscription?.plan_details?.meditationIncluded,
+      overview?.subscription?.plan?.meditationIncluded,
+      overview?.subscription?.meditationIncluded,
+      selectedCycle?.plan_details?.meditationIncluded,
+      selectedCycle?.plan?.meditationIncluded,
+      selectedCycle?.meditationIncluded,
+      proposedPackage?.plan_details?.meditationIncluded,
+      proposedPackage?.plan?.meditationIncluded,
+      proposedPackage?.meditationIncluded,
+      user?.subscribed_plan?.meditationIncluded,
+      user?.plan_details?.meditationIncluded,
+      user?.plan?.meditationIncluded,
+      user?.subscription?.plan_details?.meditationIncluded,
+      user?.subscription?.plan?.meditationIncluded,
+      user?.subscription?.meditationIncluded,
+      user?.meditationIncluded,
+      clientDetail?.client?.plan_details?.meditationIncluded,
+      clientDetail?.client?.plan?.meditationIncluded,
+      clientDetail?.client?.subscription?.plan_details?.meditationIncluded,
+      clientDetail?.client?.subscription?.plan?.meditationIncluded,
+      clientDetail?.client?.subscription?.meditationIncluded,
     ]
 
     for (const val of candidates) {
       if (val !== undefined && val !== null) {
         if (typeof val === 'boolean') return val
-        if (typeof val === 'number') return val === 1
-        if (typeof val === 'string')
-          return val === '1' || val.toLowerCase() === 'true'
+        if (typeof val === 'number') return val === 1 || val > 0
+        if (typeof val === 'string') {
+          const lower = val.toLowerCase().trim()
+          if (lower === '0' || lower === 'false' || lower === 'no') return false
+          if (lower === '1' || lower === 'true' || lower === 'yes') return true
+        }
       }
     }
-    return false
-  }, [
-    overview?.subscription,
-    selectedCycle,
-    proposedPackage,
-    user,
-    clientDetail,
-  ])
+
+    const daysList =
+      overview?.days ||
+      overview?.data?.days ||
+      overview?.subscription?.days ||
+      []
+
+    if (Array.isArray(daysList) && daysList.length > 0) {
+      const hasMeditationSummary = daysList.some(
+        (day: any) =>
+          day?.meditation_summary !== undefined &&
+          day?.meditation_summary !== null
+      )
+      return hasMeditationSummary
+    }
+
+    if (
+      overview?.meditation_summary !== undefined &&
+      overview?.meditation_summary !== null
+    ) {
+      return true
+    }
+
+    return true
+  }, [overview, selectedCycle, proposedPackage, user, clientDetail])
 
   const canAccessMeditation =
     (isSuperOrAdmin || isNutritionist || isYogist) && isMeditationIncluded
