@@ -645,9 +645,9 @@ export default function WorkoutPlanDetails() {
 
     wp.exercises.forEach((exercise: any) => {
       const subId = getSubcategoryIdFromExercise(exercise)
-      if (subId === undefined) return
 
-      const mapMeta = subcategoryParentMap[String(subId)]
+      const mapMeta =
+        subId != null ? subcategoryParentMap[String(subId)] : undefined
       const catInfo = mapMeta?.categoryId
         ? {
             categoryId: mapMeta.categoryId,
@@ -671,13 +671,15 @@ export default function WorkoutPlanDetails() {
         }
       }
 
-      const label =
-        mapMeta?.label || getSubcategoryLabelFromExercise(exercise) || ''
+      if (subId !== undefined && subId !== null && subId !== '') {
+        const label =
+          mapMeta?.label || getSubcategoryLabelFromExercise(exercise) || ''
 
-      buckets[bucketKey].subs.set(String(subId), {
-        id: subId,
-        value: label,
-      })
+        buckets[bucketKey].subs.set(String(subId), {
+          id: subId,
+          value: label,
+        })
+      }
     })
 
     const bucketList = Object.values(buckets)
