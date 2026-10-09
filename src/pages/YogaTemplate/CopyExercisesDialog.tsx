@@ -119,8 +119,9 @@ export default function CopyExercisesDialog({
         const todayStr = new Date().toISOString().slice(0, 10)
         const items = (response?.subscriptions || response?.items || []).filter(
           (item: any) =>
-            ['active', 'paused'].includes(String(item?.status)) &&
-            item?.end_date >= todayStr
+            ['active', 'paused', 'upcoming'].includes(
+              String(item?.status || '').toLowerCase()
+            ) && item?.end_date >= todayStr
         )
         setParents(items)
         setTargets(items)
