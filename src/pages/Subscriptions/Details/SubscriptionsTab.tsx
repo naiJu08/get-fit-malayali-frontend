@@ -69,7 +69,7 @@ export default function SubscriptionUserSubscriptionsTab({
     loginRole === 'yoga'
 
   const canAccessDiet = isSuperOrAdmin || isNutritionist
-  const canAccessWorkout = isSuperOrAdmin || isPhysio
+  const canAccessWorkout = isSuperOrAdmin || isPhysio || isNutritionist
   const canAccessYoga = isSuperOrAdmin || isYogist || isNutritionist
   const canAccessMeditation = isSuperOrAdmin || isNutritionist || isYogist
 

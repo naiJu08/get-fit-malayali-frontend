@@ -1518,17 +1518,58 @@ export default function WorkoutPlanDetails() {
                       const nextIdKey = ids.map(String).sort().join('|')
                       const categoryActuallyChanged = prevIdKey !== nextIdKey
 
+                      const removedCategoryIds = selectedCategoryIds.filter(
+                        (oldId) => !ids.map(String).includes(String(oldId))
+                      )
+
+                      const remainingSubcategories =
+                        selectedSubcategories.filter((sub: any) => {
+                          const key = String(sub?.id ?? sub?.value ?? '')
+                          const parent =
+                            subcategoryParentMap[key] ||
+                            subcategoryLookupRef.current[key]
+                          const catId = parent?.categoryId
+                          if (catId !== undefined && catId !== null) {
+                            return !removedCategoryIds
+                              .map(String)
+                              .includes(String(catId))
+                          }
+                          return true
+                        })
+
+                      const remainingWorkouts = selectedWorkouts.filter(
+                        (w: any) => {
+                          const catId =
+                            w?.category?.main_category?.id ??
+                            w?.workout?.category?.main_category?.id ??
+                            w?.category?.parent_id ??
+                            w?.workout?.category?.parent_id ??
+                            w?.main_category_id ??
+                            w?.workout?.main_category_id ??
+                            w?.category_id ??
+                            w?.workout?.category_id ??
+                            w?.category?.id ??
+                            w?.workout?.category?.id
+
+                          if (catId !== undefined && catId !== null) {
+                            return !removedCategoryIds
+                              .map(String)
+                              .includes(String(catId))
+                          }
+                          return true
+                        }
+                      )
+
                       setSelectedCategoryIds(ids)
                       setSelectedCategoryId(ids[0] || undefined)
-                      setSelectedSubcategories([])
+                      setSelectedSubcategories(remainingSubcategories)
+                      setSelectedWorkouts(remainingWorkouts)
                       setWpPage(1)
                       if (ids.length) {
                         setWorkoutFiltersEnabled(true)
                       }
                       if (assignOpen && categoryActuallyChanged) {
                         userSelectionTouchedRef.current = true
-                        selectAllNextWorkoutsRef.current = true
-                        setSelectedWorkouts([])
                       }
                     }}
                   />
@@ -1604,6 +1645,49 @@ export default function WorkoutPlanDetails() {
                         .sort()
                         .join('|')
 
+                      const removedSubcategoryIds = (
+                        selectedSubcategories || []
+                      )
+                        .map((item: any) => String(item?.id ?? ''))
+                        .filter(
+                          (oldId) =>
+                            !normalized
+                              .map((n: any) => String(n?.id ?? ''))
+                              .includes(oldId)
+                        )
+
+                      if (removedSubcategoryIds.length > 0) {
+                        const remainingWorkouts = selectedWorkouts.filter(
+                          (w: any) => {
+                            const subId =
+                              w?.subcategory_id ??
+                              w?.workout?.subcategory_id ??
+                              w?.subcategory?.id ??
+                              w?.workout?.subcategory?.id ??
+                              (Array.isArray(w?.subcategory_ids)
+                                ? w.subcategory_ids[0]
+                                : undefined) ??
+                              (Array.isArray(w?.workout?.subcategory_ids)
+                                ? w.workout.subcategory_ids[0]
+                                : undefined) ??
+                              (Array.isArray(w?.subcategories)
+                                ? w.subcategories[0]?.id
+                                : undefined) ??
+                              (Array.isArray(w?.workout?.subcategories)
+                                ? w.workout.subcategories[0]?.id
+                                : undefined)
+
+                            if (subId !== undefined && subId !== null) {
+                              return !removedSubcategoryIds.includes(
+                                String(subId)
+                              )
+                            }
+                            return true
+                          }
+                        )
+                        setSelectedWorkouts(remainingWorkouts)
+                      }
+
                       setSelectedSubcategories(normalized)
                       if (normalized.length > 0) {
                         setWorkoutFiltersEnabled(true)
@@ -1611,8 +1695,6 @@ export default function WorkoutPlanDetails() {
 
                       if (assignOpen && prevKey !== nextKey) {
                         userSelectionTouchedRef.current = true
-                        selectAllNextWorkoutsRef.current = true
-                        setSelectedWorkouts([])
                       }
                     }}
                   />

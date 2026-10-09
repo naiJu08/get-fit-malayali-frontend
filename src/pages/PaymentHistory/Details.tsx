@@ -2,12 +2,15 @@ import type { ReactNode } from 'react'
 import moment from 'moment'
 import { Link, useParams } from 'react-router-dom'
 import { usePaymentDetail } from './api'
+import { generateInvoice } from './index'
 import InfoBox from '../../components/app/alertBox/infoBox'
 import { getApiErrorMessage } from '../../utilities/commonUtilities'
 
 const date = (value?: string) =>
-  value ? moment(value).format('DD MMM YYYY') : '—'
+  value ? moment(value).format('DD-MM-YYYY') : '—'
 const label = (value?: string) => (value ? value.replace(/_/g, ' ') : '—')
+const capitalize = (value?: string) =>
+  value ? value.charAt(0).toUpperCase() + value.slice(1) : '—'
 
 function Field({ title, children }: { title: string; children?: ReactNode }) {
   return (
@@ -65,13 +68,35 @@ export default function PaymentDetails() {
                   Payment #{payment.id}
                 </p>
                 <h1 className="mt-2 text-xl font-bold text-primaryText">
-                  {payment.client_name || 'Payment details'}
+                  {capitalize(payment.client_name) !== '—'
+                    ? capitalize(payment.client_name)
+                    : 'Payment details'}
                 </h1>
                 <p className="mt-1 text-sm text-secondary">
                   {payment.plan_name || 'Package not recorded'}
                 </p>
               </div>
               <div className="text-right">
+                <button
+                  type="button"
+                  onClick={() => generateInvoice(payment, subscription)}
+                  className="mb-2 inline-flex items-center gap-2 rounded-xl border border-emerald-500 bg-white px-4 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-200 transition active:scale-[0.98]"
+                >
+                  <svg
+                    className="h-4 w-4 text-emerald-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                    />
+                  </svg>
+                  Download Invoice
+                </button>
                 <p className="text-2xl font-bold text-primaryText">
                   {payment.amount == null
                     ? '—'
@@ -101,7 +126,9 @@ export default function PaymentDetails() {
                 {payment.transaction_id || 'Not recorded'}
               </Field>
               <Field title="Recorded by">
-                {payment.recorded_by?.name || 'Not recorded'}
+                {payment.recorded_by?.name
+                  ? capitalize(payment.recorded_by.name)
+                  : 'Not recorded'}
               </Field>
               <Field title="Staff role">
                 <span className="capitalize">
@@ -110,7 +137,7 @@ export default function PaymentDetails() {
               </Field>
               <Field title="Recorded at">
                 {payment.created_at
-                  ? moment(payment.created_at).format('DD MMM YYYY, h:mm A')
+                  ? moment(payment.created_at).format('DD-MM-YYYY')
                   : '—'}
               </Field>
               <div className="sm:col-span-2 lg:col-span-3">
@@ -142,7 +169,7 @@ export default function PaymentDetails() {
               Client details
             </h2>
             <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <Field title="Client">{payment.client_name || '—'}</Field>
+              <Field title="Client">{capitalize(payment.client_name)}</Field>
               <Field title="Email">{payment.client_email || '—'}</Field>
               <Field title="Phone">{payment.client_phone || '—'}</Field>
             </dl>
