@@ -1798,9 +1798,9 @@ export default function Subscriptions({
 
     exercises.forEach((exercise: any) => {
       const subId = getSubcategoryIdFromExercise(exercise)
-      if (subId === undefined) return
 
-      const mapMeta = subcategoryParentMap[String(subId)]
+      const mapMeta =
+        subId != null ? subcategoryParentMap[String(subId)] : undefined
       const catInfo = mapMeta?.categoryId
         ? {
             categoryId: mapMeta.categoryId,
@@ -1824,13 +1824,15 @@ export default function Subscriptions({
         }
       }
 
-      const label =
-        getSubcategoryLabelFromExercise(exercise) || mapMeta?.label || ''
+      if (subId !== undefined && subId !== null && subId !== '') {
+        const label =
+          getSubcategoryLabelFromExercise(exercise) || mapMeta?.label || ''
 
-      buckets[bucketKey].subs.set(String(subId), {
-        id: subId,
-        value: label || mapMeta?.label || '',
-      })
+        buckets[bucketKey].subs.set(String(subId), {
+          id: subId,
+          value: label || mapMeta?.label || '',
+        })
+      }
     })
 
     const bucketList = Object.values(buckets)
@@ -2906,8 +2908,7 @@ export default function Subscriptions({
   const handleBulkAssign = async () => {
     const workoutPlanId = dayDetail?.workout_plan?.id
     const subscriptionId = overview?.subscription?.id
-    if (!workoutPlanId || !subscriptionId || selectedWorkouts.length === 0)
-      return
+    if (!subscriptionId || selectedWorkouts.length === 0) return
     setAssigning(true)
     try {
       const exercisesPayload = normalizeExercisePayload(selectedWorkouts)
