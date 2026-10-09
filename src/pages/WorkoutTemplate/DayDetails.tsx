@@ -600,6 +600,21 @@ export default function WorkoutPlanDetails() {
         exercise?.workout?.main_category_id,
       ]
 
+      // If the category object explicitly has no main_category/parent, it must be the main category itself
+      if (
+        exercise?.category &&
+        (exercise?.category?.main_category_id === null ||
+          exercise?.category?.parent_id === null)
+      ) {
+        idCandidates.push(exercise?.category?.id)
+      } else if (
+        exercise?.workout?.category &&
+        (exercise?.workout?.category?.main_category_id === null ||
+          exercise?.workout?.category?.parent_id === null)
+      ) {
+        idCandidates.push(exercise?.workout?.category?.id)
+      }
+
       const categoryId = idCandidates.find(
         (candidate) =>
           candidate !== undefined && candidate !== null && candidate !== ''
@@ -648,12 +663,25 @@ export default function WorkoutPlanDetails() {
 
       const mapMeta =
         subId != null ? subcategoryParentMap[String(subId)] : undefined
+
+      const isMainCategory = categoryOptions.some(
+        (c: any) => String(c.id) === String(subId)
+      )
+      const mainCatMatch = isMainCategory
+        ? categoryOptions.find((c: any) => String(c.id) === String(subId))
+        : undefined
+
       const catInfo = mapMeta?.categoryId
         ? {
             categoryId: mapMeta.categoryId,
             categoryName: mapMeta.categoryName,
           }
-        : getCategoryInfoFromExercise(exercise)
+        : mainCatMatch
+          ? {
+              categoryId: mainCatMatch.id,
+              categoryName: mainCatMatch.name,
+            }
+          : getCategoryInfoFromExercise(exercise)
 
       if (
         catInfo.categoryId === undefined ||
@@ -671,7 +699,12 @@ export default function WorkoutPlanDetails() {
         }
       }
 
-      if (subId !== undefined && subId !== null && subId !== '') {
+      if (
+        subId !== undefined &&
+        subId !== null &&
+        subId !== '' &&
+        !isMainCategory
+      ) {
         const label =
           mapMeta?.label || getSubcategoryLabelFromExercise(exercise) || ''
 
@@ -884,19 +917,12 @@ export default function WorkoutPlanDetails() {
       params.category_id = selectedCategoryId
     }
 
-    if (selectedSubcategoryIds.length) {
-      params.subcategory_ids = selectedSubcategoryIds.join(',')
-    }
+    // We intentionally DO NOT send subcategory_ids to the API here.
+    // If we send it, the backend filters strictly and excludes workouts from
+    // other categories that don't have subcategories selected. We will filter locally.
 
     return params
-  }, [
-    wpPage,
-    wpPerPage,
-    wpSearch,
-    selectedCategoryId,
-    selectedCategoryIds,
-    selectedSubcategoryIds,
-  ])
+  }, [wpPage, wpPerPage, wpSearch, selectedCategoryId, selectedCategoryIds])
 
   // Load workouts for assignment from backend with category/subcategory filters
   const { data: workoutsResp, isFetching: workoutsLoading } = useWorkoutList(
@@ -906,7 +932,34 @@ export default function WorkoutPlanDetails() {
     }
   )
 
-  const workouts = (workoutsResp as any)?.workouts ?? []
+  const workouts = useMemo(() => {
+    const raw = (workoutsResp as any)?.workouts ?? []
+    if (!selectedSubcategoryIds.length) return raw
+
+    return raw.filter((w: any) => {
+      const mainCatId =
+        w?.category?.main_category?.id ??
+        w?.category?.parent_id ??
+        w?.category_id ??
+        w?.category?.id
+
+      const hasSubSelectedForThisCat = selectedSubcategoryIds.some((subId) => {
+        const meta = subcategoryParentMap[String(subId)]
+        return String(meta?.categoryId) === String(mainCatId)
+      })
+
+      if (!hasSubSelectedForThisCat) {
+        return true
+      }
+
+      const wSubId =
+        w?.subcategory?.id ??
+        w?.subcategory_id ??
+        w?.category?.id ??
+        w?.category_id
+      return selectedSubcategoryIds.map(String).includes(String(wSubId))
+    })
+  }, [workoutsResp, selectedSubcategoryIds, subcategoryParentMap])
 
   const collectAllVisibleWorkouts = useCallback((list: any[]) => {
     if (!Array.isArray(list) || list.length === 0) return []

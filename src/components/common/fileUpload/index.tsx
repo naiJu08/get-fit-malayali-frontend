@@ -16,6 +16,7 @@ const FileUpload: React.FC<FileUploadProps> = ({
   id,
   label,
   labelAddon,
+  bottomAddon,
   fullwidth = true,
   type = 'file',
   disabled = false,
@@ -581,6 +582,9 @@ const FileUpload: React.FC<FileUploadProps> = ({
             </div>
           )}
         </div>
+        {bottomAddon && (
+          <div className="mt-2 text-sm text-primaryText">{bottomAddon}</div>
+        )}
       </div>
     </>
   )

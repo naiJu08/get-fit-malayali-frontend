@@ -186,6 +186,14 @@ export default function CreateAdmin({
     {
       name: 'video_file',
       label: 'Video File',
+      bottomAddon:
+        videoDurationMs !== null &&
+        (watchedVideoFile instanceof File ||
+          (typeof watchedVideoFile === 'string' && watchedVideoFile !== '')) ? (
+          <div className="text-sm text-primaryText">
+            {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
+          </div>
+        ) : null,
       id: 'video_file',
       type: 'file_upload',
       placeholder: 'Upload video file',
@@ -583,15 +591,6 @@ export default function CreateAdmin({
                     spacing
                   />
                 </FormProvider>
-
-                {videoDurationMs !== null &&
-                  (watchedVideoFile instanceof File ||
-                    (typeof watchedVideoFile === 'string' &&
-                      watchedVideoFile !== '')) && (
-                    <div className="text-sm text-primaryText">
-                      {`Video duration: ${formatVideoDurationLabel(videoDurationMs)}`}
-                    </div>
-                  )}
               </>
             ) : (
               <CustomeSideViewer
