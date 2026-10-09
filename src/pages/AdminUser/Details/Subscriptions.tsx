@@ -888,6 +888,9 @@ export default function Subscriptions({
         selectedCycle?.subscription_id || selectedSubscriptionId || undefined
       const res = await getActivePlanOverview(targetUserId, subId)
       setOverview(res)
+      if (res?.error) {
+        setOverviewError(res.error)
+      }
 
       const todayStr = moment().format('YYYY-MM-DD')
       const hasToday = Array.isArray(res?.days)
@@ -4055,6 +4058,9 @@ export default function Subscriptions({
           selectedSubscriptionId || selectedCycle?.subscription_id || undefined
         const res = await getActivePlanOverview(user.id, subId)
         setOverview(res)
+        if (res?.error) {
+          setOverviewError(res.error)
+        }
       } catch {}
       try {
         const fresh = await getAdminDetails(String(id))
@@ -4525,7 +4531,9 @@ export default function Subscriptions({
                     </div>
                   ) : (
                     <div className="text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-4 py-3 max-w-md shadow-sm">
-                      {overviewError || 'No calendar data available'}
+                      {overviewError ||
+                        overview?.error ||
+                        'No calendar data available'}
                     </div>
                   )}
                 </div>

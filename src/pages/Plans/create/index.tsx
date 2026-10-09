@@ -67,6 +67,8 @@ export default function CreatePlan({
   }, [actualPrice, discountedPrice, setValue])
 
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isExistingThumbnailCleared, setIsExistingThumbnailCleared] =
+    useState(false)
   const { mutate: createPlanMutate, isLoading: isCreating } = useCreatePlan()
   const { mutate: updatePlanMutate, isLoading: isUpdating } = useUpdatePlan()
   const queryClient = useQueryClient()
@@ -85,6 +87,14 @@ export default function CreatePlan({
     if (!value) return ''
     return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
   }
+
+  const watchedThumbnail = watch('thumbnail')
+
+  useEffect(() => {
+    if (watchedThumbnail instanceof File) {
+      setIsExistingThumbnailCleared(false)
+    }
+  }, [watchedThumbnail])
 
   const onSubmit = (values: PlanSchema | any) => {
     if (isSubmitting || isCreating || isUpdating) return
@@ -116,9 +126,16 @@ export default function CreatePlan({
     const meditationIncluded = Boolean(values.meditation_included)
     fd.append('plan[meditation_included]', String(meditationIncluded))
 
-    // CASE 1: New thumbnail uploaded
+    // Thumbnail handling
     if (hasNewThumbnail) {
       fd.append('plan[thumbnail]', thumbVal)
+    } else if (
+      isExistingThumbnailCleared ||
+      (resolvedPlan?.thumbnail_url && !thumbVal)
+    ) {
+      fd.append('remove_thumbnail', 'true')
+      fd.append('plan[remove_thumbnail]', 'true')
+      fd.append('plan[thumbnail]', '')
     }
     if (edit && rowData?.plan?.id) {
       updatePlanMutate(
@@ -155,6 +172,7 @@ export default function CreatePlan({
   }
   useEffect(() => {
     if (!isDrawerOpen) return
+    setIsExistingThumbnailCleared(false)
     if (edit && resolvedPlan) {
       reset({
         name: toTitleCase(resolvedPlan?.name) ?? '',
@@ -276,7 +294,11 @@ export default function CreatePlan({
       ],
       acceptedFiles: 'PNG, JPG, JPEG, WEBP',
       fileSize: 5,
-      selectedFiles: getFileNameFromUrl(resolvedPlan?.thumbnail_url),
+      selectedFiles: !isExistingThumbnailCleared
+        ? watchedThumbnail instanceof File
+          ? watchedThumbnail.name
+          : watchedThumbnail || getFileNameFromUrl(resolvedPlan?.thumbnail_url)
+        : '',
       subName: 'thumbnail',
       aspectRatio: { width: 16, height: 9 },
       requiredWidth: 1600,
@@ -284,6 +306,7 @@ export default function CreatePlan({
       dimensionLabel: 'Recommended size: 1600x900px (16:9)',
       handleDeleteFile: () => {
         methods.setValue('thumbnail', '')
+        setIsExistingThumbnailCleared(true)
       },
     },
   ]

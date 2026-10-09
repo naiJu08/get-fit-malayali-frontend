@@ -673,10 +673,10 @@ export default function UserDetails() {
         const overview = await getActivePlanOverview(user.id)
         if (!mounted) return
         const subId = overview?.subscription?.id
-        setSubscriptionId(subId ?? null)
+        setSubscriptionId(subId ?? '')
       } catch (e) {
         if (!mounted) return
-        // On error (e.g. 404 for no active subscription), still use empty string
+        // On error (e.g. no active subscription), still use empty string
         // so subscription_id is present in the downstream requests.
         setSubscriptionId('')
       }

@@ -97,6 +97,8 @@ export default function CreateAdmin({
   )
   const [selectedVideoName, setSelectedVideoName] = useState('')
   const [isExistingVideoCleared, setIsExistingVideoCleared] = useState(false)
+  const [isExistingThumbnailCleared, setIsExistingThumbnailCleared] =
+    useState(false)
   const compressionCancelledRef = useRef(false)
 
   const resetCompressionState = () => {
@@ -127,7 +129,14 @@ export default function CreateAdmin({
   const watchedVideoFile = watch('video_file')
   const watchedVideoSource = watch('video_source')
   const watchedVideoUrl = watch('video_url')
+  const watchedThumbnail = watch('thumbnail')
   const prevVideoSourceRef = useRef(watchedVideoSource)
+
+  useEffect(() => {
+    if (watchedThumbnail instanceof File) {
+      setIsExistingThumbnailCleared(false)
+    }
+  }, [watchedThumbnail])
 
   useEffect(() => {
     if (prevVideoSourceRef.current !== watchedVideoSource) {
@@ -412,10 +421,15 @@ export default function CreateAdmin({
       ],
       acceptedFiles: 'PNG, JPG, JPEG, WEBP',
       fileSize: 5,
-      selectedFiles: getFileName(rowData?.thumbnail_url),
+      selectedFiles: !isExistingThumbnailCleared
+        ? watchedThumbnail instanceof File
+          ? watchedThumbnail.name
+          : watchedThumbnail || getFileName(rowData?.thumbnail_url)
+        : '',
       subName: 'thumbnail',
       handleDeleteFile: () => {
         methods.setValue('thumbnail', '')
+        setIsExistingThumbnailCleared(true)
       },
     },
   ]
@@ -448,6 +462,7 @@ export default function CreateAdmin({
     setCompressionProgress(null)
     setSelectedVideoName('')
     setIsExistingVideoCleared(false)
+    setIsExistingThumbnailCleared(false)
     handleClose()
   }
 
@@ -469,6 +484,7 @@ export default function CreateAdmin({
     setCompressionProgress(null)
     setSelectedVideoName('')
     setIsExistingVideoCleared(false)
+    setIsExistingThumbnailCleared(false)
     handleRefresh?.()
     handleClearAndClose()
   }
@@ -483,6 +499,7 @@ export default function CreateAdmin({
   useEffect(() => {
     if (!(isDrawerOpen && edit && !viewMode && rowData)) return
     setIsExistingVideoCleared(false)
+    setIsExistingThumbnailCleared(false)
 
     const rawCategory = rowData?.category
     const mainCategory = rawCategory?.main_category
@@ -793,27 +810,18 @@ export default function CreateAdmin({
       fd.append('yoga[video_source]', 'file')
     }
 
-    // Thumbnail handling - only append if changed
+    // Thumbnail handling
     const thumbVal = details?.thumbnail
-    const originalThumbnailName = getFileName(rowData?.thumbnail_url)
-
-    // Check if thumbnail has changed
-    const thumbnailChanged =
-      thumbVal instanceof File || // New file uploaded
-      (typeof thumbVal === 'string' && thumbVal !== originalThumbnailName) // Different string value (but not empty deletion)
-
-    // Only append thumbnail key if it has changed
-    if (thumbnailChanged) {
-      // CASE 1: New thumbnail uploaded
-      if (thumbVal instanceof File) {
-        fd.append('yoga[thumbnail]', thumbVal)
-      }
-      // CASE 2: Different thumbnail URL/string
-      else if (typeof thumbVal === 'string') {
-        fd.append('yoga[thumbnail]', thumbVal)
-      }
+    if (thumbVal instanceof File) {
+      fd.append('yoga[thumbnail]', thumbVal)
+    } else if (
+      isExistingThumbnailCleared ||
+      (rowData?.thumbnail_url && !thumbVal)
+    ) {
+      fd.append('remove_thumbnail', 'true')
+      fd.append('yoga[remove_thumbnail]', 'true')
+      fd.append('yoga[thumbnail]', '')
     }
-    // Note: When thumbnail is deleted (thumbVal === ''), we don't append the key at all
 
     // Duration
     if (details?.video_source === 'url') {
