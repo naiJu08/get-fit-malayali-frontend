@@ -464,7 +464,6 @@ export default function WorkoutPlanDetails() {
   >([])
   const [selectedSubcategories, setSelectedSubcategories] = useState<any[]>([])
   const subcategoryLookupRef = useRef<Record<string, any>>({})
-  const [workoutFiltersEnabled, setWorkoutFiltersEnabled] = useState(false)
   const prefillAppliedRef = useRef(false)
   const drawerSelectionInitializedRef = useRef(false)
   const selectAllNextWorkoutsRef = useRef(false)
@@ -492,7 +491,6 @@ export default function WorkoutPlanDetails() {
     setSelectedSubcategories([])
     setSelectedWorkouts([])
     setWorkoutCounts({})
-    setWorkoutFiltersEnabled(false)
     prefillAppliedRef.current = false
     drawerSelectionInitializedRef.current = false
     selectAllNextWorkoutsRef.current = false
@@ -518,7 +516,6 @@ export default function WorkoutPlanDetails() {
     setSelectedCategoryId(undefined)
     setSelectedCategoryIds([])
     setSelectedSubcategories([])
-    setWorkoutFiltersEnabled(false)
     prefillAppliedRef.current = false
     drawerSelectionInitializedRef.current = false
     selectAllNextWorkoutsRef.current = false
@@ -531,7 +528,6 @@ export default function WorkoutPlanDetails() {
     if (reviewOpen) return
     drawerSelectionInitializedRef.current = false
     selectAllNextWorkoutsRef.current = false
-    setWorkoutFiltersEnabled(false)
   }, [assignOpen, reviewOpen])
 
   useEffect(() => {
@@ -758,8 +754,6 @@ export default function WorkoutPlanDetails() {
       updateSubcategoryLookup(subcategories)
     }
 
-    // Enable filters when pre-filling selection
-    setWorkoutFiltersEnabled(true)
     prefillAppliedRef.current = true
   }, [
     assignOpen,
@@ -882,21 +876,15 @@ export default function WorkoutPlanDetails() {
       search: wpSearch,
     }
 
-    if (workoutFiltersEnabled && selectedCategoryIds.length) {
+    if (selectedCategoryIds.length) {
       params.category_ids = selectedCategoryIds.join(',')
+    } else if (selectedCategoryId) {
+      params.category_id = selectedCategoryId
     }
 
-    if (workoutFiltersEnabled && selectedSubcategoryIds.length) {
+    if (selectedSubcategoryIds.length) {
       params.subcategory_ids = selectedSubcategoryIds.join(',')
     }
-
-    console.log('🔍 Workout API Params:', {
-      params,
-      workoutFiltersEnabled,
-      selectedCategoryId,
-      selectedSubcategoryIds,
-      assignOpen,
-    })
 
     return params
   }, [
@@ -906,7 +894,6 @@ export default function WorkoutPlanDetails() {
     selectedCategoryId,
     selectedCategoryIds,
     selectedSubcategoryIds,
-    workoutFiltersEnabled,
   ])
 
   // Load workouts for assignment from backend with category/subcategory filters
@@ -918,12 +905,6 @@ export default function WorkoutPlanDetails() {
   )
 
   const workouts = (workoutsResp as any)?.workouts ?? []
-
-  useEffect(() => {
-    if (!assignOpen) {
-      setWorkoutFiltersEnabled(false)
-    }
-  }, [assignOpen])
 
   const collectAllVisibleWorkouts = useCallback((list: any[]) => {
     if (!Array.isArray(list) || list.length === 0) return []
@@ -1347,7 +1328,6 @@ export default function WorkoutPlanDetails() {
       setSelectedCategoryId(undefined)
       setSelectedCategoryIds([])
       setSelectedSubcategories([])
-      setWorkoutFiltersEnabled(false)
       prefillAppliedRef.current = false
       drawerSelectionInitializedRef.current = false
       selectAllNextWorkoutsRef.current = false
@@ -1562,12 +1542,13 @@ export default function WorkoutPlanDetails() {
 
                       setSelectedCategoryIds(ids)
                       setSelectedCategoryId(ids[0] || undefined)
-                      setSelectedSubcategories(remainingSubcategories)
+                      if (categoryActuallyChanged) {
+                        setSelectedSubcategories([])
+                      } else {
+                        setSelectedSubcategories(remainingSubcategories)
+                      }
                       setSelectedWorkouts(remainingWorkouts)
                       setWpPage(1)
-                      if (ids.length) {
-                        setWorkoutFiltersEnabled(true)
-                      }
                       if (assignOpen && categoryActuallyChanged) {
                         userSelectionTouchedRef.current = true
                       }
@@ -1576,6 +1557,7 @@ export default function WorkoutPlanDetails() {
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <AutoComplete
+                    key={selectedCategoryIds.join(',')}
                     placeholder="Select subcategories"
                     desc="value"
                     descId="id"
@@ -1689,9 +1671,6 @@ export default function WorkoutPlanDetails() {
                       }
 
                       setSelectedSubcategories(normalized)
-                      if (normalized.length > 0) {
-                        setWorkoutFiltersEnabled(true)
-                      }
 
                       if (assignOpen && prevKey !== nextKey) {
                         userSelectionTouchedRef.current = true
@@ -1771,7 +1750,7 @@ export default function WorkoutPlanDetails() {
 
                   return (
                     <fieldset
-                      key={group.name}
+                      key={group.legend || `${group.mainName}-${group.name}`}
                       className="border border-gray-300 rounded-xl p-4 bg-white"
                     >
                       {/* Category - Subcategory name on border */}
@@ -1961,7 +1940,7 @@ export default function WorkoutPlanDetails() {
 
                 return (
                   <fieldset
-                    key={group.name}
+                    key={group.legend || `${group.mainName}-${group.name}`}
                     className="border border-gray-300 rounded-xl p-4 bg-white"
                   >
                     <legend className="px-2 text-md font-semibold text-gray-600">

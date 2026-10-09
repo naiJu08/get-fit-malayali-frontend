@@ -1439,6 +1439,7 @@ export default function WorkoutPlanDetails() {
                 </div>
                 <div className="flex-1 min-w-[200px]">
                   <AutoComplete
+                    key={String(selectedCategoryId ?? '')}
                     placeholder="Select subcategories"
                     desc="value"
                     descId="id"
@@ -1569,7 +1570,7 @@ export default function WorkoutPlanDetails() {
 
                   return (
                     <fieldset
-                      key={group.name}
+                      key={group.legend || `${group.mainName}-${group.name}`}
                       className="border border-gray-300 rounded-xl p-4 bg-white"
                     >
                       {/* Category - Subcategory name on border */}
@@ -1749,7 +1750,7 @@ export default function WorkoutPlanDetails() {
 
                 return (
                   <fieldset
-                    key={group.name}
+                    key={group.legend || `${group.mainName}-${group.name}`}
                     className="border border-gray-300 rounded-xl p-4 bg-white"
                   >
                     <legend className="px-2 text-md font-semibold text-gray-600">
