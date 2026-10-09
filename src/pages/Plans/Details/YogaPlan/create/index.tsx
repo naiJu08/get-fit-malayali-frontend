@@ -1,0 +1,168 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useEffect } from 'react'
+import { FormProvider, useForm } from 'react-hook-form'
+
+import FormBuilder from '../../../../../components/app/formBuilder'
+import { DialogModal } from '../../../../../components/common'
+import {
+  //   createYogaPlan,
+  //   updateYogaPlan,
+  useCreateYogaPlan,
+  useUpdateYogaPlan,
+  useYogaPlanDetail,
+} from '../api'
+import { YogaPlanSchema, yogaPlanFormSchema } from './schema'
+
+type Props = {
+  isOpen: boolean
+  handleClose: () => void
+  edit?: boolean
+  rowData?: any
+  planId?: string | number
+  onSuccess?: (res?: any) => void
+}
+
+export default function YogaPlanForm({
+  isOpen,
+  handleClose,
+  edit,
+  rowData,
+  planId,
+  onSuccess,
+}: Props) {
+  const { data: detailData } = useYogaPlanDetail(edit ? rowData?.id : undefined)
+
+  const source: any =
+    edit && (detailData as any)?.yoga_plan
+      ? (detailData as any).yoga_plan
+      : rowData || {}
+
+  const methods = useForm<YogaPlanSchema>({
+    resolver: zodResolver(yogaPlanFormSchema),
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+    defaultValues: {
+      plan_id: Number(planId ?? source?.plan_id ?? 0),
+      day_number: Number(source?.day_number ?? 1),
+      // sequence_number: Number(rowData?.sequence_number ?? 1),
+      title: source?.title ?? '',
+      description: source?.description ?? '',
+      // duration_minutes: Number(rowData?.duration_minutes ?? 0),
+    },
+  })
+
+  const { handleSubmit, reset } = methods
+  const { mutate: createMutate, isLoading: creating } = useCreateYogaPlan()
+  const { mutate: updateMutate, isLoading: updating } = useUpdateYogaPlan()
+
+  useEffect(() => {
+    if (isOpen) {
+      reset({
+        plan_id: Number(planId ?? source?.plan_id ?? 0),
+        day_number: Number(source?.day_number ?? 1),
+        // sequence_number: Number(rowData?.sequence_number ?? 1),
+        title: source?.title ?? '',
+        description: source?.description ?? '',
+        // duration_minutes: Number(rowData?.duration_minutes ?? 0),
+      })
+    }
+  }, [
+    isOpen,
+    planId,
+    source?.plan_id,
+    source?.day_number,
+    source?.title,
+    source?.description,
+    reset,
+  ])
+
+  const handleSuccess = (res?: any) => {
+    onSuccess?.(res)
+    handleClose()
+  }
+
+  const onSubmit = (values: YogaPlanSchema) => {
+    const payload = {
+      yoga_plan: {
+        plan_id: Number(values.plan_id ?? planId),
+        day_number: Number(values.day_number),
+        // sequence_number: Number(values.sequence_number),
+        title: values.title,
+        description: values.description || '',
+        // duration_minutes: Number(values.duration_minutes ?? 0),
+      },
+    }
+    if (edit && rowData?.id) {
+      updateMutate(
+        { id: rowData.id, payload },
+        {
+          onSuccess: (res?: any) => {
+            handleSuccess(res)
+          },
+        }
+      )
+    } else {
+      createMutate(payload, {
+        onSuccess: (res?: any) => {
+          handleSuccess(res)
+        },
+      })
+    }
+  }
+
+  const formFields = [
+    {
+      name: 'day_number',
+      label: 'Day Number',
+      type: 'text',
+      placeholder: 'Enter day number',
+      required: true,
+      disabled: edit,
+    },
+    // {
+    //   name: 'sequence_number',
+    //   label: 'Sequence Number',
+    //   type: 'number',
+    //   placeholder: 'Enter sequence number',
+    //   required: true,
+    // },
+    {
+      name: 'title',
+      label: 'Title',
+      type: 'text',
+      placeholder: 'Enter title',
+      required: true,
+    },
+    {
+      name: 'description',
+      label: 'Description',
+      type: 'textarea',
+      placeholder: 'Enter description',
+    },
+    // {
+    //   name: 'duration_minutes',
+    //   label: 'Duration (minutes)',
+    //   type: 'number',
+    //   placeholder: 'Enter duration in minutes',
+    // },
+  ]
+
+  return (
+    <DialogModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={edit ? 'Edit Yoga Plan' : 'Create Yoga Plan'}
+      actionLabel={edit ? 'Update' : 'Create'}
+      actionLoader={creating || updating}
+      onSubmit={handleSubmit(onSubmit)}
+      secondaryAction={handleClose}
+      secondaryActionLabel="Cancel"
+      small={false}
+      body={
+        <FormProvider {...methods}>
+          <FormBuilder data={formFields} edit={true} spacing />
+        </FormProvider>
+      }
+    />
+  )
+}

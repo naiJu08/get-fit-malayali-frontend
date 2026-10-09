@@ -1,5 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, {
+  createElement,
+  useEffect,
+  useState,
+  type ComponentType,
+} from 'react'
 import { AiFillCloseCircle } from 'react-icons/ai'
+import type { IconBaseProps, IconType } from 'react-icons'
 
 const WebSocketComponent: React.FC = () => {
   const [notifications, setNotifications] = useState<string[]>([])
@@ -30,6 +36,9 @@ const WebSocketComponent: React.FC = () => {
     setNotifications(updatedNotifications)
   }
 
+  const renderIcon = (Icon: IconType, props?: IconBaseProps) =>
+    createElement(Icon as ComponentType<IconBaseProps>, props)
+
   return (
     <>
       {notifications.length && (
@@ -42,7 +51,7 @@ const WebSocketComponent: React.FC = () => {
                   className="dismiss-button"
                   onClick={() => handleDismiss(index)}
                 >
-                  <AiFillCloseCircle />
+                  {renderIcon(AiFillCloseCircle)}
                 </button>
               </li>
             ))}

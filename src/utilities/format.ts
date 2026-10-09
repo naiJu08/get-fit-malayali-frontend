@@ -3,6 +3,20 @@ import moment from 'moment'
 export const shortDate = (date: any) => {
   return moment(date).format('DD-MM-YYYY')
 }
+
+export const formatDurationMinutes = (val: any): string => {
+  if (val === null || val === undefined || val === '') return '--'
+  const str = String(val).trim()
+  if (!str) return '--'
+
+  if (str.includes('.')) {
+    const [mins, secs] = str.split('.')
+    const paddedSecs = secs.length === 1 ? `${secs}0` : secs
+    return `${mins}.${paddedSecs}`
+  }
+
+  return str
+}
 export const dateTimeWithFormat = (format: string, date?: string) => {
   if (date && format) {
     return moment(date, format).format('DD-MM-YYYY hh:mm A')
