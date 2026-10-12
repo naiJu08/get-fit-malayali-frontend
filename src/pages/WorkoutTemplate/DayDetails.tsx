@@ -137,13 +137,20 @@ function AssignTabContent({
         'Others'
 
       const subName =
+        ex?.workout?.subcategory?.name ??
+        ex?.workout?.subcategory_name ??
+        ex?.subcategory?.name ??
+        ex?.subcategory_name ??
         ex?.category?.name ??
         ex?.workout?.category?.name ??
-        ex?.workout?.subcategory_name ??
-        ex?.workout?.subcategory?.name ??
         'Others'
 
-      const legendText = `${catName} - ${subName}`
+      const legendText =
+        catName && subName && catName.toLowerCase() !== subName.toLowerCase()
+          ? subName.toLowerCase().startsWith(catName.toLowerCase())
+            ? subName
+            : `${catName} - ${subName}`
+          : subName || catName || 'Others'
 
       if (!groups.has(legendText)) groups.set(legendText, [])
       groups.get(legendText)!.push(ex)
@@ -1799,9 +1806,16 @@ export default function WorkoutPlanDetails() {
                     first?.category?.main_category?.name ??
                     first?.category_name ??
                     'Others'
-                  const legendText = categoryName
-                    ? `${categoryName} - ${group.name}`
-                    : group.name
+                  const legendText =
+                    categoryName &&
+                    group.name &&
+                    categoryName.toLowerCase() !== group.name.toLowerCase()
+                      ? group.name
+                          .toLowerCase()
+                          .startsWith(categoryName.toLowerCase())
+                        ? group.name
+                        : `${categoryName} - ${group.name}`
+                      : group.name || categoryName || 'Others'
 
                   return (
                     <fieldset
@@ -1989,9 +2003,16 @@ export default function WorkoutPlanDetails() {
                   first?.category?.main_category?.name ??
                   first?.category_name ??
                   'Others'
-                const legendText = categoryName
-                  ? `${categoryName} - ${group.name}`
-                  : group.name
+                const legendText =
+                  categoryName &&
+                  group.name &&
+                  categoryName.toLowerCase() !== group.name.toLowerCase()
+                    ? group.name
+                        .toLowerCase()
+                        .startsWith(categoryName.toLowerCase())
+                      ? group.name
+                      : `${categoryName} - ${group.name}`
+                    : group.name || categoryName || 'Others'
 
                 return (
                   <fieldset

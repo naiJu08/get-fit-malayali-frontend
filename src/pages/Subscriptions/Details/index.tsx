@@ -356,7 +356,7 @@ export default function SubscriptionDetailsMain() {
             )}
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h4 className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-[140px]">
+                <h4 className="text-xs font-bold text-gray-900 dark:text-white truncate max-w-[140px] capitalize">
                   {userName}
                 </h4>
                 {/* <span className="text-[10px] px-1 py-0.2 rounded bg-gray-200/70 dark:bg-gray-700 text-gray-600 dark:text-gray-300 font-mono">

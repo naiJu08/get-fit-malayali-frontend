@@ -502,6 +502,7 @@ export default function Subscriptions({
       {
         categoryId: number | string | undefined
         categoryName: string
+        subcategoryName: string
         label: string
       }
     > = {}
@@ -521,6 +522,7 @@ export default function Subscriptions({
         map[String(subId)] = {
           categoryId: cat?.id,
           categoryName: catName,
+          subcategoryName: subName,
           label: formattedLabel,
         }
       })
@@ -769,6 +771,7 @@ export default function Subscriptions({
       {
         categoryId: number | string | undefined
         categoryName: string
+        subcategoryName: string
         label: string
       }
     > = {}
@@ -792,6 +795,7 @@ export default function Subscriptions({
         map[String(subId)] = {
           categoryId: cat?.id,
           categoryName: catName,
+          subcategoryName: subName,
           label: formattedLabel,
         }
       })
