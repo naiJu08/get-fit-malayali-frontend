@@ -137,16 +137,20 @@ function AssignTabContent({
         ''
 
       const subName =
+        ex?.yoga?.subcategory?.name ??
+        ex?.yoga?.subcategory_name ??
+        ex?.subcategory?.name ??
+        ex?.subcategory_name ??
         ex?.category?.name ??
         ex?.yoga?.category?.name ??
-        ex?.yoga?.subcategory_name ??
-        ex?.yoga?.subcategory?.name ??
         ex?.category ??
         'Others'
 
       const legendText =
-        catName && subName && catName !== subName
-          ? `${catName} - ${subName}`
+        catName && subName && catName.toLowerCase() !== subName.toLowerCase()
+          ? subName.toLowerCase().startsWith(catName.toLowerCase())
+            ? subName
+            : `${catName} - ${subName}`
           : subName || catName || 'Others'
 
       if (!groups.has(legendText)) groups.set(legendText, [])

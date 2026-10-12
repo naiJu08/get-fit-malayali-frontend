@@ -49,6 +49,41 @@ const formatMealName = (value?: string | null) => {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
 }
 
+const formatCategoryGroupTitle = (
+  catName?: string,
+  subName?: string,
+  fallback = 'General'
+) => {
+  const c = (catName || '').trim()
+  let s = (subName || '').trim()
+
+  if (!c && !s) return fallback
+  if (!c) return s
+  if (!s) return c
+
+  if (c.toLowerCase() === s.toLowerCase()) {
+    return c
+  }
+
+  if (s.toLowerCase().startsWith(c.toLowerCase())) {
+    s = s
+      .slice(c.length)
+      .replace(/^[\s\-:]+/, '')
+      .trim()
+    return s ? `${c} - ${s}` : c
+  }
+
+  if (c.toLowerCase().startsWith(s.toLowerCase())) {
+    const rest = c
+      .slice(s.length)
+      .replace(/^[\s\-:]+/, '')
+      .trim()
+    return rest ? `${s} - ${rest}` : s
+  }
+
+  return `${c} - ${s}`
+}
+
 const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
   dayDetail,
   dayDetailTab,
@@ -1054,18 +1089,28 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       )
 
                       const subName = toTitleCase(
-                        subMeta?.label ??
+                        subMeta?.subcategoryName ??
                           canonical?.subcategory?.name ??
                           canonical?.subcategory_name ??
-                          canonical?.category?.name ??
-                          ex?.category?.name ??
                           ex?.subcategory?.name ??
                           ex?.subcategory_name ??
                           ex?.workout?.subcategory?.name ??
-                          ex?.workout?.category?.name ??
+                          ex?.workout?.subcategory_name ??
+                          (subMeta?.label &&
+                          catName &&
+                          subMeta.label
+                            .toLowerCase()
+                            .startsWith(catName.toLowerCase())
+                            ? subMeta.label
+                                .slice(catName.length)
+                                .replace(/^[\s\-:]+/, '')
+                            : subMeta?.label) ??
                           (typeof ex?.subcategory === 'string'
                             ? ex.subcategory
                             : '') ??
+                          canonical?.category?.name ??
+                          ex?.category?.name ??
+                          ex?.workout?.category?.name ??
                           ''
                       )
 
@@ -1144,13 +1189,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
                     exs.forEach((ex: any) => {
                       const meta = getWorkoutMeta(ex)
-                      const groupKey =
-                        meta.catName &&
-                        meta.subName &&
-                        meta.catName.toLowerCase() !==
-                          meta.subName.toLowerCase()
-                          ? `${meta.catName} - ${meta.subName}`
-                          : meta.subName || meta.catName || 'General Workout'
+                      const groupKey = formatCategoryGroupTitle(
+                        meta.catName,
+                        meta.subName,
+                        'General Workout'
+                      )
 
                       if (!grouped[groupKey]) {
                         grouped[groupKey] = { groupKey, items: [] }
@@ -1636,16 +1679,25 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       )
 
                       const subName = toTitleCase(
-                        subMeta?.label ??
+                        subMeta?.subcategoryName ??
                           canonical?.subcategory?.name ??
                           canonical?.subcategory_name ??
-                          canonical?.category?.name ??
-                          exercise?.category?.name ??
                           exercise?.subcategory?.name ??
                           exercise?.subcategory_name ??
+                          (subMeta?.label &&
+                          catName &&
+                          subMeta.label
+                            .toLowerCase()
+                            .startsWith(catName.toLowerCase())
+                            ? subMeta.label
+                                .slice(catName.length)
+                                .replace(/^[\s\-:]+/, '')
+                            : subMeta?.label) ??
                           (typeof exercise?.subcategory === 'string'
                             ? exercise.subcategory
                             : '') ??
+                          canonical?.category?.name ??
+                          exercise?.category?.name ??
                           ''
                       )
 
@@ -1734,13 +1786,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
                     yexs.forEach((ex: any) => {
                       const meta = getYogaMeta(ex)
-                      const groupKey =
-                        meta.catName &&
-                        meta.subName &&
-                        meta.catName.toLowerCase() !==
-                          meta.subName.toLowerCase()
-                          ? `${meta.catName} - ${meta.subName}`
-                          : meta.subName || meta.catName || 'General Yoga'
+                      const groupKey = formatCategoryGroupTitle(
+                        meta.catName,
+                        meta.subName,
+                        'General Yoga'
+                      )
 
                       if (!yogaGrouped[groupKey]) {
                         yogaGrouped[groupKey] = { groupKey, items: [] }
@@ -2172,12 +2222,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       const subName = toTitleCase(
                         m?.subcategory?.name ?? m?.subcategory_name ?? ''
                       )
-                      const groupKey =
-                        catName &&
-                        subName &&
-                        catName.toLowerCase() !== subName.toLowerCase()
-                          ? `${catName} - ${subName}`
-                          : subName || catName || 'Guided Meditation'
+                      const groupKey = formatCategoryGroupTitle(
+                        catName,
+                        subName,
+                        'Guided Meditation'
+                      )
 
                       if (!grouped[groupKey]) {
                         grouped[groupKey] = { groupKey, items: [] }
