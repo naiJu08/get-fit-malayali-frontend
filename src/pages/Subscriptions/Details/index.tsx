@@ -281,14 +281,20 @@ export default function SubscriptionDetailsMain() {
   const planFees = plan?.fees ?? subscription?.plan_fees ?? 0
 
   const handleBack = () => {
-    const fromPath = (location.state as any)?.from
-    if (fromPath) {
-      navigate(fromPath)
-      return
-    }
+    // const fromPath = (location.state as any)?.from
+    // if (fromPath) {
+    //   navigate(fromPath)
+    //   return
+    // }
 
-    if (typeof window !== 'undefined' && window.history?.state?.idx > 0) {
-      navigate(-1)
+    // if (typeof window !== 'undefined' && window.history?.state?.idx > 0) {
+    //   navigate(-1)
+    //   return
+    // }
+
+    const userId = subscription?.user_id || subscription?.client?.id
+    if (userId) {
+      navigate(`/users/${userId}/subscription-history`)
       return
     }
 
@@ -316,28 +322,28 @@ export default function SubscriptionDetailsMain() {
         {/* Row 1: Left (Back, ID, Badges, Title) & Right (Client Mini Pill) */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Left Title & Status */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             <button
               onClick={handleBack}
-              className="p-2 mt-6 -ml-1 rounded-lg text-black-500 hover:text-black-900 hover:bg-black-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              className="p-2 ml-1 rounded-lg text-black-500 hover:text-black-900 hover:bg-black-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800 transition-colors cursor-pointer"
               aria-label="Back"
               title="Back"
             >
               <Icons name="left-arrow-icon" />
             </button>
             <div>
-              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              <div className="flex items-center gap-1 flex-wrap mb-0.5">
                 {/* <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-gray-800 text-slate-700 dark:text-gray-300 font-mono">
                   #{subscription?.id}
                 </span> */}
-                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/70 dark:border-blue-800">
-                  {planCategory}
-                </span>
-                {getStatusBadge(subscription?.status)}
+                <h1 className="text-lg sm:text-xl  font-bold tracking-tight text-gray-900 dark:text-white">
+                  {planName}
+                </h1>
               </div>
-              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900 dark:text-white">
-                {planName}
-              </h1>
+              <span className="text-[11px] mr-2 font-semibold px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/70 dark:border-blue-800">
+                {planCategory}
+              </span>
+              {getStatusBadge(subscription?.status)}
             </div>
           </div>
 
