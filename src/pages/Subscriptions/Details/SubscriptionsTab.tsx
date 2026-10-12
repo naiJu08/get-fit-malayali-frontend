@@ -815,7 +815,7 @@ export default function SubscriptionUserSubscriptionsTab({
               }
             >
               <Tab id="diet">
-                <div className="max-h-[700px] overflow-y-auto bg-white text-xs">
+                <div className="bg-white text-xs">
                   {/* ================= HEADER ================= */}
                   <div className="sticky top-0 z-10 bg-gray-50 p-4 ">
                     <div className="bg-white shadow-md p-4 flex items-center justify-between">
@@ -1388,8 +1388,8 @@ export default function SubscriptionUserSubscriptionsTab({
               </Tab>
 
               <Tab id="workout">
-                <div className="max-h-[700px] overflow-y-auto">
-                  <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
+                <div>
+                  <div className="border rounded p-3 bg-white">
                     <div className="text-sm font-semibold mb-2">
                       Workout Plan
                     </div>
@@ -1564,8 +1564,8 @@ export default function SubscriptionUserSubscriptionsTab({
               </Tab>
 
               <Tab id="yoga">
-                <div className="max-h-[700px] overflow-y-auto">
-                  <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
+                <div>
+                  <div className="border rounded p-3 bg-white">
                     <div className="text-sm font-semibold mb-2">Yoga Plan</div>
                     {dayDetail?.yoga_plan ? (
                       <div className="flex flex-col gap-2 text-xs">
@@ -1723,8 +1723,8 @@ export default function SubscriptionUserSubscriptionsTab({
               </Tab>
 
               <Tab id="meditation">
-                <div className="max-h-[700px] overflow-y-auto">
-                  <div className="border rounded p-3 bg-white max-h-[500px] overflow-y-auto">
+                <div>
+                  <div className="border rounded p-3 bg-white">
                     <div className="text-sm font-semibold mb-2">
                       Meditation Plan
                     </div>

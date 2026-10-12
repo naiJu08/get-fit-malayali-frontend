@@ -299,7 +299,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                 readOnly={!canAssignTemplate}
                 onAssigned={refreshDayDetail as any}
               />
-              <div className="max-h-[700px] overflow-y-auto">
+              <div>
                 {/* ================= DAY PLAN HEADER ================= */}
                 <div className="border border-gray-200/80 rounded-xl p-3 bg-white mb-3 shadow-xs">
                   <div className="flex items-center justify-between gap-3">
@@ -914,7 +914,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                 readOnly={!canAssignTemplate}
                 onAssigned={refreshDayDetail as any}
               />
-              <div className="max-h-[700px] overflow-y-auto">
+              <div>
                 {/* ── Workout Plan Header Card ── */}
                 {(() => {
                   const exs: any[] = Array.isArray(
@@ -1508,7 +1508,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                 readOnly={!canAssignTemplate}
                 onAssigned={refreshDayDetail as any}
               />
-              <div className="max-h-[700px] overflow-y-auto">
+              <div>
                 {/* ── Yoga Plan Header Card ── */}
                 {(() => {
                   const yexs: any[] = Array.isArray(
@@ -2084,7 +2084,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
           {effectiveCanAccessMeditation && (
             <Tab id="meditation">
-              <div className="max-h-[700px] overflow-y-auto">
+              <div>
                 {/* ── Meditation Plan Header Card ── */}
                 {(() => {
                   const meds: any[] = Array.isArray(dayDetail?.meditations)
