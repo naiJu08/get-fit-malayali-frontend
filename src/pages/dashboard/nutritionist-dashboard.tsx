@@ -286,11 +286,11 @@ function ClientStatusCard({
     { label: 'Active', value: byStatus.active ?? 0, color: '#10b981' },
     ...(!isYogist
       ? [
-          {
-            label: 'Suspended',
-            value: byStatus.suspended ?? 0,
-            color: '#f59e0b',
-          },
+          // {
+          //   label: 'Suspended',
+          //   value: byStatus.suspended ?? 0,
+          //   color: '#f59e0b',
+          // },
         ]
       : []),
     {
@@ -333,7 +333,7 @@ function ClientStatusCard({
             pct={total ? Math.round(((byStatus.active ?? 0) / total) * 100) : 0}
             color="#10b981"
           />
-          {!isYogist && (
+          {/* {!isYogist && (
             <LegendRow
               label="Suspended"
               value={byStatus.suspended ?? 0}
@@ -344,7 +344,7 @@ function ClientStatusCard({
               }
               color="#f59e0b"
             />
-          )}
+          )} */}
           <LegendRow
             label="Deactivated"
             value={byStatus.deactivated ?? 0}

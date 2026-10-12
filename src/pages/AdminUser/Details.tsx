@@ -1688,7 +1688,17 @@ export default function UserDetails() {
                 isSales={isSales}
                 isMarketing={isMarketing}
                 detailRole={detailRole}
-                onEdit={() => setEditModalOpen(true)}
+                onEdit={
+                  [
+                    'physiotherapist',
+                    'physio',
+                    'yogist',
+                    'yoga_trainer',
+                    'yoga',
+                  ].includes(loginRole || '')
+                    ? undefined
+                    : () => setEditModalOpen(true)
+                }
                 onAssignSales={
                   isSuperAdmin && detailRole === 'user'
                     ? () => setAssignSalesOpen(true)

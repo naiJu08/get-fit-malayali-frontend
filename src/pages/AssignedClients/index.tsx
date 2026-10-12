@@ -111,7 +111,9 @@ export default function AssignedClients() {
             state: { from: `${location.pathname}${location.search}` },
           }),
         renderCell: (row: any) => ({
-          cell: row.user_name || '--',
+          cell: row.user_name
+            ? row.user_name.charAt(0).toUpperCase() + row.user_name.slice(1)
+            : '--',
           toolTip: row.user_name || '',
         }),
         isVisible: true,
