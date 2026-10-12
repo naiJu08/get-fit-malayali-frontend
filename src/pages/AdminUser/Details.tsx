@@ -1703,7 +1703,17 @@ export default function UserDetails() {
                 isMarketing={isMarketing}
                 detailRole={detailRole}
                 onEdit={
-                  isClientDeactivated ? undefined : () => setEditModalOpen(true)
+                  [
+                    'physiotherapist',
+                    'physio',
+                    'yogist',
+                    'yoga_trainer',
+                    'yoga',
+                  ].includes(loginRole || '')
+                    ? undefined
+                    : isClientDeactivated
+                      ? undefined
+                      : () => setEditModalOpen(true)
                 }
                 onAssignSales={
                   !isClientDeactivated && isSuperAdmin && detailRole === 'user'

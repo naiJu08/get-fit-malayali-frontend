@@ -122,7 +122,7 @@ function RenewalDetailModal({
                 Client
               </p>
               <p className="mt-0.5 text-sm font-semibold text-primaryText">
-                {row.client_name || '—'}
+                {capitalizeFirst(row.client_name) || '—'}
               </p>
               {(row.client?.phone || row.client_phone) && (
                 <p className="text-xs text-secondary mt-0.5">
@@ -135,7 +135,7 @@ function RenewalDetailModal({
                 Current Package
               </p>
               <p className="mt-0.5 text-sm font-semibold text-primaryText">
-                {row.plan_name || '—'}
+                {capitalizeFirst(row.plan_name) || '—'}
               </p>
             </div>
             <div className="rounded-xl border border-formBorder bg-cardWrapperBg/40 p-3">
@@ -345,7 +345,7 @@ export default function RenewalRequests() {
                 className="text-sm font-semibold text-blue-600 hover:underline text-left"
                 onClick={() => setDetailRow(row)}
               >
-                {row.client_name || '—'}
+                {capitalizeFirst(row.client_name) || '—'}
               </button>
               <div className="text-xs text-secondary">
                 {row.client?.phone ||

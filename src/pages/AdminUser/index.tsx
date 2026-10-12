@@ -1008,7 +1008,13 @@ export default function AdminUser() {
                     toolTip: 'Edit',
                     disabled: (rowData: any) => isClientDeactivated(rowData),
                     hide: () =>
-                      ['physiotherapist', 'physio'].includes(loginRole || ''),
+                      [
+                        'physiotherapist',
+                        'physio',
+                        'yogist',
+                        'yoga_trainer',
+                        'yoga',
+                      ].includes(loginRole || ''),
                   },
                   {
                     title: 'Deactivate',
