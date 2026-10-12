@@ -297,10 +297,6 @@ export default function ClientPackagesTab({
   const isSales = loginRole === 'sales'
   // const isNutritionist = loginRole === 'nutritionist'
   const isSuperAdmin = loginRole === 'superadmin' || loginRole === 'admin'
-  const isYogist =
-    loginRole === 'yogist' ||
-    loginRole === 'yoga_trainer' ||
-    loginRole === 'yoga'
   const isServiceStaff = [
     'nutritionist',
     'physiotherapist',
@@ -1857,7 +1853,7 @@ export default function ClientPackagesTab({
               )
             ) : activeProposal ? (
               <>
-                {isServiceStaff && !(isYogist && isPackageConfirmed) && (
+                {!isPackageConfirmed && (!isSuperAdmin || isServiceStaff) && (
                   <Button
                     label="Update package"
                     icon="edit"
@@ -2103,7 +2099,7 @@ export default function ClientPackagesTab({
                   </div>
                 </div>
 
-                {isSuperAdmin && (
+                {isSuperAdmin && !isPackageConfirmed && (
                   <div className="flex shrink-0 items-center gap-2">
                     <Button
                       label="Update package"
