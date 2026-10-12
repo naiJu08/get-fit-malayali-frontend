@@ -14,7 +14,6 @@ import { useAdminUser, DISABLE_NONLOGIN_APIS } from './api'
 import { getColumns } from './columns'
 import { useLocation, useNavigate } from 'react-router-dom'
 import Icons from '../../components/common/icons'
-import { getAdminDetails } from '../AdminUser/api'
 import moment from 'moment'
 export const generateInvoice = async (row: any, subscriptionData?: any) => {
   // Dynamically import jspdf and html2canvas
@@ -24,8 +23,8 @@ export const generateInvoice = async (row: any, subscriptionData?: any) => {
   const client = row?.client || subscriptionData?.client || null
   const sub = row?.subscription || subscriptionData || null
 
-  // Fetch complete user details
-  let userDetails = {
+  // Use only data already available — no API calls
+  const userDetails = {
     name: client?.name || row?.user_name || row?.client_name || 'N/A',
     userId: client?.id || row?.user_id || 'N/A',
     email: client?.email || row?.client_email || 'N/A',
@@ -33,38 +32,20 @@ export const generateInvoice = async (row: any, subscriptionData?: any) => {
     dateOfBirth: client?.profile?.date_of_birth || 'N/A',
     gender: client?.profile?.gender || 'N/A',
     address: 'N/A',
-    state: client?.profile?.state || client?.state || 'N/A',
-    ethnicity: client?.profile?.ethnicity || client?.ethnicity || 'N/A',
-  }
-
-  try {
-    const fetchId = client?.id || row?.user_id
-    if (fetchId) {
-      const userResponse = await getAdminDetails(String(fetchId))
-      const user = userResponse?.user || userResponse
-      const profile = user?.profile || {}
-      if (user) {
-        userDetails = {
-          name: user?.name || client?.name || row?.user_name || 'N/A',
-          userId: user?.id || fetchId,
-          email: user?.email || client?.email || 'N/A',
-          phone: user?.phone || client?.phone || 'N/A',
-          dateOfBirth:
-            user?.date_of_birth || profile?.date_of_birth
-              ? moment(user?.date_of_birth || profile?.date_of_birth).format(
-                  'YYYY-MM-DD'
-                )
-              : 'N/A',
-          gender: user?.gender || profile?.gender || 'N/A',
-          address: 'N/A',
-          state: user?.state || profile?.state || 'N/A',
-          ethnicity: user?.ethnicity || profile?.ethnicity || 'N/A',
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Failed to fetch user details for invoice:', error)
-    // Continue with basic user details if API call fails
+    state:
+      client?.state ||
+      client?.profile?.state ||
+      row?.client_state ||
+      row?.state ||
+      'N/A',
+    country:
+      client?.country ||
+      client?.profile?.country ||
+      row?.client_country ||
+      row?.country ||
+      'N/A',
+    ethnicity:
+      client?.ethnicity || client?.profile?.ethnicity || row?.country || 'N/A',
   }
 
   const invoiceData = {

@@ -28,18 +28,6 @@ const formatDate = (value?: string) =>
       }).format(new Date(value))
     : '--'
 
-const formatTitleCase = (value?: string | null) => {
-  if (!value) return ''
-  return value
-    .split(' ')
-    .filter((segment) => segment.trim())
-    .map((segment) => {
-      const lower = segment.toLowerCase()
-      return lower.charAt(0).toUpperCase() + lower.slice(1)
-    })
-    .join(' ')
-}
-
 const statusLabel = (value?: string) =>
   (value || 'pending')
     .replace(/_/g, ' ')
@@ -123,8 +111,10 @@ export default function AssignedClients() {
             state: { from: `${location.pathname}${location.search}` },
           }),
         renderCell: (row: any) => ({
-          cell: formatTitleCase(row.user_name) || '--',
-          toolTip: formatTitleCase(row.user_name) || '',
+          cell: row.user_name
+            ? row.user_name.charAt(0).toUpperCase() + row.user_name.slice(1)
+            : '--',
+          toolTip: row.user_name || '',
         }),
         isVisible: true,
       },
