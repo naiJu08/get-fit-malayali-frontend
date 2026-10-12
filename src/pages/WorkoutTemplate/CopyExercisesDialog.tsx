@@ -42,6 +42,18 @@ const targetLabels = {
   client: 'Copy to Client',
 }
 
+const formatTitleCase = (value?: string | null) => {
+  if (!value) return ''
+  return String(value)
+    .trim()
+    .split(/\s+/)
+    .map((segment) => {
+      const lower = segment.toLowerCase()
+      return lower.charAt(0).toUpperCase() + lower.slice(1)
+    })
+    .join(' ')
+}
+
 export default function CopyExercisesDialog({
   open,
   onClose,
@@ -384,8 +396,10 @@ export default function CopyExercisesDialog({
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="truncate text-sm font-semibold text-gray-900">
-                              {item.name || item.user_name}
+                            <p className="truncate text-sm font-semibold text-gray-900 capitalize">
+                              {targetType === 'client'
+                                ? formatTitleCase(item.name || item.user_name)
+                                : item.name || item.user_name}
                               {item.plan_name ? ` - ${item.plan_name}` : ''}
                             </p>
                             {targetType === 'client' && (
@@ -453,14 +467,26 @@ export default function CopyExercisesDialog({
                 <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                   Destination selected
                 </p>
-                <p className="truncate text-sm font-semibold text-gray-900">
-                  {selectedClientTarget?.user_name ||
-                    parents.find(
-                      (item) => String(item.id) === String(selectedParentId)
-                    )?.name ||
-                    parents.find(
-                      (item) => String(item.id) === String(selectedParentId)
-                    )?.user_name}
+                <p className="truncate text-sm font-semibold text-gray-900 capitalize">
+                  {targetType === 'client'
+                    ? formatTitleCase(
+                        selectedClientTarget?.user_name ||
+                          parents.find(
+                            (item) =>
+                              String(item.id) === String(selectedParentId)
+                          )?.name ||
+                          parents.find(
+                            (item) =>
+                              String(item.id) === String(selectedParentId)
+                          )?.user_name
+                      )
+                    : selectedClientTarget?.user_name ||
+                      parents.find(
+                        (item) => String(item.id) === String(selectedParentId)
+                      )?.name ||
+                      parents.find(
+                        (item) => String(item.id) === String(selectedParentId)
+                      )?.user_name}
                 </p>
                 {targetType === 'client' && selectedClientTarget && (
                   <p className="mt-1 text-xs text-gray-500">

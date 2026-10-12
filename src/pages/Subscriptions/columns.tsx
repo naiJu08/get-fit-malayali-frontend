@@ -56,7 +56,7 @@ export const getColumns = (onNameClick?: (row: any) => void) => {
         return {
           cell: (
             <button
-              className="text-blue-600 hover:underline"
+              className="text-blue-600 hover:underline capitalize"
               onClick={() => onNameClick && onNameClick(row)}
               type="button"
             >
