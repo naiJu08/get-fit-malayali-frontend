@@ -988,7 +988,13 @@ export default function AdminUser() {
                     title: 'Edit',
                     toolTip: 'Edit',
                     hide: () =>
-                      ['physiotherapist', 'physio'].includes(loginRole || ''),
+                      [
+                        'physiotherapist',
+                        'physio',
+                        'yogist',
+                        'yoga_trainer',
+                        'yoga',
+                      ].includes(loginRole || ''),
                   },
                   {
                     title: 'Deactivate',
