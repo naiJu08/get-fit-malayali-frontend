@@ -882,7 +882,8 @@ export function ClientWorkflowFollowUps({
   assignment,
   assignmentId,
   onRefresh,
-}: Omit<WorkflowProps, 'role'>) {
+  readOnly = false,
+}: Omit<WorkflowProps, 'role'> & { readOnly?: boolean }) {
   const { enqueueSnackbar } = useSnackbarManager()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -944,7 +945,11 @@ export function ClientWorkflowFollowUps({
   }
 
   const submitCompletion = async () => {
-    if (!completionNotes.trim() || !selectedFollowUp) return
+    if (!completionNotes.trim()) {
+      enqueueSnackbar('Please enter follow-up remarks.', { variant: 'error' })
+      return
+    }
+    if (!selectedFollowUp) return
     const ok = await run(
       () =>
         completeAssignedClientFollowUp(
@@ -962,14 +967,16 @@ export function ClientWorkflowFollowUps({
   return (
     <>
       <section className="w-full">
-        <div className="flex items-center justify-end gap-3 mb-3">
-          <Button
-            outlined
-            label="Schedule follow-up"
-            onClick={handleOpenSchedule}
-            disabled={saving}
-          />
-        </div>
+        {!readOnly && (
+          <div className="flex items-center justify-end gap-3 mb-3">
+            <Button
+              outlined
+              label="Schedule follow-up"
+              onClick={handleOpenSchedule}
+              disabled={saving}
+            />
+          </div>
+        )}
         <SmartTable
           data={assignment?.follow_ups || []}
           dataRowKey="id"
@@ -1037,21 +1044,25 @@ export function ClientWorkflowFollowUps({
               isVisible: true,
             },
           ]}
-          actionProps={[
-            {
-              title: 'Mark completed',
-              toolTip: 'Complete follow-up',
-              icon: <Icons name="check-circle" />,
-              variant: 'success',
-              action: (row: any) => {
-                setSelectedFollowUp(row)
-                setCompletionNotes('')
-                setCompletionDialogOpen(true)
-              },
-              hide: (row: any) => row.status !== 'scheduled',
-              disabled: () => saving,
-            },
-          ]}
+          actionProps={
+            readOnly
+              ? []
+              : [
+                  {
+                    title: 'Mark completed',
+                    toolTip: 'Complete follow-up',
+                    icon: <Icons name="check-circle" />,
+                    variant: 'success',
+                    action: (row: any) => {
+                      setSelectedFollowUp(row)
+                      setCompletionNotes('')
+                      setCompletionDialogOpen(true)
+                    },
+                    hide: (row: any) => row.status !== 'scheduled',
+                    disabled: () => saving,
+                  },
+                ]
+          }
           externalActions
           toolbar
           columnToggle
@@ -1108,11 +1119,12 @@ export function ClientWorkflowFollowUps({
         onSubmit={submitCompletion}
         actionLabel="Save remarks"
         actionLoader={saving}
+        actionDisabled={!completionNotes.trim()}
         secondaryAction={handleCloseCompletion}
         secondaryActionLabel="Cancel"
         body={
           <label className="block text-sm">
-            Follow-up remarks
+            Follow-up remarks <span className="text-red-500 ml-0.5">*</span>
             <span className="text-red-500 text-md ml-0.5">*</span>
             <textarea
               className="mt-1 w-full border rounded-lg p-2"

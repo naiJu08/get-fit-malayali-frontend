@@ -100,7 +100,7 @@ export default function AcceptClientModal({
             <div className="mt-3 pt-3 border-t border-slate-200/70 grid grid-cols-2 gap-2 text-xs">
               <div>
                 <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">
-                  Assigned As
+                  Assigned To
                 </span>
                 <span className="font-semibold text-gray-800 capitalize mt-0.5 block">
                   {roleTitle}

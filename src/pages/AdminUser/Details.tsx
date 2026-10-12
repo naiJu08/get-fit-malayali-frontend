@@ -341,8 +341,21 @@ export default function UserDetails() {
   const [showAcceptModal, setShowAcceptModal] = useState(false)
   const [dismissedAcceptModal, setDismissedAcceptModal] = useState(false)
 
+  const isClientDeactivated = useMemo(() => {
+    if (detailRole !== 'user') return false
+    const statusStr = String(user?.status || '')
+      .toLowerCase()
+      .trim()
+    return (
+      statusStr === 'deactivated' ||
+      statusStr === 'inactive' ||
+      (statusStr !== '' && statusStr !== 'active')
+    )
+  }, [detailRole, user?.status])
+
   const isPendingAcceptance = Boolean(
-    isServiceClient &&
+    !isClientDeactivated &&
+      isServiceClient &&
       !isSuperAdmin &&
       workflowAssignment?.id &&
       (workflowAssignment.workflow_status === 'pending' ||
@@ -363,7 +376,7 @@ export default function UserDetails() {
   }, [isPendingAcceptance, dismissedAcceptModal])
 
   const acceptClient = async () => {
-    if (!workflowAssignment?.id) return
+    if (isClientDeactivated || !workflowAssignment?.id) return
     try {
       setAcceptingClient(true)
       const response = await acceptAssignedClient(workflowAssignment.id)
@@ -507,6 +520,7 @@ export default function UserDetails() {
   }, [selectedCycle?.subscription_id, subscriptionId])
 
   const isActionableSubscription = useMemo(() => {
+    if (isClientDeactivated) return false
     if (!selectedCycle) return true
     const cycleStatus = (selectedCycle?.status || '').toLowerCase()
     const inactiveStatuses = [
@@ -527,7 +541,7 @@ export default function UserDetails() {
       }
     }
     return true
-  }, [selectedCycle])
+  }, [isClientDeactivated, selectedCycle])
 
   const headerAssignees = useMemo(() => {
     if (selectedCycle) {
@@ -1697,10 +1711,12 @@ export default function UserDetails() {
                     'yoga',
                   ].includes(loginRole || '')
                     ? undefined
-                    : () => setEditModalOpen(true)
+                    : isClientDeactivated
+                      ? undefined
+                      : () => setEditModalOpen(true)
                 }
                 onAssignSales={
-                  isSuperAdmin && detailRole === 'user'
+                  !isClientDeactivated && isSuperAdmin && detailRole === 'user'
                     ? () => setAssignSalesOpen(true)
                     : undefined
                 }
@@ -1821,6 +1837,7 @@ export default function UserDetails() {
                     assignment={workflowAssignment}
                     assignmentId={workflowAssignment.id}
                     onRefresh={() => refetchWorkflow()}
+                    readOnly={isClientDeactivated}
                   />
                 </Tab>
               )}
@@ -1835,7 +1852,8 @@ export default function UserDetails() {
                 <Tab id="packages" activeTab={urlTab}>
                   <ClientPackagesTab
                     clientId={String(id)}
-                    canManage={true}
+                    user={user}
+                    canManage={!isClientDeactivated}
                     apiPrefix="/clients"
                     mode="packages"
                     selectedCycleId={
@@ -1854,7 +1872,7 @@ export default function UserDetails() {
                 <Tab id="assignments" activeTab={urlTab}>
                   <ClientPackagesTab
                     clientId={String(id)}
-                    canManage={true}
+                    canManage={!isClientDeactivated}
                     apiPrefix="/clients"
                     mode="assignments"
                     user={user}
