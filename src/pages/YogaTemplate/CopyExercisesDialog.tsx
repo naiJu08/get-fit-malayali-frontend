@@ -174,7 +174,7 @@ export default function CopyExercisesDialog({
         setError('Failed to load target days')
       })
       .finally(() => setLoading(false))
-  }, [selectedParentId, targetType])
+  }, [selectedParentId, targetType, sourceTemplateId])
 
   useEffect(() => {
     if (targetType !== 'client' || !replaceExisting) return

@@ -508,6 +508,21 @@ export default function AdminUser() {
     }
   }
 
+  const isClientDeactivated = useCallback(
+    (rowData: any) => {
+      if (activeRole !== 'user') return false
+      const statusStr = String(rowData?.status || rowData?.user?.status || '')
+        .toLowerCase()
+        .trim()
+      return (
+        statusStr === 'deactivated' ||
+        statusStr === 'inactive' ||
+        (statusStr !== '' && statusStr !== 'active')
+      )
+    },
+    [activeRole]
+  )
+
   const handleDeleteModel = async (
     id: string,
     username: string,
@@ -515,13 +530,14 @@ export default function AdminUser() {
     hasActivePlan?: boolean,
     fullRow?: any
   ) => {
+    const rowUser = fullRow || { id, email: username, status, role: activeRole }
+    if (activeRole === 'user' && isClientDeactivated(rowUser)) return
+
     const normalizedStatus = String(status || '').toLowerCase()
     if (normalizedStatus !== 'active') {
       handleDeleteAdmin({ id, status })
       return
     }
-
-    const rowUser = fullRow || { id, email: username, status, role: activeRole }
     const roleStr = String(rowUser?.role || activeRole || '').toLowerCase()
     const isStaffWithAssignments = [
       'nutritionist',
@@ -635,7 +651,9 @@ export default function AdminUser() {
         )
       })
   }
+
   const handleEdit = async (rowData: any) => {
+    if (isClientDeactivated(rowData)) return
     if (rowData?.id) {
       const data = await getAdminDetails(rowData?.id)
       setRowData(data)
@@ -682,6 +700,7 @@ export default function AdminUser() {
         id,
         role: activeRole,
       }
+    if (activeRole === 'user' && isClientDeactivated(rowUser)) return
     const roleStr = String(rowUser?.role || activeRole || '').toLowerCase()
     const isStaffWithAssignments = [
       'nutritionist',
@@ -987,6 +1006,7 @@ export default function AdminUser() {
                     action: (row) => handleEdit(row),
                     title: 'Edit',
                     toolTip: 'Edit',
+                    disabled: (rowData: any) => isClientDeactivated(rowData),
                     hide: () =>
                       ['physiotherapist', 'physio'].includes(loginRole || ''),
                   },
@@ -1003,6 +1023,7 @@ export default function AdminUser() {
                     icon: <Icons name="deactivate-icon" />,
                     toolTip: 'Deactivate',
                     disabled: (rowData: any) =>
+                      isClientDeactivated(rowData) ||
                       String(rowData?.status).toLowerCase() !== 'active',
                     variant: 'danger',
                     hide: () =>
@@ -1022,7 +1043,9 @@ export default function AdminUser() {
                     icon: <Icons name="activate-icon" />,
                     toolTip: 'Activate',
                     disabled: (rowData: any) =>
-                      String(rowData?.status).toLowerCase() === 'active',
+                      activeRole === 'user'
+                        ? isClientDeactivated(rowData)
+                        : String(rowData?.status).toLowerCase() === 'active',
                     variant: 'success',
                     hide: () =>
                       isYogist ||
@@ -1037,6 +1060,8 @@ export default function AdminUser() {
                             setAssignSalesModalUser(rowData),
                           icon: <Icons name="user" />,
                           toolTip: 'Assign Sales Representative',
+                          disabled: (rowData: any) =>
+                            isClientDeactivated(rowData),
                         },
                       ]
                     : []),
@@ -1046,6 +1071,7 @@ export default function AdminUser() {
                       handleOpenDeleteUser(rowData?.id, rowData),
                     icon: <Icons name="delete" />,
                     toolTip: 'Delete',
+                    disabled: (rowData: any) => isClientDeactivated(rowData),
                     hide: () =>
                       ['nutritionist', 'yogist', 'physiotherapist'].includes(
                         loginRole || ''

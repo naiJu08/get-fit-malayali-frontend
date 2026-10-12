@@ -309,8 +309,24 @@ export default function ClientPackagesTab({
     'yoga',
   ].includes(loginRole || '')
   const canViewPaymentDetails = isSuperAdmin || (!isServiceStaff && isSales)
+  const isClientDeactivated: boolean = useMemo<boolean>(() => {
+    const rawStatus =
+      user?.status || data?.client?.status || data?.user?.status || ''
+    const statusStr: string = String(rawStatus).toLowerCase().trim()
+    return (
+      statusStr === 'deactivated' ||
+      statusStr === 'inactive' ||
+      (statusStr !== '' && statusStr !== 'active')
+    )
+  }, [user?.status, data?.client?.status, data?.user?.status])
+
+  const effectiveCanManage = Boolean(canManage && !isClientDeactivated)
+
   const canCreateUpcomingPackage = Boolean(
-    isSales || isSuperAdmin || (!loginRole && apiPrefix === '/sales/clients')
+    !isClientDeactivated &&
+      (isSales ||
+        isSuperAdmin ||
+        (!loginRole && apiPrefix === '/sales/clients'))
   )
 
   const cycles = cycleData?.cycles || []
@@ -359,7 +375,7 @@ export default function ClientPackagesTab({
         !selectedCycle.can_confirm)
   )
 
-  const selectedValue = useMemo(() => {
+  const selectedValue = useMemo<string>(() => {
     if (mode === 'assignments') {
       return selectedCycle ? String(selectedCycle.id) : ''
     }
@@ -378,13 +394,17 @@ export default function ClientPackagesTab({
         : ''
   }, [mode, selectedCycle, selectedCycleId, canCreateUpcomingPackage])
 
-  const canManageStaff =
-    canManage &&
-    Boolean(selectedCycle?.can_manage_assignments) &&
-    (!isSuperAdmin || Boolean(data?.client?.sales_rep || data?.user?.sales_rep))
-  const canEditProposal =
-    Boolean(selectedCycle?.can_edit_proposal) ||
-    (canManage && selectedValue === 'new' && canCreateUpcomingPackage)
+  const canManageStaff = Boolean(
+    effectiveCanManage &&
+      Boolean(selectedCycle?.can_manage_assignments) &&
+      (!isSuperAdmin ||
+        Boolean(data?.client?.sales_rep || data?.user?.sales_rep))
+  )
+  const canEditProposal = Boolean(
+    effectiveCanManage &&
+      (Boolean(selectedCycle?.can_edit_proposal) ||
+        (selectedValue === 'new' && canCreateUpcomingPackage))
+  )
   const refetch = async () => {
     await Promise.all([refetchClient(), refetchCycles()])
     await queryClient.invalidateQueries({
@@ -399,7 +419,7 @@ export default function ClientPackagesTab({
     })
   }
   const handleConfirmCycle = async () => {
-    if (!selectedCycle) return
+    if (!selectedCycle || !effectiveCanManage) return
     try {
       setCycleActionLoading(true)
       await confirmClientPackageCycle(id, selectedCycle.id, apiPrefix)
@@ -417,7 +437,7 @@ export default function ClientPackagesTab({
   }
 
   const runCycleAction = async (action: 'confirm' | 'renew') => {
-    if (!selectedCycle) return
+    if (!selectedCycle || !effectiveCanManage) return
     if (action === 'confirm') {
       setConfirmDialogOpen(true)
       return
@@ -443,7 +463,7 @@ export default function ClientPackagesTab({
   }
 
   const handleInitiateRefund = async () => {
-    if (!selectedCycle?.subscription_id) return
+    if (!selectedCycle?.subscription_id || !effectiveCanManage) return
     if (!refundRemarks.trim()) {
       enqueueSnackbar('Please provide remarks explaining the refund request.', {
         variant: 'error',
@@ -708,6 +728,7 @@ export default function ClientPackagesTab({
   )
 
   const openProposalModal = (proposal?: any, forceNew = false) => {
+    if (!effectiveCanManage) return
     if (
       forceNew ||
       (!proposal &&
@@ -784,7 +805,7 @@ export default function ClientPackagesTab({
   }
 
   const openAssignmentModal = (role: string) => {
-    if (!canManageStaff) return
+    if (!canManageStaff || !effectiveCanManage) return
     const current = currentAssignments.find(
       (assignment: any) => assignment.role === role
     )
@@ -1027,7 +1048,7 @@ export default function ClientPackagesTab({
               </button>
             )} */}
 
-            {selectedCycle?.can_confirm && (
+            {effectiveCanManage && selectedCycle?.can_confirm && (
               <button
                 type="button"
                 onClick={() => setConfirmDialogOpen(true)}
@@ -1046,7 +1067,8 @@ export default function ClientPackagesTab({
               </button>
             )}
 
-            {selectedCycle?.status === 'active' &&
+            {effectiveCanManage &&
+              selectedCycle?.status === 'active' &&
               !selectedCycle?.renewal_request &&
               !selectedCycle?.refund_request &&
               (selectedCycle?.can_request_renewal || isSuperAdmin || isSales) &&
@@ -1088,7 +1110,8 @@ export default function ClientPackagesTab({
               </div>
             )}
 
-            {selectedCycle?.can_request_refund &&
+            {effectiveCanManage &&
+              selectedCycle?.can_request_refund &&
               !selectedCycle?.refund_request && (
                 <button
                   type="button"
@@ -2549,7 +2572,7 @@ export default function ClientPackagesTab({
                 </div>
 
                 {/* Action button for Superadmin */}
-                {isSuperAdmin && (
+                {isSuperAdmin && effectiveCanManage && (
                   <button
                     type="button"
                     onClick={() => setSalesAssignModalOpen(true)}
@@ -2665,7 +2688,7 @@ export default function ClientPackagesTab({
                 member assigned yet. Assign a sales representative to handle
                 package proposals, follow-ups, and renewals.
               </p>
-              {isSuperAdmin && (
+              {isSuperAdmin && effectiveCanManage && (
                 <div className="mt-4">
                   <button
                     type="button"
