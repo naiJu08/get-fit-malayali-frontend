@@ -114,7 +114,21 @@ export default function DetailsInfo({
   onEdit?: () => void
   onAssignSales?: () => void
 }) {
-  const canEdit = typeof onEdit === 'function' && Boolean(user?.id)
+  const isDeactivated =
+    detailRole === 'user' &&
+    (() => {
+      const statusStr = String(user?.status || '')
+        .toLowerCase()
+        .trim()
+      return (
+        statusStr === 'deactivated' ||
+        statusStr === 'inactive' ||
+        (statusStr !== '' && statusStr !== 'active')
+      )
+    })()
+
+  const canEdit =
+    !isDeactivated && typeof onEdit === 'function' && Boolean(user?.id)
   const isFlatRole = isPhysiotherapist || isYogist || isSales || isMarketing
   return (
     <>
@@ -263,7 +277,7 @@ export default function DetailsInfo({
                           )}
                         </div>
                       </div>
-                      {onAssignSales && (
+                      {!isDeactivated && onAssignSales && (
                         <button
                           type="button"
                           onClick={onAssignSales}

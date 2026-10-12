@@ -367,7 +367,19 @@ export default function Subscriptions({
     end_date: '',
   })
 
+  const isClientDeactivated = useMemo(() => {
+    const statusStr = String(user?.status || '')
+      .toLowerCase()
+      .trim()
+    return (
+      statusStr === 'deactivated' ||
+      statusStr === 'inactive' ||
+      (statusStr !== '' && statusStr !== 'active')
+    )
+  }, [user?.status])
+
   const isActionableSubscription = useMemo(() => {
+    if (isClientDeactivated) return false
     const cycleStatus = (selectedCycle?.status || '').toLowerCase()
     const subStatus = (
       overview?.subscription?.status ||
@@ -398,7 +410,7 @@ export default function Subscriptions({
     }
 
     return true
-  }, [overview?.subscription, selectedCycle])
+  }, [isClientDeactivated, overview?.subscription, selectedCycle])
 
   const [assignOpen, setAssignOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
@@ -4203,6 +4215,7 @@ export default function Subscriptions({
       }
     }
 
+    if (isClientDeactivated) return
     try {
       setLoader(true)
       if (freezeMode === 'freeze') {
@@ -4280,7 +4293,9 @@ export default function Subscriptions({
             assignmentId={workflowAssignment?.id}
             role={loginRole || 'nutritionist'}
             plans={allPlans}
-            showWorkflowActions={loginRole !== 'superadmin'}
+            showWorkflowActions={
+              loginRole !== 'superadmin' && !isClientDeactivated
+            }
             onRefresh={async () => {
               await (onWorkflowRefresh || onRefresh)()
               if (canLoadClientProposal) {
@@ -4305,8 +4320,8 @@ export default function Subscriptions({
             isServiceRole={isServiceRole}
             onConfirmPackage={() => setConfirmModalOpen(true)}
             confirmLoading={confirmingPackage}
-            canConfirmPackage={canConfirmPackage}
-            canUpdatePackage={canUpdatePackage}
+            canConfirmPackage={!isClientDeactivated && canConfirmPackage}
+            canUpdatePackage={!isClientDeactivated && canUpdatePackage}
             clientId={String(id)}
           />
 
