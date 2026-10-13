@@ -531,11 +531,13 @@ export default function AdminUser() {
     fullRow?: any
   ) => {
     const rowUser = fullRow || { id, email: username, status, role: activeRole }
-    if (activeRole === 'user' && isClientDeactivated(rowUser)) return
 
     const normalizedStatus = String(status || '').toLowerCase()
     if (normalizedStatus !== 'active') {
-      handleDeleteAdmin({ id, status })
+      setDeleteItem(id)
+      setUserName(username)
+      setStatus(status)
+      setDeleteModal(true)
       return
     }
     const roleStr = String(rowUser?.role || activeRole || '').toLowerCase()
