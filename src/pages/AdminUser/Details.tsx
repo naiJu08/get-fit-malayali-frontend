@@ -952,13 +952,13 @@ export default function UserDetails() {
                     if (fromPath) {
                       navigate(fromPath)
                     } else if (
-                      isServiceClient &&
                       [
                         'nutritionist',
                         'physiotherapist',
                         'physio',
                         'yogist',
                         'yoga',
+                        'superadmin',
                       ].includes(loginRole || '')
                     ) {
                       navigate('/users?tab=clients')
