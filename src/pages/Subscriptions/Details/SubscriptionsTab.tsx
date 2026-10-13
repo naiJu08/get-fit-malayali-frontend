@@ -853,12 +853,26 @@ export default function SubscriptionUserSubscriptionsTab({
                   dayDetail.diet_plans.length > 0 ? (
                     <div className="space-y-3 mt-3 px-4">
                       {dayDetail.diet_plans.map((d: any) => {
+                        const isPastDate = moment(
+                          dayDetail?.date || selectedDate
+                        ).isBefore(moment(), 'day')
                         const totalItems = d?.items?.length || 0
                         const completedItems =
                           d?.item_statuses?.completed_item_ids?.length || 0
-                        const missedItems =
+                        const explicitMissedCount = Array.isArray(d?.items)
+                          ? d.items.filter(
+                              (it: any) =>
+                                String(
+                                  it?.actions?.status || ''
+                                ).toLowerCase() === 'missed'
+                            ).length
+                          : 0
+                        const rawMissed =
                           d?.item_statuses?.not_taken_mandatory_item_ids
                             ?.length || 0
+                        const missedItems = isPastDate
+                          ? rawMissed
+                          : explicitMissedCount
 
                         const progress =
                           totalItems > 0

@@ -1038,6 +1038,9 @@ export default function Subscriptions({
         selectedCycle?.subscription_id || selectedSubscriptionId || undefined
       const res = await getActivePlanOverview(targetUserId, subId)
       setOverview(res)
+      if (res?.error) {
+        setOverviewError(res.error)
+      }
 
       const todayStr = moment().format('YYYY-MM-DD')
       const hasToday = Array.isArray(res?.days)
@@ -4249,6 +4252,9 @@ export default function Subscriptions({
           selectedSubscriptionId || selectedCycle?.subscription_id || undefined
         const res = await getActivePlanOverview(user.id, subId)
         setOverview(res)
+        if (res?.error) {
+          setOverviewError(res.error)
+        }
       } catch {}
       try {
         const fresh = await getAdminDetails(String(id))
@@ -4287,6 +4293,25 @@ export default function Subscriptions({
       )}
       {!loading && !error && (
         <div className="flex flex-col gap-4">
+          {isClientDeactivated && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50/90 p-3.5 text-xs text-rose-900 shadow-2xs flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-rose-200/80 text-rose-700 font-bold">
+                  ⚠️
+                </span>
+                <span>
+                  <strong className="font-semibold">
+                    Client Account Deactivated:
+                  </strong>{' '}
+                  Actions including template assignment, day updates, and plan
+                  modifications are restricted.
+                </span>
+              </div>
+              <span className="rounded-full bg-rose-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-700 border border-rose-200 shrink-0">
+                Restricted
+              </span>
+            </div>
+          )}
           <ClientWorkflowDetails
             assignment={workflowAssignment}
             proposedPackage={proposedPackage}
@@ -4721,7 +4746,9 @@ export default function Subscriptions({
                     </div>
                   ) : (
                     <div className="text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-4 py-3 max-w-md shadow-sm">
-                      {overviewError || 'No calendar data available'}
+                      {overviewError ||
+                        overview?.error ||
+                        'No calendar data available'}
                     </div>
                   )}
                 </div>

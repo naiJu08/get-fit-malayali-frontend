@@ -126,14 +126,24 @@ export default function CopyExercisesDialog({
       return
     }
     setLoading(true)
-    getData(`${apiUrl.SUBSCRIPTIONS}?page=1&per_page=100`)
+    getData(
+      `${apiUrl.SUBSCRIPTIONS}?page=1&per_page=100&active_clients_only=true`
+    )
       .then((response: any) => {
         const todayStr = new Date().toISOString().slice(0, 10)
         const items = (response?.subscriptions || response?.items || []).filter(
-          (item: any) =>
-            ['active', 'paused', 'upcoming'].includes(
+          (item: any) => {
+            const isSubActive = ['active', 'paused', 'upcoming'].includes(
               String(item?.status || '').toLowerCase()
-            ) && item?.end_date >= todayStr
+            )
+            const isNotExpired = item?.end_date >= todayStr
+            const isClientDeactivated =
+              String(
+                item?.user_status || item?.user?.status || ''
+              ).toLowerCase() === 'deactivated' ||
+              item?.is_client_active === false
+            return isSubActive && isNotExpired && !isClientDeactivated
+          }
         )
         setParents(items)
         setTargets(items)
