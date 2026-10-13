@@ -540,6 +540,8 @@ export default function AdminUser() {
       setDeleteModal(true)
       return
     }
+
+    if (activeRole === 'user' && isClientDeactivated(rowUser)) return
     const roleStr = String(rowUser?.role || activeRole || '').toLowerCase()
     const isStaffWithAssignments = [
       'nutritionist',
@@ -1034,9 +1036,19 @@ export default function AdminUser() {
                       isClientDeactivated(rowData) ||
                       String(rowData?.status).toLowerCase() !== 'active',
                     variant: 'danger',
-                    hide: () =>
-                      isYogist ||
-                      ['physiotherapist', 'physio'].includes(loginRole || ''),
+                    hide: () => {
+                      if (activeRole === 'user') {
+                        return ![
+                          'superadmin',
+                          'admin',
+                          'nutritionist',
+                        ].includes(loginRole || '')
+                      }
+                      return (
+                        isYogist ||
+                        ['physiotherapist', 'physio'].includes(loginRole || '')
+                      )
+                    },
                   },
                   {
                     title: 'Activate',
@@ -1050,14 +1062,25 @@ export default function AdminUser() {
                       ),
                     icon: <Icons name="activate-icon" />,
                     toolTip: 'Activate',
-                    disabled: (rowData: any) =>
-                      activeRole === 'user'
-                        ? !isClientDeactivated(rowData)
-                        : String(rowData?.status).toLowerCase() === 'active',
+                    disabled: (rowData: any) => {
+                      const isDeactivated =
+                        !isClientDeactivated(rowData) ||
+                        ['deactivated', 'inactive'].includes(
+                          String(rowData?.status || '').toLowerCase()
+                        )
+                      return !isDeactivated
+                    },
                     variant: 'success',
-                    hide: () =>
-                      isYogist ||
-                      ['physiotherapist', 'physio'].includes(loginRole || ''),
+                    hide: () => {
+                      if (activeRole === 'user') {
+                        return ![
+                          'superadmin',
+                          'admin',
+                          'nutritionist',
+                        ].includes(loginRole || '')
+                      }
+                      return !['superadmin', 'admin'].includes(loginRole || '')
+                    },
                   },
                   ...(activeRole === 'user' &&
                   ['superadmin', 'admin'].includes(loginRole || '')

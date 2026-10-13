@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import moment from 'moment'
 
 import Icons from '../../components/common/icons'
-import { getAdminDetails, getActivePlanOverview } from './api'
+import { getAdminDetails, getActivePlanOverview, activateAdmin } from './api'
 import { Tab, TabContainer } from '../../components/common/tab'
 import DetailsInfo from './Details/DetailsInfo'
 import Subscriptions from './Details/Subscriptions'
@@ -422,6 +422,40 @@ export default function UserDetails() {
       )
     } finally {
       setAcceptingClient(false)
+    }
+  }
+
+  const [activatingClient, setActivatingClient] = useState(false)
+  const canManageClientActivation =
+    isSuperAdmin || loginRole === 'admin' || loginRole === 'nutritionist'
+
+  const handleActivateClient = async () => {
+    if (!id) return
+    setActivatingClient(true)
+    try {
+      const res = await activateAdmin(String(id))
+      enqueueSnackbar(res?.message || 'Client activated successfully', {
+        variant: 'success',
+      })
+      setShowDeactivatedModal(false)
+      setDismissedDeactivatedModal(true)
+      refreshUserDetails()
+      refetchCycles?.()
+      refetchWorkflow?.()
+      queryClient.invalidateQueries({
+        queryKey: ['admin_user_list'],
+        refetchType: 'all',
+      })
+    } catch (err: any) {
+      enqueueSnackbar(
+        err?.response?.data?.error?.message ||
+          err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          'Failed to activate client',
+        { variant: 'error' }
+      )
+    } finally {
+      setActivatingClient(false)
     }
   }
 
@@ -2004,6 +2038,9 @@ export default function UserDetails() {
           setDismissedDeactivatedModal(true)
           setShowDeactivatedModal(false)
         }}
+        onActivate={handleActivateClient}
+        isActivating={activatingClient}
+        canActivate={canManageClientActivation}
         clientName={user?.name}
         clientEmail={user?.email}
         clientPhone={user?.phone_number || user?.phone}
