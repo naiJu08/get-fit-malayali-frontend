@@ -1124,8 +1124,7 @@ export function ClientWorkflowFollowUps({
         secondaryActionLabel="Cancel"
         body={
           <label className="block text-sm">
-            Follow-up remarks <span className="text-red-500 ml-0.5">*</span>
-            <span className="text-red-500 text-md ml-0.5">*</span>
+            Follow-up remarks <span className="text-red-500 ">*</span>
             <textarea
               className="mt-1 w-full border rounded-lg p-2"
               rows={4}

@@ -1050,7 +1050,7 @@ export default function AdminUser() {
                     toolTip: 'Activate',
                     disabled: (rowData: any) =>
                       activeRole === 'user'
-                        ? isClientDeactivated(rowData)
+                        ? !isClientDeactivated(rowData)
                         : String(rowData?.status).toLowerCase() === 'active',
                     variant: 'success',
                     hide: () =>

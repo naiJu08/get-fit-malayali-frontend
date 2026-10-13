@@ -47,6 +47,12 @@ export default function NutritionistDashboardView({
     roleData?.name === 'yogist' ||
     roleData?.name === 'yoga_trainer' ||
     roleData?.name === 'yoga'
+  const isPhysio =
+    effectiveRole === 'physiotherapist' ||
+    roleData?.name === 'physiotherapist' ||
+    roleData?.name === 'physio'
+  const isTabClientsRole =
+    isYogist || isPhysio || effectiveRole === 'nutritionist'
 
   if (loading) {
     return (
@@ -224,7 +230,17 @@ export default function NutritionistDashboardView({
             sub={`${fmt(data?.clients?.accepted ?? 0)} accepted · ${fmt(data?.clients?.assigned ?? 0)} assigned · ${fmt(data?.clients?.inactive ?? inactiveCount)} inactive`}
             gradient="linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)"
             icon="👥"
-            onClick={() => navigate(`/users/${effectiveRole}/assigned-clients`)}
+            onClick={() =>
+              [
+                'nutritionist',
+                'physiotherapist',
+                'physio',
+                'yogist',
+                'yoga',
+              ].includes(effectiveRole || '')
+                ? navigate('/users?tab=clients')
+                : navigate(`/users/${effectiveRole}/assigned-clients`)
+            }
             badge="Assigned Clients"
           />
           <StatCard
@@ -233,7 +249,9 @@ export default function NutritionistDashboardView({
             sub={`${fmt(data?.subscriptions?.expiring_soon)} expiring within ${fmt(data?.subscriptions?.expiring_within_days || 7)} days`}
             gradient="linear-gradient(135deg, #0284c7 0%, #2563eb 100%)"
             icon="📋"
-            onClick={() => navigate(isYogist ? '/users?tab=clients' : '/users')}
+            onClick={() =>
+              navigate(isTabClientsRole ? '/users?tab=clients' : '/users')
+            }
             badge="Active / Paused"
           />
           <StatCard
@@ -242,7 +260,9 @@ export default function NutritionistDashboardView({
             sub={primaryActivitySub}
             gradient="linear-gradient(135deg, #059669 0%, #0d9488 100%)"
             icon="⚡"
-            onClick={() => navigate(isYogist ? '/users?tab=clients' : '/users')}
+            onClick={() =>
+              navigate(isTabClientsRole ? '/users?tab=clients' : '/users')
+            }
             badge="7-Day Activity"
           />
           <StatCard
@@ -251,7 +271,9 @@ export default function NutritionistDashboardView({
             sub={`${fmt(expiringCount)} expiring · ${fmt(inactiveCount)} inactive · ${fmt(missingCount)} missing`}
             gradient="linear-gradient(135deg, #ea580c 0%, #e11d48 100%)"
             icon="⚠️"
-            onClick={() => navigate(isYogist ? '/users?tab=clients' : '/users')}
+            onClick={() =>
+              navigate(isTabClientsRole ? '/users?tab=clients' : '/users')
+            }
             badge={totalAlerts > 0 ? `${totalAlerts} Attention` : 'All Clear'}
           />
         </div>
