@@ -952,12 +952,21 @@ export default function UserDetails() {
                     if (fromPath) {
                       navigate(fromPath)
                     } else if (
+                      [
+                        'nutritionist',
+                        'physiotherapist',
+                        'physio',
+                        'yogist',
+                        'yoga',
+                        'superadmin',
+                      ].includes(loginRole || '')
+                    ) {
+                      navigate('/users?tab=clients')
+                    } else if (
                       typeof window !== 'undefined' &&
                       window.history?.state?.idx > 0
                     ) {
                       navigate(-1)
-                    } else if (isServiceClient && loginRole) {
-                      navigate(`/users/${loginRole}/assigned-clients`)
                     } else {
                       navigate(pathBase)
                     }

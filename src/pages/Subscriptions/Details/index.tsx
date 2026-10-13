@@ -782,7 +782,10 @@ export default function SubscriptionDetailsMain() {
                         Sales Owner
                       </span>
                       <span className="text-xs font-semibold text-gray-900 dark:text-white">
-                        {salesOwner.name}
+                        {salesOwner.name
+                          ? salesOwner.name.charAt(0).toUpperCase() +
+                            salesOwner.name.slice(1)
+                          : '--'}
                       </span>
                     </div>
                   )}
@@ -847,8 +850,14 @@ export default function SubscriptionDetailsMain() {
                                     ).format('DD-MM-YYYY')
                                   : '--'}
                               </td>
-                              <td className="py-2 px-2.5 uppercase text-gray-600 dark:text-gray-300 font-mono">
-                                {pm.payment_mode || 'N/A'}
+                              <td className="py-2 px-2.5 text-gray-600 dark:text-gray-300">
+                                {pm.payment_mode
+                                  ? pm.payment_mode
+                                      .replace(/_/g, ' ')
+                                      .charAt(0)
+                                      .toUpperCase() +
+                                    pm.payment_mode.replace(/_/g, ' ').slice(1)
+                                  : 'N/A'}
                               </td>
                               <td className="py-2 px-2.5 text-gray-600 dark:text-gray-400 truncate max-w-[100px]">
                                 {pm.recorded_by_name

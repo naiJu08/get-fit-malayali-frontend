@@ -131,6 +131,10 @@ export default function AdminUser() {
   const [deleteItem, setDeleteItem] = useState('')
   const [status, setStatus] = useState('')
   const [deleteModal, setDeleteModal] = useState(false)
+  const [activateConfirm, setActivateConfirm] = useState<{
+    id: string
+    username: string
+  } | null>(null)
   const [createOpen, setCreateOpen] = useState(false)
   const [viewMode, setViewMode] = useState(false)
   const [edit, setEdit] = useState(false)
@@ -531,9 +535,10 @@ export default function AdminUser() {
     fullRow?: any
   ) => {
     const rowUser = fullRow || { id, email: username, status, role: activeRole }
+
     const normalizedStatus = String(status || '').toLowerCase()
     if (normalizedStatus !== 'active') {
-      handleDeleteAdmin({ id, status })
+      setActivateConfirm({ id, username })
       return
     }
 
@@ -1060,7 +1065,7 @@ export default function AdminUser() {
                     toolTip: 'Activate',
                     disabled: (rowData: any) => {
                       const isDeactivated =
-                        isClientDeactivated(rowData) ||
+                        !isClientDeactivated(rowData) ||
                         ['deactivated', 'inactive'].includes(
                           String(rowData?.status || '').toLowerCase()
                         )
@@ -1157,6 +1162,24 @@ export default function AdminUser() {
             subTitle="This user currently has an active plan. Are you sure you want to continue with deactivation?"
             confirmLabel="Yes, Continue"
             cancelLabel="No"
+          />
+          <ConfirmDeleteModal
+            isOpen={Boolean(activateConfirm)}
+            onClose={() => setActivateConfirm(null)}
+            onConfirm={() => {
+              if (activateConfirm) {
+                handleDeleteAdmin({
+                  id: activateConfirm.id,
+                  status: 'inactive',
+                })
+                setActivateConfirm(null)
+              }
+            }}
+            title="Activate this user?"
+            subTitle="Are you sure you want to activate this user?"
+            confirmLabel="Yes, Activate"
+            cancelLabel="No"
+            variant="success"
           />
           <DialogModal
             isOpen={deleteModal}

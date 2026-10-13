@@ -10,6 +10,7 @@ type ConfirmDeleteModalProps = {
   subTitle?: string
   confirmLabel?: string
   cancelLabel?: string
+  variant?: 'danger' | 'success'
 }
 
 export default function ConfirmDeleteModal({
@@ -21,7 +22,9 @@ export default function ConfirmDeleteModal({
   subTitle = 'Do you really want to delete these records? This process cannot be undone.',
   confirmLabel = 'Delete',
   cancelLabel = 'Cancel',
+  variant = 'danger',
 }: ConfirmDeleteModalProps) {
+  const isSuccess = variant === 'success'
   return (
     <DialogModal
       isOpen={isOpen}
@@ -33,19 +36,38 @@ export default function ConfirmDeleteModal({
       actionBody={
         <div className="flex flex-col items-center">
           <div className="flex items-center justify-center mb-4 mt-2">
-            <div className="w-16 h-16 rounded-full border-2 border-rose-500 flex items-center justify-center">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                className="text-rose-500"
-              >
-                <path
-                  fill="currentColor"
-                  d="M16.192 6.344L12 10.536L7.808 6.344L6.394 7.758L10.586 11.95L6.394 16.142L7.808 17.556L12 13.364L16.192 17.556L17.606 16.142L13.414 11.95L17.606 7.758z"
-                />
-              </svg>
+            <div
+              className={`w-16 h-16 rounded-full border-2 flex items-center justify-center ${isSuccess ? 'border-emerald-500' : 'border-rose-500'}`}
+            >
+              {isSuccess ? (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  className="text-emerald-500"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  className="text-rose-500"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M16.192 6.344L12 10.536L7.808 6.344L6.394 7.758L10.586 11.95L6.394 16.142L7.808 17.556L12 13.364L16.192 17.556L17.606 16.142L13.414 11.95L17.606 7.758z"
+                  />
+                </svg>
+              )}
             </div>
           </div>
           <h3 className="text-xl font-semibold text-gray-800 mb-2 text-center">
@@ -65,11 +87,15 @@ export default function ConfirmDeleteModal({
             </button>
             <button
               type="button"
-              className="px-4 py-2 rounded-md bg-rose-500 text-white hover:bg-rose-600 disabled:opacity-70"
+              className={`px-4 py-2 rounded-md text-white disabled:opacity-70 ${isSuccess ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-rose-500 hover:bg-rose-600'}`}
               onClick={onConfirm}
               disabled={loading}
             >
-              {loading ? 'Deleting...' : confirmLabel}
+              {loading
+                ? isSuccess
+                  ? 'Activating...'
+                  : 'Deleting...'
+                : confirmLabel}
             </button>
           </div>
         </div>
