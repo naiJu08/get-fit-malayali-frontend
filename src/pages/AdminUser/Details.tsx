@@ -25,6 +25,7 @@ import CreateAdmin from './create'
 import AssignSalesModal from './AssignSalesModal'
 import AcceptClientModal from './Details/AcceptClientModal'
 import RoleMismatchModal from './Details/RoleMismatchModal'
+import DeactivatedClientModal from './Details/DeactivatedClientModal'
 import MarketingFormsTab from './Details/MarketingFormsTab'
 import ClientPackagesTab from '../Sales/ClientPackagesTab'
 import { useSnackbarManager } from '../../components/common/snackbar'
@@ -340,6 +341,9 @@ export default function UserDetails() {
   const [acceptingClient, setAcceptingClient] = useState(false)
   const [showAcceptModal, setShowAcceptModal] = useState(false)
   const [dismissedAcceptModal, setDismissedAcceptModal] = useState(false)
+  const [showDeactivatedModal, setShowDeactivatedModal] = useState(false)
+  const [dismissedDeactivatedModal, setDismissedDeactivatedModal] =
+    useState(false)
 
   const isClientDeactivated = useMemo(() => {
     if (detailRole !== 'user') return false
@@ -365,6 +369,7 @@ export default function UserDetails() {
 
   useEffect(() => {
     setDismissedAcceptModal(false)
+    setDismissedDeactivatedModal(false)
   }, [user?.id])
 
   useEffect(() => {
@@ -374,6 +379,14 @@ export default function UserDetails() {
       setShowAcceptModal(false)
     }
   }, [isPendingAcceptance, dismissedAcceptModal])
+
+  useEffect(() => {
+    if (isClientDeactivated && !dismissedDeactivatedModal) {
+      setShowDeactivatedModal(true)
+    } else if (!isClientDeactivated) {
+      setShowDeactivatedModal(false)
+    }
+  }, [isClientDeactivated, dismissedDeactivatedModal])
 
   const acceptClient = async () => {
     if (isClientDeactivated || !workflowAssignment?.id) return
@@ -687,10 +700,10 @@ export default function UserDetails() {
         const overview = await getActivePlanOverview(user.id)
         if (!mounted) return
         const subId = overview?.subscription?.id
-        setSubscriptionId(subId ?? null)
+        setSubscriptionId(subId ?? '')
       } catch (e) {
         if (!mounted) return
-        // On error (e.g. 404 for no active subscription), still use empty string
+        // On error (e.g. no active subscription), still use empty string
         // so subscription_id is present in the downstream requests.
         setSubscriptionId('')
       }
@@ -1983,6 +1996,20 @@ export default function UserDetails() {
             loginRole ? `/users/${loginRole}/assigned-clients` : '/clients'
           )
         }}
+      />
+
+      <DeactivatedClientModal
+        isOpen={showDeactivatedModal}
+        onClose={() => {
+          setDismissedDeactivatedModal(true)
+          setShowDeactivatedModal(false)
+        }}
+        clientName={user?.name}
+        clientEmail={user?.email}
+        clientPhone={user?.phone_number || user?.phone}
+        clientStatus={
+          user?.status ? capitalizeFirst(user.status) : 'Deactivated'
+        }
       />
 
       <RoleMismatchModal

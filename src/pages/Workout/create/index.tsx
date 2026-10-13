@@ -191,6 +191,8 @@ export default function CreateAdmin({
   )
   const [selectedVideoName, setSelectedVideoName] = useState('')
   const [isExistingVideoCleared, setIsExistingVideoCleared] = useState(false)
+  const [isExistingThumbnailCleared, setIsExistingThumbnailCleared] =
+    useState(false)
   const compressionCancelledRef = useRef(false)
   const resetCompressionState = () => {
     setIsCompressingVideo(false)
@@ -334,6 +336,7 @@ export default function CreateAdmin({
     } as any)
     resetCompressionState()
     setIsExistingVideoCleared(false)
+    setIsExistingThumbnailCleared(false)
     handleClose()
   }
 
@@ -352,6 +355,7 @@ export default function CreateAdmin({
     } as any)
     resetCompressionState()
     setIsExistingVideoCleared(false)
+    setIsExistingThumbnailCleared(false)
 
     handleRefresh?.()
     handleClearAndClose()
@@ -359,6 +363,7 @@ export default function CreateAdmin({
   useEffect(() => {
     if (!(isDrawerOpen && edit && !viewMode && rowData)) return
     setIsExistingVideoCleared(false)
+    setIsExistingThumbnailCleared(false)
 
     const rawCategory = rowData?.category
     const mainCategory = rawCategory?.main_category
@@ -439,6 +444,7 @@ export default function CreateAdmin({
       setSelectedVideoName('')
       setCompressionProgress(null)
       setIsExistingVideoCleared(false)
+      setIsExistingThumbnailCleared(false)
     }
   }, [isDrawerOpen])
 
@@ -472,6 +478,13 @@ export default function CreateAdmin({
   const watchedVideoSource = watch('video_source')
   const watchedVideoUrl = watch('video_url')
   const selectedCategoryId = watch('category_id')
+  const watchedThumbnail = watch('thumbnail')
+
+  useEffect(() => {
+    if (watchedThumbnail instanceof File) {
+      setIsExistingThumbnailCleared(false)
+    }
+  }, [watchedThumbnail])
 
   const subcategoryOptions = useMemo(() => {
     const category = categoryOptions.find(
@@ -639,10 +652,15 @@ export default function CreateAdmin({
         ],
         acceptedFiles: 'PNG, JPG, JPEG, WEBP',
         fileSize: 5,
-        selectedFiles: getFileName(rowData?.thumbnail_url),
+        selectedFiles: !isExistingThumbnailCleared
+          ? watchedThumbnail instanceof File
+            ? watchedThumbnail.name
+            : watchedThumbnail || getFileName(rowData?.thumbnail_url)
+          : '',
         subName: 'thumbnail',
         handleDeleteFile: () => {
           methods.setValue('thumbnail', '')
+          setIsExistingThumbnailCleared(true)
         },
       },
       {
@@ -724,10 +742,12 @@ export default function CreateAdmin({
       methods,
       rowData?.thumbnail_url,
       rowData?.video_url,
+      isExistingThumbnailCleared,
       isExistingVideoCleared,
       selectedVideoName,
       subcategoryOptions,
       videoDurationMs,
+      watchedThumbnail,
       watchedVideoFile,
       watchedVideoSource,
     ]
@@ -890,6 +910,13 @@ export default function CreateAdmin({
     const thumbVal = details?.thumbnail
     if (thumbVal instanceof File) {
       fd.append('workout[thumbnail]', thumbVal)
+    } else if (
+      isExistingThumbnailCleared ||
+      (rowData?.thumbnail_url && !thumbVal)
+    ) {
+      fd.append('remove_thumbnail', 'true')
+      fd.append('workout[remove_thumbnail]', 'true')
+      fd.append('workout[thumbnail]', '')
     }
 
     if (videoDurationMs !== null && details?.video_source === 'file') {
