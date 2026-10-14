@@ -129,7 +129,8 @@ export default function DetailsInfo({
 
   const canEdit =
     !isDeactivated && typeof onEdit === 'function' && Boolean(user?.id)
-  const isFlatRole = isPhysiotherapist || isYogist || isSales || isMarketing
+  const isFlatRole =
+    isPhysiotherapist || isYogist || isSales || isMarketing || isNutritionist
   return (
     <>
       {loading && (
