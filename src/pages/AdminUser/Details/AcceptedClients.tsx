@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import moment from 'moment'
 import Icons from '../../../components/common/icons'
 import SmartTable from '../../../components/common/table/SmartTable'
@@ -41,6 +41,8 @@ const getStatusBadgeClass = (status?: string) => {
 
 export default function AcceptedClients({ user }: { user: any }) {
   const navigate = useNavigate()
+  const location = useLocation()
+  const pathBase = location.pathname.split('/').slice(0, 3).join('/')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [search, setSearch] = useState('')
@@ -61,7 +63,7 @@ export default function AcceptedClients({ user }: { user: any }) {
     const userId = row?.user_id ?? row?.user?.id ?? row?.id
     if (!userId) return
     navigate(`/users/${userId}/details`, {
-      state: { from: `/users/${user?.id}/accepted-clients` },
+      state: { from: `${pathBase}/${user?.id}/accepted-clients` },
     })
   }
 
