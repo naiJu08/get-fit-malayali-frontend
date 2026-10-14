@@ -150,16 +150,16 @@ export default function AdminUser() {
   const [loader, setloader] = useState(false)
   const [statusFilter, setStatusFilter] = useState<StatusFilterValue>('all')
   const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false)
-  const [activePlanWarningOpen, setActivePlanWarningOpen] = useState(false)
+  const [deactivateConfirm, setDeactivateConfirm] = useState<{
+    id: string
+    username: string
+    status: string
+    hasActivePlan?: boolean
+  } | null>(null)
   const [assignSalesModalUser, setAssignSalesModalUser] = useState<any>(null)
   const [staffAssignmentsModalData, setStaffAssignmentsModalData] = useState<{
     user: any
     actionType: 'deactivate' | 'delete'
-  } | null>(null)
-  const [pendingStatusChange, setPendingStatusChange] = useState<{
-    id: string
-    username: string
-    status: string
   } | null>(null)
 
   const params = useParams()
@@ -568,28 +568,7 @@ export default function AdminUser() {
       }
     }
 
-    if (normalizedStatus === 'active' && hasActivePlan) {
-      setPendingStatusChange({ id, username, status })
-      setActivePlanWarningOpen(true)
-      return
-    }
-    handleDeleteAdmin({ id, status })
-  }
-
-  const confirmActivePlanWarning = () => {
-    if (pendingStatusChange) {
-      handleDeleteAdmin({
-        id: pendingStatusChange.id,
-        status: pendingStatusChange.status,
-      })
-    }
-    setActivePlanWarningOpen(false)
-    setPendingStatusChange(null)
-  }
-
-  const cancelActivePlanWarning = () => {
-    setActivePlanWarningOpen(false)
-    setPendingStatusChange(null)
+    setDeactivateConfirm({ id, username, status, hasActivePlan })
   }
 
   const handleSendInvitation = () => {
@@ -1028,7 +1007,13 @@ export default function AdminUser() {
                         rowData?.id,
                         rowData?.email,
                         rowData?.status,
-                        !!rowData?.subscribed_plan,
+                        Boolean(
+                          rowData?.subscribed_plan ||
+                            rowData?.has_subscription ||
+                            rowData?.active_subscription ||
+                            (Array.isArray(rowData?.subscriptions) &&
+                              rowData.subscriptions.length > 0)
+                        ),
                         rowData
                       ),
                     icon: <Icons name="deactivate-icon" />,
@@ -1037,18 +1022,24 @@ export default function AdminUser() {
                       isClientDeactivated(rowData) ||
                       String(rowData?.status).toLowerCase() !== 'active',
                     variant: 'danger',
-                    hide: () => {
-                      if (activeRole === 'user') {
-                        return ![
-                          'superadmin',
-                          'admin',
-                          'nutritionist',
-                        ].includes(loginRole || '')
-                      }
-                      return (
-                        isYogist ||
-                        ['physiotherapist', 'physio'].includes(loginRole || '')
-                      )
+                    hide: (rowData: any) => {
+                      const canManage =
+                        activeRole === 'user'
+                          ? ['superadmin', 'admin', 'nutritionist'].includes(
+                              loginRole || ''
+                            )
+                          : !isYogist &&
+                            !['physiotherapist', 'physio'].includes(
+                              loginRole || ''
+                            )
+                      if (!canManage) return true
+
+                      const isDeactivated =
+                        activeRole === 'user'
+                          ? isClientDeactivated(rowData)
+                          : String(rowData?.status || '').toLowerCase() !==
+                            'active'
+                      return isDeactivated
                     },
                   },
                   {
@@ -1058,29 +1049,41 @@ export default function AdminUser() {
                         rowData?.id,
                         rowData?.email,
                         rowData?.status,
-                        !!rowData?.subscribed_plan,
+                        Boolean(
+                          rowData?.subscribed_plan ||
+                            rowData?.has_subscription ||
+                            rowData?.active_subscription ||
+                            (Array.isArray(rowData?.subscriptions) &&
+                              rowData.subscriptions.length > 0)
+                        ),
                         rowData
                       ),
                     icon: <Icons name="activate-icon" />,
                     toolTip: 'Activate',
                     disabled: (rowData: any) => {
                       const isDeactivated =
-                        !isClientDeactivated(rowData) ||
-                        ['deactivated', 'inactive'].includes(
-                          String(rowData?.status || '').toLowerCase()
-                        )
+                        activeRole === 'user'
+                          ? isClientDeactivated(rowData)
+                          : String(rowData?.status || '').toLowerCase() !==
+                            'active'
                       return !isDeactivated
                     },
                     variant: 'success',
-                    hide: () => {
-                      if (activeRole === 'user') {
-                        return ![
-                          'superadmin',
-                          'admin',
-                          'nutritionist',
-                        ].includes(loginRole || '')
-                      }
-                      return !['superadmin', 'admin'].includes(loginRole || '')
+                    hide: (rowData: any) => {
+                      const canManage =
+                        activeRole === 'user'
+                          ? ['superadmin', 'admin', 'nutritionist'].includes(
+                              loginRole || ''
+                            )
+                          : ['superadmin', 'admin'].includes(loginRole || '')
+                      if (!canManage) return true
+
+                      const isDeactivated =
+                        activeRole === 'user'
+                          ? isClientDeactivated(rowData)
+                          : String(rowData?.status || '').toLowerCase() !==
+                            'active'
+                      return !isDeactivated
                     },
                   },
                   ...(activeRole === 'user' &&
@@ -1155,13 +1158,30 @@ export default function AdminUser() {
           />
 
           <ConfirmDeleteModal
-            isOpen={activePlanWarningOpen}
-            onClose={cancelActivePlanWarning}
-            onConfirm={confirmActivePlanWarning}
+            isOpen={Boolean(deactivateConfirm)}
+            onClose={() => setDeactivateConfirm(null)}
+            onConfirm={() => {
+              if (deactivateConfirm) {
+                handleDeleteAdmin({
+                  id: deactivateConfirm.id,
+                  status: deactivateConfirm.status,
+                })
+                setDeactivateConfirm(null)
+              }
+            }}
             title="Deactivate this user?"
-            subTitle="This user currently has an active plan. Are you sure you want to continue with deactivation?"
-            confirmLabel="Yes, Continue"
+            subTitle={
+              deactivateConfirm?.hasActivePlan
+                ? 'This user currently has an active plan. Are you sure you want to continue with deactivation?'
+                : 'Are you sure you want to deactivate this user?'
+            }
+            confirmLabel={
+              deactivateConfirm?.hasActivePlan
+                ? 'Yes, Continue'
+                : 'Yes, Deactivate'
+            }
             cancelLabel="No"
+            variant="danger"
           />
           <ConfirmDeleteModal
             isOpen={Boolean(activateConfirm)}

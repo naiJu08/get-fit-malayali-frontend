@@ -330,12 +330,77 @@ export default function UserDetails() {
     ['nutritionist', 'physiotherapist', 'yogist'].includes(loginRole || '') &&
     detailRole === 'user'
   const isWorkflowViewer = !isRoleMismatch && (isServiceClient || isSuperAdmin)
-  const { data: workflowAssignment, refetch: refetchWorkflow } =
-    useAssignedClientForUser(
-      isWorkflowViewer ? user?.id : undefined,
-      isWorkflowViewer ? (isSuperAdmin ? 'superadmin' : loginRole) : undefined,
-      selectedCycleId || undefined
-    )
+  const currentUserId = useAuthStore((s: any) => s.userData?.id)
+  const {
+    data: cycleData,
+    isLoading: cyclesLoading,
+    refetch: refetchCycles,
+  } = useClientPackageCycles(
+    !isRoleMismatch && detailRole === 'user' ? id : undefined,
+    '/clients'
+  )
+  const allCycles = useMemo(() => cycleData?.cycles || [], [cycleData?.cycles])
+
+  const legacyAssignments = (cycleData as any)?.legacy_assignments
+  const availableCycles = useMemo(() => {
+    if (!allCycles.length) return []
+    if (isSuperAdmin || loginRole === 'admin') {
+      return allCycles
+    }
+    if (isServiceClient) {
+      const isLegacyAssigned =
+        Array.isArray(legacyAssignments) &&
+        legacyAssignments.some(
+          (a: any) =>
+            String(a.staff_user_id || a.admin_id) === String(currentUserId)
+        )
+
+      return allCycles.filter((c: any) => {
+        const inCycle =
+          Array.isArray(c.assignments) &&
+          c.assignments.some(
+            (a: any) =>
+              String(a.staff_user_id || a.admin_id) === String(currentUserId)
+          )
+        if (inCycle) return true
+
+        if (isLegacyAssigned && (c.status === 'active' || !c.subscription_id)) {
+          return true
+        }
+
+        return false
+      })
+    }
+    return allCycles
+  }, [
+    allCycles,
+    isSuperAdmin,
+    loginRole,
+    isServiceClient,
+    currentUserId,
+    legacyAssignments,
+  ])
+
+  const isCycleDetermined =
+    !cyclesLoading &&
+    (availableCycles.length === 0 ||
+      (Boolean(selectedCycleId) &&
+        availableCycles.some(
+          (c: any) => String(c.id) === String(selectedCycleId)
+        )))
+
+  const shouldFetchWorkflow =
+    !loading && Boolean(user?.id) && isWorkflowViewer && isCycleDetermined
+
+  const {
+    data: workflowAssignment,
+    isLoading: isWorkflowLoading,
+    refetch: refetchWorkflow,
+  } = useAssignedClientForUser(
+    shouldFetchWorkflow ? user?.id : undefined,
+    shouldFetchWorkflow ? (isSuperAdmin ? 'superadmin' : loginRole) : undefined,
+    selectedCycleId || undefined
+  )
   const { enqueueSnackbar } = useSnackbarManager()
   const queryClient = useQueryClient()
   const [acceptingClient, setAcceptingClient] = useState(false)
@@ -346,7 +411,7 @@ export default function UserDetails() {
     useState(false)
 
   const isClientDeactivated = useMemo(() => {
-    if (detailRole !== 'user') return false
+    if (loading || !user?.id || detailRole !== 'user') return false
     const statusStr = String(user?.status || '')
       .toLowerCase()
       .trim()
@@ -355,21 +420,69 @@ export default function UserDetails() {
       statusStr === 'inactive' ||
       (statusStr !== '' && statusStr !== 'active')
     )
-  }, [detailRole, user?.status])
+  }, [loading, user?.id, detailRole, user?.status])
 
-  const isPendingAcceptance = Boolean(
-    !isClientDeactivated &&
-      isServiceClient &&
-      !isSuperAdmin &&
-      workflowAssignment?.id &&
-      (workflowAssignment.workflow_status === 'pending' ||
+  const isPendingAcceptance = useMemo(() => {
+    if (
+      loading ||
+      cyclesLoading ||
+      !isCycleDetermined ||
+      isWorkflowLoading ||
+      !user?.id ||
+      isClientDeactivated ||
+      !isServiceClient ||
+      isSuperAdmin ||
+      !workflowAssignment?.id
+    ) {
+      return false
+    }
+
+    const assignmentUserId =
+      workflowAssignment?.user_id ||
+      workflowAssignment?.client?.id ||
+      workflowAssignment?.client_id
+    if (assignmentUserId && String(assignmentUserId) !== String(user.id)) {
+      return false
+    }
+
+    if (availableCycles.length > 0 && selectedCycleId) {
+      const assignmentCycleId =
+        workflowAssignment?.cycle_id ||
+        workflowAssignment?.client_package_cycle_id
+      if (
+        assignmentCycleId &&
+        String(assignmentCycleId) !== String(selectedCycleId)
+      ) {
+        return false
+      }
+    }
+
+    return Boolean(
+      workflowAssignment.workflow_status === 'pending' ||
         workflowAssignment.status === 'pending' ||
-        !workflowAssignment.accepted_at)
-  )
+        !workflowAssignment.accepted_at
+    )
+  }, [
+    loading,
+    cyclesLoading,
+    isCycleDetermined,
+    isWorkflowLoading,
+    user?.id,
+    isClientDeactivated,
+    isServiceClient,
+    isSuperAdmin,
+    workflowAssignment,
+    availableCycles.length,
+    selectedCycleId,
+  ])
 
+  const prevUserIdRef = useRef<string | number | undefined>(undefined)
   useEffect(() => {
-    setDismissedAcceptModal(false)
-    setDismissedDeactivatedModal(false)
+    if (user?.id && prevUserIdRef.current !== user.id) {
+      prevUserIdRef.current = user.id
+      setDismissedAcceptModal(false)
+      setDismissedDeactivatedModal(false)
+    }
   }, [user?.id])
 
   useEffect(() => {
@@ -458,55 +571,6 @@ export default function UserDetails() {
       setActivatingClient(false)
     }
   }
-
-  const currentUserId = useAuthStore((s: any) => s.userData?.id)
-  const {
-    data: cycleData,
-    isLoading: cyclesLoading,
-    refetch: refetchCycles,
-  } = useClientPackageCycles(
-    !isRoleMismatch && detailRole === 'user' ? id : undefined,
-    '/clients'
-  )
-  const allCycles = useMemo(() => cycleData?.cycles || [], [cycleData?.cycles])
-
-  const availableCycles = useMemo(() => {
-    if (!allCycles.length) return []
-    if (isSuperAdmin || loginRole === 'admin') {
-      return allCycles
-    }
-    if (isServiceClient) {
-      const legacyAssignments = (cycleData as any)?.legacy_assignments || []
-      const isLegacyAssigned = legacyAssignments.some(
-        (a: any) =>
-          String(a.staff_user_id || a.admin_id) === String(currentUserId)
-      )
-
-      return allCycles.filter((c: any) => {
-        const inCycle =
-          Array.isArray(c.assignments) &&
-          c.assignments.some(
-            (a: any) =>
-              String(a.staff_user_id || a.admin_id) === String(currentUserId)
-          )
-        if (inCycle) return true
-
-        if (isLegacyAssigned && (c.status === 'active' || !c.subscription_id)) {
-          return true
-        }
-
-        return false
-      })
-    }
-    return allCycles
-  }, [
-    allCycles,
-    isSuperAdmin,
-    loginRole,
-    isServiceClient,
-    currentUserId,
-    (cycleData as any)?.legacy_assignments,
-  ])
 
   const [headerPeriodDropdownOpen, setHeaderPeriodDropdownOpen] =
     useState(false)
@@ -792,8 +856,21 @@ export default function UserDetails() {
       navigate(`${pathBase}/${id}/details`, { replace: true })
     } else if (location.pathname === `${pathBase}/${id}/clients`) {
       navigate(`${pathBase}/${id}/accepted-clients`, { replace: true })
+    } else if (
+      isNutritionist &&
+      (location.pathname === `${pathBase}/${id}/assignments-history` ||
+        location.pathname === `${pathBase}/${id}/diet-history`)
+    ) {
+      navigate(`${pathBase}/${id}/details`, { replace: true })
     }
-  }, [location.pathname, id, navigate, pathBase, isRoleMismatch])
+  }, [
+    location.pathname,
+    id,
+    navigate,
+    pathBase,
+    isRoleMismatch,
+    isNutritionist,
+  ])
 
   const hasSubscription = Boolean(
     user?.has_subscription ||
@@ -838,7 +915,6 @@ export default function UserDetails() {
           { id: 'details', label: 'Details' },
           { id: 'accepted-clients', label: 'Accepted Clients' },
           { id: 'assigned-clients', label: 'Assigned Clients' },
-          { id: 'assignments-history', label: 'Assignments history' },
         ]
       }
       if (isMarketing) {
@@ -1867,8 +1943,7 @@ export default function UserDetails() {
             )}
 
             {/* Assignments History (Superadmin, Nutritionist, Physio, Yogist) */}
-            {(canAccessAssignmentsHistory ||
-              (isNutritionist && detailRole !== 'user')) && (
+            {detailRole === 'user' && canAccessAssignmentsHistory && (
               <Tab id="assignments-history">
                 <AssignmentsHistory
                   subscriptionId={activeSubscriptionId}
