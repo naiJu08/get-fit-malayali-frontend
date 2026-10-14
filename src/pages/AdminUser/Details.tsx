@@ -1034,10 +1034,11 @@ export default function UserDetails() {
                         'physio',
                         'yogist',
                         'yoga',
-                        'superadmin',
                       ].includes(loginRole || '')
                     ) {
                       navigate('/users?tab=clients')
+                    } else if (isSuperAdmin) {
+                      navigate(pathBase)
                     } else if (
                       typeof window !== 'undefined' &&
                       window.history?.state?.idx > 0

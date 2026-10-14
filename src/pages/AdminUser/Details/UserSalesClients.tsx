@@ -48,7 +48,9 @@ export default function UserSalesClients({ user }: { user: any }) {
                   })
                 }
               >
-                {row.name || 'Client #' + row.id}
+                {row.name
+                  ? row.name.charAt(0).toUpperCase() + row.name.slice(1)
+                  : 'Client #' + row.id}
               </button>
               <div className="text-xs text-secondary">{row.email || '--'}</div>
             </div>

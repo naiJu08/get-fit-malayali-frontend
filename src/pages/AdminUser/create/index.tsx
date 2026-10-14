@@ -699,18 +699,6 @@ export default function CreateAdmin({
   useEffect(() => {
     if (isDrawerOpen) {
       if (!viewMode && edit) {
-        const mapGenderToLabel = (v: any) => {
-          if (v === null || v === undefined) return ''
-          if (v === 0 || v === '0') return 'Male'
-          if (v === 1 || v === '1') return 'Female'
-          if (v === 2 || v === '2') return 'Other'
-          const s = String(v).trim().toLowerCase()
-          if (s === 'm' || s === 'male') return 'Male'
-          if (s === 'f' || s === 'female') return 'Female'
-          if (s === 'o' || s === 'other') return 'Other'
-          return ''
-        }
-
         methods.reset({
           name:
             rowData?.user?.first_name && rowData?.user?.last_name
@@ -726,9 +714,20 @@ export default function CreateAdmin({
             if (typeof r === 'string') return r
             return ''
           })(),
-          gender:
-            mapGenderToLabel(rowData?.user?.gender) ||
-            (rowData?.user?.gender ?? ''),
+          gender: (() => {
+            const g = rowData?.user?.gender
+            if (g === null || g === undefined || g === '') return ''
+            const id = String(g)
+            if (id === '0') return 'Male'
+            if (id === '1') return 'Female'
+            if (id === '2') return 'Other'
+            const lower = id.trim().toLowerCase()
+            if (lower === 'male' || lower === 'm') return 'Male'
+            if (lower === 'female' || lower === 'f') return 'Female'
+            if (lower === 'other' || lower === 'others' || lower === 'o')
+              return 'Other'
+            return ''
+          })(),
           date_of_birth: rowData?.user?.date_of_birth ?? '',
           height: isNutritionistTab
             ? (rowData?.user?.height ?? undefined)
