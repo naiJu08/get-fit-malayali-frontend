@@ -352,6 +352,7 @@ export default function StaffAssignmentsModal({
 
   const [salesStage, setSalesStage] = useState<'clients' | 'leads'>('clients')
   const [loading, setLoading] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [assignments, setAssignments] = useState<any[]>([])
   const [availableStaff, setAvailableStaff] = useState<StaffMember[]>([])
@@ -385,6 +386,9 @@ export default function StaffAssignmentsModal({
   )
 
   const sentinelRef = useRef<HTMLDivElement | null>(null)
+  const searchInputRef = useRef<HTMLInputElement | null>(null)
+  const latestRequestIdRef = useRef<number>(0)
+  const isFirstSearchRef = useRef<boolean>(true)
 
   // Debounce search term
   useEffect(() => {
@@ -396,9 +400,20 @@ export default function StaffAssignmentsModal({
 
   // Fetch initial or refreshed page 1
   const fetchPage1 = useCallback(
-    async (searchQuery = '', stageToFetch?: 'clients' | 'leads') => {
+    async (
+      searchQuery = '',
+      stageToFetch?: 'clients' | 'leads',
+      isSearchQuery = false
+    ) => {
       if (!staffUser?.id) return
-      setLoading(true)
+      const requestId = ++latestRequestIdRef.current
+
+      if (isSearchQuery) {
+        setIsSearching(true)
+      } else {
+        setLoading(true)
+      }
+
       const currentStage = stageToFetch || salesStage
       try {
         const res: any = await getStaffActiveAssignments(staffUser.id, {
@@ -407,6 +422,9 @@ export default function StaffAssignmentsModal({
           search: searchQuery.trim(),
           stage: isSales ? currentStage : undefined,
         })
+
+        // Ignore stale responses if a newer request was issued
+        if (requestId !== latestRequestIdRef.current) return
 
         const items = res?.assignments || []
         setAssignments(items)
@@ -437,14 +455,22 @@ export default function StaffAssignmentsModal({
         setHasMore(totalPages > 1)
         setSelectedIds([])
       } catch (err: any) {
-        enqueueSnackbar(
-          getErrorMessage(err) || 'Failed to fetch staff assignments',
-          {
-            variant: 'error',
-          }
-        )
+        if (requestId === latestRequestIdRef.current) {
+          enqueueSnackbar(
+            getErrorMessage(err) || 'Failed to fetch staff assignments',
+            {
+              variant: 'error',
+            }
+          )
+        }
       } finally {
-        setLoading(false)
+        if (requestId === latestRequestIdRef.current) {
+          if (isSearchQuery) {
+            setIsSearching(false)
+          } else {
+            setLoading(false)
+          }
+        }
       }
     },
     [staffUser?.id, salesStage, isSales, enqueueSnackbar]
@@ -452,7 +478,8 @@ export default function StaffAssignmentsModal({
 
   // Fetch next page for infinite scroll
   const fetchNextPage = async () => {
-    if (!staffUser?.id || loading || loadingMore || !hasMore) return
+    if (!staffUser?.id || loading || isSearching || loadingMore || !hasMore)
+      return
     setLoadingMore(true)
     const nextPage = page + 1
     try {
@@ -491,6 +518,7 @@ export default function StaffAssignmentsModal({
   // Effect on modal open
   useEffect(() => {
     if (isOpen && staffUser?.id) {
+      isFirstSearchRef.current = true
       setSalesStage('clients')
       setAssignments([])
       setAvailableStaff([])
@@ -504,15 +532,19 @@ export default function StaffAssignmentsModal({
       setSearchTerm('')
       setDebouncedSearch('')
       setReassignState({})
-      fetchPage1('', 'clients')
+      fetchPage1('', 'clients', false)
     }
   }, [isOpen, staffUser?.id])
 
   // Effect when debounced search query changes
   useEffect(() => {
-    if (isOpen && staffUser?.id) {
-      fetchPage1(debouncedSearch, salesStage)
+    if (!isOpen || !staffUser?.id) return
+    // Skip on initial modal open when debouncedSearch is empty
+    if (isFirstSearchRef.current) {
+      isFirstSearchRef.current = false
+      if (debouncedSearch === '') return
     }
+    fetchPage1(debouncedSearch, salesStage, true)
   }, [debouncedSearch])
 
   // Switch Sales Stage (Clients vs Leads)
@@ -525,7 +557,7 @@ export default function StaffAssignmentsModal({
     setSearchTerm('')
     setDebouncedSearch('')
     setReassignState({})
-    fetchPage1('', stage)
+    fetchPage1('', stage, false)
   }
 
   // Intersection Observer for Infinite Scrolling
@@ -533,7 +565,13 @@ export default function StaffAssignmentsModal({
     if (!sentinelRef.current) return
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !loading &&
+          !isSearching &&
+          !loadingMore
+        ) {
           fetchNextPage()
         }
       },
@@ -542,7 +580,22 @@ export default function StaffAssignmentsModal({
 
     observer.observe(sentinelRef.current)
     return () => observer.disconnect()
-  }, [hasMore, loading, loadingMore, page, debouncedSearch, salesStage])
+  }, [
+    hasMore,
+    loading,
+    isSearching,
+    loadingMore,
+    page,
+    debouncedSearch,
+    salesStage,
+  ])
+
+  // Clear individual reassignments when bulk replacement is selected
+  useEffect(() => {
+    if (bulkStaffId) {
+      setReassignState({})
+    }
+  }, [bulkStaffId])
 
   if (!isOpen || !staffUser) return null
 
@@ -649,11 +702,18 @@ export default function StaffAssignmentsModal({
         setTotalCount(newRemainingCount)
       }
 
+      const singleFollowUpsCount = (assignment.upcoming_follow_ups || []).length
+      const newCommitments =
+        typeof res?.total_commitments === 'number'
+          ? res.total_commitments
+          : Math.max(0, totalCommitments - singleFollowUpsCount)
+      setTotalCommitments(newCommitments)
+
       setAssignments((prev) => prev.filter((a) => a.id !== assignment.id))
       setSelectedIds((prev) => prev.filter((id) => id !== assignment.id))
 
       if (assignments.length <= 1 && hasMore) {
-        fetchPage1(debouncedSearch, salesStage)
+        fetchPage1(debouncedSearch, salesStage, true)
       }
     } catch (err: any) {
       enqueueSnackbar(getErrorMessage(err) || 'Failed to reassign assignment', {
@@ -730,6 +790,18 @@ export default function StaffAssignmentsModal({
         setTotalCount(newRemainingCount)
       }
 
+      const reassignedFollowUpsCount = assignments
+        .filter(
+          (a) =>
+            reassignedIdsSet.has(Number(a.id)) || selectedIds.includes(a.id)
+        )
+        .reduce((acc, curr) => acc + (curr.upcoming_follow_ups?.length || 0), 0)
+      const newMultiCommitments =
+        typeof res?.total_commitments === 'number'
+          ? res.total_commitments
+          : Math.max(0, totalCommitments - reassignedFollowUpsCount)
+      setTotalCommitments(newMultiCommitments)
+
       setAssignments((prev) =>
         prev.filter(
           (a) =>
@@ -740,7 +812,7 @@ export default function StaffAssignmentsModal({
       setMultiStaffId('')
 
       if (assignments.length <= selectedIds.length && hasMore) {
-        fetchPage1(debouncedSearch, salesStage)
+        fetchPage1(debouncedSearch, salesStage, true)
       }
     } catch (err: any) {
       enqueueSnackbar(
@@ -792,8 +864,25 @@ export default function StaffAssignmentsModal({
         setClientsCount(cCount)
         setLeadsCount(lCount)
         setTotalCount(salesStage === 'leads' ? lCount : cCount)
+        const newCommitments =
+          typeof res?.total_commitments === 'number'
+            ? res.total_commitments
+            : cCount === 0 && lCount === 0
+              ? 0
+              : Math.max(
+                  0,
+                  totalCommitments -
+                    assignments.reduce(
+                      (acc, a) => acc + (a.upcoming_follow_ups?.length || 0),
+                      0
+                    )
+                )
+        setTotalCommitments(newCommitments)
       } else {
         setTotalCount(0)
+        setTotalCommitments(
+          typeof res?.total_commitments === 'number' ? res.total_commitments : 0
+        )
       }
 
       setAssignments([])
@@ -812,6 +901,9 @@ export default function StaffAssignmentsModal({
     assignmentId: string | number,
     staffId: string
   ) => {
+    if (staffId) {
+      setBulkStaffId('')
+    }
     setReassignState((prev) => ({
       ...prev,
       [assignmentId]: {
@@ -823,8 +915,21 @@ export default function StaffAssignmentsModal({
     }))
   }
 
+  const handleBulkStaffChange = (staffId: string) => {
+    setBulkStaffId(staffId)
+    setReassignState({})
+  }
+
+  const handleMultiStaffChange = (staffId: string) => {
+    setMultiStaffId(staffId)
+    if (staffId) {
+      setReassignState({})
+    }
+  }
+
   const isAllCleared =
     !loading &&
+    !isSearching &&
     (isSales ? clientsCount === 0 && leadsCount === 0 : totalCount === 0) &&
     !searchTerm
 
@@ -937,7 +1042,7 @@ export default function StaffAssignmentsModal({
                     Follow-ups
                   </div>
                   <div className="text-sm font-bold text-indigo-600">
-                    {totalCommitments}
+                    {totalCount === 0 ? 0 : totalCommitments}
                   </div>
                 </div>
               </div>
@@ -1201,7 +1306,7 @@ export default function StaffAssignmentsModal({
                           <div className="w-56">
                             <SearchableStaffSelect
                               value={multiStaffId}
-                              onChange={setMultiStaffId}
+                              onChange={handleMultiStaffChange}
                               options={availableStaff}
                               roleName={capitalizedRole}
                               placeholder="Select Replacement"
@@ -1248,7 +1353,7 @@ export default function StaffAssignmentsModal({
                           <div className="w-56">
                             <SearchableStaffSelect
                               value={bulkStaffId}
-                              onChange={setBulkStaffId}
+                              onChange={handleBulkStaffChange}
                               options={availableStaff}
                               roleName={capitalizedRole}
                               placeholder="Select Replacement"
@@ -1315,16 +1420,25 @@ export default function StaffAssignmentsModal({
                     />
                   </svg>
                   <input
+                    ref={searchInputRef}
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     placeholder={`Search ${isSales ? (salesStage === 'leads' ? 'lead name, campaign, email, phone...' : 'client name, email, phone...') : 'assigned client name, email, phone...'}`}
                     className="w-full bg-gray-50/70 border border-gray-200 rounded-xl pl-9 pr-8 py-1.5 text-xs text-gray-800 placeholder-gray-400 focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                   />
-                  {searchTerm && (
+                  {isSearching ? (
+                    <div className="absolute right-2.5 top-2.5 pointer-events-none">
+                      <div className="w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : searchTerm ? (
                     <button
                       type="button"
-                      onClick={() => setSearchTerm('')}
+                      onClick={() => {
+                        setSearchTerm('')
+                        setDebouncedSearch('')
+                        searchInputRef.current?.focus()
+                      }}
                       className="absolute right-2.5 top-2 text-gray-400 hover:text-gray-600 p-0.5"
                     >
                       <svg
@@ -1341,7 +1455,7 @@ export default function StaffAssignmentsModal({
                         />
                       </svg>
                     </button>
-                  )}
+                  ) : null}
                 </div>
 
                 {/* Progress / count badge */}
@@ -1382,14 +1496,23 @@ export default function StaffAssignmentsModal({
                   </span>
                 </div>
 
-                {assignments.length === 0 ? (
+                {isSearching && assignments.length === 0 ? (
+                  <div className="py-10 flex flex-col items-center justify-center text-gray-400 text-xs bg-gray-50 rounded-xl border border-dashed border-gray-200 space-y-2">
+                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    <span>Searching assignments...</span>
+                  </div>
+                ) : assignments.length === 0 ? (
                   <div className="py-10 text-center text-gray-400 text-xs bg-gray-50 rounded-xl border border-dashed border-gray-200">
                     {searchTerm
                       ? `No ${isSales ? (salesStage === 'leads' ? 'leads' : 'clients') : 'clients'} found matching "${searchTerm}"`
                       : `No ${isSales ? (salesStage === 'leads' ? 'active marketing leads' : 'active clients') : 'active assignments'} found`}
                   </div>
                 ) : (
-                  <div className="space-y-2.5">
+                  <div
+                    className={`space-y-2.5 transition-opacity duration-200 ${
+                      isSearching ? 'opacity-60' : ''
+                    }`}
+                  >
                     {assignments.map((assignment: any) => {
                       const rowState = reassignState[assignment.id] || {
                         staffId: '',
@@ -1472,7 +1595,7 @@ export default function StaffAssignmentsModal({
                                       <span className="text-gray-400 text-[11px]">
                                         Created:{' '}
                                         {moment(assignment.start_date).format(
-                                          'DD MMM YYYY, hh:mm A'
+                                          'DD-MM-YYYY, hh:mm A'
                                         )}
                                       </span>
                                     )}
@@ -1487,11 +1610,11 @@ export default function StaffAssignmentsModal({
                                         <span className="text-gray-500 text-[11px]">
                                           (
                                           {moment(assignment.start_date).format(
-                                            'DD MMM YYYY'
+                                            'DD-MM-YYYY'
                                           )}{' '}
                                           –{' '}
                                           {moment(assignment.end_date).format(
-                                            'DD MMM YYYY'
+                                            'DD-MM-YYYY'
                                           )}
                                           )
                                         </span>
@@ -1538,7 +1661,7 @@ export default function StaffAssignmentsModal({
                                   <div className="text-[11px] text-indigo-700 mt-0.5">
                                     Next:{' '}
                                     {moment(followUps[0].scheduled_at).format(
-                                      'DD MMM, hh:mm A'
+                                      'DD-MM-YYYY, hh:mm A'
                                     )}
                                   </div>
                                 </div>
@@ -1559,7 +1682,7 @@ export default function StaffAssignmentsModal({
                               >
                                 <div className="w-48">
                                   <SearchableStaffSelect
-                                    value={rowState.staffId}
+                                    value={bulkStaffId ? '' : rowState.staffId}
                                     onChange={(val) =>
                                       handleSetRowStaff(assignment.id, val)
                                     }
