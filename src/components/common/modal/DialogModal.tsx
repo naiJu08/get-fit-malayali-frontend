@@ -11,6 +11,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
   isCloseIcon = true,
   onSubmit,
   actionLabel,
+  actionDisabled = false,
   disabled = false,
   actionLoader,
   title,
@@ -89,7 +90,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
   return (
     <>
       <div
-        className={`justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none overscroll-none ${
+        className={`justify-center items-center flex overflow-x-hidden overflow-y-auto fixed inset-0 z-[1400] outline-none focus:outline-none overscroll-none ${
           !showModal ? 'hidden' : ''
         } `}
         onClick={() => handleOutsideCancel('outside')}
@@ -101,6 +102,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
               ? 'w-[400px] max-w-full'
               : 'modal-small md:w-11/12 lg:w-9/12 xl:w-7/12 2xl:w-6/12'
           }  ${className}`}
+          onClick={(event) => event.stopPropagation()}
         >
           <div
             className={`
@@ -114,16 +116,15 @@ const DialogModal: React.FC<DialogModalProps> = ({
             <div
               className="
               translate
-              h-full
-              lg:h-auto
-              md:h-auto
+              max-h-[97vh]
               shadow-popupShadow
-               rounded-xl
+              overflow-y-auto
+              rounded-xl
               relative
               flex
               flex-col
               w-full
-               bg-white
+              bg-white
               focus:outline-none
             "
             >
@@ -142,7 +143,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
                   />
                 </button>
               )}
-              <div className={`p-0 text-left`}>
+              <div className="p-0 text-left flex flex-col h-full">
                 <div
                   className={`flex flex-col gap-0.5 p-5  ${!headborder ? '' : 'border-b border-formBorder'}  `}
                 >
@@ -162,25 +163,20 @@ const DialogModal: React.FC<DialogModalProps> = ({
                     </span>
                   )}
                 </div>
-                <div className={`flex flex-col  ${small ? 'px-5' : 'p-0'}`}>
+                <div
+                  className={`flex-1 overflow-y-auto ${
+                    small ? 'px-5' : 'px-6'
+                  } py-4`}
+                >
                   {body}
                 </div>
                 {actionBody && (
-                  <div className="flex flex-col p-5">{actionBody}</div>
+                  <div className="flex flex-col px-5 pb-5">{actionBody}</div>
                 )}
 
                 {(actionLabel || secondaryActionLabel) && !actionBody && (
-                  <div className="flex flex-col p-5">
-                    <div
-                      className="
-                    flex
-                    flex-row
-                    items-end
-                    gap-2
-                    w-full
-                    justify-end
-                  "
-                    >
+                  <div className="flex flex-col p-5 border-t border-formBorder">
+                    <div className="flex flex-row gap-2 w-full justify-end">
                       {secondaryAction && secondaryActionLabel && (
                         <Button
                           disabled={disabled}
@@ -192,7 +188,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
 
                       {actionLabel && (
                         <Button
-                          disabled={disabled}
+                          disabled={disabled || actionDisabled}
                           isLoading={actionLoader}
                           label={actionLabel}
                           onClick={handleSubmit}
@@ -208,7 +204,7 @@ const DialogModal: React.FC<DialogModalProps> = ({
         </div>
       </div>
       {showModal && !fromModal && (
-        <div className="opacity-50 fixed inset-0 z-40 bg-black dark:bg-bgWhite"></div>
+        <div className="opacity-50 fixed inset-0 z-[1390] bg-black dark:bg-bgWhite"></div>
       )}
     </>
   )

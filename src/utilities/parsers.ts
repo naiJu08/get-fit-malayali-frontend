@@ -1,16 +1,16 @@
 import { useMemo } from 'react'
 
-export const parseQueryParams = (params = {}) => {
-  const length = Object.entries(params).length
-  if (!Object.entries(params).length) return ''
-  return Object.entries(params).reduce(
-    (acc, [key, value], i) =>
-      acc +
-      (value && value !== ''
-        ? `${key}=${value}${i !== length - 1 ? '&' : ''}`
-        : ''),
-    '?'
+export const parseQueryParams = (params: Record<string, any> = {}) => {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== '' && v !== undefined && v !== null
   )
+  if (!entries.length) return ''
+  const qs = entries
+    .map(
+      ([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`
+    )
+    .join('&')
+  return `?${qs}`
 }
 
 export const parseExpQueryParams = (params = {}) => {
@@ -29,31 +29,134 @@ export const formatFormErrors = (params = {}) => {
   )
 }
 export const getErrorMessage = (error: any): string => {
+  if (!error) {
+    return 'An unexpected error occurred'
+  }
   if (typeof error === 'string') {
+    if (error.startsWith('Request failed with status code')) {
+      return 'An error occurred while processing your request'
+    }
     return error
   }
-  if (error[0].ctx.error) {
-    if (Array.isArray(error[0].ctx.error)) {
-      return error[0].ctx.error.join(', ')
+
+  if (error?.response?.data) {
+    const dataMsg = getErrorMessage(error.response.data)
+    if (
+      dataMsg &&
+      dataMsg !== 'An unexpected error occurred' &&
+      !dataMsg.startsWith('Request failed with status code')
+    ) {
+      return dataMsg
     }
-    return error[0].ctx.error
-  } else if (error[0].msg) {
-    if (Array.isArray(error[0].msg)) {
-      return error[0].msg.join(', ')
-    }
-    return error[0].msg
   }
+
+  // Some APIs return an array of validation errors
+  if (Array.isArray(error) && error.length > 0) {
+    const first = error[0]
+    if (typeof first === 'string') {
+      return error.join(', ')
+    }
+    if (first?.ctx?.error) {
+      if (Array.isArray(first.ctx.error)) {
+        return first.ctx.error.join(', ')
+      }
+      return String(first.ctx.error)
+    }
+    if (first?.msg) {
+      if (Array.isArray(first.msg)) {
+        return first.msg.join(', ')
+      }
+      return String(first.msg)
+    }
+    if (first?.message) {
+      return error
+        .map((e: any) =>
+          typeof e?.message === 'string' ? e.message : String(e)
+        )
+        .join(', ')
+    }
+    // Fall back to stringifying the array elements
+    return error
+      .map((e: any) => (typeof e === 'string' ? e : getErrorMessage(e)))
+      .filter((v: any) => v && v !== 'An unexpected error occurred')
+      .join(', ')
+  }
+
   if (error && typeof error === 'object') {
-    if (Array.isArray(error)) {
-      return String(error)
+    if (error.errors) {
+      if (typeof error.errors === 'string') {
+        return error.errors
+      }
+      if (Array.isArray(error.errors)) {
+        return getErrorMessage(error.errors)
+      }
+      if (typeof error.errors === 'object') {
+        const entries = Object.entries(error.errors)
+        const messages = entries
+          .map(([key, val]) => {
+            const valStr = Array.isArray(val)
+              ? val.join(', ')
+              : typeof val === 'object'
+                ? getErrorMessage(val)
+                : String(val)
+            if (!valStr || valStr === 'An unexpected error occurred') return ''
+            if (
+              valStr.toLowerCase().startsWith(key.toLowerCase()) ||
+              key === 'base' ||
+              key === 'detail'
+            ) {
+              return valStr.charAt(0).toUpperCase() + valStr.slice(1)
+            }
+            const keyFormatted = key.replace(/_/g, ' ')
+            const formattedKey =
+              keyFormatted.charAt(0).toUpperCase() + keyFormatted.slice(1)
+            return `${formattedKey} ${valStr}`
+          })
+          .filter(Boolean)
+        if (messages.length) return messages.join(', ')
+      }
+      return getErrorMessage(error.errors)
+    }
+    if (error.detail) {
+      if (typeof error.detail === 'string') return error.detail
+      return getErrorMessage(error.detail)
     }
     if (error.message) {
       if (Array.isArray(error.message)) {
         return error.message.join(', ')
       }
-      return error.message
+      if (
+        typeof error.message === 'string' &&
+        !error.message.startsWith('Request failed with status code')
+      ) {
+        return error.message
+      }
     }
-    // console.log('error.msg',error?.0?.msg)
+    if (error.error) {
+      if (typeof error.error === 'string') {
+        return error.error
+      }
+      return getErrorMessage(error.error)
+    }
+
+    const objValues = Object.values(error)
+      .flatMap((v: any) => (Array.isArray(v) ? v : [v]))
+      .map((v: any) => (typeof v === 'string' ? v : ''))
+      .filter(
+        (v: any) =>
+          v &&
+          v.length > 0 &&
+          v.length < 300 &&
+          !v.startsWith('Request failed with status code')
+      )
+    if (objValues.length) return objValues.join(', ')
+  }
+
+  if (
+    typeof error?.message === 'string' &&
+    !error.message.startsWith('Request failed with status code')
+  ) {
+    return error.message
   }
 
   return 'An unexpected error occurred'
