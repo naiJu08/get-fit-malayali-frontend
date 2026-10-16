@@ -1567,7 +1567,11 @@ export default function SubscriptionUserSubscriptionsTab({
                 <div>
                   <div className="border rounded p-3 bg-white">
                     <div className="text-sm font-semibold mb-2">Yoga Plan</div>
-                    {dayDetail?.yoga_plan ? (
+                    {dayDetail?.yoga_plan ||
+                    (Array.isArray(dayDetail?.user_specific_yogas) &&
+                      dayDetail.user_specific_yogas.length > 0) ||
+                    (Array.isArray(dayDetail?.yoga_exercises) &&
+                      dayDetail.yoga_exercises.length > 0) ? (
                       <div className="flex flex-col gap-2 text-xs">
                         <div className="mb-1">
                           <div className="font-medium">
@@ -1579,11 +1583,20 @@ export default function SubscriptionUserSubscriptionsTab({
                             </div>
                           )}
                         </div>
-                        {Array.isArray(dayDetail?.yoga_plan?.exercises) &&
-                        dayDetail.yoga_plan.exercises.length > 0 ? (
-                          <div className="flex flex-col gap-2">
-                            {dayDetail.yoga_plan.exercises.map(
-                              (ex: any, idx: number) => {
+                        {(() => {
+                          const yexList: any[] = Array.isArray(
+                            dayDetail?.yoga_plan?.exercises
+                          )
+                            ? dayDetail.yoga_plan.exercises
+                            : Array.isArray(dayDetail?.user_specific_yogas)
+                              ? dayDetail.user_specific_yogas
+                              : Array.isArray(dayDetail?.yoga_exercises)
+                                ? dayDetail.yoga_exercises
+                                : []
+
+                          return yexList.length > 0 ? (
+                            <div className="flex flex-col gap-2">
+                              {yexList.map((ex: any, idx: number) => {
                                 const action = ex?.actions
                                 const yogaStatus = String(
                                   action?.status || ''
@@ -1706,14 +1719,14 @@ export default function SubscriptionUserSubscriptionsTab({
                                     </div>
                                   </div>
                                 )
-                              }
-                            )}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-gray-500">
-                            No yoga exercises.
-                          </div>
-                        )}
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-500">
+                              No yoga exercises.
+                            </div>
+                          )
+                        })()}
                       </div>
                     ) : (
                       <div className="text-xs text-gray-500">No yoga plan.</div>
