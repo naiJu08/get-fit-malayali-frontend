@@ -273,6 +273,15 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
   return (
     <>
+      {!isActionablePackage && (
+        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50/90 px-3 py-2 text-[11px] text-amber-900 flex items-center gap-2 shadow-2xs">
+          <span className="shrink-0">⚠️</span>
+          <span>
+            Client is deactivated or package is inactive. Plan modifications and
+            template updates are restricted.
+          </span>
+        </div>
+      )}
       <div className="allow-tab-overflow">
         <TabContainer
           data={tabsData}
@@ -336,12 +345,26 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                 dayDetail.diet_plans.length > 0 ? (
                   <div className=" mt-3">
                     {dayDetail.diet_plans.map((d: any) => {
+                      const isPastDate = moment(
+                        dayDetail?.date || selectedDayDate
+                      ).isBefore(moment(), 'day')
                       const totalItems = d?.items?.length || 0
                       const completedItems =
                         d?.item_statuses?.completed_item_ids?.length || 0
-                      const missedItems =
+                      const explicitMissedCount = Array.isArray(d?.items)
+                        ? d.items.filter(
+                            (it: any) =>
+                              String(
+                                it?.actions?.status || ''
+                              ).toLowerCase() === 'missed'
+                          ).length
+                        : 0
+                      const rawMissed =
                         d?.item_statuses?.not_taken_mandatory_item_ids
                           ?.length || 0
+                      const missedItems = isPastDate
+                        ? rawMissed
+                        : explicitMissedCount
 
                       const progress =
                         totalItems > 0 ? (completedItems / totalItems) * 100 : 0

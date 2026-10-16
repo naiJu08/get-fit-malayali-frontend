@@ -122,7 +122,7 @@ function PlanDetailsContent() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <button onClick={() => navigate(-1)} aria-label="Back">
+          <button onClick={() => navigate('/plans')} aria-label="Back">
             <Icons name="left-arrow-icon" />
           </button>
           <h1 className="text-xl font-semibold">Plan Details</h1>

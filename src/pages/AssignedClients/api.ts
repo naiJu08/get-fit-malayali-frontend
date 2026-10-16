@@ -61,17 +61,18 @@ export const useAssignedClientForUser = (
           (a: any) =>
             String(a.cycle_id || a.client_package_cycle_id) === String(cycleId)
         )
-        const pendingAssignments = assignments.filter(
-          (a: any) =>
-            a.workflow_status === 'pending' ||
-            a.status === 'pending' ||
-            !a.accepted_at
-        )
-        const combinedMap = new Map()
-        cycleMatches.forEach((a: any) => combinedMap.set(a.id, a))
-        pendingAssignments.forEach((a: any) => combinedMap.set(a.id, a))
-        if (combinedMap.size > 0) {
-          assignments = Array.from(combinedMap.values())
+        if (cycleMatches.length > 0) {
+          assignments = cycleMatches
+        } else {
+          const pendingAssignments = assignments.filter(
+            (a: any) =>
+              a.workflow_status === 'pending' ||
+              a.status === 'pending' ||
+              !a.accepted_at
+          )
+          if (pendingAssignments.length > 0) {
+            assignments = pendingAssignments
+          }
         }
       } else {
         assignments.sort((a: any, b: any) => priority(a) - priority(b))
