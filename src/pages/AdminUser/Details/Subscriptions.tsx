@@ -572,6 +572,7 @@ export default function Subscriptions({
   const selectAllNextYogasRef = useRef(false)
   const drawerSelectionInitializedRef = useRef(false)
   const userSelectionTouchedRef = useRef(false)
+  const userYogaSelectionTouchedRef = useRef(false)
   const pendingPrefillCategoryRef = useRef<string>('')
 
   const pendingPrefillSubcategoriesRef = useRef<
@@ -758,7 +759,17 @@ export default function Subscriptions({
     any[]
   >([])
   const [yogaSubcategoryLookup, setYogaSubcategoryLookup] = useState<
-    Record<string, { id: any; value: string }>
+    Record<
+      string,
+      {
+        id: any
+        value: string
+        categoryId?: any
+        categoryName?: string
+        subcategoryName?: string
+        label?: string
+      }
+    >
   >({})
 
   const selectedYogaCategoryItems = useMemo(
@@ -788,6 +799,16 @@ export default function Subscriptions({
       }
     > = {}
 
+    Object.entries(yogaSubcategoryLookup).forEach(([k, v]: [string, any]) => {
+      if (!v) return
+      map[k] = {
+        categoryId: v.categoryId,
+        categoryName: v.categoryName || '',
+        subcategoryName: v.subcategoryName || v.value || '',
+        label: v.label || v.value || '',
+      }
+    })
+
     yogaCategoryOptions.forEach((cat: any) => {
       const subs = Array.isArray(cat?.subcategories)
         ? cat.subcategories
@@ -814,7 +835,7 @@ export default function Subscriptions({
     })
 
     return map
-  }, [yogaCategoryOptions])
+  }, [yogaCategoryOptions, yogaSubcategoryLookup])
 
   const normalizedSelectedYogaSubcategories = useMemo(() => {
     if (!selectedYogaSubcategories?.length) return []
@@ -853,7 +874,14 @@ export default function Subscriptions({
         const id = opt?.id ?? opt?.value ?? opt
         if (id === undefined || id === null) return
         const label = opt?.value ?? opt?.name ?? opt?.label ?? ''
-        next[String(id)] = { id, value: label }
+        next[String(id)] = {
+          id,
+          value: label,
+          categoryId: opt?.categoryId,
+          categoryName: opt?.catName,
+          subcategoryName: opt?.subName,
+          label,
+        }
       })
       return next
     })
@@ -883,7 +911,10 @@ export default function Subscriptions({
       staleTime: 5 * 60 * 1000,
     }
   )
-  const yogas = yogasResp?.yogas ?? yogasResp?.items ?? []
+  const yogas = useMemo(
+    () => yogasResp?.yogas ?? yogasResp?.items ?? [],
+    [yogasResp]
+  )
   const allVisibleYogaSelected =
     Array.isArray(yogas) &&
     yogas.length > 0 &&
@@ -897,7 +928,15 @@ export default function Subscriptions({
         w?.subcategory_id ??
         w?.yoga?.subcategory_id ??
         w?.subcategory?.id ??
-        w?.yoga?.subcategory?.id
+        w?.yoga?.subcategory?.id ??
+        (Array.isArray(w?.subcategory_ids)
+          ? w.subcategory_ids[0]
+          : undefined) ??
+        (Array.isArray(w?.yoga?.subcategory_ids)
+          ? w.yoga.subcategory_ids[0]
+          : undefined) ??
+        (w?.category?.parent_id ? w?.category?.id : undefined) ??
+        (w?.yoga?.category?.parent_id ? w?.yoga?.category?.id : undefined)
 
       const parentMeta = subId ? yogaSubcategoryParentMap[String(subId)] : null
 
@@ -1283,6 +1322,7 @@ export default function Subscriptions({
   const toggleYogaSelected = (item: any) => {
     const normalized = toYogaSelectable(item)
     if (!normalized?.id) return
+    userYogaSelectionTouchedRef.current = true
     setSelectedYogas((prev) =>
       prev.some((y) => String(y?.id) === String(normalized.id))
         ? prev.filter((y) => String(y?.id) !== String(normalized.id))
@@ -1292,6 +1332,7 @@ export default function Subscriptions({
 
   const handleYogaSelectAllVisible = () => {
     if (!Array.isArray(yogas) || yogas.length === 0) return
+    userYogaSelectionTouchedRef.current = true
     setSelectedYogas((prev) => {
       const existingIds = new Set(prev.map((item) => String(item?.id)))
       const next = [...prev]
@@ -1310,6 +1351,7 @@ export default function Subscriptions({
 
   const handleYogaUnselectAllVisible = () => {
     if (!hasVisibleYogaSelection) return
+    userYogaSelectionTouchedRef.current = true
     setSelectedYogas((prev) => {
       if (!Array.isArray(yogas) || yogas.length === 0) return []
       const visibleIds = new Set(yogas.map((y: any) => String(y?.id)))
@@ -2067,9 +2109,13 @@ export default function Subscriptions({
       Array.isArray(dayDetail?.yoga_plan?.exercises) &&
       dayDetail.yoga_plan.exercises.length > 0
         ? dayDetail.yoga_plan.exercises
-        : Array.isArray(selectedYogas) && selectedYogas.length > 0
-          ? selectedYogas
-          : []
+        : Array.isArray(dayDetail?.user_specific_yogas) &&
+            dayDetail.user_specific_yogas.length > 0
+          ? dayDetail.user_specific_yogas
+          : Array.isArray(dayDetail?.yoga_exercises) &&
+              dayDetail.yoga_exercises.length > 0
+            ? dayDetail.yoga_exercises
+            : []
 
     if (exercises.length === 0) return null
 
@@ -2240,7 +2286,12 @@ export default function Subscriptions({
       categoryName: categoryNames.join(', '),
       subcategories: Array.from(subMap.values()),
     }
-  }, [dayDetail?.yoga_plan?.exercises, selectedYogas, yogaSubcategoryParentMap])
+  }, [
+    dayDetail?.yoga_plan?.exercises,
+    dayDetail?.user_specific_yogas,
+    dayDetail?.yoga_exercises,
+    yogaSubcategoryParentMap,
+  ])
 
   const yogaPrefillAppliedRef = useRef(false)
 
@@ -2248,15 +2299,22 @@ export default function Subscriptions({
     setSelectedYogaCategoryIds([])
     setSelectedYogaSubcategories([])
     yogaPrefillAppliedRef.current = false
-  }, [dayDetail?.yoga_plan?.id])
+  }, [dayDetail?.yoga_plan?.id, dayDetail?.date, selectedDate])
 
   const previouslyAssignedYogaIds = useMemo(() => {
-    const exercises = dayDetail?.yoga_plan?.exercises
+    const exercises =
+      dayDetail?.yoga_plan?.exercises ||
+      dayDetail?.user_specific_yogas ||
+      dayDetail?.yoga_exercises
     if (!Array.isArray(exercises) || exercises.length === 0) return []
     return exercises
       .map((ex: any) => getYogaId(ex))
       .filter((id: unknown): id is number | string => id != null)
-  }, [dayDetail?.yoga_plan?.exercises])
+  }, [
+    dayDetail?.yoga_plan?.exercises,
+    dayDetail?.user_specific_yogas,
+    dayDetail?.yoga_exercises,
+  ])
 
   const yogasById = useMemo(() => {
     const map = new Map<string, any>()
@@ -2267,7 +2325,11 @@ export default function Subscriptions({
     })
     const dayExercises = Array.isArray(dayDetail?.yoga_plan?.exercises)
       ? dayDetail.yoga_plan.exercises
-      : []
+      : Array.isArray(dayDetail?.user_specific_yogas)
+        ? dayDetail.user_specific_yogas
+        : Array.isArray(dayDetail?.yoga_exercises)
+          ? dayDetail.yoga_exercises
+          : []
     dayExercises.forEach((ex: any) => {
       const id = getYogaId(ex)
       if (id != null && !map.has(String(id))) {
@@ -2276,13 +2338,15 @@ export default function Subscriptions({
       }
     })
     return map
-  }, [yogas, dayDetail?.yoga_plan?.exercises])
+  }, [
+    yogas,
+    dayDetail?.yoga_plan?.exercises,
+    dayDetail?.user_specific_yogas,
+    dayDetail?.yoga_exercises,
+  ])
 
   const yogaPrefillFromApi = useMemo(() => {
-    const yogaIds =
-      previouslyAssignedYogaIds.length > 0
-        ? previouslyAssignedYogaIds
-        : selectedYogas.map((y) => getYogaId(y)).filter(Boolean)
+    const yogaIds = previouslyAssignedYogaIds
 
     if (yogaIds.length === 0 || yogasById.size === 0) return null
 
@@ -2380,12 +2444,7 @@ export default function Subscriptions({
       categoryName: categoryNames.join(', '),
       subcategories: Array.from(subMap.values()),
     }
-  }, [
-    previouslyAssignedYogaIds,
-    selectedYogas,
-    yogasById,
-    yogaSubcategoryParentMap,
-  ])
+  }, [previouslyAssignedYogaIds, yogasById, yogaSubcategoryParentMap])
 
   const yogaSelectionCandidate: PrefillSelection | null = useMemo(() => {
     if (yogaPrefillFromApi) return yogaPrefillFromApi
@@ -2438,14 +2497,8 @@ export default function Subscriptions({
 
   useEffect(() => {
     if (!yogaAssignOpen) return
+    if (yogaPrefillAppliedRef.current) return
     if (!yogaSelectionCandidate) return
-
-    if (
-      yogaPrefillAppliedRef.current &&
-      lastYogaPrefillSignatureRef.current === yogaSelectionSignature
-    ) {
-      return
-    }
 
     const categoryIds =
       Array.isArray(yogaSelectionCandidate.categoryIds) &&
@@ -2509,6 +2562,7 @@ export default function Subscriptions({
     setSelectedYogaCategoryIds([])
     setSelectedYogaSubcategories([])
     setYogaCategoryFilter('')
+    userYogaSelectionTouchedRef.current = false
   }, [yogaAssignOpen, yogaReviewOpen])
 
   const selectionCandidate: PrefillSelection | null = useMemo(() => {
@@ -2964,8 +3018,16 @@ export default function Subscriptions({
     setYogaReviewOpen(false)
 
     const map = new Map<any, any>()
-    if (Array.isArray(dayDetail?.yoga_plan?.exercises)) {
-      dayDetail.yoga_plan.exercises.forEach((ex: any, idx: number) => {
+    const dayExercises = Array.isArray(dayDetail?.yoga_plan?.exercises)
+      ? dayDetail.yoga_plan.exercises
+      : Array.isArray(dayDetail?.user_specific_yogas)
+        ? dayDetail.user_specific_yogas
+        : Array.isArray(dayDetail?.yoga_exercises)
+          ? dayDetail.yoga_exercises
+          : []
+
+    if (dayExercises.length > 0) {
+      dayExercises.forEach((ex: any, idx: number) => {
         const normalized = toYogaSelectable(ex, idx)
         if (!normalized?.id || map.has(normalized.id)) return
         map.set(normalized.id, normalized)
@@ -2973,11 +3035,16 @@ export default function Subscriptions({
     }
     setSelectedYogas(Array.from(map.values()))
     yogaSelectionPrefilledRef.current = true
-  }, [dayDetail?.yoga_plan?.exercises, yogaAssignOpen])
+  }, [
+    dayDetail?.yoga_plan?.exercises,
+    dayDetail?.user_specific_yogas,
+    dayDetail?.yoga_exercises,
+    yogaAssignOpen,
+  ])
 
   useEffect(() => {
     yogaSelectionPrefilledRef.current = false
-  }, [dayDetail?.yoga_plan?.id])
+  }, [dayDetail?.yoga_plan?.id, dayDetail?.date, selectedDate])
 
   useEffect(() => {
     if (!medAssignOpen) return
@@ -3282,9 +3349,16 @@ export default function Subscriptions({
   }
 
   const handleYogaAssign = async () => {
-    const yogaPlanId = dayDetail?.yoga_plan?.id
-    const subscriptionId = overview?.subscription?.id
-    if (!yogaPlanId || !subscriptionId || selectedYogas.length === 0) return
+    const yogaPlanId =
+      dayDetail?.yoga_plan?.id ||
+      dayDetail?.yoga_template?.id ||
+      dayDetail?.subscription?.yoga_template_id ||
+      undefined
+    const subscriptionId =
+      overview?.subscription?.id ||
+      selectedSubscriptionId ||
+      selectedCycle?.subscription_id
+    if (!subscriptionId || selectedYogas.length === 0) return
     setYogaAssigning(true)
     try {
       const exercisesPayload = selectedYogas.reduce(
@@ -3308,12 +3382,33 @@ export default function Subscriptions({
         throw new Error('No valid yogas to assign')
       }
 
-      await yogaOverridesBulk(subscriptionId, {
-        yoga_plan_id: yogaPlanId,
-        day_number: dayDetail?.day_number,
-        date: dayDetail?.date,
+      const payload: {
+        yoga_plan_id?: number | string
+        day_number?: number | string
+        date?: string
+        exercises: Array<{
+          yoga_id: number | string
+          sequence_number: number
+        }>
+      } = {
+        day_number:
+          dayDetail?.day_number ??
+          (overview?.subscription?.start_date &&
+          (dayDetail?.date || selectedDate)
+            ? moment(dayDetail?.date || selectedDate).diff(
+                moment(overview.subscription.start_date),
+                'days'
+              ) + 1
+            : undefined),
+        date: dayDetail?.date || selectedDate,
         exercises: exercisesPayload,
-      })
+      }
+
+      if (yogaPlanId) {
+        payload.yoga_plan_id = yogaPlanId
+      }
+
+      await yogaOverridesBulk(subscriptionId, payload)
 
       await refreshDayDetail()
       setSelectedYogas([])
@@ -5475,6 +5570,12 @@ export default function Subscriptions({
                                 : undefined) ??
                               (Array.isArray(y?.yoga?.subcategories)
                                 ? y.yoga.subcategories[0]?.id
+                                : undefined) ??
+                              (y?.category?.parent_id
+                                ? y?.category?.id
+                                : undefined) ??
+                              (y?.yoga?.category?.parent_id
+                                ? y?.yoga?.category?.id
                                 : undefined)
 
                             if (subId !== undefined && subId !== null) {
