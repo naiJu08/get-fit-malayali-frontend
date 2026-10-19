@@ -1538,7 +1538,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     dayDetail?.yoga_plan?.exercises
                   )
                     ? dayDetail.yoga_plan.exercises
-                    : []
+                    : Array.isArray(dayDetail?.user_specific_yogas)
+                      ? dayDetail.user_specific_yogas
+                      : Array.isArray(dayDetail?.yoga_exercises)
+                        ? dayDetail.yoga_exercises
+                        : []
                   const totalCount = yexs.length
                   const doneCount = yexs.filter(
                     (e: any) =>
@@ -1650,14 +1654,21 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                   )
                 })()}
 
-                {/* ── Yoga Exercises Grouped by Category & Subcategory ── */}
-                {dayDetail?.yoga_plan ? (
+                {dayDetail?.yoga_plan ||
+                (Array.isArray(dayDetail?.user_specific_yogas) &&
+                  dayDetail.user_specific_yogas.length > 0) ||
+                (Array.isArray(dayDetail?.yoga_exercises) &&
+                  dayDetail.yoga_exercises.length > 0) ? (
                   (() => {
                     const yexs: any[] = Array.isArray(
-                      dayDetail.yoga_plan.exercises
+                      dayDetail?.yoga_plan?.exercises
                     )
                       ? dayDetail.yoga_plan.exercises
-                      : []
+                      : Array.isArray(dayDetail?.user_specific_yogas)
+                        ? dayDetail.user_specific_yogas
+                        : Array.isArray(dayDetail?.yoga_exercises)
+                          ? dayDetail.yoga_exercises
+                          : []
 
                     if (yexs.length === 0)
                       return (
