@@ -2546,18 +2546,14 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
           if (!selectedMealTiming) missing.push('meal')
           if (!userId) missing.push('user_id')
           if (
-            subscriptionId === null ||
-            subscriptionId === undefined ||
-            subscriptionId === ''
+            (subscriptionId === null ||
+              subscriptionId === undefined ||
+              subscriptionId === '') &&
+            (templateId === null ||
+              templateId === undefined ||
+              templateId === '')
           ) {
             missing.push('subscription_id')
-          }
-          if (
-            templateId === null ||
-            templateId === undefined ||
-            templateId === ''
-          ) {
-            missing.push('diet_plan_template_id')
           }
 
           if (missing.length) {
