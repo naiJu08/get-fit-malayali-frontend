@@ -104,8 +104,18 @@ export const useAssignedClientForUser = (
             (item.follow_ups || []).map((followUp: any) => ({
               ...followUp,
               assignment_id: item.id,
-              assigned_staff_name: item.staff_name,
-              assigned_staff_role: item.role,
+              assigned_staff_name:
+                followUp.scheduled_by?.name ||
+                followUp.created_by?.name ||
+                followUp.assigned_staff_name ||
+                followUp.staff_name ||
+                item.staff_name,
+              assigned_staff_role:
+                followUp.scheduled_by?.role ||
+                followUp.created_by?.role ||
+                followUp.assigned_staff_role ||
+                followUp.staff_role ||
+                item.role,
             }))
           )
           .sort(

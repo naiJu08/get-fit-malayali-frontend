@@ -994,14 +994,24 @@ export function ClientWorkflowFollowUps({
               title: 'Staff',
               field: 'assigned_staff_name',
               customCell: true,
-              renderCell: (row: any) => ({
-                cell: row.assigned_staff_name
-                  ? row.assigned_staff_name +
-                    ' (' +
-                    (row.assigned_staff_role || 'service team') +
-                    ')'
-                  : assignment?.staff_name || '--',
-              }),
+              renderCell: (row: any) => {
+                const staffName =
+                  row.scheduled_by?.name ||
+                  row.created_by?.name ||
+                  row.assigned_staff_name ||
+                  row.staff_name ||
+                  assignment?.staff_name
+                const staffRole =
+                  row.scheduled_by?.role ||
+                  row.created_by?.role ||
+                  row.assigned_staff_role ||
+                  row.staff_role ||
+                  assignment?.role ||
+                  'service team'
+                return {
+                  cell: staffName ? `${staffName} (${staffRole})` : '--',
+                }
+              },
               isVisible: true,
             },
             {
