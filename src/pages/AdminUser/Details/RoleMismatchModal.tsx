@@ -16,15 +16,29 @@ interface RoleMismatchModalProps {
 export default function RoleMismatchModal({
   isOpen,
   user,
+  actualRole,
   actualRoleLabel,
   actualRolePath,
+  expectedRole,
   expectedRoleLabel,
   fallbackPath,
   userId,
 }: RoleMismatchModalProps) {
   const navigate = useNavigate()
 
-  if (!isOpen) return null
+  if (
+    !isOpen ||
+    !userId ||
+    !user?.id ||
+    String(user?.id) !== String(userId) ||
+    !actualRole ||
+    actualRole === 'unknown' ||
+    actualRole === expectedRole ||
+    actualRole === 'admin' ||
+    actualRole === 'superadmin'
+  ) {
+    return null
+  }
 
   const userName = user?.name || 'User'
   const userEmail = user?.email || ''

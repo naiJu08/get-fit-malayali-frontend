@@ -265,7 +265,12 @@ export function normalizeUserRole(
 export default function UserDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const loginRole = useAuthStore((s: any) => s.roleData?.name?.toLowerCase?.())
+  const authUserData = useAuthStore((s: any) => s.userData)
+  const authRoleData = useAuthStore((s: any) => s.roleData)
+  const rawLoginRole = authRoleData?.name || authUserData?.role || ''
+  const loginRole = useMemo(() => {
+    return String(rawLoginRole).trim().toLowerCase()
+  }, [rawLoginRole])
   const location = useLocation()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -277,27 +282,72 @@ export default function UserDetails() {
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [assignSalesOpen, setAssignSalesOpen] = useState(false)
 
-  const refreshUserDetails = useCallback(() => {
+  // Reset state synchronously during render when route param id changes
+  const [prevId, setPrevId] = useState(id)
+  if (prevId !== id) {
+    setPrevId(id)
+    setData(null)
+    setLoading(true)
+    setError('')
+    setSelectedCycleId('')
+    setSubscriptionId(null)
+  }
+
+  const refreshUserDetails = useCallback(async () => {
     if (!id) return
-    ;(async () => {
-      try {
-        setLoading(true)
-        const res = await getAdminDetails(String(id))
+    const currentRequestedId = String(id)
+    try {
+      setLoading(true)
+      const res = await getAdminDetails(currentRequestedId)
+      if (String(id) === currentRequestedId) {
         setData(res)
         setError('')
-      } catch (e: any) {
+      }
+      return res
+    } catch (e: any) {
+      if (String(id) === currentRequestedId) {
         setError(e?.response?.data?.message || 'Failed to load user')
-      } finally {
+      }
+    } finally {
+      if (String(id) === currentRequestedId) {
         setLoading(false)
       }
-    })()
+    }
   }, [id])
 
   useEffect(() => {
-    refreshUserDetails()
-  }, [refreshUserDetails, id])
+    let isCurrent = true
+    if (!id) return
 
-  const user = data?.user || data || {}
+    setLoading(true)
+    getAdminDetails(String(id))
+      .then((res) => {
+        if (!isCurrent) return
+        setData(res)
+        setError('')
+      })
+      .catch((e: any) => {
+        if (!isCurrent) return
+        setError(e?.response?.data?.message || 'Failed to load user')
+      })
+      .finally(() => {
+        if (!isCurrent) return
+        setLoading(false)
+      })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [id])
+
+  const rawUser = data?.user || data || {}
+  const user = useMemo(() => {
+    if (!rawUser?.id || String(rawUser.id) !== String(id)) {
+      return {}
+    }
+    return rawUser
+  }, [rawUser, id])
+
   const detailRole = useMemo<DetailRole>(() => {
     const path = location.pathname || ''
     if (path.startsWith('/users/nutritionist')) return 'nutritionist'
@@ -315,21 +365,57 @@ export default function UserDetails() {
   }, [user?.role])
 
   const isRoleMismatch = useMemo(() => {
-    if (loading || !user?.id) return false
-    if (userActualRole === 'unknown') return false
+    if (loading || !user?.id || String(user?.id) !== String(id)) return false
+    if (
+      userActualRole === 'unknown' ||
+      userActualRole === 'admin' ||
+      userActualRole === 'superadmin'
+    ) {
+      return false
+    }
     return userActualRole !== detailRole
-  }, [loading, user?.id, userActualRole, detailRole])
+  }, [loading, user?.id, id, userActualRole, detailRole])
 
-  const isSuperAdmin = loginRole === 'superadmin'
+  const normalizedLoginRole = useMemo(() => {
+    return normalizeUserRole(rawLoginRole)
+  }, [rawLoginRole])
+
+  const isSuperAdmin = useMemo(() => {
+    return (
+      normalizedLoginRole === 'superadmin' ||
+      loginRole === 'superadmin' ||
+      loginRole === 'super_admin' ||
+      loginRole === 'super admin' ||
+      Boolean(authUserData?.is_admin && loginRole.includes('super'))
+    )
+  }, [normalizedLoginRole, loginRole, authUserData?.is_admin])
+
+  const isAdmin = useMemo(() => {
+    return (
+      isSuperAdmin ||
+      normalizedLoginRole === 'admin' ||
+      loginRole === 'admin' ||
+      Boolean(authUserData?.is_admin)
+    )
+  }, [isSuperAdmin, normalizedLoginRole, loginRole, authUserData?.is_admin])
+
   const isLoginYogist =
+    normalizedLoginRole === 'yogist' ||
     loginRole === 'yogist' ||
     loginRole === 'yoga_trainer' ||
     loginRole === 'yoga'
-  const isServiceClient =
-    !isRoleMismatch &&
-    ['nutritionist', 'physiotherapist', 'yogist'].includes(loginRole || '') &&
-    detailRole === 'user'
-  const isWorkflowViewer = !isRoleMismatch && (isServiceClient || isSuperAdmin)
+  const isServiceClient = useMemo(() => {
+    if (isAdmin || isSuperAdmin) return false
+    return (
+      !isRoleMismatch &&
+      ['nutritionist', 'physiotherapist', 'yogist'].includes(
+        normalizedLoginRole
+      ) &&
+      detailRole === 'user'
+    )
+  }, [isAdmin, isSuperAdmin, isRoleMismatch, normalizedLoginRole, detailRole])
+  const isWorkflowViewer =
+    !isRoleMismatch && (isServiceClient || isSuperAdmin || isAdmin)
   const currentUserId = useAuthStore((s: any) => s.userData?.id)
   const {
     data: cycleData,
@@ -344,7 +430,7 @@ export default function UserDetails() {
   const legacyAssignments = (cycleData as any)?.legacy_assignments
   const availableCycles = useMemo(() => {
     if (!allCycles.length) return []
-    if (isSuperAdmin || loginRole === 'admin') {
+    if (isSuperAdmin || isAdmin || loginRole === 'admin') {
       return allCycles
     }
     if (isServiceClient) {
@@ -375,6 +461,7 @@ export default function UserDetails() {
   }, [
     allCycles,
     isSuperAdmin,
+    isAdmin,
     loginRole,
     isServiceClient,
     currentUserId,
@@ -424,14 +511,16 @@ export default function UserDetails() {
 
   const isPendingAcceptance = useMemo(() => {
     if (
+      isAdmin ||
+      isSuperAdmin ||
+      !isServiceClient ||
       loading ||
       cyclesLoading ||
       !isCycleDetermined ||
       isWorkflowLoading ||
       !user?.id ||
+      String(user.id) !== String(id) ||
       isClientDeactivated ||
-      !isServiceClient ||
-      isSuperAdmin ||
       !workflowAssignment?.id
     ) {
       return false
@@ -441,7 +530,7 @@ export default function UserDetails() {
       workflowAssignment?.user_id ||
       workflowAssignment?.client?.id ||
       workflowAssignment?.client_id
-    if (assignmentUserId && String(assignmentUserId) !== String(user.id)) {
+    if (!assignmentUserId || String(assignmentUserId) !== String(user.id)) {
       return false
     }
 
@@ -463,18 +552,27 @@ export default function UserDetails() {
         !workflowAssignment.accepted_at
     )
   }, [
+    isAdmin,
+    isSuperAdmin,
+    isServiceClient,
     loading,
     cyclesLoading,
     isCycleDetermined,
     isWorkflowLoading,
     user?.id,
+    id,
     isClientDeactivated,
-    isServiceClient,
-    isSuperAdmin,
     workflowAssignment,
     availableCycles.length,
     selectedCycleId,
   ])
+
+  useEffect(() => {
+    setShowAcceptModal(false)
+    setShowDeactivatedModal(false)
+    setDismissedAcceptModal(false)
+    setDismissedDeactivatedModal(false)
+  }, [id, location.pathname])
 
   const prevUserIdRef = useRef<string | number | undefined>(undefined)
   useEffect(() => {
@@ -486,12 +584,22 @@ export default function UserDetails() {
   }, [user?.id])
 
   useEffect(() => {
+    if (isAdmin || isSuperAdmin || !isServiceClient) {
+      setShowAcceptModal(false)
+      return
+    }
     if (isPendingAcceptance && !dismissedAcceptModal) {
       setShowAcceptModal(true)
     } else if (!isPendingAcceptance) {
       setShowAcceptModal(false)
     }
-  }, [isPendingAcceptance, dismissedAcceptModal])
+  }, [
+    isPendingAcceptance,
+    dismissedAcceptModal,
+    isAdmin,
+    isSuperAdmin,
+    isServiceClient,
+  ])
 
   useEffect(() => {
     if (isClientDeactivated && !dismissedDeactivatedModal) {
@@ -2079,7 +2187,7 @@ export default function UserDetails() {
       />
 
       <AcceptClientModal
-        isOpen={showAcceptModal}
+        isOpen={!isAdmin && !isSuperAdmin && isServiceClient && showAcceptModal}
         onClose={() => {
           setDismissedAcceptModal(true)
           setShowAcceptModal(false)
