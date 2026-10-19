@@ -702,7 +702,14 @@ export default function StaffAssignmentsModal({
         setTotalCount(newRemainingCount)
       }
 
-      const singleFollowUpsCount = (assignment.upcoming_follow_ups || []).length
+      const singleFollowUpsCount = (
+        assignment.upcoming_follow_ups || []
+      ).filter(
+        (f: any) =>
+          !staffUser?.id ||
+          !f.created_by?.id ||
+          String(f.created_by.id) === String(staffUser.id)
+      ).length
       const newCommitments =
         typeof res?.total_commitments === 'number'
           ? res.total_commitments
@@ -795,7 +802,15 @@ export default function StaffAssignmentsModal({
           (a) =>
             reassignedIdsSet.has(Number(a.id)) || selectedIds.includes(a.id)
         )
-        .reduce((acc, curr) => acc + (curr.upcoming_follow_ups?.length || 0), 0)
+        .reduce((acc, curr) => {
+          const list = (curr.upcoming_follow_ups || []).filter(
+            (f: any) =>
+              !staffUser?.id ||
+              !f.created_by?.id ||
+              String(f.created_by.id) === String(staffUser.id)
+          )
+          return acc + list.length
+        }, 0)
       const newMultiCommitments =
         typeof res?.total_commitments === 'number'
           ? res.total_commitments
@@ -872,10 +887,15 @@ export default function StaffAssignmentsModal({
               : Math.max(
                   0,
                   totalCommitments -
-                    assignments.reduce(
-                      (acc, a) => acc + (a.upcoming_follow_ups?.length || 0),
-                      0
-                    )
+                    assignments.reduce((acc, a) => {
+                      const list = (a.upcoming_follow_ups || []).filter(
+                        (f: any) =>
+                          !staffUser?.id ||
+                          !f.created_by?.id ||
+                          String(f.created_by.id) === String(staffUser.id)
+                      )
+                      return acc + list.length
+                    }, 0)
                 )
         setTotalCommitments(newCommitments)
       } else {
@@ -1519,7 +1539,14 @@ export default function StaffAssignmentsModal({
                         reason: `Reassigned prior to ${actionType}`,
                       }
                       const isRowReassigning = reassigningId === assignment.id
-                      const followUps = assignment.upcoming_follow_ups || []
+                      const followUps = (
+                        assignment.upcoming_follow_ups || []
+                      ).filter(
+                        (f: any) =>
+                          !staffUser?.id ||
+                          !f.created_by?.id ||
+                          String(f.created_by.id) === String(staffUser.id)
+                      )
                       const isSelected = selectedIds.includes(assignment.id)
                       const isLeadItem =
                         isSales &&
