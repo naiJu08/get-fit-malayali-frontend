@@ -428,6 +428,7 @@ export default function Subscriptions({
   const [yogaCategoryFilter, setYogaCategoryFilter] = useState<string>('')
   const [yogaAssigning, setYogaAssigning] = useState(false)
   const [yogaDragIndex, setYogaDragIndex] = useState<number | null>(null)
+  const [yogaDragGroup, setYogaDragGroup] = useState<string | null>(null)
   const [medAssignOpen, setMedAssignOpen] = useState(false)
   const [medReviewOpen, setMedReviewOpen] = useState(false)
   const [selectedMeditations, setSelectedMeditations] = useState<any[]>([])
@@ -930,18 +931,77 @@ export default function Subscriptions({
         w?.subcategory?.id ??
         w?.yoga?.subcategory?.id ??
         (Array.isArray(w?.subcategory_ids)
-          ? w.subcategory_ids[0]
+          ? typeof w.subcategory_ids[0] === 'object'
+            ? w.subcategory_ids[0]?.id
+            : w.subcategory_ids[0]
           : undefined) ??
         (Array.isArray(w?.yoga?.subcategory_ids)
-          ? w.yoga.subcategory_ids[0]
+          ? typeof w.yoga.subcategory_ids[0] === 'object'
+            ? w.yoga.subcategory_ids[0]?.id
+            : w.yoga.subcategory_ids[0]
+          : undefined) ??
+        (Array.isArray(w?.subcategories)
+          ? w.subcategories[0]?.id
+          : undefined) ??
+        (Array.isArray(w?.yoga?.subcategories)
+          ? w.yoga.subcategories[0]?.id
+          : undefined) ??
+        (w?.category?.main_category?.id ? w?.category?.id : undefined) ??
+        (w?.yoga?.category?.main_category?.id
+          ? w?.yoga?.category?.id
           : undefined) ??
         (w?.category?.parent_id ? w?.category?.id : undefined) ??
-        (w?.yoga?.category?.parent_id ? w?.yoga?.category?.id : undefined)
+        (w?.yoga?.category?.parent_id ? w?.yoga?.category?.id : undefined) ??
+        (yogaSubcategoryParentMap[String(w?.category_id)]
+          ? w?.category_id
+          : undefined) ??
+        (yogaSubcategoryParentMap[String(w?.yoga?.category_id)]
+          ? w?.yoga?.category_id
+          : undefined) ??
+        (yogaSubcategoryParentMap[String(w?.category?.id)]
+          ? w?.category?.id
+          : undefined) ??
+        (yogaSubcategoryParentMap[String(w?.yoga?.category?.id)]
+          ? w?.yoga?.category?.id
+          : undefined) ??
+        w?.category_id ??
+        w?.yoga?.category_id ??
+        w?.category?.id ??
+        w?.yoga?.category?.id
 
       const parentMeta = subId ? yogaSubcategoryParentMap[String(subId)] : null
 
+      const parentCatId =
+        parentMeta?.categoryId ??
+        w?.category?.main_category?.id ??
+        w?.category?.parent?.id ??
+        w?.category?.parent_id ??
+        w?.yoga?.category?.main_category?.id ??
+        w?.yoga?.category?.parent?.id ??
+        w?.yoga?.category?.parent_id ??
+        w?.category_id ??
+        w?.yoga?.category_id
+
+      const parentCatFromList = parentCatId
+        ? formattedYogaCategoryOptions.find(
+            (c: any) => String(c.id) === String(parentCatId)
+          )?.name
+        : null
+
+      const directCatFromList = formattedYogaCategoryOptions.find(
+        (c: any) =>
+          String(c.id) ===
+          String(
+            w?.category_id ??
+              w?.yoga?.category_id ??
+              w?.category?.id ??
+              w?.yoga?.category?.id
+          )
+      )?.name
+
       const main =
         parentMeta?.categoryName ??
+        parentCatFromList ??
         w?.category?.main_category?.name ??
         w?.category?.parent?.name ??
         w?.category?.main_category_name ??
@@ -950,11 +1010,19 @@ export default function Subscriptions({
         w?.yoga?.category?.parent?.name ??
         w?.category?.name ??
         w?.category_name ??
+        directCatFromList ??
         'Others'
 
       const sub = parentMeta?.label?.includes(' - ')
         ? parentMeta.label.split(' - ')[1]
         : (parentMeta?.label ??
+          parentMeta?.subcategoryName ??
+          (Array.isArray(w?.subcategories)
+            ? w.subcategories[0]?.name
+            : undefined) ??
+          (Array.isArray(w?.yoga?.subcategories)
+            ? w.yoga.subcategories[0]?.name
+            : undefined) ??
           w?.subcategory?.name ??
           w?.subcategory_name ??
           w?.yoga?.subcategory?.name ??
@@ -976,7 +1044,7 @@ export default function Subscriptions({
             : subTitle || mainTitle,
       }
     },
-    [yogaSubcategoryParentMap]
+    [yogaSubcategoryParentMap, formattedYogaCategoryOptions]
   )
 
   const getYogaGroupKey = useCallback(
@@ -1023,6 +1091,52 @@ export default function Subscriptions({
       items: group.items,
     }))
   }, [yogas, getYogaGroupKey, getYogaGroupLabels])
+
+  const groupedSelectedYogas = useMemo(() => {
+    if (!Array.isArray(selectedYogas) || selectedYogas.length === 0) return []
+
+    const groups = new Map<
+      string,
+      {
+        main: string
+        sub: string
+        legend: string
+        priority: number
+        items: any[]
+      }
+    >()
+
+    selectedYogas.forEach((w: any) => {
+      const key = getYogaGroupKey(w)
+      if (!groups.has(key)) {
+        const labels = getYogaGroupLabels(w)
+        const p = w?.category?.priority ?? 9999
+        groups.set(key, {
+          main: labels.main,
+          sub: labels.sub,
+          legend: labels.legend,
+          priority: p,
+          items: [],
+        })
+      }
+      groups.get(key)!.items.push(w)
+    })
+
+    return Array.from(groups.values())
+      .map((group) => ({
+        name: group.sub,
+        mainName: group.main,
+        legend: group.legend,
+        priority: group.priority,
+        items: group.items,
+      }))
+      .sort((a, b) => a.priority - b.priority)
+  }, [selectedYogas, getYogaGroupKey, getYogaGroupLabels])
+
+  const canReorderYogaGroups = useMemo(
+    () => groupedSelectedYogas.some((group) => (group?.items?.length ?? 0) > 1),
+    [groupedSelectedYogas]
+  )
 
   const sortedMeditations = useMemo(() => {
     if (!Array.isArray(meditations) || meditations.length === 0) return []
@@ -1317,7 +1431,6 @@ export default function Subscriptions({
   }
 
   const yogaCanProceedToReview = selectedYogas.length > 0
-  const canReorderYogaSelections = selectedYogas.length > 1
 
   const toggleYogaSelected = (item: any) => {
     const normalized = toYogaSelectable(item)
@@ -3084,6 +3197,7 @@ export default function Subscriptions({
       setSelectedYogas([])
       yogaSelectionPrefilledRef.current = false
       setYogaDragIndex(null)
+      setYogaDragGroup(null)
       setYogaCategoryFilter('')
       setMedAssignOpen(false)
       setMedReviewOpen(false)
@@ -3134,6 +3248,16 @@ export default function Subscriptions({
 
   const handleYogaNext = () => {
     if (!yogaCanProceedToReview) return
+    setSelectedYogas((prev) => {
+      const next = prev.slice()
+      next.sort((a: any, b: any) => {
+        const pa = a?.category?.priority ?? 9999
+        const pb = b?.category?.priority ?? 9999
+        if (pa === pb) return 0
+        return pa < pb ? -1 : 1
+      })
+      return next
+    })
     setYogaReviewOpen(true)
     setYogaAssignOpen(false)
   }
@@ -3263,15 +3387,21 @@ export default function Subscriptions({
     setMedDragIndex(null)
   }
 
-  const onYogaDragStart = (index: number) => {
+  const onYogaDragStart = (index: number, groupName?: string) => {
     setYogaDragIndex(index)
+    setYogaDragGroup(groupName ?? null)
   }
   const onYogaDragOver = (e: any) => {
     e.preventDefault()
   }
-  const onYogaDrop = (index: number) => {
-    if (yogaDragIndex === null || yogaDragIndex === index) {
+  const onYogaDrop = (index: number, groupName?: string) => {
+    if (
+      yogaDragIndex === null ||
+      yogaDragIndex === index ||
+      (groupName && yogaDragGroup && groupName !== yogaDragGroup)
+    ) {
       setYogaDragIndex(null)
+      setYogaDragGroup(null)
       return
     }
     setSelectedYogas((prev) => {
@@ -3281,6 +3411,7 @@ export default function Subscriptions({
       return next
     })
     setYogaDragIndex(null)
+    setYogaDragGroup(null)
   }
 
   const handleMedAssign = async () => {
@@ -3436,6 +3567,7 @@ export default function Subscriptions({
     } finally {
       setYogaAssigning(false)
       setYogaDragIndex(null)
+      setYogaDragGroup(null)
       setYogaCategoryFilter('')
     }
   }
@@ -5764,6 +5896,7 @@ export default function Subscriptions({
           setYogaReviewOpen(false)
           setYogaAssignOpen(true)
           setYogaDragIndex(null)
+          setYogaDragGroup(null)
         }}
         className="w-screen max-w-[100vw] h-screen"
         unmountOnClose
@@ -5774,8 +5907,8 @@ export default function Subscriptions({
         actionLabel={'Confirm'}
       >
         <div className="">
-          <h2 className="text-lg font-bold mb-1 flex items-center gap-2 mb-3">
-            {canReorderYogaSelections && (
+          <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
+            {canReorderYogaGroups && (
               <span className="text-gray-600  bg-clip-text ">
                 Drag and drop the videos below into the order you want them to
                 appear in the yoga plan, then click{' '}
@@ -5785,50 +5918,74 @@ export default function Subscriptions({
             )}
           </h2>
           {selectedYogas.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-5">
-              {selectedYogas.map((y, i) => {
-                const embed = getEmbedUrl(y?.video_url)
-                const url = y?.video_url || ''
+            <div className="flex flex-col gap-4">
+              {groupedSelectedYogas.map((group) => {
                 return (
-                  <div
-                    key={`${y?.id}-${i}`}
-                    draggable
-                    onDragStart={() => onYogaDragStart(i)}
-                    onDragOver={onYogaDragOver}
-                    onDrop={() => onYogaDrop(i)}
-                    className="rounded-xl shadow-lg bg-white border hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing overflow-hidden"
+                  <fieldset
+                    key={group.legend}
+                    className="border border-gray-300 rounded-xl p-4 bg-white"
                   >
-                    <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
-                      <span className="line-clamp-1">
-                        {i + 1}. {formatYogaName(y?.name || y?.title)}
-                      </span>
+                    <legend className="px-2 text-md font-semibold text-gray-600">
+                      {group.legend}
+                    </legend>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8 gap-5">
+                      {group.items.map((y: any) => {
+                        const index = selectedYogas.findIndex(
+                          (it) => String(it?.id) === String(y?.id)
+                        )
+                        if (index === -1) return null
+
+                        const embed = getEmbedUrl(y?.video_url)
+                        const url = y?.video_url || ''
+
+                        return (
+                          <div
+                            key={y?.id}
+                            draggable
+                            onDragStart={() =>
+                              onYogaDragStart(index, group.legend)
+                            }
+                            onDragOver={(e) => onYogaDragOver(e)}
+                            onDrop={() => onYogaDrop(index, group.legend)}
+                            className="rounded-xl shadow-lg bg-white border hover:shadow-xl transition-shadow cursor-grab active:cursor-grabbing overflow-hidden"
+                          >
+                            <div className="px-4 py-2 bg-gray-50 border-b text-sm font-semibold flex justify-between items-center">
+                              <span className="line-clamp-1">
+                                {index + 1}.{' '}
+                                {formatYogaName(y?.name || y?.title)}
+                              </span>
+                            </div>
+
+                            {embed ? (
+                              <iframe
+                                className="w-full h-30"
+                                src={embed}
+                                allowFullScreen
+                              ></iframe>
+                            ) : url ? (
+                              <video
+                                src={url}
+                                controls
+                                muted
+                                className="w-full h-30 object-cover"
+                              />
+                            ) : (
+                              <div className="text-sm text-gray-500 italic">
+                                No video URL available.
+                              </div>
+                            )}
+
+                            {group.items.length > 1 && (
+                              <div className="px-4 py-2 text-xs text-gray-600">
+                                Hold and drag to rearrange
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
-
-                    {embed ? (
-                      <iframe
-                        className="w-full h-48"
-                        src={embed}
-                        allowFullScreen
-                      ></iframe>
-                    ) : url ? (
-                      <video
-                        src={url}
-                        controls
-                        muted
-                        className="w-full h-48 object-cover"
-                      />
-                    ) : (
-                      <div className="text-sm text-gray-500 italic">
-                        No video URL available.
-                      </div>
-                    )}
-
-                    {selectedYogas.length > 1 && (
-                      <div className="px-4 py-2 text-xs text-gray-600">
-                        Hold and drag to rearrange
-                      </div>
-                    )}
-                  </div>
+                  </fieldset>
                 )
               })}
             </div>
@@ -6452,6 +6609,7 @@ export default function Subscriptions({
               }}
               onEditYogaPlan={() => {
                 setYogaDragIndex(null)
+                setYogaDragGroup(null)
                 setYogaReviewOpen(false)
                 setYogaAssignOpen(true)
                 setYogaCategoryFilter('')
