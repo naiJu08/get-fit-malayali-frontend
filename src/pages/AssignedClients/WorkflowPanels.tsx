@@ -1068,7 +1068,8 @@ export function ClientWorkflowFollowUps({
                       setCompletionNotes('')
                       setCompletionDialogOpen(true)
                     },
-                    hide: (row: any) => row.status !== 'scheduled',
+                    hide: (row: any) =>
+                      String(row?.status || '').toLowerCase() !== 'scheduled',
                     disabled: () => saving,
                   },
                 ]
@@ -1077,7 +1078,7 @@ export function ClientWorkflowFollowUps({
           toolbar
           columnToggle
           height={calcWindowHeight(
-            (assignment.follow_ups || []).length ? 260 : 320
+            (assignment.follow_ups || []).length ? 450 : 500
           )}
           emptyTitle="No follow-ups scheduled"
         />

@@ -645,26 +645,36 @@ const SmartTable: React.FC<SmartTableProps> = ({
                         }}
                       >
                         {externalActions ? (
-                          <button
-                            className={`
-                              w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
-                              ${
-                                isSelected
-                                  ? 'bg-blue-500 text-white rotate-45 shadow-md'
-                                  : 'bg-gray-100 text-gray-600 hover:bg-blue-500 hover:text-white hover:shadow-md'
-                              }
-                            `}
-                            title={isSelected ? 'Hide actions' : 'Show actions'}
-                            onClick={() => {
-                              const nextKey = isSelected ? null : rowKey
-                              setSelectedRowKey(nextKey)
-                              setSelectedRow(nextKey === null ? null : row)
-                            }}
-                          >
-                            <span className="text-lg font-light leading-none transition-transform duration-300">
-                              +
-                            </span>
-                          </button>
+                          (() => {
+                            const hasVisibleActions = actionProps.some(
+                              (a) => !a.hide || !a.hide(row)
+                            )
+                            if (!hasVisibleActions) return null
+                            return (
+                              <button
+                                className={`
+                                  w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
+                                  ${
+                                    isSelected
+                                      ? 'bg-blue-500 text-white rotate-45 shadow-md'
+                                      : 'bg-gray-100 text-gray-600 hover:bg-blue-500 hover:text-white hover:shadow-md'
+                                  }
+                                `}
+                                title={
+                                  isSelected ? 'Hide actions' : 'Show actions'
+                                }
+                                onClick={() => {
+                                  const nextKey = isSelected ? null : rowKey
+                                  setSelectedRowKey(nextKey)
+                                  setSelectedRow(nextKey === null ? null : row)
+                                }}
+                              >
+                                <span className="text-lg font-light leading-none transition-transform duration-300">
+                                  +
+                                </span>
+                              </button>
+                            )
+                          })()
                         ) : (
                           <div className="flex items-center justify-center gap-2">
                             {actionProps.map((a, i) => {
@@ -714,49 +724,54 @@ const SmartTable: React.FC<SmartTableProps> = ({
       </div>
 
       {/* External Action Bar */}
-      {externalActions && selectedRow && !!actionProps.length && (
-        <div className="border-t bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 animate-slideUp">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700 mr-2">
-              Actions for Selected Row
-              {/* <strong className="text-blue-600">
+      {externalActions &&
+        selectedRow &&
+        !!actionProps.length &&
+        actionProps.some((a) => !a.hide || !a.hide(selectedRow)) && (
+          <div className="border-t bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 animate-slideUp">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-gray-700 mr-2">
+                Actions for Selected Row
+                {/* <strong className="text-blue-600">
                 {title ?? selectedRowKey}
               </strong> */}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {actionProps.map((a, i) => {
-                const isHidden = a.hide ? a.hide(selectedRow) : false
-                if (isHidden) return null
-                const isDisabled = a.disabled ? a.disabled(selectedRow) : false
-                const actionKey = `${a.title}-${selectedRowKey}`
-                const isAnimating = actionAnimation === actionKey
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {actionProps.map((a, i) => {
+                  const isHidden = a.hide ? a.hide(selectedRow) : false
+                  if (isHidden) return null
+                  const isDisabled = a.disabled
+                    ? a.disabled(selectedRow)
+                    : false
+                  const actionKey = `${a.title}-${selectedRowKey}`
+                  const isAnimating = actionAnimation === actionKey
 
-                return (
-                  <button
-                    key={i}
-                    className={`
+                  return (
+                    <button
+                      key={i}
+                      className={`
                       ${getActionVariantStyles(a.variant)}
                       ${isAnimating ? 'animate-bounce scale-110' : ''}
                       ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}
                       transition-all duration-300
                     `}
-                    title={a.toolTip || a.title}
-                    onClick={() => handleActionClick(a, selectedRow)}
-                    disabled={isDisabled}
-                  >
-                    <span
-                      className={`transition-transform duration-200 ${isAnimating ? 'rotate-12 scale-125' : ''}`}
+                      title={a.toolTip || a.title}
+                      onClick={() => handleActionClick(a, selectedRow)}
+                      disabled={isDisabled}
                     >
-                      {a.icon}
-                    </span>
-                    <span>{a.title}</span>
-                  </button>
-                )
-              })}
+                      <span
+                        className={`transition-transform duration-200 ${isAnimating ? 'rotate-12 scale-125' : ''}`}
+                      >
+                        {a.icon}
+                      </span>
+                      <span>{a.title}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {paginationView}
 
