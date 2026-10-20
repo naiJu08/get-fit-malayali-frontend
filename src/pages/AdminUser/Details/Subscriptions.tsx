@@ -425,6 +425,7 @@ export default function Subscriptions({
   const [yogaAssignOpen, setYogaAssignOpen] = useState(false)
   const [yogaReviewOpen, setYogaReviewOpen] = useState(false)
   const [selectedYogas, setSelectedYogas] = useState<any[]>([])
+  const [yogaCounts, setYogaCounts] = useState<Record<string, number>>({})
   const [yogaCategoryFilter, setYogaCategoryFilter] = useState<string>('')
   const [yogaAssigning, setYogaAssigning] = useState(false)
   const [yogaDragIndex, setYogaDragIndex] = useState<number | null>(null)
@@ -1321,6 +1322,7 @@ export default function Subscriptions({
   const toYogaSelectable = (item: any, idx?: number) => {
     const yogaId = getYogaId(item)
     if (yogaId == null) return null
+    const repsValue = Number(item?.reps ?? item?.yoga?.reps)
     return {
       ...item,
       id: yogaId,
@@ -1336,6 +1338,10 @@ export default function Subscriptions({
         item?.workout_video_url ||
         item?.workout?.video_url ||
         '',
+      reps:
+        Number.isFinite(repsValue) && repsValue > 0
+          ? repsValue
+          : (item?.reps ?? 1),
     }
   }
 
@@ -1435,12 +1441,32 @@ export default function Subscriptions({
   const toggleYogaSelected = (item: any) => {
     const normalized = toYogaSelectable(item)
     if (!normalized?.id) return
+    const key = String(normalized.id)
     userYogaSelectionTouchedRef.current = true
-    setSelectedYogas((prev) =>
-      prev.some((y) => String(y?.id) === String(normalized.id))
-        ? prev.filter((y) => String(y?.id) !== String(normalized.id))
-        : [...prev, normalized]
-    )
+    setSelectedYogas((prev) => {
+      const exists = prev.some((y) => String(y?.id) === key)
+      if (exists) {
+        setYogaCounts((counts) => {
+          const next = { ...counts }
+          delete next[key]
+          return next
+        })
+        return prev.filter((y) => String(y?.id) !== key)
+      } else {
+        const fallbackReps = (() => {
+          const direct = Number(
+            normalized?.reps ?? item?.reps ?? item?.yoga?.reps
+          )
+          if (Number.isFinite(direct) && direct > 0) return direct
+          return 1
+        })()
+        setYogaCounts((counts) => ({
+          ...counts,
+          [key]: Math.max(1, counts[key] ?? fallbackReps),
+        }))
+        return [...prev, normalized]
+      }
+    })
   }
 
   const handleYogaSelectAllVisible = () => {
@@ -1456,6 +1482,17 @@ export default function Subscriptions({
         if (!existingIds.has(key)) {
           existingIds.add(key)
           next.push(normalized)
+          const fallbackReps = (() => {
+            const direct = Number(
+              normalized?.reps ?? yoga?.reps ?? yoga?.yoga?.reps
+            )
+            if (Number.isFinite(direct) && direct > 0) return direct
+            return 1
+          })()
+          setYogaCounts((counts) => ({
+            ...counts,
+            [key]: Math.max(1, counts[key] ?? fallbackReps),
+          }))
         }
       })
       return next
@@ -1468,6 +1505,11 @@ export default function Subscriptions({
     setSelectedYogas((prev) => {
       if (!Array.isArray(yogas) || yogas.length === 0) return []
       const visibleIds = new Set(yogas.map((y: any) => String(y?.id)))
+      setYogaCounts((counts) => {
+        const next = { ...counts }
+        visibleIds.forEach((id) => delete next[id])
+        return next
+      })
       return prev.filter((item) => !visibleIds.has(String(item?.id)))
     })
   }
@@ -1906,6 +1948,48 @@ export default function Subscriptions({
     }
 
     setWorkoutCounts((prev) => ({
+      ...prev,
+      [key]: Math.max(1, (prev[key] ?? 1) + 1),
+    }))
+  }
+
+  const decrementYogaCount = (yoga: any) => {
+    const yogaId = getYogaId(yoga) ?? yoga?.id
+    if (yogaId == null) return
+    const key = String(yogaId)
+    userYogaSelectionTouchedRef.current = true
+    if (!selectedYogas.some((y) => String(getYogaId(y) ?? y?.id) === key))
+      return
+
+    setYogaCounts((prev) => {
+      const current = prev[key] ?? 1
+      if (current <= 1) return prev
+      return {
+        ...prev,
+        [key]: Math.max(1, current - 1),
+      }
+    })
+  }
+
+  const incrementYogaCount = (yoga: any) => {
+    const yogaId = getYogaId(yoga) ?? yoga?.id
+    if (yogaId == null) return
+    const key = String(yogaId)
+    userYogaSelectionTouchedRef.current = true
+
+    if (!selectedYogas.some((y) => String(getYogaId(y) ?? y?.id) === key)) {
+      const normalized = toYogaSelectable(yoga)
+      if (normalized) {
+        setSelectedYogas((prev) => [...prev, normalized])
+      }
+      setYogaCounts((prev) => ({
+        ...prev,
+        [key]: 1,
+      }))
+      return
+    }
+
+    setYogaCounts((prev) => ({
       ...prev,
       [key]: Math.max(1, (prev[key] ?? 1) + 1),
     }))
@@ -3139,13 +3223,19 @@ export default function Subscriptions({
           ? dayDetail.yoga_exercises
           : []
 
+    const initialCounts: Record<string, number> = {}
+
     if (dayExercises.length > 0) {
       dayExercises.forEach((ex: any, idx: number) => {
         const normalized = toYogaSelectable(ex, idx)
         if (!normalized?.id || map.has(normalized.id)) return
         map.set(normalized.id, normalized)
+        const repsVal = Number(ex?.reps ?? ex?.yoga?.reps)
+        initialCounts[String(normalized.id)] =
+          Number.isFinite(repsVal) && repsVal > 0 ? repsVal : 1
       })
     }
+    setYogaCounts(initialCounts)
     setSelectedYogas(Array.from(map.values()))
     yogaSelectionPrefilledRef.current = true
   }, [
@@ -3154,6 +3244,30 @@ export default function Subscriptions({
     dayDetail?.yoga_exercises,
     yogaAssignOpen,
   ])
+
+  useEffect(() => {
+    if (!Array.isArray(selectedYogas) || selectedYogas.length === 0) {
+      if (Object.keys(yogaCounts).length === 0) return
+      setYogaCounts({})
+      return
+    }
+
+    setYogaCounts((prev) => {
+      const next: Record<string, number> = {}
+      selectedYogas.forEach((y: any) => {
+        const id = getYogaId(y) ?? y?.id
+        if (id == null) return
+        const key = String(id)
+        const fallbackReps = (() => {
+          const direct = Number(y?.reps ?? y?.yoga?.reps)
+          if (Number.isFinite(direct) && direct > 0) return direct
+          return 1
+        })()
+        next[key] = Math.max(1, prev[key] ?? fallbackReps ?? 1)
+      })
+      return next
+    })
+  }, [selectedYogas])
 
   useEffect(() => {
     yogaSelectionPrefilledRef.current = false
@@ -3195,6 +3309,7 @@ export default function Subscriptions({
       setYogaAssignOpen(false)
       setYogaReviewOpen(false)
       setSelectedYogas([])
+      setYogaCounts({})
       yogaSelectionPrefilledRef.current = false
       setYogaDragIndex(null)
       setYogaDragGroup(null)
@@ -3494,15 +3609,22 @@ export default function Subscriptions({
     try {
       const exercisesPayload = selectedYogas.reduce(
         (
-          acc: { yoga_id: number | string; sequence_number: number }[],
+          acc: {
+            yoga_id: number | string
+            sequence_number: number
+            reps: number
+          }[],
           item: any,
           idx: number
         ) => {
           const yogaId = getYogaId(item)
           if (!yogaId) return acc
+          const key = String(yogaId)
+          const reps = Math.max(1, yogaCounts[key] ?? item?.reps ?? 1)
           acc.push({
             yoga_id: yogaId,
             sequence_number: idx + 1,
+            reps,
           })
           return acc
         },
@@ -3520,6 +3642,7 @@ export default function Subscriptions({
         exercises: Array<{
           yoga_id: number | string
           sequence_number: number
+          reps: number
         }>
       } = {
         day_number:
@@ -3543,6 +3666,7 @@ export default function Subscriptions({
 
       await refreshDayDetail()
       setSelectedYogas([])
+      setYogaCounts({})
       setSelectedYogaCategoryIds([])
       setSelectedYogaSubcategories([])
       setYogaCategoryFilter('')
@@ -5514,6 +5638,7 @@ export default function Subscriptions({
           setSelectedYogaCategoryIds([])
           setSelectedYogaSubcategories([])
           setSelectedYogas([])
+          setYogaCounts({})
           yogaSelectionPrefilledRef.current = false
           yogaPrefillAppliedRef.current = false
           lastYogaPrefillSignatureRef.current = ''
@@ -5803,6 +5928,13 @@ export default function Subscriptions({
                           const embed = getEmbedUrl(url)
                           const checked = isYogaSelected(y?.id)
                           const durationLabel = getYogaDurationLabel(y)
+                          const yogaId = getYogaId(y) ?? y?.id
+                          const count =
+                            yogaId != null
+                              ? (yogaCounts[String(yogaId)] ??
+                                (checked ? 1 : 0))
+                              : 0
+                          const canAdjust = checked && yogaId != null
                           return (
                             <div
                               key={y?.id}
@@ -5841,15 +5973,10 @@ export default function Subscriptions({
                                 )}
 
                                 <div className="absolute top-2 right-2 flex flex-wrap gap-1 text-[11px]">
-                                  {y?.reps ? (
-                                    <span className="items-center gap-1 rounded-sm bg-blue-600/90 text-white px-2 py-0.5 font-semibold backdrop-blur">
-                                      <Icons
-                                        name="repeat"
-                                        className="w-3 h-3"
-                                      />
-                                      {y.reps}
-                                    </span>
-                                  ) : null}
+                                  <span className="inline-flex items-center gap-1 rounded-sm bg-blue-600/90 text-white px-2 py-0.5 font-semibold backdrop-blur">
+                                    <Icons name="repeat" className="w-3 h-3" />
+                                    {count > 0 ? count : (y?.reps ?? '--')}
+                                  </span>
                                   <span className="items-center gap-1 rounded-sm bg-amber-500 text-white px-2 py-0.5 font-medium backdrop-blur">
                                     <Icons
                                       name="activity"
@@ -5866,16 +5993,48 @@ export default function Subscriptions({
                                 </div>
                               </div>
 
-                              <div className="px-2 py-2 text-xs flex items-center justify-between gap-2">
-                                <div className="font-medium line-clamp-1 flex-1">
-                                  {formatYogaName(y?.name || y?.title)}
+                              <div className="px-3 py-2 text-sm flex flex-col gap-2">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="font-medium line-clamp-1 flex-1 text-left">
+                                    {formatYogaName(y?.name || y?.title)}
+                                  </div>
+                                  <input
+                                    type="checkbox"
+                                    className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer shrink-0"
+                                    checked={checked}
+                                    onChange={() => toggleYogaSelected(y)}
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
                                 </div>
-                                <input
-                                  type="checkbox"
-                                  className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer shrink-0"
-                                  checked={checked}
-                                  onChange={() => toggleYogaSelected(y)}
-                                />
+                                <div className="flex items-center gap-2 justify-center">
+                                  <button
+                                    type="button"
+                                    className="w-7 h-7 border rounded flex items-center justify-center text-lg leading-none disabled:opacity-40 disabled:cursor-not-allowed"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      e.preventDefault()
+                                      decrementYogaCount(y)
+                                    }}
+                                    disabled={!canAdjust || count <= 1}
+                                  >
+                                    −
+                                  </button>
+                                  <span className="text-base font-semibold w-5 text-center">
+                                    {count}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    className="w-7 h-7 border rounded flex items-center justify-center text-lg leading-none disabled:opacity-40 disabled:cursor-not-allowed"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      e.preventDefault()
+                                      incrementYogaCount(y)
+                                    }}
+                                    disabled={!canAdjust}
+                                  >
+                                    +
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )
@@ -5955,6 +6114,12 @@ export default function Subscriptions({
                                 {index + 1}.{' '}
                                 {formatYogaName(y?.name || y?.title)}
                               </span>
+                              {yogaCounts[String(getYogaId(y) ?? y?.id)] ? (
+                                <span className="text-xs font-normal text-gray-500 whitespace-nowrap">
+                                  {yogaCounts[String(getYogaId(y) ?? y?.id)]}{' '}
+                                  reps
+                                </span>
+                              ) : null}
                             </div>
 
                             {embed ? (
@@ -6608,6 +6773,7 @@ export default function Subscriptions({
                 setWpPage(1)
               }}
               onEditYogaPlan={() => {
+                yogaSelectionPrefilledRef.current = false
                 setYogaDragIndex(null)
                 setYogaDragGroup(null)
                 setYogaReviewOpen(false)

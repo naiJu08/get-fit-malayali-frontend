@@ -78,6 +78,7 @@ export const yogaOverridesBulk = (
     exercises: Array<{
       yoga_id: number | string
       sequence_number: number
+      reps?: number
     }>
   }
 ) => {
