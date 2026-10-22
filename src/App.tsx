@@ -10,6 +10,7 @@ import { useDomainManageStore } from './store/domainManageStore'
 // import useIdleTimeout from './utilities/idleTimer'
 import { useThemeStore } from './store/themeStore'
 // import useActivityTracker from './utilities/activitytracker'
+import { getErrorMessage } from './utilities/parsers'
 import {
   useReloadOnStorageChange,
   useTabVisibility,
@@ -72,6 +73,90 @@ const App = () => {
     return () => {
       window.removeEventListener('show-snackbar', handleShowSnackbar)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enqueueSnackbar])
+
+  // Legacy/fallback handler: return true from window.onerror for specific noisy errors
+  useEffect(() => {
+    const originalOnError = window.onerror
+    window.onerror = function (
+      message: any,
+      _source,
+      _lineno,
+      _colno,
+      error: any
+    ) {
+      const msgText = String(message || '')
+      const isResizeObserverIssue =
+        msgText.includes('ResizeObserver loop limit exceeded') ||
+        msgText.includes(
+          'ResizeObserver loop completed with undelivered notifications'
+        )
+      const isAxios = !!(error && (error.isAxiosError || error?.response))
+      const looksAxiosMsg = msgText.includes('Request failed with status code')
+      if (isResizeObserverIssue || isAxios || looksAxiosMsg) {
+        // Swallow; snackbar already handled elsewhere
+        return true
+      }
+      return originalOnError
+        ? originalOnError(message, _source, _lineno, _colno, error)
+        : false
+    }
+    return () => {
+      window.onerror = originalOnError || null
+    }
+  }, [enqueueSnackbar])
+
+  // Suppress unhandled promise rejection overlays (e.g., Axios 4xx/5xx)
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      // Prevent default error overlay
+      event.preventDefault()
+      try {
+        const reason: any = event.reason
+        const msg = getErrorMessage(reason)
+        enqueueSnackbar(msg, { variant: 'error' })
+      } catch {
+        // enqueueSnackbar('Request failed', { variant: 'error' })
+      }
+    }
+    window.addEventListener('unhandledrejection', handleUnhandledRejection)
+    return () =>
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enqueueSnackbar])
+
+  // Suppress Axios errors that bubble to 'error' event and show snackbar instead
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      const err: any = event?.error
+      const msgText = String(event?.message || '')
+      const isResizeObserverIssue =
+        msgText.includes('ResizeObserver loop limit exceeded') ||
+        msgText.includes(
+          'ResizeObserver loop completed with undelivered notifications'
+        )
+      if (isResizeObserverIssue) {
+        // Ignore noisy ResizeObserver errors
+        event.preventDefault()
+        return
+      }
+      const isAxios = !!(err && (err.isAxiosError || err?.response))
+      const looksAxiosMsg = msgText.includes('Request failed with status code')
+      if (isAxios || looksAxiosMsg) {
+        event.preventDefault()
+        try {
+          const msg = getErrorMessage(err || msgText)
+          enqueueSnackbar(msg, { variant: 'error' })
+        } catch {
+          enqueueSnackbar('Request failed', { variant: 'error' })
+        }
+        return
+      }
+    }
+    window.addEventListener('error', handleError, { capture: true })
+    return () =>
+      window.removeEventListener('error', handleError, { capture: true } as any)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enqueueSnackbar])
 

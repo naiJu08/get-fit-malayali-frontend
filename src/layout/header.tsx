@@ -36,6 +36,8 @@ export function stringAvatar(name: string) {
   }
 }
 
+import { queryClient } from '../queryClient'
+
 export default function Header() {
   const {
     clearAuthenticated,
@@ -48,18 +50,18 @@ export default function Header() {
   const [isOpen, setIsOpen] = useState<boolean>(false)
   const handleClear = useClearFilter()
 
-  // const [notificationSearch, setNotificationSearch] = useState({
-  //   page_size: 30,
-  //   page: 1,
-  // })
   const toggle = () => {
     setIsOpen((old) => !old)
   }
   const transClass = isOpen ? 'flex' : 'hidden'
-  // const [notificationData, setNotificationData] = useState<any>([])
-  // const [notificationCount, setNotificationCount] = useState<number>(0)
-  // const [notificationFilter, setNotificationFilter] = useState<any>()
+
   const handleLogout = () => {
+    try {
+      queryClient.clear()
+      queryClient.removeQueries()
+    } catch (e) {
+      // ignore
+    }
     setActualUser({})
     setImpersonating(false)
     localStorage.setItem('shouldReload', 'false')
