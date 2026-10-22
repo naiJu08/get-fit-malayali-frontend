@@ -2069,18 +2069,16 @@ export default function UserDetails() {
             )}
 
             {/* Follow-ups */}
-            {detailRole === 'user' &&
-              canAccessFollowUps &&
-              workflowAssignment && (
-                <Tab id="follow-ups">
-                  <ClientWorkflowFollowUps
-                    assignment={workflowAssignment}
-                    assignmentId={workflowAssignment.id}
-                    onRefresh={() => refetchWorkflow()}
-                    readOnly={isClientDeactivated}
-                  />
-                </Tab>
-              )}
+            {detailRole === 'user' && canAccessFollowUps && (
+              <Tab id="follow-ups">
+                <ClientWorkflowFollowUps
+                  assignment={workflowAssignment}
+                  assignmentId={workflowAssignment?.id}
+                  onRefresh={() => refetchWorkflow()}
+                  readOnly={isClientDeactivated || !workflowAssignment?.id}
+                />
+              </Tab>
+            )}
 
             {/* Packages */}
             {detailRole === 'user' &&

@@ -1078,7 +1078,7 @@ export function ClientWorkflowFollowUps({
           toolbar
           columnToggle
           height={calcWindowHeight(
-            (assignment.follow_ups || []).length ? 450 : 500
+            (assignment?.follow_ups || []).length ? 390 : 420
           )}
           emptyTitle="No follow-ups scheduled"
         />
