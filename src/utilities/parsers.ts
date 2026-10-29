@@ -33,6 +33,13 @@ export const getErrorMessage = (error: any): string => {
     return 'An unexpected error occurred'
   }
   if (typeof error === 'string') {
+    if (
+      error.trim().startsWith('<!DOCTYPE html>') ||
+      error.includes('<html') ||
+      error.includes('rails-default-error-page')
+    ) {
+      return 'The requested resource was not found'
+    }
     if (error.startsWith('Request failed with status code')) {
       return 'An error occurred while processing your request'
     }

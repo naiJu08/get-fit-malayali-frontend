@@ -19,6 +19,16 @@ import WorkoutTemplateAssign from '../../WorkoutTemplate/Assign'
 import YogaTemplateAssign from '../../YogaTemplate/Assign'
 import { useAuthStore } from '../../../store/authStore'
 import DayDietEditorDrawer from './DayDietEditorDrawer'
+import {
+  ExerciseThumbnail,
+  WorkoutVideoModal,
+  WorkoutExerciseItem,
+  ExerciseProgress,
+  loadLocalProgress,
+  isCurrentDay,
+  isExerciseCompleted,
+  getExerciseLockState,
+} from './WorkoutPlayer'
 
 interface DayDetailTabsSectionProps {
   dayDetail: any
@@ -151,6 +161,28 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     dayDetail?.subscription?.user_id ??
     selectedMealTiming?.user_id ??
     null
+
+  // ── Workout & Yoga Player State ──
+  const [localProgressMap, setLocalProgressMap] = useState<
+    Record<string, ExerciseProgress>
+  >({})
+  const [playerModalOpen, setPlayerModalOpen] = useState(false)
+  const [activePlayerExercises, setActivePlayerExercises] = useState<
+    WorkoutExerciseItem[]
+  >([])
+  const [activePlayerIndex, setActivePlayerIndex] = useState(0)
+  const [isPlayerWorkoutMode, setIsPlayerWorkoutMode] = useState(false)
+
+  const isToday = useMemo(() => {
+    return isCurrentDay(dayDetail?.date)
+  }, [dayDetail?.date])
+
+  useEffect(() => {
+    if (dayDetail?.date) {
+      const loaded = loadLocalProgress(userId, dayDetail.date)
+      setLocalProgressMap(loaded)
+    }
+  }, [userId, dayDetail?.date])
 
   const mealTimeForm = useForm<{ time: string; meal_time: string }>({
     mode: 'onChange',
@@ -946,16 +978,25 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     ? dayDetail.workout_plan.exercises
                     : []
                   const totalCount = exs.length
-                  const doneCount = exs.filter(
-                    (e: any) =>
-                      String(e?.actions?.status || '').toLowerCase() ===
-                      'completed'
+                  const doneCount = exs.filter((e: any) =>
+                    isExerciseCompleted(
+                      e?.actions,
+                      localProgressMap[String(e?.id)]
+                    )
                   ).length
-                  const inProgressCount = exs.filter(
-                    (e: any) =>
+                  const inProgressCount = exs.filter((e: any) => {
+                    const isDone = isExerciseCompleted(
+                      e?.actions,
+                      localProgressMap[String(e?.id)]
+                    )
+                    if (isDone) return false
+                    const p = localProgressMap[String(e?.id)]
+                    return (
                       String(e?.actions?.status || '').toLowerCase() ===
-                      'in_progress'
-                  ).length
+                        'in_progress' ||
+                      (p?.watchedPercentage != null && p.watchedPercentage > 0)
+                    )
+                  }).length
                   const progressPct =
                     totalCount > 0
                       ? Math.round((doneCount / totalCount) * 100)
@@ -1190,11 +1231,21 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                           ''
                       )
 
+                      const thumbnailUrl =
+                        ex?.thumbnail_url ??
+                        ex?.workout?.thumbnail_url ??
+                        canonical?.thumbnail_url ??
+                        ex?.thumbnail ??
+                        ex?.workout?.thumbnail ??
+                        canonical?.thumbnail ??
+                        null
+
                       return {
                         catName,
                         subName,
                         workoutName,
                         videoUrl,
+                        thumbnailUrl,
                         reps,
                         sets,
                         durationMin,
@@ -1204,13 +1255,41 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       }
                     }
 
-                    // Group by resolved category & subcategory
+                    // Flatten normalized items for linear player sequence
+                    const flatWorkoutItems: WorkoutExerciseItem[] = exs.map(
+                      (ex: any, idx: number) => {
+                        const meta = getWorkoutMeta(ex)
+                        return {
+                          id: ex?.id ?? idx,
+                          workoutId:
+                            ex?.workout_id || ex?.workout?.id || ex?.id,
+                          workoutName: meta.workoutName,
+                          catName: meta.catName,
+                          subName: meta.subName,
+                          videoUrl: meta.videoUrl,
+                          thumbnailUrl: meta.thumbnailUrl,
+                          reps: meta.reps,
+                          sets: meta.sets,
+                          durationMin: meta.durationMin,
+                          intensity: meta.intensity,
+                          exerciseType: meta.exerciseType,
+                          action: meta.action,
+                          linearIndex: idx,
+                          rawExercise: ex,
+                        }
+                      }
+                    )
+
+                    // Group by resolved category & subcategory preserving linear order
                     const grouped: Record<
                       string,
-                      { groupKey: string; items: any[] }
+                      {
+                        groupKey: string
+                        items: { ex: any; linearIndex: number }[]
+                      }
                     > = {}
 
-                    exs.forEach((ex: any) => {
+                    exs.forEach((ex: any, linearIndex: number) => {
                       const meta = getWorkoutMeta(ex)
                       const groupKey = formatCategoryGroupTitle(
                         meta.catName,
@@ -1221,7 +1300,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       if (!grouped[groupKey]) {
                         grouped[groupKey] = { groupKey, items: [] }
                       }
-                      grouped[groupKey].items.push(ex)
+                      grouped[groupKey].items.push({ ex, linearIndex })
                     })
 
                     const groupList = Object.values(grouped)
@@ -1276,10 +1355,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       <div className="flex flex-col gap-3">
                         {groupList.map(({ groupKey, items }, gi) => {
                           const col = groupColors[gi % groupColors.length]
-                          const groupDone = items.filter(
-                            (e: any) =>
-                              String(e?.actions?.status || '').toLowerCase() ===
-                              'completed'
+                          const groupDone = items.filter(({ ex }) =>
+                            isExerciseCompleted(
+                              ex?.actions,
+                              localProgressMap[String(ex?.id)]
+                            )
                           ).length
 
                           return (
@@ -1308,197 +1388,247 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                 </span>
                               </div>
 
-                              {/* Exercise Cards */}
+                              {/* Exercise Cards with Video Thumbnails */}
                               <div className="divide-y divide-gray-100">
-                                {items.map((ex: any, exIdx: number) => {
-                                  const meta = getWorkoutMeta(ex)
-                                  const action = meta.action
-                                  const status = String(
-                                    action?.status || ''
-                                  ).toLowerCase()
-                                  const isCompleted = status === 'completed'
-                                  const isMissed =
-                                    status === 'missed' || status === 'failed'
-                                  const isInProgress = status === 'in_progress'
-                                  const hasVideo = !!meta.videoUrl
-                                  const watchPct =
-                                    action?.video_watch_percentage != null
-                                      ? Number(action.video_watch_percentage)
-                                      : null
-                                  const isVideoBased =
-                                    hasVideo && !meta.reps && !meta.sets
+                                {items.map(
+                                  (
+                                    {
+                                      ex,
+                                      linearIndex,
+                                    }: { ex: any; linearIndex: number },
+                                    exIdx: number
+                                  ) => {
+                                    const meta = getWorkoutMeta(ex)
+                                    const action = meta.action
+                                    const progress =
+                                      localProgressMap[String(ex?.id)]
+                                    const isCompleted = isExerciseCompleted(
+                                      action,
+                                      progress
+                                    )
+                                    const backendStatus = String(
+                                      action?.status || ''
+                                    ).toLowerCase()
+                                    const isMissed =
+                                      backendStatus === 'missed' ||
+                                      backendStatus === 'failed'
+                                    const isInProgress =
+                                      !isCompleted &&
+                                      (backendStatus === 'in_progress' ||
+                                        (progress?.watchedPercentage != null &&
+                                          progress.watchedPercentage > 0))
+                                    const displayStatus = isCompleted
+                                      ? 'completed'
+                                      : isMissed
+                                        ? backendStatus
+                                        : isInProgress
+                                          ? 'in_progress'
+                                          : backendStatus
 
-                                  // Status pill
-                                  const statusPill = isCompleted
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : isMissed
-                                      ? 'bg-red-50 text-red-700 border-red-200'
-                                      : isInProgress
-                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                        : status
-                                          ? 'bg-slate-50 text-slate-600 border-slate-200'
-                                          : ''
+                                    const watchPct = isCompleted
+                                      ? 100
+                                      : progress?.watchedPercentage != null
+                                        ? Math.round(progress.watchedPercentage)
+                                        : action?.video_watch_percentage != null
+                                          ? Number(
+                                              action.video_watch_percentage
+                                            )
+                                          : null
 
-                                  // Status left accent bar
-                                  const leftAccent = isCompleted
-                                    ? 'border-l-[3px] border-l-emerald-500'
-                                    : isMissed
-                                      ? 'border-l-[3px] border-l-red-500'
-                                      : isInProgress
-                                        ? 'border-l-[3px] border-l-amber-500'
-                                        : 'border-l-[3px] border-l-gray-300'
+                                    // Locking conditions:
+                                    // - Videos can be played only for current day
+                                    // - Card with no video_url is locked
+                                    // - First exercise available immediately
+                                    // - Later exercises unlock only after previous completed
+                                    // - Completed exercises remain unlocked even when replayed
+                                    const lockState = getExerciseLockState({
+                                      dateStr: dayDetail?.date,
+                                      isToday,
+                                      hasVideoUrl: !!meta.videoUrl,
+                                      linearIndex,
+                                      flatExercises: flatWorkoutItems,
+                                      localProgressMap,
+                                    })
 
-                                  return (
-                                    <div
-                                      key={`${ex?.id}-${exIdx}`}
-                                      className={`bg-white px-3.5 py-2.5 ${leftAccent} hover:bg-slate-50/50 transition-colors`}
-                                    >
-                                      {/* Top row: name + status */}
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
-                                          <span className="text-[12px] font-semibold text-gray-800 leading-tight">
-                                            {meta.workoutName}
-                                          </span>
-                                          {meta.exerciseType && (
-                                            <span className="text-[9px] bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.2 rounded font-medium">
-                                              {meta.exerciseType}
-                                            </span>
+                                    // Status pill
+                                    const statusPill = isCompleted
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : isMissed
+                                        ? 'bg-red-50 text-red-700 border-red-200'
+                                        : isInProgress
+                                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                          : displayStatus
+                                            ? 'bg-slate-50 text-slate-600 border-slate-200'
+                                            : ''
+
+                                    // Status left accent bar
+                                    const leftAccent = isCompleted
+                                      ? 'border-l-[3px] border-l-emerald-500'
+                                      : isMissed
+                                        ? 'border-l-[3px] border-l-red-500'
+                                        : isInProgress
+                                          ? 'border-l-[3px] border-l-amber-500'
+                                          : 'border-l-[3px] border-l-gray-300'
+
+                                    return (
+                                      <div
+                                        key={`${ex?.id}-${exIdx}`}
+                                        className={`bg-white px-3.5 py-2.5 ${leftAccent} hover:bg-slate-50/50 transition-colors flex items-start gap-3`}
+                                      >
+                                        {/* Video Thumbnail (replaces plain text link tab) */}
+                                        <ExerciseThumbnail
+                                          thumbnailUrl={meta.thumbnailUrl}
+                                          videoUrl={meta.videoUrl}
+                                          title={meta.workoutName}
+                                          durationText={meta.durationMin}
+                                          isLocked={lockState.isLocked}
+                                          lockReason={lockState.reason}
+                                          isCompleted={isCompleted}
+                                          onPlay={() => {
+                                            setActivePlayerExercises(
+                                              flatWorkoutItems
+                                            )
+                                            setActivePlayerIndex(linearIndex)
+                                            setIsPlayerWorkoutMode(false)
+                                            setPlayerModalOpen(true)
+                                          }}
+                                          onLockedClick={(reason) => {
+                                            enqueueSnackbar(reason, {
+                                              variant: 'info',
+                                            })
+                                          }}
+                                        />
+
+                                        {/* Exercise Details & Badges */}
+                                        <div className="flex-1 min-w-0">
+                                          {/* Top row: name + status */}
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+                                              <span className="text-[12px] font-semibold text-gray-800 leading-tight">
+                                                {meta.workoutName}
+                                              </span>
+                                              {meta.exerciseType && (
+                                                <span className="text-[9px] bg-slate-100 text-slate-600 border border-slate-200 px-1.5 py-0.2 rounded font-medium">
+                                                  {meta.exerciseType}
+                                                </span>
+                                              )}
+                                            </div>
+                                            {displayStatus && (
+                                              <span
+                                                className={`shrink-0 text-[9px] font-semibold border rounded-full px-2 py-0.5 capitalize ${statusPill}`}
+                                              >
+                                                {isCompleted && '✓ '}
+                                                {isInProgress && '⏳ '}
+                                                {isMissed && '✕ '}
+                                                {displayStatus.replace(
+                                                  /_/g,
+                                                  ' '
+                                                )}
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          {/* Tags row: compact micro-badges */}
+                                          <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                                            {/* Video watch % */}
+                                            {watchPct != null && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                                👁 {watchPct}% watched
+                                              </span>
+                                            )}
+
+                                            {/* Reps */}
+                                            {meta.reps != null && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                                <span>🔁</span>
+                                                <span>{meta.reps} reps</span>
+                                              </span>
+                                            )}
+
+                                            {/* Sets */}
+                                            {meta.sets != null && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                                <span>📦</span>
+                                                <span>{meta.sets} sets</span>
+                                              </span>
+                                            )}
+
+                                            {/* Duration */}
+                                            {meta.durationMin != null && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-teal-50 text-teal-700 border border-teal-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                                <span>⏱</span>
+                                                <span>{meta.durationMin}m</span>
+                                              </span>
+                                            )}
+
+                                            {/* Intensity */}
+                                            {meta.intensity && (
+                                              <span
+                                                className={`inline-flex items-center gap-0.5 text-[9px] font-semibold border rounded px-1.5 py-0.5 shadow-2xs ${
+                                                  meta.intensity.toLowerCase() ===
+                                                  'high'
+                                                    ? 'bg-red-50 text-red-700 border-red-200'
+                                                    : meta.intensity.toLowerCase() ===
+                                                        'moderate'
+                                                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                }`}
+                                              >
+                                                <span>⚡</span>
+                                                <span>{meta.intensity}</span>
+                                              </span>
+                                            )}
+
+                                            {/* Completed timestamp */}
+                                            {(action?.completed_at ||
+                                              progress?.completedAt) && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-500 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5">
+                                                <span className="text-emerald-500 font-bold">
+                                                  ✓
+                                                </span>
+                                                <span>
+                                                  {new Date(
+                                                    action?.completed_at ||
+                                                      progress?.completedAt ||
+                                                      ''
+                                                  ).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                  })}
+                                                </span>
+                                              </span>
+                                            )}
+
+                                            {/* Notes */}
+                                            {action?.notes && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-600 bg-amber-50/60 border border-amber-200/60 rounded px-1.5 py-0.5 italic">
+                                                <span>💬</span>
+                                                <span>
+                                                  &ldquo;{action.notes}&rdquo;
+                                                </span>
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          {/* Video watch progress bar */}
+                                          {watchPct != null && watchPct > 0 && (
+                                            <div className="mt-1.5 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                              <div
+                                                className="h-full bg-indigo-500 rounded-full transition-all duration-300"
+                                                style={{
+                                                  width: `${Math.min(
+                                                    watchPct,
+                                                    100
+                                                  )}%`,
+                                                }}
+                                              />
+                                            </div>
                                           )}
                                         </div>
-                                        {status && (
-                                          <span
-                                            className={`shrink-0 text-[9px] font-semibold border rounded-full px-2 py-0.5 capitalize ${statusPill}`}
-                                          >
-                                            {isCompleted && '✓ '}
-                                            {isInProgress && '⏳ '}
-                                            {isMissed && '✕ '}
-                                            {status.replace(/_/g, ' ')}
-                                          </span>
-                                        )}
                                       </div>
-
-                                      {/* Tags row: compact micro-badges */}
-                                      <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                                        {/* Video link */}
-                                        {hasVideo && (
-                                          <a
-                                            href={meta.videoUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex items-center gap-1 text-[9px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 rounded px-1.5 py-0.5 hover:bg-blue-100 hover:border-blue-300 transition-colors shadow-2xs"
-                                          >
-                                            <svg
-                                              className="w-2.5 h-2.5 fill-blue-600"
-                                              viewBox="0 0 20 20"
-                                            >
-                                              <path d="M2 6a2 2 0 012-2h6l2 2h4a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                              <path
-                                                fill="white"
-                                                d="M10 9l3 2-3 2V9z"
-                                              />
-                                            </svg>
-                                            <span>
-                                              {isVideoBased
-                                                ? 'Video-based'
-                                                : 'Video'}
-                                            </span>
-                                          </a>
-                                        )}
-
-                                        {/* Video watch % */}
-                                        {watchPct != null && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                            👁 {watchPct}% watched
-                                          </span>
-                                        )}
-
-                                        {/* Reps */}
-                                        {meta.reps != null && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                            <span>🔁</span>
-                                            <span>{meta.reps} reps</span>
-                                          </span>
-                                        )}
-
-                                        {/* Sets */}
-                                        {meta.sets != null && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-sky-50 text-sky-700 border border-sky-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                            <span>📦</span>
-                                            <span>{meta.sets} sets</span>
-                                          </span>
-                                        )}
-
-                                        {/* Duration */}
-                                        {meta.durationMin != null && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-teal-50 text-teal-700 border border-teal-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                            <span>⏱</span>
-                                            <span>{meta.durationMin}m</span>
-                                          </span>
-                                        )}
-
-                                        {/* Intensity */}
-                                        {meta.intensity && (
-                                          <span
-                                            className={`inline-flex items-center gap-0.5 text-[9px] font-semibold border rounded px-1.5 py-0.5 shadow-2xs ${
-                                              meta.intensity.toLowerCase() ===
-                                              'high'
-                                                ? 'bg-red-50 text-red-700 border-red-200'
-                                                : meta.intensity.toLowerCase() ===
-                                                    'moderate'
-                                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                            }`}
-                                          >
-                                            <span>⚡</span>
-                                            <span>{meta.intensity}</span>
-                                          </span>
-                                        )}
-
-                                        {/* Completed timestamp */}
-                                        {action?.completed_at && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-500 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5">
-                                            <span className="text-emerald-500 font-bold">
-                                              ✓
-                                            </span>
-                                            <span>
-                                              {new Date(
-                                                action.completed_at
-                                              ).toLocaleTimeString([], {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                              })}
-                                            </span>
-                                          </span>
-                                        )}
-
-                                        {/* Notes */}
-                                        {action?.notes && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-600 bg-amber-50/60 border border-amber-200/60 rounded px-1.5 py-0.5 italic">
-                                            <span>💬</span>
-                                            <span>
-                                              &ldquo;{action.notes}&rdquo;
-                                            </span>
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      {/* Video watch progress bar */}
-                                      {watchPct != null && watchPct > 0 && (
-                                        <div className="mt-1.5 h-1 bg-gray-100 rounded-full overflow-hidden">
-                                          <div
-                                            className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-                                            style={{
-                                              width: `${Math.min(
-                                                watchPct,
-                                                100
-                                              )}%`,
-                                            }}
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  )
-                                })}
+                                    )
+                                  }
+                                )}
                               </div>
                             </div>
                           )
@@ -1544,16 +1674,25 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                         ? dayDetail.yoga_exercises
                         : []
                   const totalCount = yexs.length
-                  const doneCount = yexs.filter(
-                    (e: any) =>
-                      String(e?.actions?.status || '').toLowerCase() ===
-                      'completed'
+                  const doneCount = yexs.filter((e: any) =>
+                    isExerciseCompleted(
+                      e?.actions,
+                      localProgressMap[String(e?.id)]
+                    )
                   ).length
-                  const inProgressCount = yexs.filter(
-                    (e: any) =>
+                  const inProgressCount = yexs.filter((e: any) => {
+                    const isDone = isExerciseCompleted(
+                      e?.actions,
+                      localProgressMap[String(e?.id)]
+                    )
+                    if (isDone) return false
+                    const p = localProgressMap[String(e?.id)]
+                    return (
                       String(e?.actions?.status || '').toLowerCase() ===
-                      'in_progress'
-                  ).length
+                        'in_progress' ||
+                      (p?.watchedPercentage != null && p.watchedPercentage > 0)
+                    )
+                  }).length
                   const progressPct =
                     totalCount > 0
                       ? Math.round((doneCount / totalCount) * 100)
@@ -1797,11 +1936,21 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                         canonical?.hold_seconds ??
                         null
 
+                      const thumbnailUrl =
+                        exercise?.thumbnail_url ??
+                        exercise?.yoga?.thumbnail_url ??
+                        canonical?.thumbnail_url ??
+                        exercise?.thumbnail ??
+                        exercise?.yoga?.thumbnail ??
+                        canonical?.thumbnail ??
+                        null
+
                       return {
                         catName,
                         subName,
                         yogaName,
                         videoUrl,
+                        thumbnailUrl,
                         durationMin,
                         intensity,
                         yogaType,
@@ -1812,13 +1961,43 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       }
                     }
 
-                    // Group by resolved category & subcategory
+                    // Flatten normalized items for linear player sequence
+                    const flatYogaItems: WorkoutExerciseItem[] = yexs.map(
+                      (exercise: any, idx: number) => {
+                        const meta = getYogaMeta(exercise)
+                        return {
+                          id: exercise?.id ?? idx,
+                          workoutId:
+                            exercise?.yoga_id ||
+                            exercise?.yoga?.id ||
+                            exercise?.id,
+                          workoutName: meta.yogaName,
+                          catName: meta.catName,
+                          subName: meta.subName,
+                          videoUrl: meta.videoUrl,
+                          thumbnailUrl: meta.thumbnailUrl,
+                          reps: meta.reps,
+                          sets: meta.rounds,
+                          durationMin: meta.durationMin,
+                          intensity: meta.intensity,
+                          exerciseType: meta.yogaType,
+                          action: meta.action,
+                          linearIndex: idx,
+                          rawExercise: exercise,
+                        }
+                      }
+                    )
+
+                    // Group by resolved category & subcategory preserving order
                     const yogaGrouped: Record<
                       string,
-                      { groupKey: string; items: any[] }
+                      {
+                        groupKey: string
+                        items: { ex: any; linearIndex: number }[]
+                      }
                     > = {}
 
-                    yexs.forEach((ex: any) => {
+                    yexs.forEach((ex: any, linearIndex: number) => {
                       const meta = getYogaMeta(ex)
                       const groupKey = formatCategoryGroupTitle(
                         meta.catName,
@@ -1829,7 +2008,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       if (!yogaGrouped[groupKey]) {
                         yogaGrouped[groupKey] = { groupKey, items: [] }
                       }
-                      yogaGrouped[groupKey].items.push(ex)
+                      yogaGrouped[groupKey].items.push({ ex, linearIndex })
                     })
 
                     const yogaGroupList = Object.values(yogaGrouped)
@@ -1884,10 +2063,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                         {yogaGroupList.map(({ groupKey, items }, gi) => {
                           const col =
                             yogaGroupColors[gi % yogaGroupColors.length]
-                          const gDone = items.filter(
-                            (e: any) =>
-                              String(e?.actions?.status || '').toLowerCase() ===
-                              'completed'
+                          const gDone = items.filter(({ ex }) =>
+                            isExerciseCompleted(
+                              ex?.actions,
+                              localProgressMap[String(ex?.id)]
+                            )
                           ).length
 
                           return (
@@ -1916,190 +2096,243 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                 </span>
                               </div>
 
-                              {/* Yoga Cards */}
+                              {/* Yoga Cards with Thumbnails */}
                               <div className="divide-y divide-gray-100">
-                                {items.map((exercise: any, exIdx: number) => {
-                                  const meta = getYogaMeta(exercise)
-                                  const action = meta.action
-                                  const status = String(
-                                    action?.status || ''
-                                  ).toLowerCase()
-                                  const isC = status === 'completed'
-                                  const isM =
-                                    status === 'missed' || status === 'failed'
-                                  const isIP = status === 'in_progress'
-                                  const hasVideo = !!meta.videoUrl
-                                  const watchPct =
-                                    action?.video_watch_percentage != null
-                                      ? Number(action.video_watch_percentage)
-                                      : null
+                                {items.map(
+                                  (
+                                    {
+                                      ex: exercise,
+                                      linearIndex,
+                                    }: { ex: any; linearIndex: number },
+                                    exIdx: number
+                                  ) => {
+                                    const meta = getYogaMeta(exercise)
+                                    const action = meta.action
+                                    const progress =
+                                      localProgressMap[String(exercise?.id)]
+                                    const isC = isExerciseCompleted(
+                                      action,
+                                      progress
+                                    )
+                                    const bStatus = String(
+                                      action?.status || ''
+                                    ).toLowerCase()
+                                    const isM =
+                                      bStatus === 'missed' ||
+                                      bStatus === 'failed'
+                                    const isIP =
+                                      !isC &&
+                                      (bStatus === 'in_progress' ||
+                                        (progress?.watchedPercentage != null &&
+                                          progress.watchedPercentage > 0))
+                                    const displayStatus = isC
+                                      ? 'completed'
+                                      : isM
+                                        ? bStatus
+                                        : isIP
+                                          ? 'in_progress'
+                                          : bStatus
 
-                                  const statusPill = isC
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : isM
-                                      ? 'bg-red-50 text-red-700 border-red-200'
-                                      : isIP
-                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                        : status
-                                          ? 'bg-slate-50 text-slate-600 border-slate-200'
-                                          : ''
+                                    const watchPct = isC
+                                      ? 100
+                                      : progress?.watchedPercentage != null
+                                        ? Math.round(progress.watchedPercentage)
+                                        : action?.video_watch_percentage != null
+                                          ? Number(
+                                              action.video_watch_percentage
+                                            )
+                                          : null
 
-                                  const leftAccent = isC
-                                    ? 'border-l-[3px] border-l-emerald-500'
-                                    : isM
-                                      ? 'border-l-[3px] border-l-red-500'
-                                      : isIP
-                                        ? 'border-l-[3px] border-l-amber-500'
-                                        : 'border-l-[3px] border-l-gray-300'
+                                    const lockState = getExerciseLockState({
+                                      dateStr: dayDetail?.date,
+                                      isToday,
+                                      hasVideoUrl: !!meta.videoUrl,
+                                      linearIndex,
+                                      flatExercises: flatYogaItems,
+                                      localProgressMap,
+                                    })
 
-                                  return (
-                                    <div
-                                      key={exercise?.id || exIdx}
-                                      className={`bg-white px-3.5 py-2.5 ${leftAccent} hover:bg-slate-50/50 transition-colors`}
-                                    >
-                                      {/* Top row */}
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
-                                          <span className="text-[12px] font-semibold text-gray-800 leading-tight">
-                                            {meta.yogaName}
-                                          </span>
-                                          {meta.yogaType && (
-                                            <span className="text-[9px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.2 rounded font-medium">
-                                              {meta.yogaType}
-                                            </span>
+                                    const statusPill = isC
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : isM
+                                        ? 'bg-red-50 text-red-700 border-red-200'
+                                        : isIP
+                                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                          : displayStatus
+                                            ? 'bg-slate-50 text-slate-600 border-slate-200'
+                                            : ''
+
+                                    const leftAccent = isC
+                                      ? 'border-l-[3px] border-l-emerald-500'
+                                      : isM
+                                        ? 'border-l-[3px] border-l-red-500'
+                                        : isIP
+                                          ? 'border-l-[3px] border-l-amber-500'
+                                          : 'border-l-[3px] border-l-gray-300'
+
+                                    return (
+                                      <div
+                                        key={exercise?.id || exIdx}
+                                        className={`bg-white px-3.5 py-2.5 ${leftAccent} hover:bg-slate-50/50 transition-colors flex items-start gap-3`}
+                                      >
+                                        {/* Yoga Video Thumbnail */}
+                                        <ExerciseThumbnail
+                                          thumbnailUrl={meta.thumbnailUrl}
+                                          videoUrl={meta.videoUrl}
+                                          title={meta.yogaName}
+                                          durationText={meta.durationMin}
+                                          isLocked={lockState.isLocked}
+                                          lockReason={lockState.reason}
+                                          isCompleted={isC}
+                                          onPlay={() => {
+                                            setActivePlayerExercises(
+                                              flatYogaItems
+                                            )
+                                            setActivePlayerIndex(linearIndex)
+                                            setIsPlayerWorkoutMode(false)
+                                            setPlayerModalOpen(true)
+                                          }}
+                                          onLockedClick={(reason) => {
+                                            enqueueSnackbar(reason, {
+                                              variant: 'info',
+                                            })
+                                          }}
+                                        />
+
+                                        {/* Yoga Details & Badges */}
+                                        <div className="flex-1 min-w-0">
+                                          {/* Top row */}
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+                                              <span className="text-[12px] font-semibold text-gray-800 leading-tight">
+                                                {meta.yogaName}
+                                              </span>
+                                              {meta.yogaType && (
+                                                <span className="text-[9px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.2 rounded font-medium">
+                                                  {meta.yogaType}
+                                                </span>
+                                              )}
+                                            </div>
+                                            {displayStatus && (
+                                              <span
+                                                className={`shrink-0 text-[9px] font-semibold border rounded-full px-2 py-0.5 capitalize ${statusPill}`}
+                                              >
+                                                {isC && '✓ '}
+                                                {isIP && '⏳ '}
+                                                {isM && '✕ '}
+                                                {displayStatus.replace(
+                                                  /_/g,
+                                                  ' '
+                                                )}
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          {/* Tags */}
+                                          <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                                            {watchPct != null && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                                👁 {watchPct}% watched
+                                              </span>
+                                            )}
+
+                                            {meta.durationMin != null && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-teal-50 text-teal-700 border border-teal-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                                <span>⏱</span>
+                                                <span>{meta.durationMin}m</span>
+                                              </span>
+                                            )}
+
+                                            {meta.rounds != null && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-pink-50 text-pink-700 border border-pink-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                                <span>🔄</span>
+                                                <span>
+                                                  {meta.rounds} rounds
+                                                </span>
+                                              </span>
+                                            )}
+
+                                            {meta.reps != null && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-pink-50 text-pink-700 border border-pink-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                                <span>🔁</span>
+                                                <span>{meta.reps} reps</span>
+                                              </span>
+                                            )}
+
+                                            {meta.holdSeconds != null && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                                <span>⏳</span>
+                                                <span>
+                                                  {meta.holdSeconds}s hold
+                                                </span>
+                                              </span>
+                                            )}
+
+                                            {meta.intensity && (
+                                              <span
+                                                className={`inline-flex items-center gap-0.5 text-[9px] font-semibold border rounded px-1.5 py-0.5 shadow-2xs ${
+                                                  meta.intensity.toLowerCase() ===
+                                                  'high'
+                                                    ? 'bg-red-50 text-red-700 border-red-200'
+                                                    : meta.intensity.toLowerCase() ===
+                                                        'moderate'
+                                                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                }`}
+                                              >
+                                                <span>⚡</span>
+                                                <span>{meta.intensity}</span>
+                                              </span>
+                                            )}
+
+                                            {(action?.completed_at ||
+                                              progress?.completedAt) && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-500 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5">
+                                                <span className="text-emerald-500 font-bold">
+                                                  ✓
+                                                </span>
+                                                <span>
+                                                  {new Date(
+                                                    action?.completed_at ||
+                                                      progress?.completedAt ||
+                                                      ''
+                                                  ).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                  })}
+                                                </span>
+                                              </span>
+                                            )}
+
+                                            {action?.notes && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-600 bg-amber-50/60 border border-amber-200/60 rounded px-1.5 py-0.5 italic">
+                                                <span>💬</span>
+                                                <span>
+                                                  &ldquo;{action.notes}&rdquo;
+                                                </span>
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          {/* Video progress bar */}
+                                          {watchPct != null && watchPct > 0 && (
+                                            <div className="mt-1.5 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                              <div
+                                                className="h-full bg-purple-500 rounded-full transition-all duration-300"
+                                                style={{
+                                                  width: `${Math.min(
+                                                    watchPct,
+                                                    100
+                                                  )}%`,
+                                                }}
+                                              />
+                                            </div>
                                           )}
                                         </div>
-                                        {status && (
-                                          <span
-                                            className={`shrink-0 text-[9px] font-semibold border rounded-full px-2 py-0.5 capitalize ${statusPill}`}
-                                          >
-                                            {isC && '✓ '}
-                                            {isIP && '⏳ '}
-                                            {isM && '✕ '}
-                                            {status.replace(/_/g, ' ')}
-                                          </span>
-                                        )}
                                       </div>
-
-                                      {/* Tags */}
-                                      <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                                        {hasVideo && (
-                                          <a
-                                            href={meta.videoUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex items-center gap-1 text-[9px] font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 rounded px-1.5 py-0.5 hover:bg-purple-100 hover:border-purple-300 transition-colors shadow-2xs"
-                                          >
-                                            <svg
-                                              className="w-2.5 h-2.5 fill-purple-600"
-                                              viewBox="0 0 20 20"
-                                            >
-                                              <path d="M2 6a2 2 0 012-2h6l2 2h4a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                              <path
-                                                fill="white"
-                                                d="M10 9l3 2-3 2V9z"
-                                              />
-                                            </svg>
-                                            <span>Video</span>
-                                          </a>
-                                        )}
-
-                                        {watchPct != null && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                            👁 {watchPct}% watched
-                                          </span>
-                                        )}
-
-                                        {meta.durationMin != null && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-teal-50 text-teal-700 border border-teal-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                            <span>⏱</span>
-                                            <span>{meta.durationMin}m</span>
-                                          </span>
-                                        )}
-
-                                        {meta.rounds != null && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-pink-50 text-pink-700 border border-pink-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                            <span>🔄</span>
-                                            <span>{meta.rounds} rounds</span>
-                                          </span>
-                                        )}
-
-                                        {meta.reps != null && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-pink-50 text-pink-700 border border-pink-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                            <span>🔁</span>
-                                            <span>{meta.reps} reps</span>
-                                          </span>
-                                        )}
-
-                                        {meta.holdSeconds != null && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                            <span>⏳</span>
-                                            <span>
-                                              {meta.holdSeconds}s hold
-                                            </span>
-                                          </span>
-                                        )}
-
-                                        {meta.intensity && (
-                                          <span
-                                            className={`inline-flex items-center gap-0.5 text-[9px] font-semibold border rounded px-1.5 py-0.5 shadow-2xs ${
-                                              meta.intensity.toLowerCase() ===
-                                              'high'
-                                                ? 'bg-red-50 text-red-700 border-red-200'
-                                                : meta.intensity.toLowerCase() ===
-                                                    'moderate'
-                                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                            }`}
-                                          >
-                                            <span>⚡</span>
-                                            <span>{meta.intensity}</span>
-                                          </span>
-                                        )}
-
-                                        {action?.completed_at && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-500 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5">
-                                            <span className="text-emerald-500 font-bold">
-                                              ✓
-                                            </span>
-                                            <span>
-                                              {new Date(
-                                                action.completed_at
-                                              ).toLocaleTimeString([], {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                              })}
-                                            </span>
-                                          </span>
-                                        )}
-
-                                        {action?.notes && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-600 bg-amber-50/60 border border-amber-200/60 rounded px-1.5 py-0.5 italic">
-                                            <span>💬</span>
-                                            <span>
-                                              &ldquo;{action.notes}&rdquo;
-                                            </span>
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      {/* Video progress bar */}
-                                      {watchPct != null && watchPct > 0 && (
-                                        <div className="mt-1.5 h-1 bg-gray-100 rounded-full overflow-hidden">
-                                          <div
-                                            className="h-full bg-purple-500 rounded-full transition-all duration-300"
-                                            style={{
-                                              width: `${Math.min(
-                                                watchPct,
-                                                100
-                                              )}%`,
-                                            }}
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  )
-                                })}
+                                    )
+                                  }
+                                )}
                               </div>
                             </div>
                           )
@@ -2661,6 +2894,25 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
             )
           }
         }}
+      />
+
+      {/* ── Native & YouTube Video Player Modal ── */}
+      <WorkoutVideoModal
+        isOpen={playerModalOpen}
+        onClose={() => setPlayerModalOpen(false)}
+        flatExercises={activePlayerExercises}
+        initialExerciseIndex={activePlayerIndex}
+        userId={userId || undefined}
+        subscriptionId={subscriptionId || undefined}
+        actionDate={dayDetail?.date || moment().format('YYYY-MM-DD')}
+        localProgressMap={localProgressMap}
+        onProgressUpdated={(newMap) => setLocalProgressMap(newMap)}
+        onWorkoutCompleted={() => {
+          try {
+            refreshDayDetail?.()
+          } catch {}
+        }}
+        isWorkout={isPlayerWorkoutMode}
       />
     </>
   )
