@@ -30,6 +30,7 @@ import { getData } from '../../../apis/api.helpers'
 import { getWorkoutPlanSubcategories } from '../../Plans/Details/WorkoutPlan/api'
 import { getYogaPlanSubcategories } from '../../YogaCategories/api'
 import DayDetailTabsSection from './DayDetailTabsSection'
+import ProposedWaterIntakeToggle from './ProposedWaterIntakeToggle'
 import { ClientWorkflowDetails } from '../../AssignedClients/WorkflowPanels'
 import {
   useClientDetail,
@@ -4774,7 +4775,28 @@ export default function Subscriptions({
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                <ProposedWaterIntakeToggle
+                  userId={user?.id || id}
+                  initialCount={
+                    user?.proposed_water_intake ??
+                    overview?.user?.proposed_water_intake ??
+                    overview?.proposed_water_intake ??
+                    null
+                  }
+                  onUpdate={(val) => {
+                    if (user) {
+                      user.proposed_water_intake = val
+                    }
+                    if (overview) {
+                      overview.proposed_water_intake = val
+                      if (overview.user)
+                        overview.user.proposed_water_intake = val
+                    }
+                    onRefresh?.()
+                  }}
+                  disabled={!canAccessDiet && !isSuperOrAdmin}
+                />
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50/80 border border-blue-200 text-[11px] font-medium text-blue-700">
                   <span className="w-2 h-2 rounded-full bg-primaryBlue animate-pulse inline-block" />
                   Today

@@ -30,6 +30,7 @@ const SUBCATEGORY_NAMES = [
   'Workout Round 1',
   'Workout Round 2',
   'Cool Down',
+  'Extra Activities',
 ]
 const bulkSubcategorySchema = formSchema.extend({
   name: z.string().optional(),

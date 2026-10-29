@@ -807,3 +807,12 @@ export const useActiveSalesTeam = () => {
     }
   )
 }
+
+export const updateUserWaterIntake = (
+  userId: string | number,
+  proposedWaterIntake: number | null
+) => {
+  return postData(`/users/${userId}/update_water_intake`, {
+    proposed_water_intake: proposedWaterIntake,
+  })
+}
