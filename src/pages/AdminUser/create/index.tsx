@@ -1052,6 +1052,20 @@ export default function CreateAdmin({
         roleId = 3
       }
     }
+    if (!roleId && activeRole) {
+      const mapRoleName = (s: any) => {
+        const t = (typeof s === 'string' ? s : s?.name)?.toLowerCase?.() || ''
+        if (t === 'admin') return 1
+        if (t === 'nutritionist') return 2
+        if (t === 'user' || t === 'client') return 3
+        if (t === 'physiotherapist') return 4
+        if (t === 'yogist') return 5
+        if (t === 'sales') return 6
+        if (t === 'marketing' || t === 'maketing') return 7
+        return 0
+      }
+      roleId = mapRoleName(activeRole)
+    }
     const mapGenderName = (s: string) => {
       const t = s?.toLowerCase?.() || ''
       if (t === 'male') return 0
