@@ -125,6 +125,13 @@ export default function NotificationItem({
   hideStatusBadge,
 }: NotificationItemProps) {
   const isUnread = !item.is_read
+  const isPriority = Boolean(
+    item.is_priority ||
+      item.priority === 'high' ||
+      item.notification_type === 'reassignment' ||
+      item.title?.toLowerCase().includes('reassignment advised') ||
+      item.title?.toLowerCase().includes('unaccepted')
+  )
   const typeBadge = getTypeBadge(item.notification_type)
   const relativeTime = item.created_at ? moment(item.created_at).fromNow() : ''
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
@@ -135,31 +142,66 @@ export default function NotificationItem({
       (item.action_url || (effectiveUrl && effectiveUrl !== '/dashboard'))
   )
 
+  const cardStyle = isPriority
+    ? isUnread
+      ? 'bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-transparent dark:from-amber-950/40 dark:via-rose-950/30 dark:to-gray-800/80 border-amber-300 dark:border-amber-600/70 shadow-md border-l-[5px] border-l-rose-500 ring-1 ring-amber-400/30'
+      : 'bg-amber-50/40 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60 border-l-[5px] border-l-amber-500 hover:border-amber-300 dark:hover:border-amber-700'
+    : isUnread
+      ? 'bg-blue-50/40 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/60 shadow-sm border-l-4 border-l-blue-600'
+      : 'bg-white dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+
   return (
     <div
-      className={`group relative flex flex-col p-4 rounded-xl border transition-all duration-200 ${
-        isUnread
-          ? 'bg-blue-50/40 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/60 shadow-sm border-l-4 border-l-blue-600'
-          : 'bg-white dark:bg-gray-800/80 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-      }`}
+      className={`group relative flex flex-col p-4 rounded-xl border transition-all duration-200 ${cardStyle}`}
     >
+      {/* Urgent Top Ribbon for Priority Leads */}
+      {isPriority && (
+        <div className="flex items-center justify-between gap-2 px-2.5 py-1 mb-2.5 rounded-lg bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-transparent border border-amber-300/60 dark:border-amber-600/40 text-amber-900 dark:text-amber-200">
+          <div className="flex items-center gap-1.5 text-xs font-semibold">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-600"></span>
+            </span>
+            <span>⚡ Urgent Lead Action Required</span>
+            <span className="hidden sm:inline-block text-[11px] font-normal text-amber-700 dark:text-amber-300">
+              • Unaccepted lead (&gt; 2 days)
+            </span>
+          </div>
+          <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-rose-500 text-white shadow-xs">
+            Priority
+          </span>
+        </div>
+      )}
+
       {/* Top Header: Badge, Unread Dot, Timestamp */}
       <div className="flex items-center justify-between gap-2 mb-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {isUnread && (
             <span
-              className="h-2.5 w-2.5 rounded-full bg-blue-600 animate-pulse flex-shrink-0"
+              className={`h-2.5 w-2.5 rounded-full flex-shrink-0 animate-pulse ${
+                isPriority ? 'bg-rose-500' : 'bg-blue-600'
+              }`}
               title="New notification"
             />
           )}
           <span
-            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border uppercase tracking-wider capitalize ${typeBadge.bgColor} ${typeBadge.textColor} ${typeBadge.borderColor}`}
+            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border uppercase tracking-wider capitalize ${
+              isPriority
+                ? 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-800'
+                : `${typeBadge.bgColor} ${typeBadge.textColor} ${typeBadge.borderColor}`
+            }`}
           >
-            {typeBadge.label}
+            {isPriority ? 'Lead Reassignment' : typeBadge.label}
           </span>
           {!hideStatusBadge &&
             (isUnread ? (
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                  isPriority
+                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200'
+                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                }`}
+              >
                 New
               </span>
             ) : (
@@ -190,12 +232,29 @@ export default function NotificationItem({
       <div className="mb-3">
         <h4
           className={`text-[15px] leading-snug mb-1 ${
-            isUnread
-              ? 'font-bold text-gray-900 dark:text-white'
-              : 'font-semibold text-gray-700 dark:text-gray-200'
+            isPriority
+              ? isUnread
+                ? 'font-bold text-gray-900 dark:text-white flex items-center gap-1.5'
+                : 'font-semibold text-gray-800 dark:text-gray-100'
+              : isUnread
+                ? 'font-bold text-gray-900 dark:text-white'
+                : 'font-semibold text-gray-700 dark:text-gray-200'
           }`}
         >
-          {item.title}
+          {isPriority && (
+            <svg
+              className="w-4 h-4 text-rose-500 inline-block flex-shrink-0"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
+          <span>{item.title}</span>
         </h4>
         <p className="text-[13px] leading-relaxed text-gray-600 dark:text-gray-300 break-words">
           {item.message}
@@ -244,10 +303,14 @@ export default function NotificationItem({
                   item.id
                 )
               }
-              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white bg-[#0066CC] hover:bg-[#0052a3] dark:bg-blue-600 dark:hover:bg-blue-700 rounded-lg shadow-sm transition-all hover:shadow active:scale-95 cursor-pointer"
+              className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-white rounded-lg shadow-sm transition-all hover:shadow active:scale-95 cursor-pointer ${
+                isPriority
+                  ? 'bg-rose-600 hover:bg-rose-700 dark:bg-rose-600 dark:hover:bg-rose-700'
+                  : 'bg-[#0066CC] hover:bg-[#0052a3] dark:bg-blue-600 dark:hover:bg-blue-700'
+              }`}
               title={`Go to detail page`}
             >
-              <span>Go to page</span>
+              <span>{isPriority ? 'View & Reassign' : 'Go to page'}</span>
               <svg
                 className="w-3.5 h-3.5"
                 fill="none"
