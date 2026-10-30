@@ -8,6 +8,8 @@ export interface NotificationRecord {
   notification_type?: string
   action_url?: string | null
   is_read: boolean
+  is_priority?: boolean
+  priority?: 'high' | 'normal' | string
   sent_by?: string
   scheduled_at?: string
   delivered_at?: string

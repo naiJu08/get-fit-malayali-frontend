@@ -130,7 +130,7 @@ export default function MessageBoxView() {
 
   // Filter items
   const filteredNotifications = useMemo(() => {
-    return notifications.filter((item) => {
+    const list = notifications.filter((item) => {
       // Tab filter
       if (activeTab === 'new' && item.is_read) return false
       if (activeTab === 'read' && !item.is_read) return false
@@ -150,6 +150,26 @@ export default function MessageBoxView() {
       }
 
       return true
+    })
+
+    // Priority unaccepted leads come first always
+    return [...list].sort((a, b) => {
+      const aPriority = Boolean(
+        a.is_priority ||
+          a.priority === 'high' ||
+          a.notification_type === 'reassignment' ||
+          a.title?.toLowerCase().includes('reassignment advised')
+      )
+      const bPriority = Boolean(
+        b.is_priority ||
+          b.priority === 'high' ||
+          b.notification_type === 'reassignment' ||
+          b.title?.toLowerCase().includes('reassignment advised')
+      )
+
+      if (aPriority && !bPriority) return -1
+      if (!aPriority && bPriority) return 1
+      return 0
     })
   }, [notifications, activeTab, typeFilter, searchQuery])
 
