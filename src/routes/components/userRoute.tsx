@@ -1,9 +1,10 @@
-import { Suspense, useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 
 import Layout from '../../layout/userLayout'
 import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
+import { router_config } from '../../configs/route.config'
 import CommonLoader from '../../components/common/commonLoader'
 
 type Props = {
@@ -13,7 +14,7 @@ type Props = {
 }
 
 const UserRoute = ({ children, slug_key, hasChild = false }: Props) => {
-  const { authenticated } = useAuthStore()
+  const { authenticated, roleData } = useAuthStore()
   const { setActiveRouteSlug } = useAppStore()
   const location = useLocation()
 
@@ -27,16 +28,36 @@ const UserRoute = ({ children, slug_key, hasChild = false }: Props) => {
 
   if (!authenticated) return <Navigate to="/login" replace />
 
+  const hasPermission = () => {
+    const currentRouteConfig = router_config[slug_key]
+    if (
+      !currentRouteConfig ||
+      !currentRouteConfig?.permission_slugs ||
+      currentRouteConfig.permission_slugs.length === 0
+    ) {
+      return true
+    }
+
+    if (roleData && roleData?.name) {
+      const trimmedRoleName = roleData.name.trim().toLowerCase()
+      if (trimmedRoleName === 'superadmin' || trimmedRoleName === 'admin') {
+        return true
+      }
+      const allowedRoles = Array.isArray(currentRouteConfig.permission_slugs)
+        ? currentRouteConfig.permission_slugs.map((s: string) =>
+            String(s).toLowerCase()
+          )
+        : [String(currentRouteConfig.permission_slugs).toLowerCase()]
+      return allowedRoles.includes(trimmedRoleName)
+    }
+
+    return true // No specific permissions required or roleData not available
+  }
+
   return (
     <Layout>
       <Suspense fallback={<CommonLoader />}>
-        <>{children}</>
-
-        {/* {checkMultiplePermission(slug_key) ? (
-          <>{children}</>
-        ) : (
-          <> No Permission </>
-        )} */}
+        {hasPermission() ? <>{children}</> : <> No Permission </>}
       </Suspense>
     </Layout>
   )

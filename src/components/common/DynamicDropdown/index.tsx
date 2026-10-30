@@ -11,6 +11,8 @@ interface SelectDropdownProps {
   unAllocate?: boolean
   getData?: (search: string, page: number) => Promise<any>
   disabled?: boolean
+  hideSearch?: boolean
+  hideLoader?: boolean
 }
 
 const DynamicDropdown: React.FC<SelectDropdownProps> = ({
@@ -19,6 +21,8 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
   setUpdateCREId,
   getData,
   disabled,
+  hideSearch = false,
+  hideLoader = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [searchKey, setSearchKey] = useState('')
@@ -28,25 +32,39 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
     tileItem?.value || tileItem?.placeholder || tileItem?.label || ''
   )
 
+  useEffect(() => {
+    const nextValue =
+      tileItem?.value || tileItem?.placeholder || tileItem?.label || ''
+    setMenuValue(nextValue)
+  }, [tileItem?.label, tileItem?.placeholder, tileItem?.value])
+
   const dropdownRef = useRef<HTMLDivElement | null>(null)
+
+  const closeDropdown = useCallback(() => {
+    setIsOpen(false)
+    setSearchKey('')
+  }, [])
 
   const handleMenuItemClick = useCallback(
     (item: any) => {
       setUpdateCREId?.(item?.id ?? null)
       setMenuValue(item?.value ?? '')
-      setIsOpen(false)
+      closeDropdown()
     },
-    [setUpdateCREId]
+    [closeDropdown, setUpdateCREId]
   )
 
-  const handleClickOutside = useCallback((event: MouseEvent) => {
-    if (
-      dropdownRef.current &&
-      !dropdownRef.current.contains(event.target as Node)
-    ) {
-      setIsOpen(false)
-    }
-  }, [])
+  const handleClickOutside = useCallback(
+    (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        closeDropdown()
+      }
+    },
+    [closeDropdown]
+  )
 
   useEffect(() => {
     document.addEventListener('click', handleClickOutside)
@@ -58,11 +76,14 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
   const fetchAddonData = useCallback(
     debounce(async (search: string) => {
       setIsLoading(true)
-      if (getData) {
-        const res = await getData(search, 1)
-        setDropdown(res)
+      try {
+        if (getData) {
+          const res = await getData(search, 1)
+          setDropdown(res)
+        }
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }, 300),
     [getData]
   )
@@ -81,16 +102,21 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
     [fetchAddonData]
   )
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative w-full" ref={dropdownRef}>
       <div
-        className={`flex items-center gap-1 rounded-3xl ${!disabled && 'cursor-pointer'}  min-w-[150px]`}
+        className={`flex items-center justify-between gap-1 rounded-3xl ${!disabled && 'cursor-pointer'} w-full`}
         onClick={() => {
-          if (!disabled) {
-            setIsOpen((prev) => !prev)
-          }
+          if (disabled) return
+          setIsOpen((prev) => {
+            const nextState = !prev
+            if (!nextState) {
+              setSearchKey('')
+            }
+            return nextState
+          })
         }}
       >
-        <p className="text-primary text-common font-medium leading-none">
+        <p className="text-primary text-common font-medium leading-none truncate">
           {menuValue}
         </p>
         {!disabled && (
@@ -101,7 +127,7 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
         <div className="menuopened">
           <div className="max-h-[240px] overflow-y-auto flex flex-col gap-1">
             <div className="relative">
-              {getData && (
+              {getData && !hideSearch && (
                 <input
                   placeholder="Search"
                   className="sticky top-0 outline-none w-full textfield"
@@ -109,7 +135,7 @@ const DynamicDropdown: React.FC<SelectDropdownProps> = ({
                   value={searchKey ?? value}
                 />
               )}
-              {isLoading && (
+              {isLoading && !hideLoader && (
                 <div className="absolute top-1.5 text-grey-light right-2 bg-grey-lightAlt grid place-items-center">
                   <Spinner />
                 </div>

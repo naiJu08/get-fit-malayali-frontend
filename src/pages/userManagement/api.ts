@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 
 import { postData } from '../../apis/api.helpers'
@@ -6,27 +6,32 @@ import apiUrl from '../../apis/api.url'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { useAppStore } from '../../store/appStore'
 import { useAuthStore } from '../../store/authStore'
-import { useDomainManageStore } from '../../store/domainManageStore'
 import { LoginSchema } from './schema'
 
 export const useLogin = (handleOnSuccess: any) => {
-  const { setToken, setAuthenticated, setUserData } = useAuthStore()
+  const {
+    setToken,
+    setRefreshToken,
+    setTokenExpiresAt,
+    setRefreshTokenExpiresAt,
+    setAuthenticated,
+    setRoleData,
+    setUserData,
+  } = useAuthStore()
   const { setResetToken } = useAppStore()
 
   const { setIsLoading } = useAppStore()
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
-  const { domainType, setDomainType } = useDomainManageStore()
+  const queryClient = useQueryClient()
   const loginMutation = useMutation(
     async (params: LoginSchema) => {
       setIsLoading(true)
       const data = {
+        email: params.username.trim().toLowerCase(),
         password: params.password,
-        username: params.username,
-        // username: params.username.toLowerCase(),
       }
       const response = await postData(apiUrl.LOGIN_URL, data)
-
       return response
     },
     {
@@ -43,30 +48,64 @@ export const useLogin = (handleOnSuccess: any) => {
         )
       },
       onSuccess: (data: any) => {
-        const folderKey = domainType.toLocaleLowerCase()
-        const res = data[folderKey]
-        setResetToken(res.reset_password_token)
-        setToken(data.access_token)
+        const token = data?.token || data?.access_token
+        const refreshToken = data?.refresh_token
+        const expiresIn = data?.expires_in // in seconds (e.g., 604800)
+        const refreshExpiresIn = data?.refresh_expires_in // in seconds
+        const user = data?.user || {}
+        const successMessage = data?.message ?? data?.data?.message
+
+        // Clear any previous query cache completely to prevent showing old user's cached queries
+        try {
+          queryClient.clear()
+          queryClient.removeQueries()
+        } catch (e) {
+          // ignore
+        }
+
+        setResetToken?.(undefined as any)
+        setToken(token)
+        if (refreshToken) {
+          setRefreshToken(refreshToken)
+        }
+
+        // Calculate token expiration timestamp
+        if (expiresIn) {
+          const expiresAt = Date.now() + expiresIn * 1000 // Convert to milliseconds
+          setTokenExpiresAt(expiresAt)
+        }
+
+        // Calculate refresh token expiration timestamp
+        if (refreshExpiresIn) {
+          const refreshExpiresAt = Date.now() + refreshExpiresIn * 1000
+          setRefreshTokenExpiresAt(refreshExpiresAt)
+        } else if (expiresIn) {
+          // If refresh_expires_in not provided, assume refresh token lasts 7x longer than access token
+          const refreshExpiresAt = Date.now() + expiresIn * 7 * 1000
+          setRefreshTokenExpiresAt(refreshExpiresAt)
+        }
+
         setAuthenticated(true)
         setIsLoading(false)
-        handleOnSuccess?.()
-        setDomainType(res.user.user_type)
-        setUserData({
-          id: res.user?.id,
-          is_admin: res.user?.is_superuser,
-          first_name: res.user?.first_name,
-          last_name: res.user?.last_name,
-          username: res.user?.username,
+        enqueueSnackbar(successMessage, {
+          variant: 'success',
         })
-
-        // navigate('/dashboard')
-        if (domainType === 'Organisation') {
-          navigate(`/myorganisation/profile`)
-        } else if (domainType === 'Employee') {
-          navigate(`/admin-user`)
-        } else {
-          navigate('/assessors')
-        }
+        handleOnSuccess?.()
+        setRoleData({
+          id: user.id,
+          name: user?.role,
+        })
+        setUserData({
+          id: user?.id,
+          name: user?.name,
+          email: user?.email,
+          username: user?.email,
+          avatar_url: user?.avatar_url || null,
+          role: user?.role,
+          is_admin: user?.role === 'superadmin' || user?.role === 'admin',
+        } as any)
+        queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+        navigate('/dashboard', { replace: true })
       },
 
       onSettled: () => {

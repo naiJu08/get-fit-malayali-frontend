@@ -8,7 +8,7 @@ import {
 import Icons from '../icons/index'
 import TextField from './TextField'
 
-import 'react-datepicker/dist/react-datepicker.css'
+// import 'react-datepicker/dist/react-datepicker.css'
 
 type Props = {
   label?: string
@@ -83,12 +83,10 @@ const CustomDatePicker = (props: Props) => {
   return (
     <div className="flex flex-col">
       {label && (
-        <div className=" ">
-          <label className={`labels label-text`}>
-            {label}
-            {required ? <span className="text-error"> *</span> : <></>}
-          </label>
-        </div>
+        <label className={`labels label-text`}>
+          {label}
+          {required ? <span className="text-error"> *</span> : <></>}
+        </label>
       )}
       <div className="relative">
         {disabled ? (
@@ -111,16 +109,35 @@ const CustomDatePicker = (props: Props) => {
             minDate={minDate}
             data-testid={name}
             onChange={(date) => handleDatePickerChange(date)}
+            onChangeRaw={(event) => event.preventDefault()}
             placeholderText={placeholder}
             className={` w-full textfield ${errorFlag && 'textfield-error'}`}
-            dateFormat={showTimeSelectOnly ? 'HH:mm' : 'dd-MM-yyyy'}
+            dateFormat={showTimeSelectOnly ? 'hh:mm aa' : 'dd-MM-yyyy'}
             showTimeSelect={showTimeSelect}
             showTimeSelectOnly={showTimeSelectOnly}
             timeIntervals={15}
-            timeFormat="HH:mm"
+            timeFormat="hh:mm aa"
             timeCaption="Time"
             selectsRange={selectRange}
-            customInput={<input value={value} />}
+            strictParsing
+            customInput={
+              <input
+                value={value}
+                readOnly
+                onKeyDown={(e) => {
+                  if (
+                    e.key.length === 1 ||
+                    e.key === 'Backspace' ||
+                    e.key === 'Delete' ||
+                    e.key.startsWith('Arrow')
+                  ) {
+                    e.preventDefault()
+                  }
+                }}
+                onPaste={(e) => e.preventDefault()}
+                className="cursor-pointer"
+              />
+            }
           />
         )}
         <div className="absolute right-2 flex items-center justify-center gap-1 top-2  bg-transparent">
@@ -132,7 +149,7 @@ const CustomDatePicker = (props: Props) => {
               <Icons name="close" className="w-4 h-4 fill-[#757575]" />
             </button>
           )}
-          <span className="   text-[#757575] block">
+          <span className="text-[#757575] block mb-1">
             <svg
               className="w-4 h-4 fill-[#757575]"
               focusable="false"
