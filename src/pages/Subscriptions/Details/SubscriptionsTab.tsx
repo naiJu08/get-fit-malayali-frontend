@@ -253,6 +253,52 @@ export default function SubscriptionUserSubscriptionsTab({
     return { min, max }
   }, [overview?.subscription?.start_date, overview?.subscription?.end_date])
 
+  const sortedDietPlans = useMemo(() => {
+    if (!Array.isArray(dayDetail?.diet_plans)) return []
+    return [...dayDetail.diet_plans].sort((a: any, b: any) => {
+      const seqA =
+        a?.sequence_number !== undefined &&
+        a?.sequence_number !== null &&
+        a?.sequence_number !== ''
+          ? Number(a.sequence_number)
+          : null
+      const seqB =
+        b?.sequence_number !== undefined &&
+        b?.sequence_number !== null &&
+        b?.sequence_number !== ''
+          ? Number(b.sequence_number)
+          : null
+
+      if (seqA !== null && seqB !== null && !isNaN(seqA) && !isNaN(seqB)) {
+        if (seqA !== seqB) return seqA - seqB
+      } else if (seqA !== null && !isNaN(seqA)) {
+        return -1
+      } else if (seqB !== null && !isNaN(seqB)) {
+        return 1
+      }
+
+      const timeA = a?.meal_time_time
+        ? moment(a.meal_time_time, [
+            'hh:mm A',
+            'h:mm A',
+            'HH:mm:ss',
+            'HH:mm',
+          ]).valueOf()
+        : 0
+      const timeB = b?.meal_time_time
+        ? moment(b.meal_time_time, [
+            'hh:mm A',
+            'h:mm A',
+            'HH:mm:ss',
+            'HH:mm',
+          ]).valueOf()
+        : 0
+      if (timeA && timeB && timeA !== timeB) return timeA - timeB
+
+      return 0
+    })
+  }, [dayDetail?.diet_plans])
+
   const canPrev = () => {
     const { min } = monthRange
     return currentMonth && min && currentMonth > min
@@ -849,10 +895,10 @@ export default function SubscriptionUserSubscriptionsTab({
                   </div>
 
                   {/* ================= MEALS ================= */}
-                  {Array.isArray(dayDetail?.diet_plans) &&
-                  dayDetail.diet_plans.length > 0 ? (
+                  {Array.isArray(sortedDietPlans) &&
+                  sortedDietPlans.length > 0 ? (
                     <div className="space-y-3 mt-3 px-4">
-                      {dayDetail.diet_plans.map((d: any) => {
+                      {sortedDietPlans.map((d: any) => {
                         const isPastDate = moment(
                           dayDetail?.date || selectedDate
                         ).isBefore(moment(), 'day')
