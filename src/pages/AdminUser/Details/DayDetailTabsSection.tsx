@@ -303,6 +303,52 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
     }
   }, [tabsData, dayDetailTab, onChangeTab])
 
+  const sortedDietPlans = useMemo(() => {
+    if (!Array.isArray(dayDetail?.diet_plans)) return []
+    return [...dayDetail.diet_plans].sort((a: any, b: any) => {
+      const seqA =
+        a?.sequence_number !== undefined &&
+        a?.sequence_number !== null &&
+        a?.sequence_number !== ''
+          ? Number(a.sequence_number)
+          : null
+      const seqB =
+        b?.sequence_number !== undefined &&
+        b?.sequence_number !== null &&
+        b?.sequence_number !== ''
+          ? Number(b.sequence_number)
+          : null
+
+      if (seqA !== null && seqB !== null && !isNaN(seqA) && !isNaN(seqB)) {
+        if (seqA !== seqB) return seqA - seqB
+      } else if (seqA !== null && !isNaN(seqA)) {
+        return -1
+      } else if (seqB !== null && !isNaN(seqB)) {
+        return 1
+      }
+
+      const timeA = a?.meal_time_time
+        ? moment(a.meal_time_time, [
+            'hh:mm A',
+            'h:mm A',
+            'HH:mm:ss',
+            'HH:mm',
+          ]).valueOf()
+        : 0
+      const timeB = b?.meal_time_time
+        ? moment(b.meal_time_time, [
+            'hh:mm A',
+            'h:mm A',
+            'HH:mm:ss',
+            'HH:mm',
+          ]).valueOf()
+        : 0
+      if (timeA && timeB && timeA !== timeB) return timeA - timeB
+
+      return 0
+    })
+  }, [dayDetail?.diet_plans])
+
   return (
     <>
       {!isActionablePackage && (
@@ -373,10 +419,10 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                 </div>
 
                 {/* ================= MEALS ================= */}
-                {Array.isArray(dayDetail?.diet_plans) &&
-                dayDetail.diet_plans.length > 0 ? (
+                {Array.isArray(sortedDietPlans) &&
+                sortedDietPlans.length > 0 ? (
                   <div className=" mt-3">
-                    {dayDetail.diet_plans.map((d: any) => {
+                    {sortedDietPlans.map((d: any) => {
                       const isPastDate = moment(
                         dayDetail?.date || selectedDayDate
                       ).isBefore(moment(), 'day')
@@ -2358,16 +2404,25 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     ? dayDetail.meditations
                     : []
                   const totalCount = meds.length
-                  const doneCount = meds.filter(
-                    (m: any) =>
-                      String(m?.actions?.status || '').toLowerCase() ===
-                      'completed'
+                  const doneCount = meds.filter((m: any) =>
+                    isExerciseCompleted(
+                      m?.actions,
+                      localProgressMap[String(m?.id)]
+                    )
                   ).length
-                  const inProgressCount = meds.filter(
-                    (m: any) =>
+                  const inProgressCount = meds.filter((m: any) => {
+                    const isDone = isExerciseCompleted(
+                      m?.actions,
+                      localProgressMap[String(m?.id)]
+                    )
+                    if (isDone) return false
+                    const p = localProgressMap[String(m?.id)]
+                    return (
                       String(m?.actions?.status || '').toLowerCase() ===
-                      'in_progress'
-                  ).length
+                        'in_progress' ||
+                      (p?.watchedPercentage != null && p.watchedPercentage > 0)
+                    )
+                  }).length
                   const progressPct =
                     totalCount > 0
                       ? Math.round((doneCount / totalCount) * 100)
@@ -2473,13 +2528,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                   (() => {
                     const meds = dayDetail.meditations
 
-                    // Group by category/subcategory if available, else single group
-                    const grouped: Record<
-                      string,
-                      { groupKey: string; items: any[] }
-                    > = {}
-
-                    meds.forEach((m: any) => {
+                    const getMeditationMeta = (m: any) => {
                       const catName = toTitleCase(
                         m?.category?.name ??
                           m?.category_name ??
@@ -2489,16 +2538,90 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       const subName = toTitleCase(
                         m?.subcategory?.name ?? m?.subcategory_name ?? ''
                       )
-                      const groupKey = formatCategoryGroupTitle(
+                      const medTitle =
+                        toTitleCase(
+                          m?.title ?? m?.meditation_title ?? m?.name ?? ''
+                        ) || '--'
+                      const videoUrl =
+                        m?.video_url || m?.meditation_video_url || null
+                      const thumbnailUrl =
+                        m?.thumbnail_url ??
+                        m?.meditation?.thumbnail_url ??
+                        m?.thumbnail ??
+                        m?.meditation?.thumbnail ??
+                        null
+                      const action = m?.actions
+                      const durationSec =
+                        typeof action?.duration_seconds === 'number'
+                          ? action.duration_seconds
+                          : null
+                      const durationMin =
+                        m?.duration_minutes ??
+                        m?.meditation_duration_minutes ??
+                        (durationSec != null
+                          ? (durationSec / 60).toFixed(1)
+                          : null)
+                      const meditationType = toTitleCase(
+                        m?.type ?? m?.meditation_type ?? ''
+                      )
+
+                      return {
                         catName,
                         subName,
+                        medTitle,
+                        videoUrl,
+                        thumbnailUrl,
+                        durationMin,
+                        meditationType,
+                        action,
+                      }
+                    }
+
+                    // Flatten normalized items for linear player sequence
+                    const flatMedItems: WorkoutExerciseItem[] = meds.map(
+                      (m: any, idx: number) => {
+                        const meta = getMeditationMeta(m)
+                        return {
+                          id: m?.id ?? idx,
+                          workoutId:
+                            m?.meditation_id || m?.meditation?.id || m?.id,
+                          workoutName: meta.medTitle,
+                          catName: meta.catName,
+                          subName: meta.subName,
+                          videoUrl: meta.videoUrl,
+                          thumbnailUrl: meta.thumbnailUrl,
+                          reps: 1,
+                          sets: 1,
+                          durationMin: meta.durationMin,
+                          exerciseType: meta.meditationType,
+                          action: meta.action,
+                          linearIndex: idx,
+                          rawExercise: m,
+                        }
+                      }
+                    )
+
+                    // Group by category/subcategory if available, preserving linear index
+                    const grouped: Record<
+                      string,
+                      {
+                        groupKey: string
+                        items: { m: any; linearIndex: number }[]
+                      }
+                    > = {}
+
+                    meds.forEach((m: any, linearIndex: number) => {
+                      const meta = getMeditationMeta(m)
+                      const groupKey = formatCategoryGroupTitle(
+                        meta.catName,
+                        meta.subName,
                         'Guided Meditation'
                       )
 
                       if (!grouped[groupKey]) {
                         grouped[groupKey] = { groupKey, items: [] }
                       }
-                      grouped[groupKey].items.push(m)
+                      grouped[groupKey].items.push({ m, linearIndex })
                     })
 
                     const medGroupList = Object.values(grouped)
@@ -2538,10 +2661,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       <div className="flex flex-col gap-3">
                         {medGroupList.map(({ groupKey, items }, gi) => {
                           const col = medGroupColors[gi % medGroupColors.length]
-                          const gDone = items.filter(
-                            (e: any) =>
-                              String(e?.actions?.status || '').toLowerCase() ===
-                              'completed'
+                          const gDone = items.filter(({ m }: { m: any }) =>
+                            isExerciseCompleted(
+                              m?.actions,
+                              localProgressMap[String(m?.id)]
+                            )
                           ).length
 
                           return (
@@ -2572,184 +2696,207 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
                               {/* Meditation Cards */}
                               <div className="divide-y divide-gray-100">
-                                {items.map((m: any, mIdx: number) => {
-                                  const action = m?.actions
-                                  const status = String(
-                                    action?.status || ''
-                                  ).toLowerCase()
-                                  const isCompleted = status === 'completed'
-                                  const isMissed =
-                                    status === 'missed' || status === 'failed'
-                                  const isInProgress =
-                                    status === 'in_progress' ||
-                                    status === 'today'
-                                  const hasVideo =
-                                    !!m?.video_url || !!m?.meditation_video_url
-                                  const videoUrl =
-                                    m?.video_url || m?.meditation_video_url
-                                  const watchPct =
-                                    action?.video_watch_percentage != null
-                                      ? Number(action.video_watch_percentage)
-                                      : null
+                                {items.map(
+                                  (
+                                    {
+                                      m,
+                                      linearIndex,
+                                    }: { m: any; linearIndex: number },
+                                    mIdx: number
+                                  ) => {
+                                    const meta = getMeditationMeta(m)
+                                    const action = meta.action
+                                    const progress =
+                                      localProgressMap[String(m?.id)]
+                                    const isCompleted = isExerciseCompleted(
+                                      action,
+                                      progress
+                                    )
+                                    const bStatus = String(
+                                      action?.status || ''
+                                    ).toLowerCase()
+                                    const isMissed =
+                                      bStatus === 'missed' ||
+                                      bStatus === 'failed'
+                                    const isInProgress =
+                                      !isCompleted &&
+                                      (bStatus === 'in_progress' ||
+                                        (progress?.watchedPercentage != null &&
+                                          progress.watchedPercentage > 0))
+                                    const displayStatus = isCompleted
+                                      ? 'completed'
+                                      : isMissed
+                                        ? bStatus
+                                        : isInProgress
+                                          ? 'in_progress'
+                                          : bStatus
 
-                                  const durationSec =
-                                    typeof action?.duration_seconds === 'number'
-                                      ? action.duration_seconds
-                                      : null
-                                  const durationMin =
-                                    m?.duration_minutes ??
-                                    m?.meditation_duration_minutes ??
-                                    (durationSec != null
-                                      ? (durationSec / 60).toFixed(1)
-                                      : null)
+                                    const watchPct = isCompleted
+                                      ? 100
+                                      : progress?.watchedPercentage != null
+                                        ? Math.round(progress.watchedPercentage)
+                                        : action?.video_watch_percentage != null
+                                          ? Number(
+                                              action.video_watch_percentage
+                                            )
+                                          : null
 
-                                  const meditationType = toTitleCase(
-                                    m?.type ?? m?.meditation_type ?? ''
-                                  )
+                                    const lockState = getExerciseLockState({
+                                      dateStr: dayDetail?.date,
+                                      isToday,
+                                      hasVideoUrl: !!meta.videoUrl,
+                                      linearIndex,
+                                      flatExercises: flatMedItems,
+                                      localProgressMap,
+                                    })
 
-                                  const statusPill = isCompleted
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : isMissed
-                                      ? 'bg-red-50 text-red-700 border-red-200'
-                                      : isInProgress
-                                        ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                        : status
-                                          ? 'bg-slate-50 text-slate-600 border-slate-200'
-                                          : ''
+                                    const statusPill = isCompleted
+                                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      : isMissed
+                                        ? 'bg-red-50 text-red-700 border-red-200'
+                                        : isInProgress
+                                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                          : displayStatus
+                                            ? 'bg-slate-50 text-slate-600 border-slate-200'
+                                            : ''
 
-                                  const leftAccent = isCompleted
-                                    ? 'border-l-[3px] border-l-emerald-500'
-                                    : isMissed
-                                      ? 'border-l-[3px] border-l-red-500'
-                                      : isInProgress
-                                        ? 'border-l-[3px] border-l-amber-500'
-                                        : 'border-l-[3px] border-l-gray-300'
+                                    const leftAccent = isCompleted
+                                      ? 'border-l-[3px] border-l-emerald-500'
+                                      : isMissed
+                                        ? 'border-l-[3px] border-l-red-500'
+                                        : isInProgress
+                                          ? 'border-l-[3px] border-l-amber-500'
+                                          : 'border-l-[3px] border-l-gray-300'
 
-                                  return (
-                                    <div
-                                      key={`${m?.id}-${mIdx}`}
-                                      className={`bg-white px-3.5 py-2.5 ${leftAccent} hover:bg-slate-50/50 transition-colors`}
-                                    >
-                                      {/* Top row: name + type + status */}
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
-                                          <span className="text-[12px] font-semibold text-gray-800 leading-tight">
-                                            {toTitleCase(
-                                              m?.title ??
-                                                m?.meditation_title ??
-                                                m?.name ??
-                                                ''
-                                            ) || '--'}
-                                          </span>
-                                          {meditationType && (
-                                            <span className="text-[9px] bg-teal-50 text-teal-700 border border-teal-200 px-1.5 py-0.2 rounded font-medium">
-                                              {meditationType}
-                                            </span>
+                                    return (
+                                      <div
+                                        key={m?.id || mIdx}
+                                        className={`bg-white px-3.5 py-2.5 ${leftAccent} hover:bg-slate-50/50 transition-colors flex items-start gap-3`}
+                                      >
+                                        {/* Meditation Video Thumbnail */}
+                                        <ExerciseThumbnail
+                                          thumbnailUrl={meta.thumbnailUrl}
+                                          videoUrl={meta.videoUrl}
+                                          title={meta.medTitle}
+                                          durationText={meta.durationMin}
+                                          isLocked={lockState.isLocked}
+                                          lockReason={lockState.reason}
+                                          isCompleted={isCompleted}
+                                          onPlay={() => {
+                                            setActivePlayerExercises(
+                                              flatMedItems
+                                            )
+                                            setActivePlayerIndex(linearIndex)
+                                            setIsPlayerWorkoutMode(false)
+                                            setPlayerModalOpen(true)
+                                          }}
+                                          onLockedClick={(reason) => {
+                                            enqueueSnackbar(reason, {
+                                              variant: 'info',
+                                            })
+                                          }}
+                                        />
+
+                                        {/* Meditation Details & Badges */}
+                                        <div className="flex-1 min-w-0">
+                                          {/* Top row: name + type + status */}
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
+                                              <span className="text-[12px] font-semibold text-gray-800 leading-tight">
+                                                {meta.medTitle}
+                                              </span>
+                                              {meta.meditationType && (
+                                                <span className="text-[9px] bg-teal-50 text-teal-700 border border-teal-200 px-1.5 py-0.2 rounded font-medium">
+                                                  {meta.meditationType}
+                                                </span>
+                                              )}
+                                            </div>
+                                            {displayStatus && (
+                                              <span
+                                                className={`shrink-0 text-[9px] font-semibold border rounded-full px-2 py-0.5 capitalize ${statusPill}`}
+                                              >
+                                                {isCompleted && '✓ '}
+                                                {isInProgress && '⏳ '}
+                                                {isMissed && '✕ '}
+                                                {displayStatus.replace(
+                                                  /_/g,
+                                                  ' '
+                                                )}
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          {/* Description if any */}
+                                          {m?.description && (
+                                            <div className="text-[11px] text-gray-500 mt-1 line-clamp-2">
+                                              {m.description}
+                                            </div>
+                                          )}
+
+                                          {/* Tags row: compact micro-badges */}
+                                          <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                                            {/* Video watch % */}
+                                            {watchPct != null && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                                👁 {watchPct}% watched
+                                              </span>
+                                            )}
+
+                                            {/* Duration */}
+                                            {meta.durationMin != null && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200/80 rounded px-1.5 py-0.5 shadow-2xs">
+                                                <span>⏱</span>
+                                                <span>{meta.durationMin}m</span>
+                                              </span>
+                                            )}
+
+                                            {/* Completed timestamp */}
+                                            {action?.completed_at && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-500 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5">
+                                                <span className="text-emerald-500 font-bold">
+                                                  ✓
+                                                </span>
+                                                <span>
+                                                  {new Date(
+                                                    action.completed_at
+                                                  ).toLocaleTimeString([], {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                  })}
+                                                </span>
+                                              </span>
+                                            )}
+
+                                            {/* Notes */}
+                                            {action?.notes && (
+                                              <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-600 bg-amber-50/60 border border-amber-200/60 rounded px-1.5 py-0.5 italic">
+                                                <span>💬</span>
+                                                <span>
+                                                  &ldquo;{action.notes}&rdquo;
+                                                </span>
+                                              </span>
+                                            )}
+                                          </div>
+
+                                          {/* Video watch progress bar */}
+                                          {watchPct != null && watchPct > 0 && (
+                                            <div className="mt-1.5 h-1 bg-gray-100 rounded-full overflow-hidden">
+                                              <div
+                                                className="h-full bg-teal-500 rounded-full transition-all duration-300"
+                                                style={{
+                                                  width: `${Math.min(
+                                                    watchPct,
+                                                    100
+                                                  )}%`,
+                                                }}
+                                              />
+                                            </div>
                                           )}
                                         </div>
-                                        {status && (
-                                          <span
-                                            className={`shrink-0 text-[9px] font-semibold border rounded-full px-2 py-0.5 capitalize ${statusPill}`}
-                                          >
-                                            {isCompleted && '✓ '}
-                                            {isInProgress && '⏳ '}
-                                            {isMissed && '✕ '}
-                                            {status.replace(/_/g, ' ')}
-                                          </span>
-                                        )}
                                       </div>
-
-                                      {/* Description if any */}
-                                      {m?.description && (
-                                        <div className="text-[11px] text-gray-500 mt-1 line-clamp-2">
-                                          {m.description}
-                                        </div>
-                                      )}
-
-                                      {/* Tags row: compact micro-badges */}
-                                      <div className="flex flex-wrap items-center gap-1 mt-1.5">
-                                        {/* Video link */}
-                                        {hasVideo && (
-                                          <a
-                                            href={videoUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex items-center gap-1 text-[9px] font-semibold bg-teal-50 text-teal-700 border border-teal-200/80 rounded px-1.5 py-0.5 hover:bg-teal-100 hover:border-teal-300 transition-colors shadow-2xs"
-                                          >
-                                            <svg
-                                              className="w-2.5 h-2.5 fill-teal-600"
-                                              viewBox="0 0 20 20"
-                                            >
-                                              <path d="M2 6a2 2 0 012-2h6l2 2h4a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                                              <path
-                                                fill="white"
-                                                d="M10 9l3 2-3 2V9z"
-                                              />
-                                            </svg>
-                                            <span>Video</span>
-                                          </a>
-                                        )}
-
-                                        {/* Video watch % */}
-                                        {watchPct != null && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                            👁 {watchPct}% watched
-                                          </span>
-                                        )}
-
-                                        {/* Duration */}
-                                        {durationMin != null && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200/80 rounded px-1.5 py-0.5 shadow-2xs">
-                                            <span>⏱</span>
-                                            <span>{durationMin}m</span>
-                                          </span>
-                                        )}
-
-                                        {/* Completed timestamp */}
-                                        {action?.completed_at && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-500 bg-gray-50 border border-gray-200 rounded px-1.5 py-0.5">
-                                            <span className="text-emerald-500 font-bold">
-                                              ✓
-                                            </span>
-                                            <span>
-                                              {new Date(
-                                                action.completed_at
-                                              ).toLocaleTimeString([], {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                              })}
-                                            </span>
-                                          </span>
-                                        )}
-
-                                        {/* Notes */}
-                                        {action?.notes && (
-                                          <span className="inline-flex items-center gap-0.5 text-[9px] text-gray-600 bg-amber-50/60 border border-amber-200/60 rounded px-1.5 py-0.5 italic">
-                                            <span>💬</span>
-                                            <span>
-                                              &ldquo;{action.notes}&rdquo;
-                                            </span>
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      {/* Video watch progress bar */}
-                                      {watchPct != null && watchPct > 0 && (
-                                        <div className="mt-1.5 h-1 bg-gray-100 rounded-full overflow-hidden">
-                                          <div
-                                            className="h-full bg-teal-500 rounded-full transition-all duration-300"
-                                            style={{
-                                              width: `${Math.min(
-                                                watchPct,
-                                                100
-                                              )}%`,
-                                            }}
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  )
-                                })}
+                                    )
+                                  }
+                                )}
                               </div>
                             </div>
                           )

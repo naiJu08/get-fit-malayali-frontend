@@ -30,6 +30,7 @@ import { getData } from '../../../apis/api.helpers'
 import { getWorkoutPlanSubcategories } from '../../Plans/Details/WorkoutPlan/api'
 import { getYogaPlanSubcategories } from '../../YogaCategories/api'
 import DayDetailTabsSection from './DayDetailTabsSection'
+import ProposedWaterIntakeToggle from './ProposedWaterIntakeToggle'
 import { ClientWorkflowDetails } from '../../AssignedClients/WorkflowPanels'
 import {
   useClientDetail,
@@ -4070,40 +4071,20 @@ export default function Subscriptions({
           reader.readAsDataURL(blob)
         })
 
-        const plateUrl = '/diet_plate.jpg'
-        const plateResponse = await fetch(plateUrl)
-        if (plateResponse.ok) {
-          const pb = await plateResponse.blob()
-          const pBase = await new Promise<string>((resolve, reject) => {
+        const plateUrl = '/diet_plate.png'
+        const plateResponse = await fetch(plateUrl).catch(() => null)
+        const activePlateResponse =
+          plateResponse && plateResponse.ok
+            ? plateResponse
+            : await fetch('/diet_plate.jpg').catch(() => null)
+
+        if (activePlateResponse && activePlateResponse.ok) {
+          const pb = await activePlateResponse.blob()
+          base64Plate = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader()
             reader.onloadend = () => resolve(reader.result as string)
             reader.onerror = reject
             reader.readAsDataURL(pb)
-          })
-
-          base64Plate = await new Promise<string>((resolve) => {
-            const img = new Image()
-            img.onload = () => {
-              const canvas = document.createElement('canvas')
-              const size = Math.min(img.width, img.height)
-              canvas.width = size
-              canvas.height = size
-              const ctx = canvas.getContext('2d')
-              if (ctx) {
-                ctx.beginPath()
-                ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2)
-                ctx.closePath()
-                ctx.clip()
-                const dx = (size - img.width) / 2
-                const dy = (size - img.height) / 2
-                ctx.drawImage(img, dx, dy, img.width, img.height)
-                resolve(canvas.toDataURL('image/png'))
-              } else {
-                resolve(pBase)
-              }
-            }
-            img.onerror = () => resolve(pBase)
-            img.src = pBase
           })
         }
       } catch (err) {
@@ -4342,9 +4323,31 @@ export default function Subscriptions({
         dietPlansData[0]?.diet_plan_template_name || 'N/A'
       ).toUpperCase()
 
+      const rawWaterIntake =
+        overview?.proposed_water_intake ??
+        overview?.user?.proposed_water_intake ??
+        user?.proposed_water_intake ??
+        null
+
+      let waterIntakeText: string | null = null
+      if (
+        rawWaterIntake !== null &&
+        rawWaterIntake !== undefined &&
+        rawWaterIntake !== ''
+      ) {
+        const num = Number(rawWaterIntake)
+        if (!isNaN(num)) {
+          if (num > 0) {
+            waterIntakeText = `${num} ${num === 1 ? 'GLASS' : 'GLASSES'}`
+          }
+        } else if (String(rawWaterIntake).trim().toLowerCase() !== 'n/a') {
+          waterIntakeText = String(rawWaterIntake).trim().toUpperCase()
+        }
+      }
+
       // Header Section (drawn row by row)
-      let headerY = gap + 15
-      const headerLineHeight = 7
+      let headerY = gap + 14
+      const headerLineHeight = 8.5
 
       pdf.setFont('times', 'bold')
       pdf.setFontSize(10)
@@ -4358,9 +4361,13 @@ export default function Subscriptions({
         `NAME: ${clientName}`,
         `AGE: ${clientAge}`,
         `BMI: ${clientBmi}`,
-        `PLAN: ${planName}`,
+        `PACKAGE: ${planName}`,
         `DIET PLAN: ${templateName}`,
       ]
+
+      if (waterIntakeText) {
+        headerRows.push(`WATER INTAKE: ${waterIntakeText}`)
+      }
 
       headerRows.forEach((row) => {
         pdf.text(row, marginX, headerY)
@@ -4368,24 +4375,27 @@ export default function Subscriptions({
       })
 
       // Add plate image at the right of the header section
+      let plateBottomY = headerY
       if (base64Plate) {
-        const plateSize = 35 // Increased size
+        const plateWidth = 66
+        const plateHeight = 49.5 // 4:3 aspect ratio matching the infographic (increased size)
+        const plateTop = gap + 11 // Positioned within header section, nudged down slightly
+        plateBottomY = plateTop + plateHeight
+        const imgFormat = base64Plate.startsWith('data:image/png')
+          ? 'PNG'
+          : 'JPEG'
         pdf.addImage(
           base64Plate,
-          'PNG', // Using PNG because canvas converted it to preserved transparency
-          pageWidth - rightMargin - plateSize,
-          gap + 10, // Positioned within header section
-          plateSize,
-          plateSize
+          imgFormat,
+          pageWidth - rightMargin - plateWidth,
+          plateTop,
+          plateWidth,
+          plateHeight
         )
       }
 
-      // pdf.setDrawColor(200, 200, 200)
-      // pdf.setLineWidth(0.1)
-      // pdf.line(marginX, headerY + 8, pageWidth - rightMargin, headerY + 8) // Line moved down
-
       // Title (Shifted down below header)
-      yPosition = headerY + 10
+      yPosition = Math.max(headerY, plateBottomY) + 8
       yPosition += 2
 
       // Group diet plans by day_number
@@ -4774,7 +4784,28 @@ export default function Subscriptions({
                   </p>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs">
+              <div className="flex flex-wrap items-center gap-2.5 text-xs">
+                <ProposedWaterIntakeToggle
+                  userId={user?.id || id}
+                  initialCount={
+                    user?.proposed_water_intake ??
+                    overview?.user?.proposed_water_intake ??
+                    overview?.proposed_water_intake ??
+                    null
+                  }
+                  onUpdate={(val) => {
+                    if (user) {
+                      user.proposed_water_intake = val
+                    }
+                    if (overview) {
+                      overview.proposed_water_intake = val
+                      if (overview.user)
+                        overview.user.proposed_water_intake = val
+                    }
+                    onRefresh?.()
+                  }}
+                  disabled={!canAccessDiet && !isSuperOrAdmin}
+                />
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50/80 border border-blue-200 text-[11px] font-medium text-blue-700">
                   <span className="w-2 h-2 rounded-full bg-primaryBlue animate-pulse inline-block" />
                   Today

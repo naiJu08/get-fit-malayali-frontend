@@ -132,36 +132,79 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
       Array.isArray(dayDetail?.diet_plans) &&
       dayDetail.diet_plans.length > 0
     ) {
-      const initialPlans: EditDietPlan[] = dayDetail.diet_plans.map(
-        (dp: any) => ({
-          id: dp.id,
-          meal_time: dp.meal_time?.toUpperCase?.() || 'MEAL',
-          meal_time_time: dp.meal_time_time || '',
-          meal_name: dp.meal_name || '',
-          notes: dp.notes || '',
-          items: Array.isArray(dp.items)
-            ? dp.items.map((it: any) => ({
-                id: it.id,
-                meal_id: it.meal_id,
-                meal_name: it.meal_name || '',
-                quantity: Number(it.quantity) || 1,
-                requirement:
-                  it.requirement === 'optional' ? 'optional' : 'mandatory',
-                serving_unit: it.serving_unit || '',
-                serving_quantity: it.serving_quantity,
-                per_serving: it.per_serving
-                  ? {
-                      calories: Number(it.per_serving.calories) || 0,
-                      protein: Number(it.per_serving.protein) || 0,
-                      carbs: Number(it.per_serving.carbs) || 0,
-                      fat: Number(it.per_serving.fat) || 0,
-                      fiber: Number(it.per_serving.fiber) || 0,
-                    }
-                  : undefined,
-              }))
-            : [],
-        })
+      const sortedDietPlans = [...dayDetail.diet_plans].sort(
+        (a: any, b: any) => {
+          const seqA =
+            a?.sequence_number !== undefined &&
+            a?.sequence_number !== null &&
+            a?.sequence_number !== ''
+              ? Number(a.sequence_number)
+              : null
+          const seqB =
+            b?.sequence_number !== undefined &&
+            b?.sequence_number !== null &&
+            b?.sequence_number !== ''
+              ? Number(b.sequence_number)
+              : null
+
+          if (seqA !== null && seqB !== null && !isNaN(seqA) && !isNaN(seqB)) {
+            if (seqA !== seqB) return seqA - seqB
+          } else if (seqA !== null && !isNaN(seqA)) {
+            return -1
+          } else if (seqB !== null && !isNaN(seqB)) {
+            return 1
+          }
+
+          const timeA = a?.meal_time_time
+            ? moment(a.meal_time_time, [
+                'hh:mm A',
+                'h:mm A',
+                'HH:mm:ss',
+                'HH:mm',
+              ]).valueOf()
+            : 0
+          const timeB = b?.meal_time_time
+            ? moment(b.meal_time_time, [
+                'hh:mm A',
+                'h:mm A',
+                'HH:mm:ss',
+                'HH:mm',
+              ]).valueOf()
+            : 0
+          if (timeA && timeB && timeA !== timeB) return timeA - timeB
+
+          return 0
+        }
       )
+
+      const initialPlans: EditDietPlan[] = sortedDietPlans.map((dp: any) => ({
+        id: dp.id,
+        meal_time: dp.meal_time?.toUpperCase?.() || 'MEAL',
+        meal_time_time: dp.meal_time_time || '',
+        meal_name: dp.meal_name || '',
+        notes: dp.notes || '',
+        items: Array.isArray(dp.items)
+          ? dp.items.map((it: any) => ({
+              id: it.id,
+              meal_id: it.meal_id,
+              meal_name: it.meal_name || '',
+              quantity: Number(it.quantity) || 1,
+              requirement:
+                it.requirement === 'optional' ? 'optional' : 'mandatory',
+              serving_unit: it.serving_unit || '',
+              serving_quantity: it.serving_quantity,
+              per_serving: it.per_serving
+                ? {
+                    calories: Number(it.per_serving.calories) || 0,
+                    protein: Number(it.per_serving.protein) || 0,
+                    carbs: Number(it.per_serving.carbs) || 0,
+                    fat: Number(it.per_serving.fat) || 0,
+                    fiber: Number(it.per_serving.fiber) || 0,
+                  }
+                : undefined,
+            }))
+          : [],
+      }))
       setPlans(initialPlans)
     } else {
       // If no plans exist yet for this day, default to empty or standard meal times

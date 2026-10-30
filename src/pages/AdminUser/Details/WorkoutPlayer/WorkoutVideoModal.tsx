@@ -430,16 +430,13 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
     onClose()
   }
 
-  // Check if Next/Skip is allowed (only once completed or >= 98% watched)
+  // Check if current exercise is completed
   const isCurrentCompleted = currentExercise
     ? isExerciseCompleted(currentExercise.action, currentProgress)
     : false
-  const watchedPct = duration > 0 ? (currentTime / duration) * 100 : 0
-  const canSkipOrNext = isCurrentCompleted || watchedPct >= 98
 
-  // Handle Next/Skip click
+  // Handle Next/Skip click (never locked)
   const handleNextClick = () => {
-    if (!canSkipOrNext) return
     if (currentExercise && !isCurrentCompleted) {
       markExerciseComplete(currentExercise)
     }
@@ -828,26 +825,20 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
                 )}
               </div>
 
-              {/* Next / Skip Control Button */}
+              {/* Next / Skip Control Button (always unlocked) */}
               <button
                 type="button"
                 onClick={handleNextClick}
-                disabled={!canSkipOrNext}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  canSkipOrNext
-                    ? 'bg-primaryGreen text-white hover:opacity-90 shadow-xs cursor-pointer'
-                    : 'bg-slate-700/60 text-slate-500 cursor-not-allowed opacity-60'
-                }`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primaryGreen text-white hover:opacity-90 shadow-xs cursor-pointer transition-all"
                 title={
-                  canSkipOrNext
+                  currentIndex + 1 < flatExercises.length
                     ? 'Proceed to next'
-                    : 'Available once current video is 98% watched or completed'
+                    : 'Finish'
                 }
               >
                 <span>
                   {currentIndex + 1 < flatExercises.length ? 'Next' : 'Finish'}
                 </span>
-                {!canSkipOrNext && <span className="text-[10px]">🔒</span>}
                 <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 20 20">
                   <path
                     fillRule="evenodd"
