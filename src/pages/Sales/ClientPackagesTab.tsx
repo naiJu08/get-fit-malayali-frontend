@@ -2738,6 +2738,23 @@ export default function ClientPackagesTab({
               const assignment = currentAssignments.find(
                 (item: any) => item.role === role
               )
+              const staffFromAssignable = (
+                client?.assignable_staff?.[role] || []
+              ).find(
+                (s: any) => String(s.id) === String(assignment?.staff_user_id)
+              )
+              const totalAssigned =
+                assignment?.assignments_count ??
+                staffFromAssignable?.assignments_count ??
+                0
+              const activeCount =
+                assignment?.active_assignments_count ??
+                staffFromAssignable?.active_assignments_count ??
+                0
+              const upcomingCount =
+                assignment?.upcoming_assignments_count ??
+                staffFromAssignable?.upcoming_assignments_count ??
+                0
               const isAccepted = Boolean(
                 assignment?.accepted_at ||
                   (assignment?.workflow_status &&
@@ -2885,6 +2902,49 @@ export default function ClientPackagesTab({
                               )}
                             </div>
                           )}
+                        </div>
+
+                        {/* Current Assignments, Active and Upcoming counts */}
+                        <div className="rounded-lg border border-formBorder/70 bg-cardWrapperBg/80 p-3 shadow-2xs">
+                          <div className="flex items-center justify-between text-xs font-bold text-primaryText mb-2">
+                            <span className="flex items-center gap-1.5 text-secondary font-semibold text-[11px]">
+                              <svg
+                                className="h-3.5 w-3.5 text-primary shrink-0"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                                />
+                              </svg>
+                              Current Assignments
+                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary">
+                              {totalAssigned}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-center">
+                            <div className="rounded-md border border-emerald-200 bg-emerald-50/80 py-1.5 px-2 text-emerald-800">
+                              <span className="font-bold text-emerald-700 block text-sm">
+                                {activeCount}
+                              </span>
+                              <span className="text-[10px] uppercase font-semibold tracking-wider text-emerald-600">
+                                Active
+                              </span>
+                            </div>
+                            <div className="rounded-md border border-blue-200 bg-blue-50/80 py-1.5 px-2 text-blue-800">
+                              <span className="font-bold text-blue-700 block text-sm">
+                                {upcomingCount}
+                              </span>
+                              <span className="text-[10px] uppercase font-semibold tracking-wider text-blue-600">
+                                Upcoming
+                              </span>
+                            </div>
+                          </div>
                         </div>
 
                         {/* Assignment Timeline Details */}
@@ -4039,9 +4099,27 @@ export default function ClientPackagesTab({
                         </div>
                       </div>
                     </div>
-                    <span className="rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 uppercase tracking-wider">
-                      Active Assignee
-                    </span>
+                    <div className="text-right shrink-0">
+                      <span className="rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 uppercase tracking-wider block mb-1">
+                        Active Assignee
+                      </span>
+                      <span className="text-[10px] font-semibold text-amber-900 block">
+                        {currentAssignmentForModal.assignments_count ?? 0}{' '}
+                        clients (
+                        <span className="text-emerald-700">
+                          {currentAssignmentForModal.active_assignments_count ??
+                            0}{' '}
+                          active
+                        </span>
+                        {', '}
+                        <span className="text-blue-700">
+                          {currentAssignmentForModal.upcoming_assignments_count ??
+                            0}{' '}
+                          upcoming
+                        </span>
+                        )
+                      </span>
+                    </div>
                   </div>
                 )}
 
@@ -4142,6 +4220,29 @@ export default function ClientPackagesTab({
                             <span className="block truncate text-xs text-secondary">
                               {staff.email || 'Active team member'}
                             </span>
+                            {/* Assigned Clients & Workload Count */}
+                            <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+                              <span className="inline-flex items-center gap-1 font-semibold text-primaryText bg-gray-100 dark:bg-gray-700/60 px-2 py-0.5 rounded-md">
+                                <span>
+                                  {staff.assignments_count ??
+                                    staff.clients_count ??
+                                    0}
+                                </span>
+                                <span className="text-secondary font-normal text-[10px]">
+                                  {(staff.assignments_count ?? 0) === 1
+                                    ? 'client'
+                                    : 'clients'}
+                                </span>
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                {staff.active_assignments_count ?? 0} Active
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                                <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
+                                {staff.upcoming_assignments_count ?? 0} Upcoming
+                              </span>
+                            </div>
                           </span>
                           {isSelected && <Icons name="check-circle" />}
                         </button>
@@ -4187,6 +4288,61 @@ export default function ClientPackagesTab({
                     </button>
                   </div>
                 </div>
+                {(() => {
+                  const selectedStaff = (
+                    client?.assignable_staff?.[assignmentRole] || []
+                  ).find((s: any) => String(s.id) === String(selectedStaffId))
+                  if (!selectedStaff) return null
+                  const totalAssigned =
+                    selectedStaff.assignments_count ??
+                    selectedStaff.clients_count ??
+                    0
+                  const activeCount =
+                    selectedStaff.active_assignments_count ?? 0
+                  const upcomingCount =
+                    selectedStaff.upcoming_assignments_count ?? 0
+
+                  return (
+                    <div className="rounded-xl border border-primary/30 bg-primary/5 p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-white font-bold text-sm shadow-xs">
+                          {String(selectedStaff.name || '?')
+                            .charAt(0)
+                            .toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-primaryText truncate">
+                            Selected {roleLabels[assignmentRole] || 'Staff'}:{' '}
+                            {capitalizeFirst(selectedStaff.name)}
+                          </div>
+                          <div className="text-[11px] text-secondary truncate">
+                            {selectedStaff.email || 'Active team member'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="rounded-lg border border-formBorder bg-white px-3 py-1.5 shadow-2xs text-right">
+                          <div className="text-xs font-bold text-primaryText">
+                            {totalAssigned}{' '}
+                            {totalAssigned === 1 ? 'Client' : 'Clients'}{' '}
+                            Assigned
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] text-secondary justify-end mt-0.5">
+                            <span className="inline-flex items-center gap-1 font-semibold text-emerald-700">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              {activeCount} Active
+                            </span>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1 font-semibold text-blue-700">
+                              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
+                              {upcomingCount} Upcoming
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })()}
                 <FormProvider {...assignmentMethods}>
                   <FormBuilder
                     data={[
