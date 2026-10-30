@@ -1951,7 +1951,9 @@ export default function CampaignDetails() {
       <CustomDrawer
         open={formDrawerOpen}
         handleClose={() => {
-          setSelectedForm(null)
+          setSelectedForm(
+            editingCampaign?.marketing_form || editingCampaign?.form || null
+          )
           setFormDrawerOpen(false)
         }}
         title="Attach form"

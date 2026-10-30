@@ -382,6 +382,7 @@ const steps: StepDef[] = [
       { id: 'Night shift', name: 'Night shift', icon: '🌙' },
       { id: 'Rotational shift', name: 'Rotational shift', icon: '🔄' },
       { id: 'Flexible', name: 'Flexible', icon: '🕐' },
+      { id: 'Others', name: 'Others', icon: '➕' },
     ],
   },
   {

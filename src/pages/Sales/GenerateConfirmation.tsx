@@ -12,6 +12,10 @@ import { generateSalesConfirmation, useSalesLead } from './api'
 
 const confirmationTemplate = `As per our discussion, I've noted the following points. Please go through them and confirm if everything is correct. Once you confirm, I'll plan your customized diet and workout accordingly.
 
+Name:
+WhatsApp Number:
+Age:
+Gender:
 Height:
 Weight:
 Medical condition:

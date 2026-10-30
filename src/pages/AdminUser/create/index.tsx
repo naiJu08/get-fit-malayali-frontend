@@ -51,6 +51,7 @@ const workScheduleOptions = [
   { id: 'Night shift', name: 'Night shift' },
   { id: 'Rotational shift', name: 'Rotational shift' },
   { id: 'Flexible', name: 'Flexible' },
+  { id: 'Others', name: 'Others' },
 ]
 
 const foodAllergyOptions: FoodAllergyOption[] = [

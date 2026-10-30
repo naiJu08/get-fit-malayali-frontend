@@ -294,7 +294,7 @@ export default function ClientPackagesTab({
     }
   }, [periodDropdownOpen])
   const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
-  const isSales = loginRole === 'sales'
+  const isSales = (loginRole || '').includes('sales')
   // const isNutritionist = loginRole === 'nutritionist'
   const isSuperAdmin = loginRole === 'superadmin' || loginRole === 'admin'
   const isServiceStaff = [
@@ -1853,7 +1853,7 @@ export default function ClientPackagesTab({
               )
             ) : activeProposal ? (
               <>
-                {!isPackageConfirmed && (!isSuperAdmin || isServiceStaff) && (
+                {!isPackageConfirmed && isSales && (
                   <Button
                     label="Update package"
                     icon="edit"
@@ -2099,7 +2099,8 @@ export default function ClientPackagesTab({
                   </div>
                 </div>
 
-                {isSuperAdmin && !isPackageConfirmed && (
+                {/* {isSuperAdmin && !isPackageConfirmed && ( */}
+                {!isSuperAdmin && (!isPackageConfirmed || isSales) && (
                   <div className="flex shrink-0 items-center gap-2">
                     <Button
                       label="Update package"
