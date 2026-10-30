@@ -225,7 +225,8 @@ export default function ModuleDashboard({
     .filter(([key]) => key !== 'total')
     .map(([key, value]) => ({
       key,
-      label: label(key),
+      label:
+        mode === 'sales' && key === 'accepted' ? 'Sales accepted' : label(key),
       value: Number(value || 0),
       color: statusColors[key] || '#94a3b8',
     }))
