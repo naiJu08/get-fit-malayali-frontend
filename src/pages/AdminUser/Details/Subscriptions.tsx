@@ -226,7 +226,28 @@ export default function Subscriptions({
     workflowAssignment,
   ])
 
-  const canUpdatePackage = canConfirmPackage
+  const isSales =
+    (loginRole || '').includes('sales') ||
+    (typeof window !== 'undefined' &&
+      window.location.pathname.startsWith('/sales'))
+  const isPackageConfirmed = Boolean(
+    selectedCycle?.subscription_id ||
+      selectedCycle?.status === 'active' ||
+      selectedCycle?.status === 'confirmed' ||
+      selectedCycle?.status === 'package_confirmed' ||
+      selectedCycle?.is_confirmed ||
+      selectedCycle?.confirmed ||
+      proposedPackage?.status === 'accepted' ||
+      proposedPackage?.status === 'confirmed' ||
+      proposedPackage?.status === 'active' ||
+      (selectedCycle?.status &&
+        selectedCycle.status !== 'proposed' &&
+        selectedCycle.status !== 'draft') ||
+      workflowAssignment?.workflow_status === 'package_confirmed' ||
+      workflowAssignment?.workflow_status === 'active'
+  )
+  const canUpdatePackage =
+    Boolean(proposedPackage) && isSales && !isPackageConfirmed
 
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const [confirmingPackage, setConfirmingPackage] = useState(false)

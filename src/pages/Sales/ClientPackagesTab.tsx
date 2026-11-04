@@ -293,8 +293,21 @@ export default function ClientPackagesTab({
       document.removeEventListener('mousedown', handleOutsideClick)
     }
   }, [periodDropdownOpen])
-  const loginRole = useAuthStore((s) => s.roleData?.name?.toLowerCase?.())
-  const isSales = (loginRole || '').includes('sales')
+  const authUserData = useAuthStore((s) => s.userData)
+  const authRoleData = useAuthStore((s) => s.roleData)
+  const loginRole = (
+    authRoleData?.name ||
+    (authUserData as any)?.role ||
+    (authUserData as any)?.role_name ||
+    ''
+  )
+    .toString()
+    .toLowerCase()
+  const isSales =
+    loginRole.includes('sales') ||
+    apiPrefix === '/sales/clients' ||
+    (typeof window !== 'undefined' &&
+      window.location.pathname.startsWith('/sales'))
   // const isNutritionist = loginRole === 'nutritionist'
   const isSuperAdmin = loginRole === 'superadmin' || loginRole === 'admin'
   const isServiceStaff = [
@@ -364,13 +377,6 @@ export default function ClientPackagesTab({
     return daysRemaining >= 0 && daysRemaining <= 5
   }, [selectedCycle?.end_date, selectedCycle?.status])
 
-  const isPackageConfirmed = Boolean(
-    selectedCycle &&
-      (selectedCycle.status === 'active' ||
-        selectedCycle.status !== 'proposed' ||
-        !selectedCycle.can_confirm)
-  )
-
   const selectedValue = useMemo<string>(() => {
     if (mode === 'assignments') {
       return selectedCycle ? String(selectedCycle.id) : ''
@@ -395,11 +401,6 @@ export default function ClientPackagesTab({
       Boolean(selectedCycle?.can_manage_assignments) &&
       (!isSuperAdmin ||
         Boolean(data?.client?.sales_rep || data?.user?.sales_rep))
-  )
-  const canEditProposal = Boolean(
-    effectiveCanManage &&
-      (Boolean(selectedCycle?.can_edit_proposal) ||
-        (selectedValue === 'new' && canCreateUpcomingPackage))
   )
   const refetch = async () => {
     await Promise.all([refetchClient(), refetchCycles()])
@@ -551,6 +552,30 @@ export default function ClientPackagesTab({
           end_date: selectedCycle.end_date,
         }
       : null)
+
+  const isPackageConfirmed = Boolean(
+    selectedCycle?.subscription_id ||
+      selectedCycle?.status === 'active' ||
+      selectedCycle?.status === 'confirmed' ||
+      selectedCycle?.status === 'package_confirmed' ||
+      selectedCycle?.is_confirmed ||
+      selectedCycle?.confirmed ||
+      activeProposal?.status === 'accepted' ||
+      activeProposal?.status === 'confirmed' ||
+      activeProposal?.status === 'active' ||
+      (selectedCycle?.status &&
+        selectedCycle.status !== 'proposed' &&
+        selectedCycle.status !== 'draft') ||
+      selectedCycle?.assignments?.some(
+        (a: any) => a.workflow_status === 'package_confirmed'
+      )
+  )
+
+  const canEditProposal = Boolean(
+    effectiveCanManage &&
+      !isPackageConfirmed &&
+      (isSales || (selectedValue === 'new' && canCreateUpcomingPackage))
+  )
   const packages = useMemo(
     () => packagesData?.packages || [],
     [packagesData?.packages]
@@ -725,6 +750,15 @@ export default function ClientPackagesTab({
 
   const openProposalModal = (proposal?: any, forceNew = false) => {
     if (!effectiveCanManage) return
+    if (proposal && (!isSales || isPackageConfirmed)) {
+      enqueueSnackbar(
+        isPackageConfirmed
+          ? 'Confirmed packages cannot be modified.'
+          : 'Only Sales can modify proposed packages.',
+        { variant: 'warning' }
+      )
+      return
+    }
     if (
       forceNew ||
       (!proposal &&
@@ -1851,27 +1885,7 @@ export default function ClientPackagesTab({
                   disabled={!client.profile_completed}
                 />
               )
-            ) : activeProposal ? (
-              <>
-                {!isPackageConfirmed && isSales && (
-                  <Button
-                    label="Update package"
-                    icon="edit"
-                    outlined
-                    onClick={() => openProposalModal(activeProposal)}
-                    disabled={!client.profile_completed}
-                  />
-                )}
-                {isSuperAdmin && (
-                  <Button
-                    label="Add proposed package"
-                    icon="plus"
-                    onClick={() => openProposalModal(undefined, true)}
-                    disabled={!client.profile_completed}
-                  />
-                )}
-              </>
-            ) : canCreateUpcomingPackage ? (
+            ) : activeProposal ? null : canCreateUpcomingPackage ? (
               <Button
                 label="Add proposed package"
                 icon="plus"
@@ -2099,20 +2113,18 @@ export default function ClientPackagesTab({
                   </div>
                 </div>
 
-                {/* {isSuperAdmin && !isPackageConfirmed && ( */}
-                {!isSuperAdmin &&
-                  (!isPackageConfirmed || isSales) &&
-                  selectedCycle?.status !== 'active' && (
+                {isSales &&
+                  !isPackageConfirmed &&
+                  selectedCycle?.status !== 'active' &&
+                  selectedCycle?.status !== 'refunded' &&
+                  selectedCycle?.status !== 'cancelled' && (
                     <div className="flex shrink-0 items-center gap-2">
                       <Button
                         label="Update package"
                         icon="edit"
                         outlined
                         onClick={() => openProposalModal(activeProposal)}
-                        disabled={
-                          !client.profile_completed ||
-                          (isSuperAdmin && !hasAnyStaffAssignee)
-                        }
+                        disabled={!client.profile_completed}
                       />
                     </div>
                   )}
@@ -2325,73 +2337,133 @@ export default function ClientPackagesTab({
                   {proposalHistoryOpen && (
                     <div className="mt-2.5 space-y-2">
                       {activeProposal.change_history.map(
-                        (chg: any, idx: number) => (
-                          <div
-                            key={chg.id || idx}
-                            className="rounded-lg border border-amber-200/80 bg-amber-50/50 p-3 text-xs"
-                          >
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span className="font-semibold text-amber-900">
-                                Changed by {chg.changed_by?.name || 'Staff'}
-                              </span>
-                              <span className="text-secondary text-[11px]">
-                                {chg.changed_at
-                                  ? moment(chg.changed_at).format(
-                                      'DD MMM YYYY, h:mm A'
-                                    )
-                                  : '--'}
-                              </span>
-                            </div>
-                            <div className="mt-1.5 flex flex-wrap gap-x-6 gap-y-1 text-secondary">
-                              {chg.old_plan && (
-                                <div>
-                                  <span className="font-medium">Plan: </span>
-                                  <span className="line-through text-red-500">
-                                    {capitalizeFirst(chg.old_plan.name)}
-                                  </span>
-                                  {chg.new_plan && (
-                                    <span>
-                                      {' '}
-                                      →{' '}
-                                      <strong className="text-emerald-700">
-                                        {capitalizeFirst(chg.new_plan.name)}
-                                      </strong>
+                        (chg: any, idx: number, history: any[]) => {
+                          const directStart =
+                            chg.new_start_date ||
+                            chg.start_date ||
+                            chg.new_dates?.start_date
+                          const directEnd =
+                            chg.new_end_date ||
+                            chg.end_date ||
+                            chg.new_dates?.end_date
+
+                          const isDesc =
+                            history.length > 1
+                              ? moment(history[0]?.changed_at).isSameOrAfter(
+                                  moment(
+                                    history[history.length - 1]?.changed_at
+                                  )
+                                )
+                              : true
+
+                          const nextEntry = isDesc
+                            ? idx === 0
+                              ? null
+                              : history[idx - 1]
+                            : idx === history.length - 1
+                              ? null
+                              : history[idx + 1]
+
+                          const newStartDate =
+                            directStart ||
+                            (nextEntry
+                              ? nextEntry.old_start_date
+                              : activeProposal.start_date)
+
+                          const newEndDate =
+                            directEnd ||
+                            (nextEntry
+                              ? nextEntry.old_end_date
+                              : activeProposal.end_date) ||
+                            (newStartDate && chg.new_plan?.duration_days
+                              ? moment(newStartDate)
+                                  .add(
+                                    Number(chg.new_plan.duration_days) - 1,
+                                    'days'
+                                  )
+                                  .format('YYYY-MM-DD')
+                              : null)
+
+                          return (
+                            <div
+                              key={chg.id || idx}
+                              className="rounded-lg border border-amber-200/80 bg-amber-50/50 p-3 text-xs"
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="font-semibold text-amber-900">
+                                  Changed by {chg.changed_by?.name || 'Staff'}
+                                </span>
+                                <span className="text-secondary text-[11px]">
+                                  {chg.changed_at
+                                    ? moment(chg.changed_at).format(
+                                        'DD MMM YYYY, h:mm A'
+                                      )
+                                    : '--'}
+                                </span>
+                              </div>
+                              <div className="mt-1.5 flex flex-wrap gap-x-6 gap-y-1 text-secondary">
+                                {chg.old_plan && (
+                                  <div>
+                                    <span className="font-medium">Plan: </span>
+                                    <span className="line-through text-red-500">
+                                      {capitalizeFirst(chg.old_plan.name)}
                                     </span>
-                                  )}
-                                </div>
-                              )}
-                              {chg.old_start_date && (
-                                <div>
-                                  <span className="font-medium">Dates: </span>
-                                  <span className="line-through text-red-500">
-                                    {formatDate(chg.old_start_date)} to{' '}
-                                    {formatDate(chg.old_end_date)}
-                                  </span>
-                                </div>
-                              )}
-                              {chg.old_notes && (
-                                <div>
-                                  <span className="font-medium">
-                                    Old notes:{' '}
-                                  </span>
-                                  <span className="italic">
-                                    &quot;{chg.old_notes}&quot;
-                                  </span>
-                                </div>
-                              )}
-                              {chg.change_reason && (
-                                <div>
-                                  <span className="font-medium text-amber-900">
-                                    Reason:{' '}
-                                  </span>
-                                  <span className="text-amber-950">
-                                    {chg.change_reason}
-                                  </span>
-                                </div>
-                              )}
+                                    {chg.new_plan && (
+                                      <span>
+                                        {' '}
+                                        →{' '}
+                                        <strong className="text-emerald-700">
+                                          {capitalizeFirst(chg.new_plan.name)}
+                                        </strong>
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                {chg.old_start_date && (
+                                  <div>
+                                    <span className="font-medium">Dates: </span>
+                                    <span className="line-through text-red-500">
+                                      {formatDate(chg.old_start_date)} to{' '}
+                                      {formatDate(chg.old_end_date)}
+                                    </span>
+                                    {newStartDate && (
+                                      <span>
+                                        {' '}
+                                        →{' '}
+                                        <strong className="text-emerald-700">
+                                          {formatDate(newStartDate)}
+                                          {newEndDate
+                                            ? ` to ${formatDate(newEndDate)}`
+                                            : ''}
+                                        </strong>
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                {chg.old_notes && (
+                                  <div>
+                                    <span className="font-medium">
+                                      Old notes:{' '}
+                                    </span>
+                                    <span className="italic">
+                                      &quot;{chg.old_notes}&quot;
+                                    </span>
+                                  </div>
+                                )}
+                                {chg.change_reason && (
+                                  <div>
+                                    <span className="font-medium text-amber-900">
+                                      Reason:{' '}
+                                    </span>
+                                    <span className="text-amber-950">
+                                      {chg.change_reason}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )
+                          )
+                        }
                       )}
                     </div>
                   )}

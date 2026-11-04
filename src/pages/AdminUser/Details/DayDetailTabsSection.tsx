@@ -1031,16 +1031,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     )
                   ).length
                   const inProgressCount = exs.filter((e: any) => {
-                    const isDone = isExerciseCompleted(
-                      e?.actions,
-                      localProgressMap[String(e?.id)]
-                    )
+                    const isDone = isExerciseCompleted(e?.actions)
                     if (isDone) return false
-                    const p = localProgressMap[String(e?.id)]
                     return (
                       String(e?.actions?.status || '').toLowerCase() ===
-                        'in_progress' ||
-                      (p?.watchedPercentage != null && p.watchedPercentage > 0)
+                      'in_progress'
                     )
                   }).length
                   const progressPct =
@@ -1301,31 +1296,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       }
                     }
 
-                    // Flatten normalized items for linear player sequence
-                    const flatWorkoutItems: WorkoutExerciseItem[] = exs.map(
-                      (ex: any, idx: number) => {
-                        const meta = getWorkoutMeta(ex)
-                        return {
-                          id: ex?.id ?? idx,
-                          workoutId:
-                            ex?.workout_id || ex?.workout?.id || ex?.id,
-                          workoutName: meta.workoutName,
-                          catName: meta.catName,
-                          subName: meta.subName,
-                          videoUrl: meta.videoUrl,
-                          thumbnailUrl: meta.thumbnailUrl,
-                          reps: meta.reps,
-                          sets: meta.sets,
-                          durationMin: meta.durationMin,
-                          intensity: meta.intensity,
-                          exerciseType: meta.exerciseType,
-                          action: meta.action,
-                          linearIndex: idx,
-                          rawExercise: ex,
-                        }
-                      }
-                    )
-
                     // Group by resolved category & subcategory preserving linear order
                     const grouped: Record<
                       string,
@@ -1408,6 +1378,32 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                             )
                           ).length
 
+                          // Build a flat list scoped to this group only so the
+                          // player does NOT auto-advance into another category's
+                          // exercises (e.g. Extra Activities).
+                          const groupFlatItems: WorkoutExerciseItem[] =
+                            items.map(({ ex }, itemIdx) => {
+                              const m = getWorkoutMeta(ex)
+                              return {
+                                id: ex?.id ?? itemIdx,
+                                workoutId:
+                                  ex?.workout_id || ex?.workout?.id || ex?.id,
+                                workoutName: m.workoutName,
+                                catName: m.catName,
+                                subName: m.subName,
+                                videoUrl: m.videoUrl,
+                                thumbnailUrl: m.thumbnailUrl,
+                                reps: m.reps,
+                                sets: m.sets,
+                                durationMin: m.durationMin,
+                                intensity: m.intensity,
+                                exerciseType: m.exerciseType,
+                                action: m.action,
+                                linearIndex: itemIdx,
+                                rawExercise: ex,
+                              }
+                            })
+
                           return (
                             <div
                               key={groupKey}
@@ -1437,13 +1433,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                               {/* Exercise Cards with Video Thumbnails */}
                               <div className="divide-y divide-gray-100">
                                 {items.map(
-                                  (
-                                    {
-                                      ex,
-                                      linearIndex,
-                                    }: { ex: any; linearIndex: number },
-                                    exIdx: number
-                                  ) => {
+                                  ({ ex }: { ex: any }, exIdx: number) => {
                                     const meta = getWorkoutMeta(ex)
                                     const action = meta.action
                                     const progress =
@@ -1460,9 +1450,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                       backendStatus === 'failed'
                                     const isInProgress =
                                       !isCompleted &&
-                                      (backendStatus === 'in_progress' ||
-                                        (progress?.watchedPercentage != null &&
-                                          progress.watchedPercentage > 0))
+                                      backendStatus === 'in_progress'
                                     const displayStatus = isCompleted
                                       ? 'completed'
                                       : isMissed
@@ -1473,13 +1461,9 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
                                     const watchPct = isCompleted
                                       ? 100
-                                      : progress?.watchedPercentage != null
-                                        ? Math.round(progress.watchedPercentage)
-                                        : action?.video_watch_percentage != null
-                                          ? Number(
-                                              action.video_watch_percentage
-                                            )
-                                          : null
+                                      : action?.video_watch_percentage != null
+                                        ? Number(action.video_watch_percentage)
+                                        : null
 
                                     // Locking conditions:
                                     // - Videos can be played only for current day
@@ -1491,8 +1475,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                       dateStr: dayDetail?.date,
                                       isToday,
                                       hasVideoUrl: !!meta.videoUrl,
-                                      linearIndex,
-                                      flatExercises: flatWorkoutItems,
+                                      // exIdx = within-group index; scopes locking to this
+                                      // category so Extra Activities do not inherit lock
+                                      // state from previous categories.
+                                      linearIndex: exIdx,
+                                      flatExercises: groupFlatItems,
                                       localProgressMap,
                                     })
 
@@ -1531,10 +1518,14 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                           lockReason={lockState.reason}
                                           isCompleted={isCompleted}
                                           onPlay={() => {
+                                            // Open the player scoped to this
+                                            // category group only. This prevents
+                                            // auto-advancing into Extra Activity
+                                            // videos from other categories.
                                             setActivePlayerExercises(
-                                              flatWorkoutItems
+                                              groupFlatItems
                                             )
-                                            setActivePlayerIndex(linearIndex)
+                                            setActivePlayerIndex(exIdx)
                                             setIsPlayerWorkoutMode(false)
                                             setPlayerModalOpen(true)
                                           }}
@@ -1727,16 +1718,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     )
                   ).length
                   const inProgressCount = yexs.filter((e: any) => {
-                    const isDone = isExerciseCompleted(
-                      e?.actions,
-                      localProgressMap[String(e?.id)]
-                    )
+                    const isDone = isExerciseCompleted(e?.actions)
                     if (isDone) return false
-                    const p = localProgressMap[String(e?.id)]
                     return (
                       String(e?.actions?.status || '').toLowerCase() ===
-                        'in_progress' ||
-                      (p?.watchedPercentage != null && p.watchedPercentage > 0)
+                      'in_progress'
                     )
                   }).length
                   const progressPct =
@@ -2007,33 +1993,6 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                       }
                     }
 
-                    // Flatten normalized items for linear player sequence
-                    const flatYogaItems: WorkoutExerciseItem[] = yexs.map(
-                      (exercise: any, idx: number) => {
-                        const meta = getYogaMeta(exercise)
-                        return {
-                          id: exercise?.id ?? idx,
-                          workoutId:
-                            exercise?.yoga_id ||
-                            exercise?.yoga?.id ||
-                            exercise?.id,
-                          workoutName: meta.yogaName,
-                          catName: meta.catName,
-                          subName: meta.subName,
-                          videoUrl: meta.videoUrl,
-                          thumbnailUrl: meta.thumbnailUrl,
-                          reps: meta.reps,
-                          sets: meta.rounds,
-                          durationMin: meta.durationMin,
-                          intensity: meta.intensity,
-                          exerciseType: meta.yogaType,
-                          action: meta.action,
-                          linearIndex: idx,
-                          rawExercise: exercise,
-                        }
-                      }
-                    )
-
                     // Group by resolved category & subcategory preserving order
                     const yogaGrouped: Record<
                       string,
@@ -2116,6 +2075,31 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                             )
                           ).length
 
+                          // Per-group flat list — player stays within this yoga
+                          // category and does NOT auto-advance into other groups.
+                          const groupYogaFlatItems: WorkoutExerciseItem[] =
+                            items.map(({ ex: ey }, itemIdx) => {
+                              const m = getYogaMeta(ey)
+                              return {
+                                id: ey?.id ?? itemIdx,
+                                workoutId:
+                                  ey?.yoga_id || ey?.yoga?.id || ey?.id,
+                                workoutName: m.yogaName,
+                                catName: m.catName,
+                                subName: m.subName,
+                                videoUrl: m.videoUrl,
+                                thumbnailUrl: m.thumbnailUrl,
+                                reps: m.reps,
+                                sets: m.rounds,
+                                durationMin: m.durationMin,
+                                intensity: m.intensity,
+                                exerciseType: m.yogaType,
+                                action: m.action,
+                                linearIndex: itemIdx,
+                                rawExercise: ey,
+                              }
+                            })
+
                           return (
                             <div
                               key={groupKey}
@@ -2146,10 +2130,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                               <div className="divide-y divide-gray-100">
                                 {items.map(
                                   (
-                                    {
-                                      ex: exercise,
-                                      linearIndex,
-                                    }: { ex: any; linearIndex: number },
+                                    { ex: exercise }: { ex: any },
                                     exIdx: number
                                   ) => {
                                     const meta = getYogaMeta(exercise)
@@ -2167,10 +2148,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                       bStatus === 'missed' ||
                                       bStatus === 'failed'
                                     const isIP =
-                                      !isC &&
-                                      (bStatus === 'in_progress' ||
-                                        (progress?.watchedPercentage != null &&
-                                          progress.watchedPercentage > 0))
+                                      !isC && bStatus === 'in_progress'
                                     const displayStatus = isC
                                       ? 'completed'
                                       : isM
@@ -2181,20 +2159,16 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
                                     const watchPct = isC
                                       ? 100
-                                      : progress?.watchedPercentage != null
-                                        ? Math.round(progress.watchedPercentage)
-                                        : action?.video_watch_percentage != null
-                                          ? Number(
-                                              action.video_watch_percentage
-                                            )
-                                          : null
+                                      : action?.video_watch_percentage != null
+                                        ? Number(action.video_watch_percentage)
+                                        : null
 
                                     const lockState = getExerciseLockState({
                                       dateStr: dayDetail?.date,
                                       isToday,
                                       hasVideoUrl: !!meta.videoUrl,
-                                      linearIndex,
-                                      flatExercises: flatYogaItems,
+                                      linearIndex: exIdx,
+                                      flatExercises: groupYogaFlatItems,
                                       localProgressMap,
                                     })
 
@@ -2231,10 +2205,12 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                           lockReason={lockState.reason}
                                           isCompleted={isC}
                                           onPlay={() => {
+                                            // Scope player to this yoga category
+                                            // group only — no cross-group auto-play.
                                             setActivePlayerExercises(
-                                              flatYogaItems
+                                              groupYogaFlatItems
                                             )
-                                            setActivePlayerIndex(linearIndex)
+                                            setActivePlayerIndex(exIdx)
                                             setIsPlayerWorkoutMode(false)
                                             setPlayerModalOpen(true)
                                           }}
@@ -2411,16 +2387,11 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                     )
                   ).length
                   const inProgressCount = meds.filter((m: any) => {
-                    const isDone = isExerciseCompleted(
-                      m?.actions,
-                      localProgressMap[String(m?.id)]
-                    )
+                    const isDone = isExerciseCompleted(m?.actions)
                     if (isDone) return false
-                    const p = localProgressMap[String(m?.id)]
                     return (
                       String(m?.actions?.status || '').toLowerCase() ===
-                        'in_progress' ||
-                      (p?.watchedPercentage != null && p.watchedPercentage > 0)
+                      'in_progress'
                     )
                   }).length
                   const progressPct =
@@ -2719,10 +2690,7 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                       bStatus === 'missed' ||
                                       bStatus === 'failed'
                                     const isInProgress =
-                                      !isCompleted &&
-                                      (bStatus === 'in_progress' ||
-                                        (progress?.watchedPercentage != null &&
-                                          progress.watchedPercentage > 0))
+                                      !isCompleted && bStatus === 'in_progress'
                                     const displayStatus = isCompleted
                                       ? 'completed'
                                       : isMissed
@@ -2733,13 +2701,9 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
                                     const watchPct = isCompleted
                                       ? 100
-                                      : progress?.watchedPercentage != null
-                                        ? Math.round(progress.watchedPercentage)
-                                        : action?.video_watch_percentage != null
-                                          ? Number(
-                                              action.video_watch_percentage
-                                            )
-                                          : null
+                                      : action?.video_watch_percentage != null
+                                        ? Number(action.video_watch_percentage)
+                                        : null
 
                                     const lockState = getExerciseLockState({
                                       dateStr: dayDetail?.date,
