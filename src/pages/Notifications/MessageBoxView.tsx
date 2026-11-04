@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react'
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import NotificationItem from '../../layout/notifications/NotificationItem'
 import NotificationLoader from '../../layout/notifications/notificationLoader'
@@ -13,6 +13,7 @@ import { useNotificationStore } from '../../store/notificationStore'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { resolveNotificationUrl } from '../../utilities/notificationNavigation'
 import { useAuthStore } from '../../store/authStore'
+import { useScroll } from '../../layout/scrollcontext'
 
 type TabType = 'new' | 'read' | 'all'
 
@@ -21,32 +22,217 @@ export default function MessageBoxView() {
   const { enqueueSnackbar } = useSnackbarManager()
   const { setUnreadCount, decrementUnreadCount, refreshKey, triggerRefresh } =
     useNotificationStore()
+  const mainScrollRef = useScroll()
 
   const [activeTab, setActiveTab] = useState<TabType>('new')
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
+  const [page, setPage] = useState<number>(1)
+  const [hasMore, setHasMore] = useState<boolean>(true)
   const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false)
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [typeFilter, setTypeFilter] = useState<string>('all')
 
-  const fetchItems = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const data = await getNotifications({ per_page: 100 })
-      const list = data?.notifications || []
-      setNotifications(list)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
 
-      const unread = list.filter((n) => !n.is_read).length
-      setUnreadCount(data?.unread_count ?? unread)
-    } catch (error) {
-      console.error('Failed to load notifications:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [setUnreadCount])
+  // Backend-provided global counts (unaffected by type/status filter)
+  const [globalUnreadCount, setGlobalUnreadCount] = useState<number>(0)
+  const [globalReadCount, setGlobalReadCount] = useState<number>(0)
+  const [globalTotalCount, setGlobalTotalCount] = useState<number>(0)
+  // All types available across all user's notifications (from backend)
+  const [availableTypes, setAvailableTypes] = useState<string[]>([])
 
+  // Load notifications by page, tab status, and type filter
+  const loadNotifications = useCallback(
+    async (
+      targetPage: number,
+      isInitial = false,
+      tab: TabType = activeTab,
+      type: string = typeFilter
+    ) => {
+      if (isInitial) {
+        setIsLoading(true)
+      } else {
+        setIsLoadingMore(true)
+      }
+
+      try {
+        const params: Parameters<typeof getNotifications>[0] = {
+          page: targetPage,
+          per_page: 100,
+        }
+
+        // Status filter
+        if (tab === 'new') params.status = 'unread'
+        else if (tab === 'read') params.status = 'read'
+
+        // Type filter via backend
+        if (type !== 'all') params.type = type
+
+        const data = await getNotifications(params)
+        const newItems = data?.notifications || []
+
+        setNotifications((prev) => {
+          if (targetPage === 1) {
+            return newItems
+          }
+          const existingIds = new Set(prev.map((n) => String(n.id)))
+          const uniqueNew = newItems.filter(
+            (n) => !existingIds.has(String(n.id))
+          )
+          return [...prev, ...uniqueNew]
+        })
+
+        // Use global counts from backend (always the total, not filtered)
+        setGlobalUnreadCount(data?.unread_count ?? 0)
+        setGlobalReadCount(data?.read_count ?? 0)
+        setGlobalTotalCount(data?.total_count ?? 0)
+        setUnreadCount(data?.unread_count ?? 0)
+
+        // Use backend-provided available_types if present
+        if (data?.available_types && data.available_types.length > 0) {
+          setAvailableTypes(data.available_types)
+        }
+
+        setPage(targetPage)
+
+        if (data?.meta) {
+          setHasMore(data.meta.next_page !== null)
+        } else {
+          setHasMore(newItems.length >= 100)
+        }
+      } catch (error) {
+        console.error('Failed to load notifications:', error)
+      } finally {
+        if (isInitial) {
+          setIsLoading(false)
+        } else {
+          setIsLoadingMore(false)
+        }
+      }
+    },
+    [setUnreadCount, activeTab, typeFilter]
+  )
+
+  // Reset and load first page whenever tab, typeFilter, or refreshKey changes
   useEffect(() => {
-    fetchItems()
-  }, [fetchItems, refreshKey])
+    setPage(1)
+    setHasMore(true)
+    if (containerRef.current) {
+      containerRef.current.scrollTop = 0
+    }
+    if (mainScrollRef?.current) {
+      mainScrollRef.current.scrollTop = 0
+    }
+    loadNotifications(1, true, activeTab, typeFilter)
+  }, [activeTab, typeFilter, refreshKey, loadNotifications, mainScrollRef])
+
+  // Automatic trigger on container scroll position
+  const handleContainerScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget
+    const isNearBottom =
+      target.scrollHeight - target.scrollTop - target.clientHeight <= 250
+
+    if (isNearBottom && hasMore && !isLoading && !isLoadingMore) {
+      loadNotifications(page + 1, false, activeTab, typeFilter)
+    }
+  }
+
+  // Automatic trigger on main page / window scroll position
+  useEffect(() => {
+    const handleScrollCheck = (el: HTMLElement | Window) => {
+      if (!hasMore || isLoading || isLoadingMore) return
+
+      let scrollHeight = 0
+      let scrollTop = 0
+      let clientHeight = 0
+
+      if (el === window) {
+        scrollHeight = document.documentElement.scrollHeight
+        scrollTop = window.scrollY || document.documentElement.scrollTop
+        clientHeight = window.innerHeight
+      } else {
+        const htmlEl = el as HTMLElement
+        scrollHeight = htmlEl.scrollHeight
+        scrollTop = htmlEl.scrollTop
+        clientHeight = htmlEl.clientHeight
+      }
+
+      if (scrollHeight - scrollTop - clientHeight <= 300) {
+        loadNotifications(page + 1, false, activeTab, typeFilter)
+      }
+    }
+
+    const onMainScroll = () => {
+      if (mainScrollRef?.current) {
+        handleScrollCheck(mainScrollRef.current)
+      }
+    }
+
+    const onWindowScroll = () => {
+      handleScrollCheck(window)
+    }
+
+    const mainEl = mainScrollRef?.current
+    if (mainEl) {
+      mainEl.addEventListener('scroll', onMainScroll, { passive: true })
+    }
+    window.addEventListener('scroll', onWindowScroll, { passive: true })
+
+    return () => {
+      if (mainEl) {
+        mainEl.removeEventListener('scroll', onMainScroll)
+      }
+      window.removeEventListener('scroll', onWindowScroll)
+    }
+  }, [
+    mainScrollRef,
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    page,
+    activeTab,
+    typeFilter,
+    loadNotifications,
+  ])
+
+  // Sentinel IntersectionObserver as a fallback for automatic detection
+  useEffect(() => {
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (
+          entries[0].isIntersecting &&
+          hasMore &&
+          !isLoading &&
+          !isLoadingMore
+        ) {
+          loadNotifications(page + 1, false, activeTab, typeFilter)
+        }
+      },
+      {
+        rootMargin: '250px',
+        threshold: 0.05,
+      }
+    )
+
+    observer.observe(sentinel)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [
+    hasMore,
+    isLoading,
+    isLoadingMore,
+    page,
+    activeTab,
+    typeFilter,
+    loadNotifications,
+  ])
 
   // Handle Mark as Read for single item
   const handleMarkAsRead = async (id: number | string) => {
@@ -58,6 +244,8 @@ export default function MessageBoxView() {
         )
       )
       decrementUnreadCount()
+      setGlobalUnreadCount((c) => Math.max(0, c - 1))
+      setGlobalReadCount((c) => c + 1)
       enqueueSnackbar('Marked as read', { variant: 'success' })
     } catch {
       enqueueSnackbar('Failed to mark as read', { variant: 'error' })
@@ -72,6 +260,8 @@ export default function MessageBoxView() {
         prev.map((item) => ({ ...item, is_read: true }))
       )
       setUnreadCount(0)
+      setGlobalReadCount((c) => c + globalUnreadCount)
+      setGlobalUnreadCount(0)
       enqueueSnackbar('All notifications marked as read', {
         variant: 'success',
       })
@@ -119,75 +309,29 @@ export default function MessageBoxView() {
     }
   }
 
-  // Unique notification types for filter
-  const notificationTypes = useMemo(() => {
-    const types = new Set<string>()
-    notifications.forEach((n) => {
-      if (n.notification_type) types.add(n.notification_type)
-    })
-    return Array.from(types)
-  }, [notifications])
-
-  // Filter items
+  // Client-side search filter only (tab + type already filtered server-side)
   const filteredNotifications = useMemo(() => {
-    const list = notifications.filter((item) => {
-      // Tab filter
-      if (activeTab === 'new' && item.is_read) return false
-      if (activeTab === 'read' && !item.is_read) return false
+    if (!searchQuery.trim()) return notifications
 
-      // Type filter
-      if (typeFilter !== 'all' && item.notification_type !== typeFilter) {
-        return false
-      }
-
-      // Search query filter
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase()
-        const titleMatch = item.title?.toLowerCase().includes(q)
-        const msgMatch = item.message?.toLowerCase().includes(q)
-        const typeMatch = item.notification_type?.toLowerCase().includes(q)
-        return titleMatch || msgMatch || typeMatch
-      }
-
-      return true
+    const q = searchQuery.toLowerCase()
+    return notifications.filter((item) => {
+      const titleMatch = item.title?.toLowerCase().includes(q)
+      const msgMatch = item.message?.toLowerCase().includes(q)
+      const typeMatch = item.notification_type?.toLowerCase().includes(q)
+      return titleMatch || msgMatch || typeMatch
     })
+  }, [notifications, searchQuery])
 
-    // Priority unaccepted leads come first always
-    return [...list].sort((a, b) => {
-      const aPriority = Boolean(
-        a.is_priority ||
-          a.priority === 'high' ||
-          a.notification_type === 'reassignment' ||
-          a.title?.toLowerCase().includes('reassignment advised')
-      )
-      const bPriority = Boolean(
-        b.is_priority ||
-          b.priority === 'high' ||
-          b.notification_type === 'reassignment' ||
-          b.title?.toLowerCase().includes('reassignment advised')
-      )
+  // Tab change handler — reset to first load
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab)
+    setSearchQuery('')
+  }
 
-      if (aPriority && !bPriority) return -1
-      if (!aPriority && bPriority) return 1
-      return 0
-    })
-  }, [notifications, activeTab, typeFilter, searchQuery])
-
-  const typeFilteredNotifications = useMemo(
-    () =>
-      notifications.filter(
-        (n) => typeFilter === 'all' || n.notification_type === typeFilter
-      ),
-    [notifications, typeFilter]
-  )
-  const newCount = useMemo(
-    () => typeFilteredNotifications.filter((n) => !n.is_read).length,
-    [typeFilteredNotifications]
-  )
-  const readCount = useMemo(
-    () => typeFilteredNotifications.filter((n) => n.is_read).length,
-    [typeFilteredNotifications]
-  )
+  // Type filter change — triggers re-fetch via useEffect
+  const handleTypeFilterChange = (type: string) => {
+    setTypeFilter(type)
+  }
 
   return (
     <div className="w-full h-full flex flex-col p-6 space-y-6">
@@ -198,9 +342,9 @@ export default function MessageBoxView() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Notification Center
             </h1>
-            {newCount > 0 && (
+            {globalUnreadCount > 0 && (
               <span className="px-2.5 py-0.5 text-xs font-bold text-red-700 bg-red-100 dark:bg-red-900/60 dark:text-red-300 rounded-full">
-                {newCount} New
+                {globalUnreadCount} New
               </span>
             )}
           </div>
@@ -211,7 +355,7 @@ export default function MessageBoxView() {
         </div>
 
         <div className="flex items-center gap-3">
-          {newCount > 0 && (
+          {globalUnreadCount > 0 && (
             <button
               type="button"
               onClick={handleMarkAllAsRead}
@@ -236,7 +380,7 @@ export default function MessageBoxView() {
 
           <button
             type="button"
-            onClick={fetchItems}
+            onClick={() => loadNotifications(1, true, activeTab, typeFilter)}
             disabled={isLoading}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-xl transition-colors"
             title="Refresh notifications"
@@ -265,7 +409,7 @@ export default function MessageBoxView() {
         <div className="flex items-center space-x-2">
           <button
             type="button"
-            onClick={() => setActiveTab('new')}
+            onClick={() => handleTabChange('new')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'new'
                 ? 'bg-[#0066CC] text-white shadow-sm'
@@ -280,13 +424,13 @@ export default function MessageBoxView() {
                   : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
               }`}
             >
-              {newCount}
+              {globalUnreadCount.toLocaleString()}
             </span>
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab('read')}
+            onClick={() => handleTabChange('read')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'read'
                 ? 'bg-[#0066CC] text-white shadow-sm'
@@ -301,13 +445,13 @@ export default function MessageBoxView() {
                   : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
               }`}
             >
-              {readCount}
+              {globalReadCount.toLocaleString()}
             </span>
           </button>
 
           <button
             type="button"
-            onClick={() => setActiveTab('all')}
+            onClick={() => handleTabChange('all')}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'all'
                 ? 'bg-[#0066CC] text-white shadow-sm'
@@ -322,21 +466,21 @@ export default function MessageBoxView() {
                   : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
               }`}
             >
-              {typeFilteredNotifications.length}
+              {globalTotalCount.toLocaleString()}
             </span>
           </button>
         </div>
 
         {/* Search & Type filter */}
         <div className="flex flex-col sm:flex-row items-center gap-3">
-          {notificationTypes.length > 0 && (
+          {availableTypes.length > 0 && (
             <select
               value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
+              onChange={(e) => handleTypeFilterChange(e.target.value)}
               className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-none rounded-xl px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               <option value="all">All Types</option>
-              {notificationTypes.map((t) => (
+              {availableTypes.map((t) => (
                 <option key={t} value={t}>
                   {t
                     .replace(/_/g, ' ')
@@ -393,7 +537,11 @@ export default function MessageBoxView() {
       </div>
 
       {/* Notifications Grid / List */}
-      <div className="flex-1 overflow-y-auto">
+      <div
+        ref={containerRef}
+        onScroll={handleContainerScroll}
+        className="flex-1 overflow-y-auto"
+      >
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...Array(6)].map((_, idx) => (
@@ -401,18 +549,37 @@ export default function MessageBoxView() {
             ))}
           </div>
         ) : filteredNotifications.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredNotifications.map((item) => (
-              <NotificationItem
-                key={item.id}
-                item={item}
-                onMarkAsRead={handleMarkAsRead}
-                onNavigate={handleNavigate}
-                onDelete={handleDelete}
-                hideStatusBadge={activeTab !== 'all'}
-              />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredNotifications.map((item) => (
+                <NotificationItem
+                  key={item.id}
+                  item={item}
+                  onMarkAsRead={handleMarkAsRead}
+                  onNavigate={handleNavigate}
+                  onDelete={handleDelete}
+                  hideStatusBadge={activeTab !== 'all'}
+                />
+              ))}
+            </div>
+
+            {/* Scroll bottom trigger sentinel */}
+            <div ref={sentinelRef} className="h-6 w-full" />
+
+            {/* Loading more spinner */}
+            {isLoadingMore && (
+              <div className="flex items-center justify-center gap-2 py-4 my-2 text-xs font-medium text-gray-500 dark:text-gray-400 bg-white/60 dark:bg-gray-800/60 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 animate-pulse">
+                <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                <span>Loading balance notifications...</span>
+              </div>
+            )}
+
+            {!hasMore && notifications.length > 6 && (
+              <div className="text-center py-4 text-xs font-medium text-gray-400 dark:text-gray-500">
+                ✓ All notifications loaded
+              </div>
+            )}
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center min-h-[340px] bg-white dark:bg-gray-800 rounded-2xl border border-gray-200/80 dark:border-gray-700 p-8 text-center">
             <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center mb-4">

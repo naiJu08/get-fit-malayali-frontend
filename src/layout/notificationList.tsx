@@ -31,8 +31,8 @@ export default function NotificationList({
   const navigate = useNavigate()
   const { enqueueSnackbar } = useSnackbarManager()
   const {
-    // unreadCount,
-    // readCount,
+    unreadCount,
+    readCount,
     totalCount,
     setCounts,
     decrementUnreadCount,
@@ -42,6 +42,7 @@ export default function NotificationList({
 
   const [activeTab, setActiveTab] = useState<TabType>('new')
   const [notifications, setNotifications] = useState<NotificationRecord[]>([])
+  const [availableTypes, setAvailableTypes] = useState<string[]>([])
   const [page, setPage] = useState<number>(1)
   const [hasMore, setHasMore] = useState<boolean>(true)
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -50,9 +51,14 @@ export default function NotificationList({
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
 
-  // Fetch page of notifications
+  // Fetch page of notifications with tab status and type filter
   const loadNotifications = useCallback(
-    async (targetPage: number, isInitial = false) => {
+    async (
+      targetPage: number,
+      isInitial = false,
+      tab: TabType = activeTab,
+      type: string = typeFilter
+    ) => {
       if (isInitial) {
         setIsLoading(true)
       } else {
@@ -60,10 +66,17 @@ export default function NotificationList({
       }
 
       try {
-        const data = await getNotifications({
+        const params: Parameters<typeof getNotifications>[0] = {
           page: targetPage,
           per_page: 100,
-        })
+        }
+
+        if (tab === 'new') params.status = 'unread'
+        else if (tab === 'read') params.status = 'read'
+
+        if (type !== 'all') params.type = type
+
+        const data = await getNotifications(params)
 
         const newItems = data?.notifications || []
 
@@ -86,6 +99,10 @@ export default function NotificationList({
           totalCount: data?.total_count ?? 0,
         })
 
+        if (data?.available_types && data.available_types.length > 0) {
+          setAvailableTypes(data.available_types)
+        }
+
         setPage(targetPage)
 
         if (data?.meta) {
@@ -103,24 +120,33 @@ export default function NotificationList({
         }
       }
     },
-    [setCounts]
+    [setCounts, activeTab, typeFilter]
   )
 
-  // Initial load when drawer opens or refreshKey changes
+  // Initial load when drawer opens, tab changes, type filter changes, or refreshKey changes
   useEffect(() => {
     if (open) {
       setPage(1)
       setHasMore(true)
-      loadNotifications(1, true)
-    } else {
-      setTypeFilter('all')
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = 0
+      }
+      loadNotifications(1, true, activeTab, typeFilter)
     }
-  }, [open, refreshKey, loadNotifications])
+  }, [open, activeTab, typeFilter, refreshKey, loadNotifications])
 
   // Handle Tab Switch
   const handleTabChange = (newTab: TabType) => {
     if (newTab === activeTab) return
     setActiveTab(newTab)
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0
+    }
+  }
+
+  // Handle Type Filter Switch
+  const handleTypeFilterChange = (newType: string) => {
+    setTypeFilter(newType)
     if (scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = 0
     }
@@ -133,7 +159,7 @@ export default function NotificationList({
       target.scrollHeight - target.scrollTop - target.clientHeight <= 140
 
     if (isNearBottom && hasMore && !isLoading && !isLoadingMore) {
-      loadNotifications(page + 1, false)
+      loadNotifications(page + 1, false, activeTab, typeFilter)
     }
   }
 
@@ -147,6 +173,7 @@ export default function NotificationList({
         )
       )
       decrementUnreadCount()
+      triggerRefresh()
       enqueueSnackbar('Marked as read', { variant: 'success' })
     } catch {
       enqueueSnackbar('Failed to mark as read', { variant: 'error' })
@@ -164,6 +191,7 @@ export default function NotificationList({
         unreadCount: 0,
         readCount: totalCount,
       })
+      triggerRefresh()
       enqueueSnackbar('All notifications marked as read', {
         variant: 'success',
       })
@@ -172,13 +200,16 @@ export default function NotificationList({
     }
   }
 
-  const notificationTypes = useMemo(() => {
+  const typesToDisplay = useMemo(() => {
+    if (availableTypes && availableTypes.length > 0) {
+      return availableTypes
+    }
     const types = new Set<string>()
     notifications.forEach((n) => {
       if (n.notification_type) types.add(n.notification_type)
     })
     return Array.from(types)
-  }, [notifications])
+  }, [availableTypes, notifications])
 
   // Handle Go to Page
   const handleNavigate = async (url: string, id: number | string) => {
@@ -220,26 +251,19 @@ export default function NotificationList({
     }
   }
 
-  // Client search and status filter across loaded items
+  // Client search across loaded items (tab & type filtered server-side)
   const filteredNotifications = useMemo(() => {
-    const list = notifications.filter((item) => {
-      if (activeTab === 'new' && item.is_read) return false
-      if (activeTab === 'read' && !item.is_read) return false
+    let list = notifications
 
-      if (typeFilter !== 'all' && item.notification_type !== typeFilter) {
-        return false
-      }
-
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase()
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      list = list.filter((item) => {
         const titleMatch = item.title?.toLowerCase().includes(q)
         const msgMatch = item.message?.toLowerCase().includes(q)
         const typeMatch = item.notification_type?.toLowerCase().includes(q)
         return titleMatch || msgMatch || typeMatch
-      }
-
-      return true
-    })
+      })
+    }
 
     return [...list].sort((a, b) => {
       const aPriority = Boolean(
@@ -259,36 +283,7 @@ export default function NotificationList({
       if (!aPriority && bPriority) return 1
       return 0
     })
-  }, [notifications, searchQuery, typeFilter, activeTab])
-
-  const typeFilteredNewCount = useMemo(
-    () =>
-      notifications.filter(
-        (n) =>
-          !n.is_read &&
-          (typeFilter === 'all' || n.notification_type === typeFilter)
-      ).length,
-    [notifications, typeFilter]
-  )
-  const typeFilteredReadCount = useMemo(
-    () =>
-      notifications.filter(
-        (n) =>
-          n.is_read &&
-          (typeFilter === 'all' || n.notification_type === typeFilter)
-      ).length,
-    [notifications, typeFilter]
-  )
-  const typeFilteredTotalCount = useMemo(
-    () =>
-      notifications.filter(
-        (n) => typeFilter === 'all' || n.notification_type === typeFilter
-      ).length,
-    [notifications, typeFilter]
-  )
-
-  const liveNewCount = notifications.filter((n) => !n.is_read).length
-  const liveReadCount = notifications.filter((n) => n.is_read).length
+  }, [notifications, searchQuery])
 
   return (
     <CustomDrawer
@@ -305,22 +300,22 @@ export default function NotificationList({
               Notifications
             </span>
             <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-              {notifications.length}
+              {totalCount.toLocaleString()}
             </span>
-            {liveNewCount > 0 && (
+            {unreadCount > 0 && (
               <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300">
-                {liveNewCount}
+                {unreadCount.toLocaleString()}
               </span>
             )}
-            {liveReadCount > 0 && (
+            {readCount > 0 && (
               <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300">
-                {liveReadCount}
+                {readCount.toLocaleString()}
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-2">
-            {liveNewCount > 0 && (
+            {unreadCount > 0 && (
               <button
                 type="button"
                 onClick={handleMarkAllAsRead}
@@ -346,7 +341,7 @@ export default function NotificationList({
 
             <button
               type="button"
-              onClick={() => loadNotifications(1, true)}
+              onClick={() => loadNotifications(1, true, activeTab, typeFilter)}
               disabled={isLoading}
               className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
               title="Refresh notifications"
@@ -388,7 +383,7 @@ export default function NotificationList({
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {typeFilteredNewCount}
+                {unreadCount.toLocaleString()}
               </span>
             </button>
 
@@ -409,7 +404,7 @@ export default function NotificationList({
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {typeFilteredReadCount}
+                {readCount.toLocaleString()}
               </span>
             </button>
 
@@ -430,7 +425,7 @@ export default function NotificationList({
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                 }`}
               >
-                {typeFilteredTotalCount}
+                {totalCount.toLocaleString()}
               </span>
             </button>
           </div>
@@ -440,11 +435,11 @@ export default function NotificationList({
             <div className="flex items-center gap-2">
               <select
                 value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
+                onChange={(e) => handleTypeFilterChange(e.target.value)}
                 className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 border-none rounded-lg px-3 py-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none shrink-0"
               >
                 <option value="all">All Types</option>
-                {notificationTypes.map((t) => (
+                {typesToDisplay.map((t) => (
                   <option key={t} value={t}>
                     {t
                       .replace(/_/g, ' ')
