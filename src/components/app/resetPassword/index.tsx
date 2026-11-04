@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router-dom'
 
 import {
   updateAdminPassword,
@@ -7,8 +8,8 @@ import {
 } from '../../../apis/common.apis'
 import { Button, DialogModal } from '../../../components/common'
 import { useSnackbarManager } from '../../../components/common/snackbar'
-// import { getErrorMessage } from '../../../pages/AdminUser/create/schema'
 import { getErrorMessage } from '../../../utilities/parsers'
+import { useAuthStore } from '../../../store/authStore'
 import Icons from '../../common/icons'
 
 type Props = {
@@ -23,6 +24,9 @@ type Props = {
 const fixedInputClass =
   'rounded appearance-none relative block w-full px-3 py-2 border border-formBorder placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-purple-500 focus:border-gray-300 focus:z-10 sm:text-sm'
 
+const PASSWORD_MESSAGE =
+  'Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character, minimum 8 characters.'
+
 const ResetPassword = ({
   from,
   userName,
@@ -33,6 +37,8 @@ const ResetPassword = ({
   setChangePassword,
 }: Props) => {
   const { enqueueSnackbar } = useSnackbarManager()
+  const navigate = useNavigate()
+  const clearAuth = useAuthStore((s) => s.clearAuthenticated)
 
   const [showPassword, setShowPassword] = useState({
     new_password: false,
@@ -53,10 +59,29 @@ const ResetPassword = ({
     handleSubmit,
     register,
     reset,
+    watch,
   } = useForm<any>({
     mode: 'onChange',
     defaultValues: { new_password: '' },
   })
+
+  const passwordValue = watch('new_password', '')
+  const passwordChecks = [
+    {
+      label: 'At least one uppercase letter',
+      test: (v: string) => /[A-Z]/.test(v),
+    },
+    {
+      label: 'At least one lowercase letter',
+      test: (v: string) => /[a-z]/.test(v),
+    },
+    { label: 'At least one number', test: (v: string) => /\d/.test(v) },
+    {
+      label: 'At least one special character',
+      test: (v: string) => /[`~<>?,./!@#$%^&*()\-_=+"'\|{}\[\];:\\]/.test(v),
+    },
+    { label: 'Minimum 8 characters', test: (v: string) => v.length >= 8 },
+  ]
   const onSubmit = (datas: any, e: any) => {
     setloader(true)
     e?.preventDefault()
@@ -67,6 +92,8 @@ const ResetPassword = ({
         enqueueSnackbar('Password changed successfully', {
           variant: 'success',
         })
+        clearAuth()
+        navigate('/login', { replace: true })
       })
       .catch((error) => {
         enqueueSnackbar(getErrorMessage(error?.response.data.error), {
@@ -110,7 +137,14 @@ const ResetPassword = ({
                   required={true}
                   placeholder={'Enter Password'}
                   className={fixedInputClass}
-                  {...register('new_password')}
+                  {...register('new_password', {
+                    required: 'Password is required.',
+                    pattern: {
+                      value:
+                        /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[`~<>?,./!@#$%^&*()\-_=+"'\|{}\[\];:\\]).{8,}$/,
+                      message: PASSWORD_MESSAGE,
+                    },
+                  })}
                 />
                 <button
                   type="button"
@@ -134,6 +168,23 @@ const ResetPassword = ({
                   {errors?.new_password?.message as string}
                 </div>
               )}
+              {passwordValue &&
+                (() => {
+                  const failed = passwordChecks.filter(
+                    (c) => !c.test(passwordValue)
+                  )
+                  return failed.length === 0 ? (
+                    <p className="mt-2 text-xs text-emerald-600 font-medium">
+                      Password meets all requirements.
+                    </p>
+                  ) : (
+                    <p className="mt-2 text-xs text-gray-400">
+                      Password must contain at least one uppercase letter, one
+                      lowercase letter, one number, one special character, and
+                      be minimum 8 characters.
+                    </p>
+                  )
+                })()}
             </div>
             <div className="flex flex-col py-5">
               <div className=" flex flex-row items-end gap-2 w-full justify-end ">
