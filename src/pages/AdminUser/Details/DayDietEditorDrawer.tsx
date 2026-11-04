@@ -78,6 +78,12 @@ const normalizeMealTimeStr = (str?: string | null) => {
     s === 'bed drinks'
   )
     return 'BED TIME'
+  if (
+    s === 'midnight snack' ||
+    s === 'midnight snacks' ||
+    s === 'midnightsnack'
+  )
+    return 'MIDNIGHT SNACK'
   return str.trim().toUpperCase()
 }
 
