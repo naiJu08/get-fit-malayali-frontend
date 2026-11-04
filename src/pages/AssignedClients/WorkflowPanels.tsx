@@ -14,6 +14,7 @@ import {
   proposeAssignedClientPackage,
 } from './api'
 import { updateClientPlanProposal } from '../Sales/api'
+import { useAuthStore } from '../../store/authStore'
 
 import moment from 'moment'
 
@@ -67,6 +68,7 @@ export function ClientWorkflowDetails({
   assignment,
   proposedPackage,
   assignmentId,
+  role,
   onRefresh,
   plans = [],
   showWorkflowActions = true,
@@ -78,11 +80,38 @@ export function ClientWorkflowDetails({
   clientId,
 }: WorkflowProps) {
   const { enqueueSnackbar } = useSnackbarManager()
+  const authUserData = useAuthStore((s) => s.userData)
+  const authRoleData = useAuthStore((s) => s.roleData)
+  const loginRole = (
+    authRoleData?.name ||
+    (authUserData as any)?.role ||
+    (authUserData as any)?.role_name ||
+    ''
+  )
+    .toString()
+    .toLowerCase()
+  const isSales =
+    String(role || loginRole || '')
+      .toLowerCase()
+      .includes('sales') ||
+    (typeof window !== 'undefined' &&
+      window.location.pathname.startsWith('/sales'))
   const activeSub =
     subscription && subscription.status !== 'proposed' ? subscription : null
   const proposedPkg = proposedPackage
 
   const isSubscribed = Boolean(activeSub)
+  const isPackageConfirmed = Boolean(
+    activeSub ||
+      subscription?.status === 'active' ||
+      subscription?.status === 'confirmed' ||
+      subscription?.status === 'package_confirmed' ||
+      proposedPkg?.status === 'accepted' ||
+      proposedPkg?.status === 'confirmed' ||
+      proposedPkg?.status === 'active' ||
+      assignment?.workflow_status === 'package_confirmed' ||
+      assignment?.workflow_status === 'active'
+  )
 
   const [proposalDialogOpen, setProposalDialogOpen] = useState(false)
   const [pkgSearch, setPkgSearch] = useState('')
@@ -96,6 +125,17 @@ export function ClientWorkflowDetails({
   })
 
   const openProposalModal = () => {
+    if (!isSales || isPackageConfirmed) {
+      enqueueSnackbar(
+        isPackageConfirmed
+          ? 'Confirmed packages cannot be modified.'
+          : 'Only Sales can modify proposed packages.',
+        {
+          variant: 'warning',
+        }
+      )
+      return
+    }
     setProposal({
       plan_id: proposedPkg?.plan?.id ? String(proposedPkg.plan.id) : '',
       start_date: proposedPkg?.start_date || '',
@@ -495,19 +535,21 @@ export function ClientWorkflowDetails({
                     </div>
                   )}
                   <div className="mt-3 flex items-center justify-end gap-2">
-                    {(canUpdatePackage ??
-                      (showWorkflowActions &&
-                        assignment?.can_confirm_package)) && (
-                      <Button
-                        outlined
-                        size="xs"
-                        icon="edit"
-                        className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
-                        label="Update package"
-                        onClick={openProposalModal}
-                        disabled={saving || !plans.length}
-                      />
-                    )}
+                    {isSales &&
+                      !isPackageConfirmed &&
+                      (canUpdatePackage ??
+                        (showWorkflowActions &&
+                          assignment?.can_confirm_package)) && (
+                        <Button
+                          outlined
+                          size="xs"
+                          icon="edit"
+                          className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
+                          label="Update package"
+                          onClick={openProposalModal}
+                          disabled={saving || !plans.length}
+                        />
+                      )}
                     {onConfirmPackage && (canConfirmPackage ?? true) && (
                       <Button
                         className="primaryButton"
@@ -530,21 +572,22 @@ export function ClientWorkflowDetails({
                     : 'Review the proposed package. You can update details or confirm package to activate.'}
                 </p>
                 <div className="flex flex-wrap items-center gap-3">
-                  {!activeSub && proposedPkg && (
+                  {!activeSub && !isPackageConfirmed && proposedPkg && (
                     <>
-                      {(canUpdatePackage ??
-                        (showWorkflowActions &&
-                          assignment?.can_confirm_package)) && (
-                        <Button
-                          outlined
-                          size="xs"
-                          icon="edit"
-                          className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
-                          label="Update and Confirm"
-                          onClick={openProposalModal}
-                          disabled={saving || !plans.length}
-                        />
-                      )}
+                      {isSales &&
+                        (canUpdatePackage ??
+                          (showWorkflowActions &&
+                            assignment?.can_confirm_package)) && (
+                          <Button
+                            outlined
+                            size="xs"
+                            icon="edit"
+                            className="rounded-lg !border-indigo-500 !text-indigo-700 hover:!bg-indigo-50"
+                            label="Update and Confirm"
+                            onClick={openProposalModal}
+                            disabled={saving || !plans.length}
+                          />
+                        )}
                       {onConfirmPackage && (canConfirmPackage ?? true) && (
                         <Button
                           className="primaryButton"

@@ -60,7 +60,7 @@ export default function MessageBoxView() {
       try {
         const params: Parameters<typeof getNotifications>[0] = {
           page: targetPage,
-          per_page: 100,
+          per_page: 10,
         }
 
         // Status filter
@@ -100,7 +100,7 @@ export default function MessageBoxView() {
         if (data?.meta) {
           setHasMore(data.meta.next_page !== null)
         } else {
-          setHasMore(newItems.length >= 100)
+          setHasMore(newItems.length >= 10)
         }
       } catch (error) {
         console.error('Failed to load notifications:', error)

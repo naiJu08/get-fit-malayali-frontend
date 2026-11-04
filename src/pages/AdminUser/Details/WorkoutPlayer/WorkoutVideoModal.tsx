@@ -2,11 +2,9 @@ import React, { FC, useEffect, useRef, useState, useCallback } from 'react'
 import { WorkoutExerciseItem, ExerciseProgress } from './types'
 import {
   getBreakSeconds,
-  isExerciseCompleted,
   isYouTubeUrl,
   openYouTube,
   saveExerciseProgress,
-  sendWorkoutActionToBackend,
   getExerciseThumbnail,
   getInitialResumeTime,
   getInitialRep,
@@ -33,7 +31,6 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
   flatExercises,
   initialExerciseIndex,
   userId,
-  subscriptionId,
   actionDate,
   localProgressMap,
   onProgressUpdated,
@@ -60,7 +57,6 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
   // Video element ref
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const lastSavedTimeRef = useRef<number>(0)
-  const lastSentPctRef = useRef<number>(0)
 
   const currentExercise = flatExercises[currentIndex] as
     | WorkoutExerciseItem
@@ -118,7 +114,7 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
                 currentProgress?.watchedPercentage || 0
               ),
           repeatCount: currentRep,
-          completed: isFinished || currentProgress?.completed || false,
+          completed: false,
           ...params?.overrides,
         }
       )
@@ -139,62 +135,6 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
       actionDate,
       onProgressUpdated,
     ]
-  )
-
-  // Report in-progress watched percentage to backend if > 10% and < 100%
-  const sendPartialProgressToBackend = useCallback(() => {
-    if (!currentExercise) return
-    const cur = videoRef.current ? videoRef.current.currentTime : currentTime
-    const dur = videoRef.current ? videoRef.current.duration : duration
-    const pct = dur > 0 ? (cur / dur) * 100 : 0
-
-    if (pct > 10 && pct < 100 && Math.abs(pct - lastSentPctRef.current) >= 2) {
-      lastSentPctRef.current = pct
-      sendWorkoutActionToBackend({
-        exercise: currentExercise.rawExercise || currentExercise,
-        status: 'in_progress',
-        videoWatchPercentage: Math.round(pct),
-        repeatCount: currentRep,
-        actionDate,
-        userId,
-        subscriptionId,
-      })
-    }
-  }, [
-    currentExercise,
-    currentTime,
-    duration,
-    currentRep,
-    actionDate,
-    userId,
-    subscriptionId,
-  ])
-
-  // Mark exercise complete on backend and locally
-  const markExerciseComplete = useCallback(
-    async (ex: WorkoutExerciseItem) => {
-      const dur = videoRef.current ? videoRef.current.duration : duration
-      const updated = saveExerciseProgress(userId, actionDate, ex.id, {
-        currentTime: 0,
-        duration: dur,
-        watchedPercentage: 100,
-        repeatCount: 1,
-        completed: true,
-        completedAt: new Date().toISOString(),
-      })
-      onProgressUpdated(updated)
-
-      await sendWorkoutActionToBackend({
-        exercise: ex.rawExercise || ex,
-        status: 'completed',
-        videoWatchPercentage: 100,
-        repeatCount: ex.reps && Number(ex.reps) > 0 ? Number(ex.reps) : 1,
-        actionDate,
-        userId,
-        subscriptionId,
-      })
-    },
-    [userId, actionDate, onProgressUpdated, subscriptionId, duration]
   )
 
   // Trigger break countdown or finish workout
@@ -243,17 +183,15 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
       if (nextExercise.videoUrl) {
         const opened = openYouTube(nextExercise.videoUrl)
         if (opened) {
-          markExerciseComplete(nextExercise)
-          enqueueSnackbar(
-            `Opened "${nextExercise.workoutName}" in YouTube. Marked as completed.`,
-            { variant: 'success' }
-          )
+          enqueueSnackbar(`Opened "${nextExercise.workoutName}" in YouTube.`, {
+            variant: 'info',
+          })
         } else {
           enqueueSnackbar('Could not open YouTube', { variant: 'error' })
         }
       }
     }
-  }, [currentIndex, flatExercises, markExerciseComplete, enqueueSnackbar])
+  }, [currentIndex, flatExercises, enqueueSnackbar])
 
   // Handle YouTube URL when current exercise loads
   useEffect(() => {
@@ -263,10 +201,9 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
       if (currentExercise.videoUrl) {
         const opened = openYouTube(currentExercise.videoUrl)
         if (opened) {
-          markExerciseComplete(currentExercise)
           enqueueSnackbar(
-            `Opened "${currentExercise.workoutName}" in YouTube. Marked as completed.`,
-            { variant: 'success' }
+            `Opened "${currentExercise.workoutName}" in YouTube.`,
+            { variant: 'info' }
           )
         } else {
           enqueueSnackbar('Could not open YouTube', { variant: 'error' })
@@ -360,7 +297,6 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
       setIsPlaying(false)
       setCurrentTime(0)
       setCurrentRep(1)
-      markExerciseComplete(currentExercise)
       proceedAfterExerciseCompletion()
     }
   }
@@ -402,13 +338,11 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
           setIsPlaying(false)
         }
         saveCurrentLocalProgress()
-        sendPartialProgressToBackend()
       }
     }
 
     const handleBeforeUnload = () => {
       saveCurrentLocalProgress()
-      sendPartialProgressToBackend()
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -418,7 +352,7 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       window.removeEventListener('beforeunload', handleBeforeUnload)
     }
-  }, [saveCurrentLocalProgress, sendPartialProgressToBackend])
+  }, [saveCurrentLocalProgress])
 
   // Save on close
   const handleModalClose = () => {
@@ -426,20 +360,11 @@ export const WorkoutVideoModal: FC<WorkoutVideoModalProps> = ({
       videoRef.current.pause()
     }
     saveCurrentLocalProgress()
-    sendPartialProgressToBackend()
     onClose()
   }
 
-  // Check if current exercise is completed
-  const isCurrentCompleted = currentExercise
-    ? isExerciseCompleted(currentExercise.action, currentProgress)
-    : false
-
   // Handle Next/Skip click (never locked)
   const handleNextClick = () => {
-    if (currentExercise && !isCurrentCompleted) {
-      markExerciseComplete(currentExercise)
-    }
     proceedAfterExerciseCompletion()
   }
 

@@ -1,7 +1,5 @@
 import moment from 'moment'
-import axios from 'axios'
 import { ExerciseProgress, WorkoutExerciseItem } from './types'
-import { useAuthStore } from '../../../../store/authStore'
 
 /**
  * Check if the given date matches the current calendar day.
@@ -81,20 +79,21 @@ export const getExerciseThumbnail = (
 
 /**
  * Break duration before the next exercise based on intensity level:
- * - Low intensity: 10s (5s if isWorkout flag is true)
+ * - Low intensity: 10s
  * - Moderate intensity: 10s
  * - High intensity: 20s
+ *
+ * Applies consistently to both workout and yoga sessions.
  */
 export const getBreakSeconds = (
   intensity?: string,
   isWorkout = false
 ): number => {
+  void isWorkout
   const norm = (intensity || '').toLowerCase()
   if (norm === 'high') return 20
   if (norm === 'moderate') return 10
-  if (norm === 'low') {
-    return isWorkout ? 5 : 10
-  }
+  if (norm === 'low') return 10
   return 10
 }
 
@@ -151,6 +150,7 @@ export const saveExerciseProgress = (
     const updated: ExerciseProgress = {
       ...prev,
       ...progress,
+      completed: false,
       lastUpdated: Date.now(),
     }
 
@@ -187,6 +187,7 @@ export const isExerciseCompleted = (
   action: any,
   localProgress?: ExerciseProgress
 ): boolean => {
+  void localProgress
   const backendStatus = String(action?.status || '').toLowerCase()
 
   // A missed exercise is never treated as completed
@@ -207,17 +208,7 @@ export const isExerciseCompleted = (
     return true
   }
 
-  // 3. Locally saved progress is completed or watch % >= 98
-  if (localProgress) {
-    if (localProgress.completed === true) return true
-    if (
-      localProgress.watchedPercentage != null &&
-      localProgress.watchedPercentage >= 98
-    ) {
-      return true
-    }
-  }
-
+  // Viewing/playing videos in admin portal does not change completion status
   return false
 }
 
@@ -269,10 +260,8 @@ export const getInitialRep = (
 
 /**
  * Determine exercise card lock state and message:
- * - Past dates are locked (unless already completed, which remains unlocked for replay).
- * - Current day and future dates are NOT locked by date.
  * - A card with no video_url is locked.
- * - Completed exercises remain unlocked even when replayed.
+ * - All other exercises are unlocked regardless of date.
  */
 export const getExerciseLockState = (params: {
   dateStr?: string
@@ -282,34 +271,7 @@ export const getExerciseLockState = (params: {
   flatExercises?: WorkoutExerciseItem[]
   localProgressMap?: Record<string, ExerciseProgress>
 }): { isLocked: boolean; reason: string } => {
-  const { dateStr, hasVideoUrl, linearIndex, flatExercises, localProgressMap } =
-    params
-
-  const currentItem =
-    flatExercises && linearIndex != null
-      ? flatExercises[linearIndex]
-      : undefined
-  const currentProgress =
-    currentItem && localProgressMap
-      ? localProgressMap[String(currentItem.id)]
-      : undefined
-
-  // Completed exercises remain unlocked even when replayed (even on past dates)
-  if (currentItem && isExerciseCompleted(currentItem.action, currentProgress)) {
-    return { isLocked: false, reason: '' }
-  }
-
-  // Videos cannot be played for past dates (strictly before today).
-  // Current day and future dates are unlocked!
-  if (dateStr) {
-    const isPast = moment(dateStr, 'YYYY-MM-DD').isBefore(moment(), 'day')
-    if (isPast) {
-      return {
-        isLocked: true,
-        reason: 'Videos cannot be played for past dates.',
-      }
-    }
-  }
+  const { hasVideoUrl } = params
 
   // A card with no video_url is locked
   if (!hasVideoUrl) {
@@ -347,64 +309,9 @@ export const openYouTube = (url: string): boolean => {
  * On completion: receives status: completed, video_watch_percentage: 100, repeat_count, action_date.
  * On background/leave: if watch % > 10 and < 100, sends percentage to backend.
  */
-export const sendWorkoutActionToBackend = async (params: {
-  exercise: any
-  status: 'completed' | 'in_progress'
-  videoWatchPercentage: number
-  repeatCount: number
-  actionDate: string
-  userId?: string | number
-  subscriptionId?: string | number
-}): Promise<void> => {
-  const {
-    exercise,
-    status,
-    videoWatchPercentage,
-    repeatCount,
-    actionDate,
-    userId,
-    subscriptionId,
-  } = params
-
-  const payload: any = {
-    status,
-    video_watch_percentage: videoWatchPercentage,
-    repeat_count: repeatCount,
-    action_date: actionDate,
-    workout_id: exercise?.workout_id || exercise?.workout?.id || exercise?.id,
-    exercise_id: exercise?.id,
-  }
-
-  if (subscriptionId) {
-    payload.subscription_id = subscriptionId
-  }
-  if (userId) {
-    payload.user_id = userId
-  }
-
-  try {
-    const token = useAuthStore.getState().token
-    const baseUrl =
-      process.env.REACT_APP_BASE_URL ||
-      'https://api-getfitmalayali.inovace.in/api/v1/'
-    const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`
-
-    const url = subscriptionId
-      ? `${cleanBaseUrl}subscriptions/${subscriptionId}/workout_actions`
-      : `${cleanBaseUrl}workout_actions`
-
-    await axios.post(url, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      timeout: 5000,
-    })
-  } catch (err) {
-    // Isolated network call fails silently without triggering global serverApi error interceptor
-    console.debug(
-      'Workout action reporting silently ignored (backend endpoint):',
-      err
-    )
-  }
+export const sendWorkoutActionToBackend = async (
+  params?: any
+): Promise<void> => {
+  void params
+  // Viewing / previewing videos in the admin portal does not mutate client workout status
 }
