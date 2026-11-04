@@ -21,6 +21,7 @@ export interface NotificationListResponse {
   unread_count: number
   read_count?: number
   total_count?: number
+  available_types?: string[]
   meta?: {
     current_page: number
     next_page: number | null
