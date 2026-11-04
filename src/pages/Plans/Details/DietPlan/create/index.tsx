@@ -247,6 +247,7 @@ export default function DietPlanForm({
       'Evening snack': 5,
       Dinner: 6,
       'Bed time': 7,
+      'Midnight snack': 8,
     }
 
     const seq = mapping[selectedMealTime as keyof typeof mapping]
@@ -464,6 +465,7 @@ export default function DietPlanForm({
     { id: 'Evening snack', name: 'Evening snack', value: 'Evening snack' },
     { id: 'Dinner', name: 'Dinner', value: 'Dinner' }, // <-- add this
     { id: 'Bed time', name: 'Bed time', value: 'Bed time' },
+    { id: 'Midnight snack', name: 'Midnight snack', value: 'Midnight snack' },
   ]
 
   const formFields = [

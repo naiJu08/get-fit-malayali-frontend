@@ -29,6 +29,7 @@ const MEAL_TIME_OPTIONS = [
   { id: 'Evening snack', name: 'Evening snack', value: 'Evening snack' },
   { id: 'Dinner', name: 'Dinner', value: 'Dinner' },
   { id: 'Bed time', name: 'Bed time', value: 'Bed time' },
+  { id: 'Midnight snack', name: 'Midnight snack', value: 'Midnight snack' },
 ]
 
 const toTitleCase = (value: any) => {
@@ -374,6 +375,7 @@ const DietPlanForm = ({
       'Evening snack': 5,
       Dinner: 6,
       'Bed time': 7,
+      'Midnight snack': 8,
     }
 
     const seq = mapping[selectedMealTime as keyof typeof mapping]
@@ -715,6 +717,7 @@ const DietPlanForm = ({
         'Evening snack': 5,
         Dinner: 6,
         'Bed time': 7,
+        'Midnight snack': 8,
       }
 
       const seq = mapping[mealTime as keyof typeof mapping]
