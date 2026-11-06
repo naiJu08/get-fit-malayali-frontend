@@ -1321,6 +1321,45 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
                     const groupList = Object.values(grouped)
 
+                    // Helper: identify Extra Activity groups by name convention.
+                    const isExtraActivityGroup = (key: string) =>
+                      key.toLowerCase().includes('extra')
+
+                    // Build a combined flat list of all NON-extra-activity exercises.
+                    // Regular exercises play as one continuous sequence so the player
+                    // shows "Workout Complete" only after ALL regular exercises end.
+                    // Extra Activities remain isolated in their own per-group list.
+                    let _nonExtraLinearIdx = 0
+                    const nonExtraFlatItems: WorkoutExerciseItem[] = []
+                    const nonExtraIndexMap = new Map<string | number, number>()
+                    groupList.forEach(({ groupKey: gk, items: gItems }) => {
+                      if (isExtraActivityGroup(gk)) return
+                      gItems.forEach(({ ex }) => {
+                        const m = getWorkoutMeta(ex)
+                        const itemId = ex?.id ?? _nonExtraLinearIdx
+                        nonExtraIndexMap.set(String(itemId), _nonExtraLinearIdx)
+                        nonExtraFlatItems.push({
+                          id: itemId,
+                          workoutId:
+                            ex?.workout_id || ex?.workout?.id || ex?.id,
+                          workoutName: m.workoutName,
+                          catName: m.catName,
+                          subName: m.subName,
+                          videoUrl: m.videoUrl,
+                          thumbnailUrl: m.thumbnailUrl,
+                          reps: m.reps,
+                          sets: m.sets,
+                          durationMin: m.durationMin,
+                          intensity: m.intensity,
+                          exerciseType: m.exerciseType,
+                          action: m.action,
+                          linearIndex: _nonExtraLinearIdx,
+                          rawExercise: ex,
+                        })
+                        _nonExtraLinearIdx++
+                      })
+                    })
+
                     // Curated aesthetic group palettes
                     const groupColors = [
                       {
@@ -1518,14 +1557,28 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                           lockReason={lockState.reason}
                                           isCompleted={isCompleted}
                                           onPlay={() => {
-                                            // Open the player scoped to this
-                                            // category group only. This prevents
-                                            // auto-advancing into Extra Activity
-                                            // videos from other categories.
-                                            setActivePlayerExercises(
-                                              groupFlatItems
-                                            )
-                                            setActivePlayerIndex(exIdx)
+                                            if (
+                                              isExtraActivityGroup(groupKey)
+                                            ) {
+                                              // Extra Activities: scope to this group only
+                                              // — isolated, no Workout Complete screen.
+                                              setActivePlayerExercises(
+                                                groupFlatItems
+                                              )
+                                              setActivePlayerIndex(exIdx)
+                                            } else {
+                                              // Regular exercise: play through ALL non-extra
+                                              // exercises so Workout Complete only appears
+                                              // after the last regular exercise finishes.
+                                              const nIdx =
+                                                nonExtraIndexMap.get(
+                                                  String(ex?.id)
+                                                ) ?? exIdx
+                                              setActivePlayerExercises(
+                                                nonExtraFlatItems
+                                              )
+                                              setActivePlayerIndex(nIdx)
+                                            }
                                             setIsPlayerWorkoutMode(false)
                                             setPlayerModalOpen(true)
                                           }}
@@ -2018,6 +2071,50 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
 
                     const yogaGroupList = Object.values(yogaGrouped)
 
+                    // Helper: identify Extra Activity groups by name convention.
+                    const isExtraYogaGroup = (key: string) =>
+                      key.toLowerCase().includes('extra')
+
+                    // Combined flat list of all NON-extra yoga exercises.
+                    // Clicking a regular yoga exercise plays through all regular
+                    // exercises and shows Workout Complete at the end only.
+                    // Extra Activity yoga exercises remain isolated.
+                    let _nonExtraYogaIdx = 0
+                    const nonExtraYogaFlatItems: WorkoutExerciseItem[] = []
+                    const nonExtraYogaIndexMap = new Map<
+                      string | number,
+                      number
+                    >()
+                    yogaGroupList.forEach(({ groupKey: gk, items: gItems }) => {
+                      if (isExtraYogaGroup(gk)) return
+                      gItems.forEach(({ ex: ey }) => {
+                        const m = getYogaMeta(ey)
+                        const itemId = ey?.id ?? _nonExtraYogaIdx
+                        nonExtraYogaIndexMap.set(
+                          String(itemId),
+                          _nonExtraYogaIdx
+                        )
+                        nonExtraYogaFlatItems.push({
+                          id: itemId,
+                          workoutId: ey?.yoga_id || ey?.yoga?.id || ey?.id,
+                          workoutName: m.yogaName,
+                          catName: m.catName,
+                          subName: m.subName,
+                          videoUrl: m.videoUrl,
+                          thumbnailUrl: m.thumbnailUrl,
+                          reps: m.reps,
+                          sets: m.rounds,
+                          durationMin: m.durationMin,
+                          intensity: m.intensity,
+                          exerciseType: m.yogaType,
+                          action: m.action,
+                          linearIndex: _nonExtraYogaIdx,
+                          rawExercise: ey,
+                        })
+                        _nonExtraYogaIdx++
+                      })
+                    })
+
                     const yogaGroupColors = [
                       {
                         bg: 'bg-purple-50/80',
@@ -2205,12 +2302,26 @@ const DayDetailTabsSection: FC<DayDetailTabsSectionProps> = ({
                                           lockReason={lockState.reason}
                                           isCompleted={isC}
                                           onPlay={() => {
-                                            // Scope player to this yoga category
-                                            // group only — no cross-group auto-play.
-                                            setActivePlayerExercises(
-                                              groupYogaFlatItems
-                                            )
-                                            setActivePlayerIndex(exIdx)
+                                            if (isExtraYogaGroup(groupKey)) {
+                                              // Extra Activities: scope to this group only
+                                              // — isolated, no Workout Complete screen.
+                                              setActivePlayerExercises(
+                                                groupYogaFlatItems
+                                              )
+                                              setActivePlayerIndex(exIdx)
+                                            } else {
+                                              // Regular yoga exercise: play through ALL
+                                              // non-extra exercises. Workout Complete
+                                              // appears only after the last one ends.
+                                              const nIdx =
+                                                nonExtraYogaIndexMap.get(
+                                                  String(exercise?.id)
+                                                ) ?? exIdx
+                                              setActivePlayerExercises(
+                                                nonExtraYogaFlatItems
+                                              )
+                                              setActivePlayerIndex(nIdx)
+                                            }
                                             setIsPlayerWorkoutMode(false)
                                             setPlayerModalOpen(true)
                                           }}
