@@ -1165,6 +1165,12 @@ export default function UserDetails() {
                 <h1 className="text-xl font-semibold text-gray-900">
                   {user?.name || 'User'}
                 </h1>
+                {user?.delete_intimation_pending && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300 shadow-sm ml-2">
+                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                    Delete Intimation Pending
+                  </span>
+                )}
               </div>
 
               {/* User meta info */}
@@ -1841,6 +1847,25 @@ export default function UserDetails() {
             </div>
           )}
         </div>
+
+        {user?.delete_intimation_pending && (
+          <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-xl shadow-xs mb-6 flex items-start gap-3">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                <h3 className="text-sm font-bold text-amber-800">
+                  Delete Intimation Pending
+                </h3>
+              </div>
+              <p className="text-xs text-amber-700 mt-1">
+                This internal user requested account deletion. Their login
+                access is temporarily revoked and they cannot log in.
+                {isSuperAdmin &&
+                  ' To complete deletion, ensure all active clients and leads are reassigned, then proceed with deletion.'}
+              </p>
+            </div>
+          </div>
+        )}
 
         {isRoleMismatch ? (
           <div className="bg-white border border-amber-200/90 rounded-3xl shadow-sm p-6 sm:p-10 text-center max-w-xl mx-auto my-8">

@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
-import { useProfile } from '../pages/profile/api'
+import { useProfile, useDeleteAccount } from '../pages/profile/api'
 import ChangePassword from '../pages/profile/password'
+import ConfirmDeleteModal from '../components/common/modal/ConfirmDeleteModal'
 
 type Props = {
   userData?: any
@@ -15,11 +16,13 @@ export default function HeaderMenu({
 }: Props) {
   const [openMenu, setOpenMenu] = useState(false)
   const [changePassword, setChangePassword] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const navigate = useNavigate()
 
   const { userData: storeUserData, roleData } = useAuthStore()
   const { data: profileQueryData } = useProfile()
+  const deleteAccountMutation = useDeleteAccount()
 
   // Match store user ID with profile query user ID so stale queries from other users are never used
   const isProfileMatchingStore =
@@ -37,6 +40,14 @@ export default function HeaderMenu({
   const userName = liveUser?.name || 'User'
   const userEmail = liveUser?.email || ''
   const userRole = liveUser?.role || roleData?.name || 'Member'
+  const normalizedRole = String(userRole).toLowerCase().trim()
+  const isInternalStaff = [
+    'nutritionist',
+    'physiotherapist',
+    'yogist',
+    'sales',
+    'marketing',
+  ].includes(normalizedRole)
   const avatarUrl = (() => {
     const url = liveUser?.avatar_url || null
     if (!url) return null
@@ -78,6 +89,16 @@ export default function HeaderMenu({
 
   const handleClosePasswordModal = () => {
     setChangePassword(false)
+  }
+
+  const handleOpenDeleteModal = () => {
+    setOpenMenu(false)
+    setShowDeleteModal(true)
+  }
+
+  const handleConfirmDeleteAccount = async () => {
+    await deleteAccountMutation.mutateAsync()
+    setShowDeleteModal(false)
   }
 
   return (
@@ -214,6 +235,32 @@ export default function HeaderMenu({
               </div>
               <span>Reset Password</span>
             </button>
+
+            {/* Delete Account (for internal staff) */}
+            {isInternalStaff && (
+              <button
+                type="button"
+                onClick={handleOpenDeleteModal}
+                className="w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50/70 hover:text-rose-700 dark:hover:bg-rose-900/30 rounded-xl transition-colors text-left group"
+              >
+                <div className="w-7 h-7 rounded-lg bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                    />
+                  </svg>
+                </div>
+                <span>Delete Account</span>
+              </button>
+            )}
           </div>
 
           <div className="my-1 border-t border-gray-100 dark:border-gray-700/60" />
@@ -253,6 +300,18 @@ export default function HeaderMenu({
       <ChangePassword
         isOpen={changePassword}
         handleClose={handleClosePasswordModal}
+      />
+
+      {/* Delete Account Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDeleteAccount}
+        loading={deleteAccountMutation.isPending}
+        title="Delete Account?"
+        subTitle="Requesting account deletion will revoke your login access immediately and notify the Administrator. Deletion will be completed once active clients are reassigned."
+        confirmLabel="Yes, Request Deletion"
+        cancelLabel="Cancel"
       />
     </div>
   )

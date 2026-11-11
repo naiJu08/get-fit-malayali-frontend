@@ -100,23 +100,28 @@ export const useDeleteAccount = () => {
   const { enqueueSnackbar } = useSnackbarManager()
   const queryClient = useQueryClient()
 
-  return useMutation(() => deleteData(apiUrl.USERS_DELETE), {
-    onSuccess: (data: any) => {
-      const successMessage = data?.message || 'Account deleted successfully'
-      enqueueSnackbar(successMessage, { variant: 'success' })
+  return useMutation(
+    () => deleteData(apiUrl.USERS_DELETE_ACCOUNT || apiUrl.USERS_DELETE),
+    {
+      onSuccess: (data: any) => {
+        const successMessage = data?.message || 'Account deleted successfully'
+        enqueueSnackbar(successMessage, { variant: 'success' })
 
-      // Clear authentication and logout
-      clearAuthenticated()
+        // Clear authentication and logout
+        clearAuthenticated()
 
-      // Invalidate user profile query
-      queryClient.invalidateQueries({ queryKey: ['userProfile'] })
-    },
-    onError: (error: any) => {
-      const apiMessage =
-        error?.response?.data?.errors?.[0] || error?.response?.data?.message
-      enqueueSnackbar(apiMessage || 'Failed to delete account', {
-        variant: 'error',
-      })
-    },
-  })
+        // Invalidate user profile query
+        queryClient.invalidateQueries({ queryKey: ['userProfile'] })
+      },
+      onError: (error: any) => {
+        const apiMessage =
+          error?.response?.data?.error ||
+          error?.response?.data?.errors?.[0] ||
+          error?.response?.data?.message
+        enqueueSnackbar(apiMessage || 'Failed to delete account', {
+          variant: 'error',
+        })
+      },
+    }
+  )
 }

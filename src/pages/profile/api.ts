@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AxiosError, AxiosResponse } from 'axios'
-import { getData, updateData, updateFromData } from '../../apis/api.helpers'
+import {
+  getData,
+  updateData,
+  updateFromData,
+  deleteData,
+} from '../../apis/api.helpers'
 import apiUrl from '../../apis/api.url'
 import { useSnackbarManager } from '../../components/common/snackbar'
 import { useAuthStore } from '../../store/authStore'
@@ -146,4 +151,33 @@ export const useEditMyProfile = (handleSubmission: (input: any) => void) => {
 export const useAssessor = (input?: any) => {
   void input
   return useProfile()
+}
+
+export const useDeleteAccount = () => {
+  const { clearAuthenticated } = useAuthStore()
+  const { enqueueSnackbar } = useSnackbarManager()
+  const queryClient = useQueryClient()
+
+  return useMutation(
+    () => deleteData(apiUrl.USERS_DELETE_ACCOUNT || apiUrl.USERS_DELETE),
+    {
+      onSuccess: (data: any) => {
+        const successMessage =
+          data?.message || 'Delete intimation is pending from ADMINISTRATOR'
+        enqueueSnackbar(successMessage, { variant: 'success' })
+
+        clearAuthenticated()
+        queryClient.clear()
+      },
+      onError: (error: any) => {
+        const apiMessage =
+          error?.response?.data?.error ||
+          error?.response?.data?.errors?.[0] ||
+          error?.response?.data?.message
+        enqueueSnackbar(apiMessage || 'Failed to request account deletion', {
+          variant: 'error',
+        })
+      },
+    }
+  )
 }
