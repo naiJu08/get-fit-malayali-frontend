@@ -77,8 +77,10 @@ export default function YogaTemplateIndex() {
         ),
       }),
     },
+    { title: 'Description', field: 'description' },
     { title: 'Intensity Level', field: 'intensity_level' },
     { title: 'Days', field: 'duration_days' },
+    { title: 'Notes', field: 'notes' },
     {
       title: 'Created At',
       field: 'created_at',
