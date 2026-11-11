@@ -430,7 +430,7 @@ export default function SalesLeadDetails({
       {
         name: 'phone',
         label: 'Phone number',
-        type: 'text',
+        type: 'number',
         required: true,
         maxLength: 10,
         minLength: 10,
