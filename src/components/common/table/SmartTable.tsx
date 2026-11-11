@@ -52,6 +52,8 @@ type SmartTableProps = {
   searchPlaceholder?: string
   createButton?: React.ReactNode
   columnWidths?: Record<string, string | number>
+  selectedRowKey?: any
+  onRowSelect?: (rowKey: any, row: any) => void
 }
 
 const SmartTable: React.FC<SmartTableProps> = ({
@@ -80,14 +82,53 @@ const SmartTable: React.FC<SmartTableProps> = ({
   searchPlaceholder,
   createButton,
   columnWidths = {},
+  selectedRowKey: controlledSelectedRowKey,
+  onRowSelect,
 }) => {
   const [visibleColumns, setVisibleColumns] = useState<TableColumns[]>(columns)
   const [showColumnMenu, setShowColumnMenu] = useState(false)
-  const [selectedRow, setSelectedRow] = useState<any | null>(null)
-  const [selectedRowKey, setSelectedRowKey] = useState<any | null>(null)
+  const [internalSelectedRow, setInternalSelectedRow] = useState<any | null>(
+    null
+  )
+  const [internalSelectedRowKey, setInternalSelectedRowKey] = useState<
+    any | null
+  >(null)
   const [hoveredRow, setHoveredRow] = useState<any | null>(null)
   const [actionAnimation, setActionAnimation] = useState<string | null>(null)
   const latestOnSearchRef = useRef(onSearch)
+
+  const isControlledSelection = controlledSelectedRowKey !== undefined
+  const selectedRowKey = isControlledSelection
+    ? controlledSelectedRowKey
+    : internalSelectedRowKey
+
+  const selectedRow = useMemo(() => {
+    if (isControlledSelection) {
+      if (selectedRowKey === null || selectedRowKey === undefined) return null
+      return (
+        data.find(
+          (r, idx) => String(r?.[dataRowKey] ?? idx) === String(selectedRowKey)
+        ) || null
+      )
+    }
+    return internalSelectedRow
+  }, [
+    isControlledSelection,
+    selectedRowKey,
+    data,
+    dataRowKey,
+    internalSelectedRow,
+  ])
+
+  const handleSelectRow = (key: any, row: any) => {
+    if (onRowSelect) {
+      onRowSelect(key, row)
+    }
+    if (!isControlledSelection) {
+      setInternalSelectedRowKey(key)
+      setInternalSelectedRow(row)
+    }
+  }
 
   useEffect(() => {
     latestOnSearchRef.current = onSearch
@@ -114,8 +155,7 @@ const SmartTable: React.FC<SmartTableProps> = ({
   }
 
   const collapseExternalActionBar = () => {
-    setSelectedRow(null)
-    setSelectedRowKey(null)
+    handleSelectRow(null, null)
   }
 
   // Reset selected row and collapse external action bar when data or search changes
@@ -559,12 +599,13 @@ const SmartTable: React.FC<SmartTableProps> = ({
             <tbody className="divide-y divide-gray-100">
               {data.map((row, idx) => {
                 const rowKey = row?.[dataRowKey] ?? idx
-                const isSelected = selectedRowKey === rowKey
+                const isSelected = String(selectedRowKey) === String(rowKey)
                 const isHovered = hoveredRow === rowKey
 
                 return (
                   <tr
                     key={rowKey}
+                    id={`table-row-${rowKey}`}
                     className={`
                       transition-all duration-150
                       ${
@@ -665,8 +706,8 @@ const SmartTable: React.FC<SmartTableProps> = ({
                                 }
                                 onClick={() => {
                                   const nextKey = isSelected ? null : rowKey
-                                  setSelectedRowKey(nextKey)
-                                  setSelectedRow(nextKey === null ? null : row)
+                                  const nextRow = isSelected ? null : row
+                                  handleSelectRow(nextKey, nextRow)
                                 }}
                               >
                                 <span className="text-lg font-light leading-none transition-transform duration-300">

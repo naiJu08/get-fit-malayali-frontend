@@ -20,6 +20,7 @@ import { handleReturnEmptyMsg } from '../../utilities/validation'
 import {
   activateAdmin,
   deActivateAdmin,
+  cancelDeleteIntimation,
   getAdminDetails,
   sendAdminInvitation,
   useAdminUser,
@@ -157,10 +158,16 @@ export default function AdminUser() {
     hasActivePlan?: boolean
   } | null>(null)
   const [assignSalesModalUser, setAssignSalesModalUser] = useState<any>(null)
+  const [cancelDeleteConfirmUser, setCancelDeleteConfirmUser] =
+    useState<any>(null)
   const [staffAssignmentsModalData, setStaffAssignmentsModalData] = useState<{
     user: any
     actionType: 'deactivate' | 'delete'
   } | null>(null)
+  const [selectedTableRowKey, setSelectedTableRowKey] = useState<any>(null)
+  const [handledHighlightUser, setHandledHighlightUser] = useState<
+    string | null
+  >(null)
 
   const params = useParams()
   const activeRole = getRoleFromPath(location.pathname)
@@ -678,41 +685,81 @@ export default function AdminUser() {
     })
   }
 
-  const handleOpenDeleteUser = async (id: string, fullRow?: any) => {
-    const rowUser = fullRow ||
-      data?.items?.find((item: any) => String(item.id) === String(id)) || {
-        id,
-        role: activeRole,
-      }
-    if (activeRole === 'user' && isClientDeactivated(rowUser)) return
-    const roleStr = String(rowUser?.role || activeRole || '').toLowerCase()
-    const isStaffWithAssignments = [
-      'nutritionist',
-      'physiotherapist',
-      'yogist',
-      'sales',
-    ].includes(roleStr)
-
-    if (isStaffWithAssignments) {
-      setloader(true)
-      try {
-        const assignmentsRes: any = await getStaffActiveAssignments(id)
-        setloader(false)
-        if (assignmentsRes?.has_active_assignments) {
-          setStaffAssignmentsModalData({
-            user: rowUser,
-            actionType: 'delete',
-          })
-          return
+  const handleOpenDeleteUser = useCallback(
+    async (id: string, fullRow?: any) => {
+      const rowUser = fullRow ||
+        data?.items?.find((item: any) => String(item.id) === String(id)) || {
+          id,
+          role: activeRole,
         }
-      } catch (err: any) {
-        setloader(false)
+      if (activeRole === 'user' && isClientDeactivated(rowUser)) return
+      const roleStr = String(rowUser?.role || activeRole || '').toLowerCase()
+      const isStaffWithAssignments = [
+        'nutritionist',
+        'physiotherapist',
+        'yogist',
+        'sales',
+      ].includes(roleStr)
+
+      if (isStaffWithAssignments) {
+        setloader(true)
+        try {
+          const assignmentsRes: any = await getStaffActiveAssignments(id)
+          setloader(false)
+          if (assignmentsRes?.has_active_assignments) {
+            setStaffAssignmentsModalData({
+              user: rowUser,
+              actionType: 'delete',
+            })
+            return
+          }
+        } catch (err: any) {
+          setloader(false)
+        }
+      }
+
+      setDeleteUserId(id)
+      setDeleteUserModal(true)
+    },
+    [data?.items, activeRole, isClientDeactivated]
+  )
+
+  // Handle deep link from notification: ?highlight_user=<id>&open_reassign=true
+  useEffect(() => {
+    const highlightUserParam = queryParams.get('highlight_user')
+    const openReassignParam = queryParams.get('open_reassign') === 'true'
+
+    if (!highlightUserParam || isFetching || !data?.items?.length) return
+    if (handledHighlightUser === highlightUserParam) return
+
+    const targetUser = data.items.find(
+      (item: any) => String(item.id) === String(highlightUserParam)
+    )
+
+    if (targetUser) {
+      setHandledHighlightUser(highlightUserParam)
+      setSelectedTableRowKey(targetUser.id)
+
+      // Scroll smoothly to the target row
+      setTimeout(() => {
+        const rowEl = document.getElementById(`table-row-${targetUser.id}`)
+        if (rowEl) {
+          rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 150)
+
+      // Automatically open reassign/delete action if requested
+      if (openReassignParam) {
+        handleOpenDeleteUser(targetUser.id, targetUser)
       }
     }
-
-    setDeleteUserId(id)
-    setDeleteUserModal(true)
-  }
+  }, [
+    data?.items,
+    isFetching,
+    queryParams,
+    handledHighlightUser,
+    handleOpenDeleteUser,
+  ])
   const handleDeleteUser = () => {
     setloader(true)
     deleteAdmin(deleteUserId)
@@ -730,6 +777,33 @@ export default function AdminUser() {
           err?.response?.data?.error?.message || err?.response?.data?.message,
           { variant: 'error' }
         )
+      })
+  }
+
+  const handleCancelDeleteIntimation = () => {
+    if (!cancelDeleteConfirmUser?.id) return
+    setloader(true)
+    cancelDeleteIntimation(cancelDeleteConfirmUser.id)
+      .then((res: any) => {
+        enqueueSnackbar(
+          getSuccessMessage(
+            res,
+            'Delete intimation cancelled successfully. The user can now log in again.'
+          ),
+          { variant: 'success' }
+        )
+        setloader(false)
+        setCancelDeleteConfirmUser(null)
+        refetch()
+      })
+      .catch((err: any) => {
+        setloader(false)
+        const errMsg =
+          err?.response?.data?.error ||
+          err?.response?.data?.errors?.[0] ||
+          err?.response?.data?.message ||
+          'Failed to cancel delete intimation'
+        enqueueSnackbar(errMsg, { variant: 'error' })
       })
   }
   return (
@@ -1112,6 +1186,17 @@ export default function AdminUser() {
                         loginRole || ''
                       ),
                   },
+                  {
+                    title: 'Cancel Delete Intimation',
+                    action: (rowData) => setCancelDeleteConfirmUser(rowData),
+                    icon: <Icons name="restore" />,
+                    toolTip:
+                      'Cancel delete intimation and restore login access',
+                    variant: 'primary',
+                    hide: (rowData: any) =>
+                      !rowData?.delete_intimation_pending ||
+                      !['superadmin', 'admin'].includes(loginRole || ''),
+                  },
                 ]}
                 searchValue={pageParams?.search}
                 onSearchChange={(val: string) =>
@@ -1120,6 +1205,8 @@ export default function AdminUser() {
                 onSearch={(key?: string) => handleSeach(key)}
                 columnToggle
                 externalActions={true}
+                selectedRowKey={selectedTableRowKey}
+                onRowSelect={(key) => setSelectedTableRowKey(key)}
               />
             </div>
           </div>
@@ -1249,6 +1336,17 @@ export default function AdminUser() {
             }
             confirmLabel="Delete"
             cancelLabel="Cancel"
+          />
+          <ConfirmDeleteModal
+            isOpen={Boolean(cancelDeleteConfirmUser)}
+            onClose={() => setCancelDeleteConfirmUser(null)}
+            onConfirm={() => handleCancelDeleteIntimation()}
+            loading={loader}
+            title="Cancel Delete Intimation?"
+            subTitle={`Are you sure you want to cancel the delete intimation for ${cancelDeleteConfirmUser?.name || 'this user'}? Their login access will be restored and they will be able to log in again.`}
+            confirmLabel="Yes, Cancel Intimation"
+            cancelLabel="No, Keep"
+            variant="success"
           />
           <ResetPassword
             changePassword={changePassword}

@@ -94,6 +94,9 @@ export const deActivateAdmin = (id?: string) => {
 export const activateAdmin = (id?: string) => {
   return postData(`${apiUrl.ADMIN_USER}/${id}/activate`, {})
 }
+export const cancelDeleteIntimation = (id?: string) => {
+  return postData(`${apiUrl.ADMIN_USER}/${id}/cancel_delete_intimation`, {})
+}
 export const deleteAdmin = (id?: string) => {
   return deleteData(`${apiUrl.ADMIN_USER}/${id}`)
 }

@@ -317,30 +317,16 @@ export const getColumns = ({
             )
           : ''
         const isActive = lower === 'active'
-        const pillClass = `inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-          isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        const pillClass = `inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium leading-none ${
+          isActive
+            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            : 'bg-red-50 text-red-700 border border-red-200'
         }`
         const truncated = truncateText(display, 40)
-        const isDeletePending = Boolean(row?.delete_intimation_pending)
 
         return {
-          cell: (
-            <div className="flex flex-col gap-1 items-start">
-              <span className={pillClass}>{truncated}</span>
-              {isDeletePending && (
-                <span
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300 shadow-sm"
-                  title="Delete intimation is pending from Administrator"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
-                  Delete Intimation Pending
-                </span>
-              )}
-            </div>
-          ),
-          toolTip: isDeletePending
-            ? `${display} (Delete intimation is pending from Administrator)`
-            : display,
+          cell: <span className={pillClass}>{truncated}</span>,
+          toolTip: display,
         }
       } else {
         const val = getNestedProperty(row, key)
@@ -380,14 +366,15 @@ export const getColumns = ({
 
         return {
           cell: (
-            <div className="flex items-center gap-1.5 flex-wrap">
+            <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
               <span>{truncated}</span>
               {isDeletePending && (
                 <span
-                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-100 text-rose-700 border border-rose-300"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium leading-none bg-rose-50 text-rose-700 border border-rose-200"
                   title="Delete intimation pending from Administrator"
                 >
-                  Delete Intimation
+                  <span className="h-1 w-1 rounded-full bg-rose-500" />
+                  Delete Requested
                 </span>
               )}
             </div>
