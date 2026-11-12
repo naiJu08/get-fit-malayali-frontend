@@ -3,7 +3,7 @@ import { createElement, useEffect, useState, type ComponentType } from 'react'
 import { useForm } from 'react-hook-form'
 import { AiFillEye, AiFillEyeInvisible } from 'react-icons/ai'
 import type { IconBaseProps, IconType } from 'react-icons'
-// import { Link } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { Button } from '../../../components/common'
 import { useAppStore } from '../../../store/appStore'
@@ -313,6 +313,36 @@ export default function Login() {
                   <span>💪</span>
                   <span>Start strong, finish stronger!</span>
                 </div>
+              </div>
+
+              {/* Legal Links */}
+              <div className="mt-4 text-center">
+                <div className="bg-gradient-to-r from-transparent via-neutral-200 to-transparent h-px w-full mb-3"></div>
+                <div className="flex items-center justify-center space-x-4 text-xs text-neutral-500">
+                  <Link
+                    to="/privacy-policy"
+                    className="hover:text-red-600 transition-colors duration-200 hover:underline"
+                  >
+                    Privacy Policy
+                  </Link>
+                  <span className="text-neutral-300">|</span>
+                  <Link
+                    to="/terms-and-conditions"
+                    className="hover:text-red-600 transition-colors duration-200 hover:underline"
+                  >
+                    Terms &amp; Conditions
+                  </Link>
+                  <span className="text-neutral-300">|</span>
+                  <a
+                    href="mailto:support@getfitmalayali.com"
+                    className="hover:text-red-600 transition-colors duration-200 hover:underline"
+                  >
+                    Contact Us
+                  </a>
+                </div>
+                <p className="mt-2 text-[11px] text-neutral-400">
+                  We respect your privacy. Your information is safe with us.
+                </p>
               </div>
             </div>
           </div>
