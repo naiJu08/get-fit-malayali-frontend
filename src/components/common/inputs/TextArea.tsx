@@ -66,7 +66,7 @@ const TextArea: React.FC<TextAreaProps> = ({
   return (
     <div className={fullwidth ? 'w-full' : 'w-auto'}>
       {label && (
-        <div className="mb-[4px] ">
+        <div className="leading-none">
           <label className={`labels label-text}`}>
             {label}
             {required ? <span className="text-error"> *</span> : <></>}

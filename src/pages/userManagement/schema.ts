@@ -7,12 +7,9 @@ export const loginSchema = z.object({
     .string()
     .min(1, { message: 'Required' })
     .email({ message: 'Enter a valid email' }),
-  password: z
-    .string()
-    .min(1, { message: 'Password field cannot be empty' })
-    .refine(noLeadingSpaces, {
-      message: 'Leading spaces are not allowed',
-    }),
+  password: z.string().min(1, { message: 'Required' }).refine(noLeadingSpaces, {
+    message: 'Leading spaces are not allowed',
+  }),
 })
 
 export type LoginSchema = z.infer<typeof loginSchema>

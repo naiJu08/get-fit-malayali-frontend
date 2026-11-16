@@ -68,7 +68,6 @@ const Checkbox: React.FC<CheckboxProps> = ({
               )}
             </svg>
           </label>
-          <span>{label}</span>
         </div>
         {required ? (
           <div className="flex gap-3 justify-between w-full items-start">

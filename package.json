@@ -6,6 +6,8 @@
     "@craco/craco": "^7.1.0",
     "@emotion/react": "^11.10.5",
     "@emotion/styled": "^11.10.5",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@hookform/resolvers": "^2.9.11",
     "@mui/icons-material": "^5.11.0",
     "@mui/material": "^5.15.20",
@@ -29,13 +31,15 @@
     "dompurify": "^3.1.5",
     "dotenv": "^16.3.1",
     "env-cmd": "^10.1.0",
+    "file-saver": "^2.0.5",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.4",
     "lodash": "^4.17.21",
     "moment": "^2.29.4",
     "notistack": "^2.0.8",
     "nth-check": "^2.1.1",
     "or": "^0.2.0",
     "qbs-core": "1.1.13",
-    "qbs-react-grid": "^1.2.1",
     "react": "^18.2.0",
     "react-core-ts": "^1.0.17",
     "react-datepicker": "^4.19.0",
@@ -51,6 +55,7 @@
     "svgo": "^3.0.2",
     "web-vitals": "^2.1.4",
     "wmr": "^3.8.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.20.6",
     "zustand": "^4.3.2"
   },
@@ -109,6 +114,8 @@
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
     "@types/crypto-js": "^4.2.2",
     "@types/dompurify": "^3.0.5",
+    "@types/file-saver": "^2.0.7",
+    "@types/html2canvas": "^1.0.0",
     "@types/lodash": "^4.14.197",
     "@types/node-sass": "^4.11.3",
     "@types/react-datepicker": "^4.15.1",
@@ -123,6 +130,6 @@
     "prettier": "^3.0.3",
     "react-scripts": "^5.0.1",
     "tailwindcss": "^3.3.4",
-    "typescript": "^5.9.3"
+    "typescript": "^4.9.5"
   }
 }

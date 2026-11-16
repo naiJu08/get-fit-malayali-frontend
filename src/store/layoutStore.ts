@@ -4,7 +4,7 @@ type LayoutType = 'headerNav' | 'sideNav'
 
 export const useLayoutStore = create<LayoutStoreType>()((set) => ({
   setLayoutType: (val) => set(() => ({ layoutType: val })),
-  layoutType: 'headerNav',
+  layoutType: 'sideNav',
 
   setExpand: (val) => set(() => ({ expand: val })),
   expand: true,

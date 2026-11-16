@@ -124,3 +124,44 @@ export const handleViewFile = (full_url: any, file_name: any) => {
     }
   }
 }
+
+export const getApiErrorMessage = (
+  error: any,
+  fallbackMessage = 'An error occurred'
+): string => {
+  if (!error) return fallbackMessage
+  const data = error?.response?.data
+  if (data) {
+    if (Array.isArray(data.errors) && data.errors.length > 0) {
+      return data.errors.join(', ')
+    }
+    if (typeof data.errors === 'string') {
+      return data.errors
+    }
+    if (typeof data.errors === 'object' && data.errors !== null) {
+      const messages: string[] = []
+      Object.keys(data.errors).forEach((key) => {
+        const val = data.errors[key]
+        if (Array.isArray(val)) {
+          messages.push(`${key}: ${val.join(', ')}`)
+        } else if (typeof val === 'string') {
+          messages.push(`${key}: ${val}`)
+        }
+      })
+      if (messages.length > 0) return messages.join(', ')
+    }
+    if (data.message && typeof data.message === 'string') {
+      return data.message
+    }
+    if (data.error && typeof data.error === 'string') {
+      return data.error
+    }
+    if (data.error?.message && typeof data.error.message === 'string') {
+      return data.error.message
+    }
+  }
+  if (error.message && typeof error.message === 'string') {
+    return error.message
+  }
+  return fallbackMessage
+}
