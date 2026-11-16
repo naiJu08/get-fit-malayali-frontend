@@ -719,19 +719,9 @@ export default function CreateRecipe({
                             onChange={(e) => {
                               const val = e.target.value
 
-                              // More flexible validation - allow typing partial inputs
-                              const isValid =
-                                val === '' || // empty
-                                /^\d+$/.test(val) || // whole numbers
-                                /^\d+\.$/.test(val) || // decimal with trailing dot
-                                /^\d+\.\d+$/.test(val) || // complete decimals
-                                /^\d+\/$/.test(val) || // fraction with trailing slash
-                                /^\d+\/\d+$/.test(val) || // complete fractions
-                                /^\d+\s\/$/.test(val) || // fraction with space and trailing slash
-                                /^\d+\s\/\s\d+$/.test(val) || // fractions with spaces
-                                /^\d+\s$/.test(val) // number with trailing space
-
-                              if (isValid) {
+                              // Allow partial decimal and mixed-fraction input;
+                              // the schema validates and sanitizes on submission.
+                              if (/^[\d\s./]*$/.test(val)) {
                                 field.onChange(val)
                               }
                             }}

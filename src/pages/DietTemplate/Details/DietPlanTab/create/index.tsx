@@ -269,11 +269,11 @@ const DietPlanForm = ({
     const match = mealTimeOptions.find(
       (mt: any) =>
         String(mt?.id) === String(selectedMealTime) ||
-        String(mt?.value) === String(selectedMealTime) ||
-        String(mt?.name) === String(selectedMealTime)
+        normalizeMealTime(mt?.value) === normalizedSelectedMealTime ||
+        normalizeMealTime(mt?.name) === normalizedSelectedMealTime
     )
     return match?.time ? String(match.time) : ''
-  }, [mealTimeOptions, selectedMealTime])
+  }, [mealTimeOptions, selectedMealTime, normalizedSelectedMealTime])
 
   const isMealTimeRestricted =
     !!normalizedSelectedMealTime &&
@@ -291,8 +291,8 @@ const DietPlanForm = ({
     if (currentMealTimeTime) return
 
     const nextValue =
-      rowData?.meal_time_time ??
-      (selectedMealTime ? selectedMealTimeTime : '') ??
+      rowData?.meal_time_time ||
+      (selectedMealTime ? selectedMealTimeTime : '') ||
       ''
 
     if (!nextValue) return
@@ -456,6 +456,7 @@ const DietPlanForm = ({
       day_number: Number(source?.day_number ?? rowData?.day_number ?? 0),
       sequence_number: edit ? Number(source?.sequence_number ?? 1) : 0,
       meal_time: source?.meal_time ?? '',
+      meal_time_time: source?.meal_time_time ?? rowData?.meal_time_time ?? '',
       meal_name: source?.meal_name ?? '',
       day_name:
         source?.day_name ||

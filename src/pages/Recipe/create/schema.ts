@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { sanitizeIngredientQuantity } from './sanitizeIngredientQuantity'
 
 const numberFromText = z.preprocess(
   (val) => {
@@ -88,26 +89,17 @@ export const recipeFormSchema = z.object({
         quantity: z
           .string()
           .optional()
-          .refine((val) => {
-            if (!val || val.trim() === '') return true // Allow empty
-            // Allow numbers, decimals, and fractions
-            const trimmed = val.trim()
-            return (
-              !Number.isNaN(Number(trimmed)) || // valid number/decimal
-              /^\d+\/\d+$/.test(trimmed) || // valid fraction like 1/2
-              /^\d+\s\/\s\d+$/.test(trimmed) // valid fraction with spaces like 1 / 2
-            )
-          }, 'Must be a number or fraction (e.g., 1.5, 1/2, 1 / 2)')
-          .refine((val) => {
-            if (!val || val.trim() === '') return true // Allow empty
-            const trimmed = val.trim()
-            if (/^\d+\/\d+$/.test(trimmed) || /^\d+\s\/\s\d+$/.test(trimmed)) {
-              // For fractions, ensure denominator is not zero
-              const parts = trimmed.replace(/\s+/g, '').split('/')
-              return parts.length === 2 && Number(parts[1]) > 0
-            }
-            return Number(trimmed) > 0
-          }, 'Must be greater than 0'),
+          .transform((value, ctx) => {
+            if (value === undefined) return value
+            const sanitized = sanitizeIngredientQuantity(value)
+            if (sanitized !== null) return sanitized
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message:
+                'Enter a quantity greater than 0 (e.g., 1.5, 1/2, 1 1/4)',
+            })
+            return z.NEVER
+          }),
         unit: z.string().optional(),
         details: z.string().optional(),
         size: z.string().optional(),
