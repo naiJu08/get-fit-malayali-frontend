@@ -317,10 +317,13 @@ export const getColumns = ({
             )
           : ''
         const isActive = lower === 'active'
-        const pillClass = `inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-          isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        const pillClass = `inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium leading-none ${
+          isActive
+            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            : 'bg-red-50 text-red-700 border border-red-200'
         }`
         const truncated = truncateText(display, 40)
+
         return {
           cell: <span className={pillClass}>{truncated}</span>,
           toolTip: display,
@@ -359,10 +362,26 @@ export const getColumns = ({
             ? raw.charAt(0).toUpperCase() + raw.slice(1)
             : (raw ?? '')
         const truncated = truncateText(displayValue, 40)
+        const isDeletePending = Boolean(row?.delete_intimation_pending)
 
         return {
-          cell: truncated,
-          toolTip: displayValue,
+          cell: (
+            <div className="inline-flex items-center gap-1.5 whitespace-nowrap">
+              <span>{truncated}</span>
+              {isDeletePending && (
+                <span
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium leading-none bg-rose-50 text-rose-700 border border-rose-200"
+                  title="Delete intimation pending from Administrator"
+                >
+                  <span className="h-1 w-1 rounded-full bg-rose-500" />
+                  Delete Requested
+                </span>
+              )}
+            </div>
+          ),
+          toolTip: isDeletePending
+            ? `${displayValue} (Delete intimation pending)`
+            : displayValue,
         }
       },
       customCell: true,

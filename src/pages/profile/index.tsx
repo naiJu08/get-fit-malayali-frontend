@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useLayoutStore } from '../../store/layoutStore'
-import { useProfile, useUpdateProfile } from './api'
+import { useProfile, useUpdateProfile, useDeleteAccount } from './api'
 import ChangePasswordModal from './password'
+import ConfirmDeleteModal from '../../components/common/modal/ConfirmDeleteModal'
 import { useSnackbarManager } from '../../components/common/snackbar'
 
 const resolveAvatarUrl = (url?: string | null): string | null => {
@@ -77,12 +78,24 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const deleteAccountMutation = useDeleteAccount()
 
   useEffect(() => {
     setLayoutType('sideNav')
   }, [setLayoutType])
 
   const user = data?.user
+  const normalizedRole = String(user?.role || '')
+    .toLowerCase()
+    .trim()
+  const isInternalStaff = [
+    'nutritionist',
+    'physiotherapist',
+    'yogist',
+    'sales',
+    'marketing',
+  ].includes(normalizedRole)
 
   useEffect(() => {
     if (user) {
@@ -609,7 +622,32 @@ export default function ProfilePage() {
           )}
 
           {/* Bottom Save Action */}
-          <div className="flex items-center justify-end gap-4 pt-2">
+          <div className="flex items-center justify-between gap-4 pt-2">
+            {isInternalStaff ? (
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(true)}
+                className="px-5 py-2.5 rounded-2xl border border-rose-200 dark:border-rose-900/60 bg-rose-50/50 hover:bg-rose-50 text-rose-600 dark:text-rose-400 font-semibold text-xs transition-all flex items-center gap-2 hover:border-rose-300"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+                <span>Delete Account</span>
+              </button>
+            ) : (
+              <div />
+            )}
+
             <button
               type="submit"
               disabled={updateProfileMutation.isPending}
@@ -647,6 +685,21 @@ export default function ProfilePage() {
       <ChangePasswordModal
         isOpen={showPasswordModal}
         handleClose={() => setShowPasswordModal(false)}
+      />
+
+      {/* Delete Account Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={async () => {
+          await deleteAccountMutation.mutateAsync()
+          setShowDeleteModal(false)
+        }}
+        loading={deleteAccountMutation.isPending}
+        title="Delete Account?"
+        subTitle="Requesting account deletion will revoke your login access immediately and notify the Administrator. Deletion will be completed once active clients are reassigned."
+        confirmLabel="Yes, Request Deletion"
+        cancelLabel="Cancel"
       />
     </div>
   )

@@ -54,6 +54,7 @@ const AUTH_ME = '/auth/me'
 const AUTH_UPDATE_PROFILE = '/auth/update_profile'
 const AUTH_CHANGE_PASSWORD = '/auth/change_password'
 const USERS_DELETE = '/users/delete'
+const USERS_DELETE_ACCOUNT = '/users/delete_account'
 const DUPLICATE_DIET_TEMPLATE = '/diet_plan_templates/duplicate'
 const TEMPLATE_CATEGORIES = '/diet_template_categories'
 const NUTRITIONIST_DASHBOARD = '/nutritionist/dashboard'
@@ -118,6 +119,7 @@ const apiUrl: { [key: string]: string } = {
   AUTH_UPDATE_PROFILE,
   AUTH_CHANGE_PASSWORD,
   USERS_DELETE,
+  USERS_DELETE_ACCOUNT,
   DUPLICATE_DIET_TEMPLATE,
   TEMPLATE_CATEGORIES,
   NUTRITIONIST_DASHBOARD,

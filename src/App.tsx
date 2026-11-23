@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 // import WebSocketComponent from './components/app/websocket/index'
 import { useSnackbarManager } from './components/common/snackbar'
+import CommonLoader from './components/common/commonLoader'
 import MainRoutes from './routes/mainRoutes'
 import { useAuthStore } from './store/authStore'
 import { useDomainManageStore } from './store/domainManageStore'
@@ -196,7 +197,9 @@ const App = () => {
   return (
     <div className={`${isDark ? 'dark' : 'light'} ${theme}`}>
       {/* <WebSocketComponent /> */}
-      {<MainRoutes />}
+      <Suspense fallback={<CommonLoader />}>
+        <MainRoutes />
+      </Suspense>
     </div>
   )
 }

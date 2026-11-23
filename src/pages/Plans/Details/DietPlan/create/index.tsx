@@ -12,6 +12,7 @@ import ToggleSwitch from '../../../../../components/common/inputs/ToggleSwitch'
 import { useCreateDietPlan, useDietPlanDetail, useUpdateDietPlan } from '../api'
 import { useEffect, useMemo, useState } from 'react'
 import { useMeals } from '../../../../Meals/api'
+import { useMealTimingList } from '../../../../MealTiming/api'
 import { usePlan } from '../../../api'
 import { AutoComplete } from 'qbs-core'
 import Button from '../../../../../components/common/buttons/Button'
@@ -241,8 +242,10 @@ export default function DietPlanForm({
 
     const mapping: Record<string, number> = {
       'Morning drink': 1,
+      'Morning Drink': 1,
       Breakfast: 2,
       'Mid day meal': 3,
+      'Midday Meal': 3,
       Lunch: 4,
       'Evening snack': 5,
       Dinner: 6,
@@ -457,16 +460,56 @@ export default function DietPlanForm({
     }
   }
 
-  const mealTimeOptions = [
-    { id: 'Morning drink', name: 'Morning drink', value: 'Morning drink' },
-    { id: 'Breakfast', name: 'Breakfast', value: 'Breakfast' },
-    { id: 'Mid day meal', name: 'Mid day meal', value: 'Mid day meal' },
-    { id: 'Lunch', name: 'Lunch', value: 'Lunch' },
-    { id: 'Evening snack', name: 'Evening snack', value: 'Evening snack' },
-    { id: 'Dinner', name: 'Dinner', value: 'Dinner' }, // <-- add this
-    { id: 'Bed time', name: 'Bed time', value: 'Bed time' },
-    { id: 'Midnight snack', name: 'Midnight snack', value: 'Midnight snack' },
-  ]
+  const { data: mealTimingListData } = useMealTimingList({
+    page: 1,
+    page_size: 1000,
+    status: 'active',
+  } as any)
+
+  const mealTimeOptions = useMemo(() => {
+    const items = (mealTimingListData as any)?.meal_timings ?? []
+    const fromApi = Array.isArray(items)
+      ? items
+          .map((mt: any) => {
+            const rawName = mt?.name
+            if (!rawName || typeof rawName !== 'string') return null
+            const trimmed = rawName.trim()
+            if (!trimmed) return null
+            return {
+              id: trimmed,
+              name: trimmed,
+              value: trimmed,
+              time: mt?.time,
+            }
+          })
+          .filter(Boolean)
+      : []
+
+    return fromApi.length > 0
+      ? (fromApi as any[])
+      : [
+          {
+            id: 'Morning Drink',
+            name: 'Morning Drink',
+            value: 'Morning Drink',
+          },
+          { id: 'Breakfast', name: 'Breakfast', value: 'Breakfast' },
+          { id: 'Midday Meal', name: 'Midday Meal', value: 'Midday Meal' },
+          { id: 'Lunch', name: 'Lunch', value: 'Lunch' },
+          {
+            id: 'Evening snack',
+            name: 'Evening snack',
+            value: 'Evening snack',
+          },
+          { id: 'Dinner', name: 'Dinner', value: 'Dinner' },
+          { id: 'Bed time', name: 'Bed time', value: 'Bed time' },
+          {
+            id: 'Midnight snack',
+            name: 'Midnight snack',
+            value: 'Midnight snack',
+          },
+        ]
+  }, [mealTimingListData])
 
   const formFields = [
     {

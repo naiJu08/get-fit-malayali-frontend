@@ -66,6 +66,14 @@ export default function NutritionistDashboardView({
               />
             ))}
           </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5 mt-6">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-40 rounded-2xl bg-gray-200 animate-pulse"
+              />
+            ))}
+          </div>
           <div className="db-grid-2 mt-6">
             {Array.from({ length: 4 }).map((_, i) => (
               <div
@@ -172,6 +180,56 @@ export default function NutritionistDashboardView({
         ? `${fmt(totals.yoga_completions)} yoga sessions completed`
         : `${fmt(totals.diet_item_completions)} meals logged`
 
+  const pendingCounts = data?.pending_counts
+  const pendingTasks = [
+    {
+      title: 'Pending Assessments',
+      value: pendingCounts?.pending_assessment_count,
+      sub: 'Clients awaiting an assessment',
+      gradient: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+      icon: '📋',
+    },
+    {
+      title: 'Pending Diet Assignments',
+      value: pendingCounts?.pending_diet_assignment_count,
+      sub: 'Clients missing one or more subscription days',
+      gradient: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)',
+      icon: '🥗',
+    },
+    {
+      title: 'Pending Workout Assignments',
+      value: pendingCounts?.pending_workout_assignment_count,
+      sub: 'Clients missing one or more subscription days',
+      gradient: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+      icon: '🏋️',
+    },
+    ...(pendingCounts?.pending_yoga_assignment_count !== undefined || isYogist
+      ? [
+          {
+            title: 'Pending Yoga Assignments',
+            value: pendingCounts?.pending_yoga_assignment_count,
+            sub: 'Clients missing one or more subscription days',
+            gradient: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)',
+            icon: '🧘‍♀️',
+          },
+        ]
+      : []),
+    {
+      title: 'Pending Meditation Assignments',
+      value: pendingCounts?.pending_meditation_assignment_count,
+      sub: 'Clients awaiting meditation assignments',
+      gradient: 'linear-gradient(135deg, #7c3aed 0%, #a21caf 100%)',
+      icon: '🧘',
+    },
+    {
+      title: 'Follow-ups Due Today',
+      value: pendingCounts?.follow_ups_due_count,
+      sub: 'Clients with incomplete follow-ups today',
+      gradient: 'linear-gradient(135deg, #ea580c 0%, #e11d48 100%)',
+      icon: '📅',
+    },
+  ]
+
   return (
     <div className="db-root min-h-[120vh]">
       <div className="db-shell min-h-[calc(100vh-64px)]">
@@ -277,6 +335,18 @@ export default function NutritionistDashboardView({
             badge={totalAlerts > 0 ? `${totalAlerts} Attention` : 'All Clear'}
           />
         </div>
+
+        <section className="" aria-labelledby="pending-client-tasks-title">
+          <div
+            className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${
+              pendingTasks.length > 5 ? 'xl:grid-cols-6' : 'xl:grid-cols-5'
+            } mt-4`}
+          >
+            {pendingTasks.map(({ value, ...task }) => (
+              <StatCard key={task.title} {...task} value={fmt(value)} />
+            ))}
+          </div>
+        </section>
 
         {/* Middle Section: Status & Engagement Analytics */}
         <div className="db-grid-2 mt-6">

@@ -125,8 +125,12 @@ export default function AssignedClients() {
         field: 'anticipated_package',
         customCell: true,
         renderCell: (row: any) => ({
-          cell: row.anticipated_package?.plan?.name || 'Not proposed',
-          toolTip: row.anticipated_package?.plan?.name || '',
+          cell: (
+            <span className="block max-w-[240px] truncate">
+              {row.anticipated_package_names || 'Not proposed'}
+            </span>
+          ),
+          toolTip: row.anticipated_package_names || '',
         }),
         isVisible: true,
       },

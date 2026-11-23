@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { getData, postData } from '../../apis/api.helpers'
 import { parseQueryParams } from '../../utilities/parsers'
+import { groupAssignedClients } from './groupClients'
 
 const list = (params: Record<string, any> = {}) =>
   getData('/assigned_clients' + parseQueryParams(params))
@@ -10,13 +11,41 @@ export const useAssignedClientWorkflow = (
   params: Record<string, any>
 ) =>
   useQuery(
-    ['assigned_client_workflow', role, params],
-    () => list({ ...params, role, status: 'pending' }),
+    ['assigned_client_workflow', role, params.search],
+    async () => {
+      const filters = {
+        search: params.search,
+        role,
+        status: 'pending',
+        per_page: 100,
+      }
+      const firstPage = await list({ ...filters, page: 1 })
+      const assignments = [...(firstPage?.assigned_clients || [])]
+      // Collect every assignment before grouping so clients cannot repeat
+      // across pages or have package names omitted at a page boundary.
+      for (let page = 2; page <= (firstPage?.meta?.total_pages || 1); page++) {
+        const response = await list({ ...filters, page })
+        assignments.push(...(response?.assigned_clients || []))
+      }
+      return groupAssignedClients(assignments)
+    },
     {
-      select: (data: any) => ({
-        items: data?.assigned_clients || [],
-        meta: data?.meta || {},
-      }),
+      select: (clients: any[]) => {
+        const totalPages = Math.max(
+          1,
+          Math.ceil(clients.length / params.per_page)
+        )
+        const currentPage = Math.min(params.page, totalPages)
+        const offset = (currentPage - 1) * params.per_page
+        return {
+          items: clients.slice(offset, offset + params.per_page),
+          meta: {
+            current_page: currentPage,
+            total_count: clients.length,
+            total_pages: totalPages,
+          },
+        }
+      },
     }
   )
 

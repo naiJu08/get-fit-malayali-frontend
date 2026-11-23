@@ -358,6 +358,14 @@ export type StaffInfo = {
 
 export type StaffDashboardResponse = {
   generated_at?: string
+  pending_counts?: {
+    pending_assessment_count?: number
+    pending_diet_assignment_count?: number
+    pending_workout_assignment_count?: number
+    pending_yoga_assignment_count?: number
+    pending_meditation_assignment_count?: number
+    follow_ups_due_count?: number
+  }
   date_info?: {
     target_date?: string
     range_days?: number

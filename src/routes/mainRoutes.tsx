@@ -120,6 +120,8 @@ const PublicLeadConfirmation = lazy(
 const PublicClientRegistration = lazy(
   () => import('../pages/Sales/PublicClientRegistration')
 )
+const PrivacyPolicy = lazy(() => import('../pages/PrivacyPolicy'))
+const TermsAndConditions = lazy(() => import('../pages/TermsAndConditions'))
 
 const AssessmentCategoryDetails = lazy(
   () => import('../pages/AssessmentCategory/Details')
@@ -457,6 +459,8 @@ export default function MainRoutes() {
         element={<PublicClientRegistration />}
         path="/public/client-registration/:token"
       />
+      <Route element={<PrivacyPolicy />} path="/privacy-policy" />
+      <Route element={<TermsAndConditions />} path="/terms-and-conditions" />
       <Route
         element={
           <UserRoute slug_key="ADMIN_USER">

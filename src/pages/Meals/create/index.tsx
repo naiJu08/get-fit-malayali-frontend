@@ -90,13 +90,14 @@ export default function CreateMeal({
     return fromApi.length > 0
       ? (fromApi as any[])
       : [
-          { id: 'Morning drink', name: 'Morning drink' },
+          { id: 'Morning Drink', name: 'Morning Drink' },
           { id: 'Breakfast', name: 'Breakfast' },
-          { id: 'Mid day meal', name: 'Mid day meal' },
+          { id: 'Midday Meal', name: 'Midday Meal' },
           { id: 'Lunch', name: 'Lunch' },
           { id: 'Evening snack', name: 'Evening snack' },
           { id: 'Dinner', name: 'Dinner' },
           { id: 'Bed time', name: 'Bed time' },
+          { id: 'Midnight snack', name: 'Midnight snack' },
         ]
   }, [mealTimingListData])
 
