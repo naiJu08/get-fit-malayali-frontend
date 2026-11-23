@@ -22,9 +22,9 @@ import Button from '../../../../../components/common/buttons/Button'
 import { useSnackbarManager } from '../../../../../components/common/snackbar'
 
 const MEAL_TIME_OPTIONS = [
-  { id: 'Morning drink', name: 'Morning drink', value: 'Morning drink' },
+  { id: 'Morning Drink', name: 'Morning Drink', value: 'Morning Drink' },
   { id: 'Breakfast', name: 'Breakfast', value: 'Breakfast' },
-  { id: 'Mid day meal', name: 'Mid day meal', value: 'Mid day meal' },
+  { id: 'Midday Meal', name: 'Midday Meal', value: 'Midday Meal' },
   { id: 'Lunch', name: 'Lunch', value: 'Lunch' },
   { id: 'Evening snack', name: 'Evening snack', value: 'Evening snack' },
   { id: 'Dinner', name: 'Dinner', value: 'Dinner' },
@@ -54,7 +54,11 @@ const getDayKeys = (
 
 const normalizeMealTime = (value?: string | null) => {
   if (!value) return ''
-  return value.toString().trim().toLowerCase()
+  return value
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
 }
 
 type Props = {
@@ -165,13 +169,15 @@ const DietPlanForm = ({
       ? items
           .map((mt: any) => {
             const rawName = mt?.name
-            const id = mt?.id ?? rawName
             if (!rawName || typeof rawName !== 'string') return null
             const trimmed = rawName.trim()
             if (!trimmed) return null
-            const formattedName =
-              trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
-            return { id, name: formattedName, value: rawName, time: mt?.time }
+            return {
+              id: trimmed,
+              name: trimmed,
+              value: trimmed,
+              time: mt?.time,
+            }
           })
           .filter(Boolean)
       : []
@@ -369,8 +375,10 @@ const DietPlanForm = ({
 
     const mapping: Record<string, number> = {
       'Morning drink': 1,
+      'Morning Drink': 1,
       Breakfast: 2,
       'Mid day meal': 3,
+      'Midday Meal': 3,
       Lunch: 4,
       'Evening snack': 5,
       Dinner: 6,
@@ -689,7 +697,7 @@ const DietPlanForm = ({
   )
 
   const handleMealTimeChange = (option: any) => {
-    const mealTime = option?.id ?? option?.value ?? ''
+    const mealTime = option?.value ?? option?.name ?? option?.id ?? ''
     setValue('meal_time', mealTime, { shouldValidate: true })
 
     const timeFromOption = option?.time
@@ -712,8 +720,10 @@ const DietPlanForm = ({
     if (mealTime) {
       const mapping: Record<string, number> = {
         'Morning drink': 1,
+        'Morning Drink': 1,
         Breakfast: 2,
         'Mid day meal': 3,
+        'Midday Meal': 3,
         Lunch: 4,
         'Evening snack': 5,
         Dinner: 6,

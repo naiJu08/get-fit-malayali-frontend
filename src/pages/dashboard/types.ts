@@ -362,6 +362,7 @@ export type StaffDashboardResponse = {
     pending_assessment_count?: number
     pending_diet_assignment_count?: number
     pending_workout_assignment_count?: number
+    pending_yoga_assignment_count?: number
     pending_meditation_assignment_count?: number
     follow_ups_due_count?: number
   }

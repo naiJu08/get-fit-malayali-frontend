@@ -4,17 +4,18 @@ import CustomDrawer from '../../../components/common/drawer'
 import Icons from '../../../components/common/icons'
 import { useSnackbarManager } from '../../../components/common/snackbar'
 import { useMeals } from '../../Meals/api'
+import { useMealTimingList } from '../../MealTiming/api'
 import { dietOverridesBulk } from '../api'
 
 const STANDARD_MEAL_TIMES = [
-  'MORNING DRINK',
-  'BREAKFAST',
-  'MID DAY MEAL',
-  'LUNCH',
-  'EVENING SNACK',
-  'DINNER',
-  'BED TIME',
-  'MIDNIGHT SNACK',
+  'Morning Drink',
+  'Breakfast',
+  'Midday Meal',
+  'Lunch',
+  'Evening snack',
+  'Dinner',
+  'Bed time',
+  'Midnight snack',
 ]
 
 interface EditMealItem {
@@ -53,38 +54,32 @@ interface DayDietEditorDrawerProps {
 
 const formatTitle = (str?: string | null) => {
   if (!str) return ''
+  // If it's all uppercase like legacy 'MID DAY MEAL', convert cleanly
+  if (str === str.toUpperCase() && str.toLowerCase() !== str.toUpperCase()) {
+    const s = str
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+    if (s === 'middaymeal') return 'Midday Meal'
+    if (s === 'morningdrink') return 'Morning Drink'
+    if (s === 'eveningsnack') return 'Evening snack'
+    if (s === 'bedtime') return 'Bed time'
+    if (s === 'midnightsnack') return 'Midnight snack'
+    return str
+      .toLowerCase()
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+  }
   return str
-    .toLowerCase()
-    .split(' ')
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
 }
 
 const normalizeMealTimeStr = (str?: string | null) => {
   if (!str) return ''
-  const s = str.trim().toLowerCase()
-  if (s === 'evening snack' || s === 'evening snacks' || s === 'snack')
-    return 'EVENING SNACK'
-  if (s === 'morning drink' || s === 'morning drinks') return 'MORNING DRINK'
-  if (s === 'breakfast') return 'BREAKFAST'
-  if (s === 'mid day meal' || s === 'mid-day meal' || s === 'midday meal')
-    return 'MID DAY MEAL'
-  if (s === 'lunch') return 'LUNCH'
-  if (s === 'dinner') return 'DINNER'
-  if (
-    s === 'bed time' ||
-    s === 'bedtime' ||
-    s === 'bed drink' ||
-    s === 'bed drinks'
-  )
-    return 'BED TIME'
-  if (
-    s === 'midnight snack' ||
-    s === 'midnight snacks' ||
-    s === 'midnightsnack'
-  )
-    return 'MIDNIGHT SNACK'
-  return str.trim().toUpperCase()
+  return str
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
 }
 
 export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
@@ -102,6 +97,12 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
   const [mealSearchQuery, setMealSearchQuery] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showMealTimePicker, setShowMealTimePicker] = useState(false)
+
+  const { data: mealTimingListData } = useMealTimingList({
+    page: 1,
+    page_size: 1000,
+    status: 'active',
+  } as any)
 
   const activeMealTime =
     activeAddMealIndex !== null
@@ -185,7 +186,7 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
 
       const initialPlans: EditDietPlan[] = sortedDietPlans.map((dp: any) => ({
         id: dp.id,
-        meal_time: dp.meal_time?.toUpperCase?.() || 'MEAL',
+        meal_time: dp.meal_time || 'Meal',
         meal_time_time: dp.meal_time_time || '',
         meal_name: dp.meal_name || '',
         notes: dp.notes || '',
@@ -343,7 +344,12 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
 
   // Add a new meal time section
   const handleAddMealSection = (mealTime: string) => {
-    if (plans.some((p) => p.meal_time === mealTime)) {
+    if (
+      plans.some(
+        (p) =>
+          normalizeMealTimeStr(p.meal_time) === normalizeMealTimeStr(mealTime)
+      )
+    ) {
       enqueueSnackbar(`${formatTitle(mealTime)} already exists for this day`, {
         variant: 'info',
       })
@@ -413,9 +419,19 @@ export const DayDietEditorDrawer: FC<DayDietEditorDrawerProps> = ({
   }
 
   const availableMealTimesToAdd = useMemo(() => {
-    const currentMealTimes = new Set(plans.map((p) => p.meal_time))
-    return STANDARD_MEAL_TIMES.filter((mt) => !currentMealTimes.has(mt))
-  }, [plans])
+    const currentMealTimes = new Set(
+      plans.map((p) => normalizeMealTimeStr(p.meal_time))
+    )
+    const items = (mealTimingListData as any)?.meal_timings
+    const dynamicNames: string[] = Array.isArray(items)
+      ? items.map((mt: any) => mt?.name).filter(Boolean)
+      : []
+    const allTimingNames =
+      dynamicNames.length > 0 ? dynamicNames : STANDARD_MEAL_TIMES
+    return allTimingNames.filter(
+      (mt) => !currentMealTimes.has(normalizeMealTimeStr(mt))
+    )
+  }, [plans, mealTimingListData])
 
   const filteredSearchMeals = useMemo(() => {
     let list = allMeals

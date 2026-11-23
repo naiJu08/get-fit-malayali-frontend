@@ -203,6 +203,17 @@ export default function NutritionistDashboardView({
       gradient: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
       icon: '🏋️',
     },
+    ...(pendingCounts?.pending_yoga_assignment_count !== undefined || isYogist
+      ? [
+          {
+            title: 'Pending Yoga Assignments',
+            value: pendingCounts?.pending_yoga_assignment_count,
+            sub: 'Clients missing one or more subscription days',
+            gradient: 'linear-gradient(135deg, #0d9488 0%, #059669 100%)',
+            icon: '🧘‍♀️',
+          },
+        ]
+      : []),
     {
       title: 'Pending Meditation Assignments',
       value: pendingCounts?.pending_meditation_assignment_count,
@@ -326,7 +337,11 @@ export default function NutritionistDashboardView({
         </div>
 
         <section className="" aria-labelledby="pending-client-tasks-title">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5 mt-4">
+          <div
+            className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 ${
+              pendingTasks.length > 5 ? 'xl:grid-cols-6' : 'xl:grid-cols-5'
+            } mt-4`}
+          >
             {pendingTasks.map(({ value, ...task }) => (
               <StatCard key={task.title} {...task} value={fmt(value)} />
             ))}
